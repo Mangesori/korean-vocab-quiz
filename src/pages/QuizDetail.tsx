@@ -25,6 +25,7 @@ import {
   RefreshCw,
   Copy,
   Link2,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
@@ -152,6 +153,10 @@ export default function QuizDetail() {
   const [shareUrl, setShareUrl] = useState<string>("");
   const [allowAnonymous, setAllowAnonymous] = useState(true);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  
+  // Title editing states
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
 
   useEffect(() => {
     if (user && id) {
@@ -201,6 +206,17 @@ export default function QuizDetail() {
     }
 
     const quizData = data as any;
+    
+    // Sort problems to match the original word list order
+    if (quizData.problems && quizData.words) {
+      const sortedProblems = quizData.problems.sort((a: Problem, b: Problem) => {
+        const indexA = quizData.words.indexOf(a.word);
+        const indexB = quizData.words.indexOf(b.word);
+        return indexA - indexB;
+      });
+      quizData.problems = sortedProblems;
+    }
+    
     setQuiz(quizData);
     setEditedProblems(quizData.problems);
     setIsLoading(false);
@@ -239,6 +255,26 @@ export default function QuizDetail() {
       toast.error("저장에 실패했습니다");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleTitleSave = async () => {
+    if (!quiz || !editedTitle.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from("quizzes")
+        .update({ title: editedTitle.trim() })
+        .eq("id", quiz.id);
+
+      if (error) throw error;
+
+      setQuiz({ ...quiz, title: editedTitle.trim() });
+      setIsEditingTitle(false);
+      toast.success("퀴즈 제목이 수정되었습니다");
+    } catch (error) {
+      console.error("Title update error:", error);
+      toast.error("제목 수정에 실패했습니다");
     }
   };
 
@@ -499,13 +535,57 @@ export default function QuizDetail() {
         </Button>
 
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{quiz.title}</h1>
+          <div className="flex-1">
+            {isEditingTitle ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  className="text-2xl sm:text-3xl font-bold h-auto py-2"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleTitleSave();
+                    } else if (e.key === 'Escape') {
+                      setIsEditingTitle(false);
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  onClick={handleTitleSave}
+                  disabled={!editedTitle.trim()}
+                >
+                  저장
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsEditingTitle(false)}
+                >
+                  취소
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 group">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{quiz.title}</h1>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setEditedTitle(quiz.title);
+                    setIsEditingTitle(true);
+                  }}
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2">
               <LevelBadge level={quiz.difficulty} />
               <span className="text-muted-foreground flex items-center gap-1 text-sm">
                 <FileText className="w-4 h-4" />
-                {quiz.problems.length}개 문제
+                {quiz.words.length}개 단어 · {Math.ceil(quiz.words.length / quiz.words_per_set)}세트
               </span>
               {quiz.timer_enabled && quiz.timer_seconds && (
                 <span className="text-muted-foreground flex items-center gap-1 text-sm">
