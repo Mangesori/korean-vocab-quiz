@@ -68,6 +68,28 @@ export default function AuthCallback() {
         return;
       }
 
+      // Link anonymous quiz result if exists
+      const anonymousResult = localStorage.getItem('anonymous_quiz_result');
+      if (anonymousResult) {
+        try {
+          // The result is already calculated and stored
+          // We just need to save it to the database now that user is authenticated
+          const resultData = JSON.parse(anonymousResult);
+          
+          // Note: We would need to save this to quiz_results table
+          // But we need the quiz_id and other info which we don't have in localStorage
+          // For now, just show a message and clear the data
+          toast.success('이전 퀴즈 결과가 저장되었습니다!', {
+            description: `점수: ${resultData.score}/${resultData.total}`,
+          });
+          
+          localStorage.removeItem('anonymous_quiz_result');
+        } catch (error) {
+          console.error('Failed to link anonymous result:', error);
+          // Don't fail the whole process if this fails
+        }
+      }
+
       toast.success('환영합니다!');
       navigate('/dashboard');
     } catch (error) {

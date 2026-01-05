@@ -23,6 +23,8 @@ import {
   Save,
   Volume2,
   RefreshCw,
+  Copy,
+  Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
@@ -41,6 +43,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { nanoid } from "nanoid";
 
 interface Problem {
   id: string;
@@ -143,6 +147,11 @@ export default function QuizDetail() {
   const [hasAudio, setHasAudio] = useState<boolean | null>(null);
   const [regeneratingProblemId, setRegeneratingProblemId] = useState<string | null>(null);
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
+  
+  // Link sharing states
+  const [shareUrl, setShareUrl] = useState<string>("");
+  const [allowAnonymous, setAllowAnonymous] = useState(true);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   useEffect(() => {
     if (user && id) {
@@ -151,6 +160,13 @@ export default function QuizDetail() {
       checkAudioStatus();
     }
   }, [user, id]);
+
+  // Reset share URL when dialog closes
+  useEffect(() => {
+    if (!sendDialogOpen) {
+      setShareUrl("");
+    }
+  }, [sendDialogOpen]);
 
   const checkAudioStatus = async () => {
     const { data } = await supabase
@@ -428,6 +444,39 @@ export default function QuizDetail() {
     }
   };
 
+  const generateShareLink = async () => {
+    if (!quiz) return;
+
+    setIsGeneratingLink(true);
+
+    try {
+      const shareToken = nanoid(12);
+      
+      const { error } = await supabase.from("quiz_shares").insert({
+        quiz_id: quiz.id,
+        share_token: shareToken,
+        created_by: user?.id,
+        allow_anonymous: allowAnonymous,
+      });
+
+      if (error) throw error;
+
+      const url = `${window.location.origin}/quiz/share/${shareToken}`;
+      setShareUrl(url);
+      toast.success("공유 링크가 생성되었습니다!");
+    } catch (error) {
+      console.error("Share link error:", error);
+      toast.error("링크 생성에 실패했습니다");
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("링크가 복사되었습니다");
+  };
+
   if (loading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -477,47 +526,107 @@ export default function QuizDetail() {
                   <Send className="w-4 h-4 mr-2" /> <span className="whitespace-nowrap">퀴즈 보내기</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>퀴즈 보내기</DialogTitle>
-                  <DialogDescription>퀴즈를 보낼 클래스를 선택하세요</DialogDescription>
+                  <DialogDescription>클래스에 할당하거나 링크로 공유하세요</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  {classes.length === 0 ? (
-                    <div className="text-center py-4">
-                      <p className="text-muted-foreground mb-4">아직 생성된 클래스가 없습니다</p>
-                      <Link to="/classes">
-                        <Button variant="outline">클래스 만들기</Button>
-                      </Link>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        <Label>클래스 선택</Label>
-                        <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="클래스를 선택하세요" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {classes.map((cls) => (
-                              <SelectItem key={cls.id} value={cls.id}>
-                                {cls.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                
+                <Tabs defaultValue="class" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="class">클래스에 할당</TabsTrigger>
+                    <TabsTrigger value="share">링크 공유</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="class" className="space-y-4">
+                    {classes.length === 0 ? (
+                      <div className="text-center py-4">
+                        <p className="text-muted-foreground mb-4">아직 생성된 클래스가 없습니다</p>
+                        <Link to="/classes">
+                          <Button variant="outline">클래스 만들기</Button>
+                        </Link>
                       </div>
-                      <Button className="w-full" onClick={handleSendQuiz} disabled={!selectedClassId || isSending}>
-                        {isSending ? (
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <Label>클래스 선택</Label>
+                          <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="클래스를 선택하세요" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {classes.map((cls) => (
+                                <SelectItem key={cls.id} value={cls.id}>
+                                  {cls.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button className="w-full" onClick={handleSendQuiz} disabled={!selectedClassId || isSending}>
+                          {isSending ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <Send className="w-4 h-4 mr-2" />
+                          )}
+                          보내기
+                        </Button>
+                      </>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="share" className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="anonymous">익명 응시 허용</Label>
+                        <Switch
+                          id="anonymous"
+                          checked={allowAnonymous}
+                          onCheckedChange={setAllowAnonymous}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        비회원도 퀴즈를 풀 수 있습니다
+                      </p>
+                    </div>
+                    
+                    {!shareUrl ? (
+                      <Button 
+                        className="w-full" 
+                        onClick={generateShareLink}
+                        disabled={isGeneratingLink}
+                      >
+                        {isGeneratingLink ? (
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         ) : (
-                          <Send className="w-4 h-4 mr-2" />
+                          <Link2 className="w-4 h-4 mr-2" />
                         )}
-                        보내기
+                        링크 생성
                       </Button>
-                    </>
-                  )}
-                </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label>공유 링크</Label>
+                        <div className="flex gap-2">
+                          <Input 
+                            value={shareUrl} 
+                            readOnly 
+                            className="font-mono text-xs"
+                          />
+                          <Button 
+                            size="icon" 
+                            variant="outline"
+                            onClick={copyToClipboard}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          이 링크를 공유하면 누구나 퀴즈를 풀 수 있습니다
+                        </p>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </DialogContent>
             </Dialog>
 

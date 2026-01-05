@@ -1,15 +1,16 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Clock, Eye, EyeOff, ChevronRight, ChevronLeft, CheckCircle, Lightbulb, Volume2 } from "lucide-react";
+import { Loader2, Clock, Eye, EyeOff, ChevronRight, ChevronLeft, CheckCircle, Lightbulb, Volume2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { LevelBadge } from "@/components/ui/level-badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Problem {
   id: string;
@@ -75,12 +76,15 @@ export default function QuizTake() {
   const [wordsPerSet, setWordsPerSet] = useState(5);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [searchParams] = useSearchParams();
+  const shareToken = searchParams.get('share');
+  const isAnonymous = !!shareToken && !user;
 
   useEffect(() => {
-    if (user && id) {
+    if ((user || shareToken) && id) {
       fetchQuiz();
     }
-  }, [user, id]);
+  }, [user, shareToken, id]);
 
   useEffect(() => {
     if (quiz?.timer_enabled && quiz.timer_seconds && timeLeft === null) {
@@ -107,39 +111,79 @@ export default function QuizTake() {
 
   const fetchQuiz = async () => {
     try {
-      // 학생용 함수 사용 - 정답이 제거된 퀴즈 데이터 반환
-      const { data, error } = await supabase.rpc("get_quiz_for_student", {
-        _quiz_id: id,
-      });
+      let quizData: Quiz;
 
-      if (error) {
-        console.error("Quiz fetch error:", error);
-        toast.error("퀴즈를 불러올 수 없습니다");
-        navigate("/dashboard");
-        return;
+      if (isAnonymous && shareToken) {
+        // Anonymous users: load quiz directly
+        const { data: quiz, error: quizError } = await supabase
+          .from("quizzes")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (quizError || !quiz) {
+          console.error("Quiz fetch error:", quizError);
+          toast.error("퀴즈를 불러올 수 없습니다");
+          navigate("/");
+          return;
+        }
+
+        // Problems are already in the quiz.problems JSONB field
+        // Remove answers for security
+        const problemsWithoutAnswers = ((quiz.problems as any[]) || []).map((p: any) => ({
+          id: p.id,
+          word: p.word,
+          sentence: p.sentence,
+          hint: p.hint,
+          translation: p.translation,
+          sentence_audio_url: p.sentence_audio_url,
+        }));
+
+        quizData = {
+          ...quiz,
+          problems: problemsWithoutAnswers,
+        } as Quiz;
+      } else {
+        // Authenticated users: use RPC function
+        const { data, error } = await supabase.rpc("get_quiz_for_student", {
+          _quiz_id: id,
+        });
+
+        if (error) {
+          console.error("Quiz fetch error:", error);
+          toast.error("퀴즈를 불러올 수 없습니다");
+          navigate("/dashboard");
+          return;
+        }
+
+        quizData = data as unknown as Quiz;
       }
 
       // Shuffle problems
-      const quizData = data as unknown as Quiz;
       const shuffled = [...quizData.problems].sort(() => Math.random() - 0.5);
       
-      // quiz_problems 테이블에서 audio URL 가져오기
-      const { data: problemsData } = await supabase
-        .from("quiz_problems")
-        .select("problem_id, sentence_audio_url")
-        .eq("quiz_id", id);
+      // quiz_problems 테이블에서 audio URL 가져오기 (if not already loaded)
+      if (!isAnonymous) {
+        const { data: problemsData } = await supabase
+          .from("quiz_problems")
+          .select("problem_id, sentence_audio_url")
+          .eq("quiz_id", id);
+        
+        // audio URL을 문제에 매핑
+        const audioMap = new Map(
+          problemsData?.map(p => [p.problem_id, p.sentence_audio_url]) || []
+        );
+        
+        const problemsWithAudio = shuffled.map(problem => ({
+          ...problem,
+          sentence_audio_url: audioMap.get(problem.id) || problem.sentence_audio_url,
+        }));
+        
+        setQuiz({ ...quizData, problems: problemsWithAudio });
+      } else {
+        setQuiz({ ...quizData, problems: shuffled });
+      }
       
-      // audio URL을 문제에 매핑
-      const audioMap = new Map(
-        problemsData?.map(p => [p.problem_id, p.sentence_audio_url]) || []
-      );
-      
-      const problemsWithAudio = shuffled.map(problem => ({
-        ...problem,
-        sentence_audio_url: audioMap.get(problem.id) || undefined,
-      }));
-      
-      setQuiz({ ...quizData, problems: problemsWithAudio });
       setWordsPerSet(quizData.words_per_set || 5);
       setIsLoading(false);
     } catch (err) {
@@ -225,7 +269,68 @@ export default function QuizTake() {
   };
 
   const handleSubmit = useCallback(async () => {
-    if (!quiz || !user || isSubmitting) return;
+    if (!quiz || isSubmitting) return;
+    
+    // Anonymous users: calculate score locally and show result page
+    if (isAnonymous && !user) {
+      setIsSubmitting(true);
+
+      try {
+        // Load full quiz data with answers for scoring
+        const { data: fullQuiz, error } = await supabase
+          .from("quizzes")
+          .select("problems")
+          .eq("id", quiz.id)
+          .single();
+
+        if (error || !fullQuiz) {
+          toast.error("결과를 계산할 수 없습니다");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const fullProblems = (fullQuiz.problems as any[]) || [];
+        
+        // Calculate score
+        let correctCount = 0;
+        const detailedAnswers = quiz.problems.map(problem => {
+          const userAnswer = (userAnswers[problem.id] || "").trim();
+          const fullProblem = fullProblems.find((p: any) => p.id === problem.id);
+          const correctAnswer = fullProblem?.answer || "";
+          const isCorrect = userAnswer === correctAnswer;
+          
+          if (isCorrect) correctCount++;
+          
+          return {
+            problemId: problem.id,
+            userAnswer,
+            correctAnswer,
+            isCorrect,
+            sentence: problem.sentence,
+          };
+        });
+
+        // Save result to localStorage
+        const resultData = {
+          quizTitle: quiz.title,
+          score: correctCount,
+          total: quiz.problems.length,
+          answers: detailedAnswers,
+        };
+        
+        localStorage.setItem('anonymous_quiz_result', JSON.stringify(resultData));
+        
+        // Navigate to result page
+        navigate(`/quiz/share/result?token=${shareToken}`);
+      } catch (error) {
+        console.error("Anonymous submit error:", error);
+        toast.error("결과를 저장할 수 없습니다");
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    if (!user) return;
 
     setIsSubmitting(true);
 
@@ -284,7 +389,13 @@ export default function QuizTake() {
     );
   }
 
-  if (!user || role !== "student") {
+  // Allow anonymous users with share token
+  if (!shareToken && !user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Logged in users must be students (unless they have a share token)
+  if (user && role !== "student" && !shareToken) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -368,15 +479,37 @@ export default function QuizTake() {
                           </p>
                         </div>
                         <div className="flex gap-1 shrink-0">
-                          {problem.sentence_audio_url && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => playAudio(problem.sentence_audio_url!, problem.id)}
-                            >
-                              <Volume2 className={`w-4 h-4 ${playingAudio === problem.id ? "text-primary animate-pulse" : ""}`} />
-                            </Button>
-                          )}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (isAnonymous) {
+                                      toast.info("회원가입하고 듣기 기능을 사용하세요!", {
+                                        description: "회원은 모든 문장을 음성으로 들을 수 있습니다.",
+                                      });
+                                    } else if (problem.sentence_audio_url) {
+                                      playAudio(problem.sentence_audio_url, problem.id);
+                                    }
+                                  }}
+                                  className={isAnonymous ? "opacity-60" : ""}
+                                >
+                                  {isAnonymous ? (
+                                    <Lock className="w-4 h-4" />
+                                  ) : (
+                                    <Volume2 className={`w-4 h-4 ${playingAudio === problem.id ? "text-primary animate-pulse" : ""}`} />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              {isAnonymous && (
+                                <TooltipContent>
+                                  <p>회원 전용 기능</p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
                           <Button
                             variant="outline"
                             size="sm"
@@ -423,16 +556,43 @@ export default function QuizTake() {
                           ))}
                         </div>
                         <div className="flex gap-2 shrink-0">
-                          {problem.sentence_audio_url && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => playAudio(problem.sentence_audio_url!, problem.id)}
-                            >
-                              <Volume2 className={`w-4 h-4 mr-1 ${playingAudio === problem.id ? "text-primary animate-pulse" : ""}`} />
-                              듣기
-                            </Button>
-                          )}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (isAnonymous) {
+                                      toast.info("회원가입하고 듣기 기능을 사용하세요!", {
+                                        description: "회원은 모든 문장을 음성으로 들을 수 있습니다.",
+                                      });
+                                    } else if (problem.sentence_audio_url) {
+                                      playAudio(problem.sentence_audio_url, problem.id);
+                                    }
+                                  }}
+                                  className={isAnonymous ? "opacity-60" : ""}
+                                >
+                                  {isAnonymous ? (
+                                    <>
+                                      <Lock className="w-4 h-4 mr-1" />
+                                      듣기
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Volume2 className={`w-4 h-4 mr-1 ${playingAudio === problem.id ? "text-primary animate-pulse" : ""}`} />
+                                      듣기
+                                    </>
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              {isAnonymous && (
+                                <TooltipContent>
+                                  <p>회원 전용 기능</p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
                           <Button
                             variant="outline"
                             size="sm"

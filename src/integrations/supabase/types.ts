@@ -107,9 +107,9 @@ export type Database = {
           created_at: string
           from_user_id: string | null
           id: string
+          is_read: boolean
           message: string
           quiz_id: string | null
-          read: boolean
           title: string
           type: Database["public"]["Enums"]["notification_type"]
           user_id: string
@@ -118,9 +118,9 @@ export type Database = {
           created_at?: string
           from_user_id?: string | null
           id?: string
+          is_read?: boolean
           message: string
           quiz_id?: string | null
-          read?: boolean
           title: string
           type: Database["public"]["Enums"]["notification_type"]
           user_id: string
@@ -129,9 +129,9 @@ export type Database = {
           created_at?: string
           from_user_id?: string | null
           id?: string
+          is_read?: boolean
           message?: string
           quiz_id?: string | null
-          read?: boolean
           title?: string
           type?: Database["public"]["Enums"]["notification_type"]
           user_id?: string
@@ -236,21 +236,24 @@ export type Database = {
       quiz_assignments: {
         Row: {
           assigned_at: string
-          class_id: string
+          class_id: string | null
           id: string
           quiz_id: string
+          student_id: string | null
         }
         Insert: {
           assigned_at?: string
-          class_id: string
+          class_id?: string | null
           id?: string
           quiz_id: string
+          student_id?: string | null
         }
         Update: {
           assigned_at?: string
-          class_id?: string
+          class_id?: string | null
           id?: string
           quiz_id?: string
+          student_id?: string | null
         }
         Relationships: [
           {
@@ -318,31 +321,40 @@ export type Database = {
       }
       quiz_results: {
         Row: {
+          anonymous_name: string | null
           answers: Json
           completed_at: string
           id: string
+          is_anonymous: boolean
           quiz_id: string
           score: number
+          share_token: string | null
           student_id: string
-          time_spent_seconds: number | null
+          total_questions: number
         }
         Insert: {
-          answers: Json
-          completed_at?: string
-          id?: string
-          quiz_id: string
-          score: number
-          student_id: string
-          time_spent_seconds?: number | null
-        }
-        Update: {
+          anonymous_name?: string | null
           answers?: Json
           completed_at?: string
           id?: string
+          is_anonymous?: boolean
+          quiz_id: string
+          score: number
+          share_token?: string | null
+          student_id: string
+          total_questions: number
+        }
+        Update: {
+          anonymous_name?: string | null
+          answers?: Json
+          completed_at?: string
+          id?: string
+          is_anonymous?: boolean
           quiz_id?: string
           score?: number
+          share_token?: string | null
           student_id?: string
-          time_spent_seconds?: number | null
+          total_questions?: number
         }
         Relationships: [
           {
@@ -351,6 +363,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "quizzes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_results_share_token_fkey"
+            columns: ["share_token"]
+            isOneToOne: false
+            referencedRelation: "quiz_shares"
+            referencedColumns: ["share_token"]
           },
           {
             foreignKeyName: "quiz_results_student_id_fkey"
@@ -368,6 +387,64 @@ export type Database = {
           },
         ]
       }
+      quiz_shares: {
+        Row: {
+          allow_anonymous: boolean
+          completion_count: number
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          quiz_id: string
+          share_token: string
+          view_count: number
+        }
+        Insert: {
+          allow_anonymous?: boolean
+          completion_count?: number
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          quiz_id: string
+          share_token: string
+          view_count?: number
+        }
+        Update: {
+          allow_anonymous?: boolean
+          completion_count?: number
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          quiz_id?: string
+          share_token?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_shares_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "quiz_shares_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_with_email"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "quiz_shares_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quizzes: {
         Row: {
           created_at: string
@@ -379,19 +456,21 @@ export type Database = {
           timer_seconds: number | null
           title: string
           translation_language: Database["public"]["Enums"]["translation_language"]
+          updated_at: string
           words: string[]
           words_per_set: number
         }
         Insert: {
           created_at?: string
-          difficulty: Database["public"]["Enums"]["difficulty_level"]
+          difficulty?: Database["public"]["Enums"]["difficulty_level"]
           id?: string
-          problems: Json
+          problems?: Json
           teacher_id: string
           timer_enabled?: boolean
           timer_seconds?: number | null
           title: string
-          translation_language: Database["public"]["Enums"]["translation_language"]
+          translation_language?: Database["public"]["Enums"]["translation_language"]
+          updated_at?: string
           words: string[]
           words_per_set?: number
         }
@@ -405,6 +484,7 @@ export type Database = {
           timer_seconds?: number | null
           title?: string
           translation_language?: Database["public"]["Enums"]["translation_language"]
+          updated_at?: string
           words?: string[]
           words_per_set?: number
         }
@@ -441,7 +521,59 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      generate_invite_code: { Args: never; Returns: string }
+      get_class_by_invite_code: {
+        Args: { _invite_code: string }
+        Returns: {
+          description: string
+          id: string
+          name: string
+        }[]
+      }
+      get_class_with_secure_invite_code: {
+        Args: { _class_id: string }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          invite_code: string
+          name: string
+          teacher_id: string
+          updated_at: string
+        }[]
+      }
+      get_quiz_for_student: { Args: { _quiz_id: string }; Returns: Json }
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_class_member: {
+        Args: { _class_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_class_teacher: {
+        Args: { _class_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_quiz_assigned_to_student: {
+        Args: { _quiz_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_quiz_owner: {
+        Args: { _quiz_id: string; _user_id: string }
+        Returns: boolean
+      }
+      submit_quiz_answers: {
+        Args: { _quiz_id: string; _student_answers: Json }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "teacher" | "student" | "admin"
@@ -466,21 +598,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database["public"]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -498,14 +634,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -521,14 +659,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -544,16 +684,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof Database
+  schema: keyof DatabaseWithoutInternals
 }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -561,16 +701,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof Database
+  schema: keyof DatabaseWithoutInternals
 }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never

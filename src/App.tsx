@@ -17,6 +17,8 @@ import QuizResult from "./pages/QuizResult";
 import Quizzes from "./pages/Quizzes";
 import Classes from "./pages/Classes";
 import ClassDetail from "./pages/ClassDetail";
+import QuizShare from "./pages/QuizShare";
+import QuizShareResult from "./pages/QuizShareResult";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +44,8 @@ const App = () => (
             <Route path="/quiz/:id/result/:resultId" element={<QuizResult />} />
             <Route path="/classes" element={<Classes />} />
             <Route path="/class/:id" element={<ClassDetail />} />
+            <Route path="/quiz/share/:token" element={<QuizShare />} />
+            <Route path="/quiz/share/result" element={<QuizShareResult />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
