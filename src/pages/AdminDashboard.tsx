@@ -1,0 +1,350 @@
+import { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
+import { Users, GraduationCap, BookOpen, Shield, Search, RefreshCw } from 'lucide-react';
+
+interface UserWithRole {
+  user_id: string;
+  role: 'admin' | 'teacher' | 'student';
+  created_at: string;
+  profile: {
+    name: string;
+  } | null;
+}
+
+interface Stats {
+  totalUsers: number;
+  admins: number;
+  teachers: number;
+  students: number;
+  totalClasses: number;
+  totalQuizzes: number;
+}
+
+export default function AdminDashboard() {
+  const { user, role, loading } = useAuth();
+  const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    totalUsers: 0,
+    admins: 0,
+    teachers: 0,
+    students: 0,
+    totalClasses: 0,
+    totalQuizzes: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user && role === 'admin') {
+      fetchData();
+    }
+  }, [user, role]);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch all users with roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select(`
+          user_id,
+          role,
+          created_at
+        `)
+        .order('created_at', { ascending: false });
+
+      if (rolesError) throw rolesError;
+
+      // Fetch profiles separately
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, name');
+
+      if (profilesError) throw profilesError;
+
+      // Combine data
+      const usersWithProfiles = rolesData?.map(r => ({
+        ...r,
+        role: r.role as 'admin' | 'teacher' | 'student',
+        profile: profilesData?.find(p => p.user_id === r.user_id) || null
+      })) || [];
+
+      setUsers(usersWithProfiles);
+
+      // Calculate stats
+      const admins = usersWithProfiles.filter(u => u.role === 'admin').length;
+      const teachers = usersWithProfiles.filter(u => u.role === 'teacher').length;
+      const students = usersWithProfiles.filter(u => u.role === 'student').length;
+
+      // Fetch class and quiz counts
+      const { count: classCount } = await supabase
+        .from('classes')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: quizCount } = await supabase
+        .from('quizzes')
+        .select('*', { count: 'exact', head: true });
+
+      setStats({
+        totalUsers: usersWithProfiles.length,
+        admins,
+        teachers,
+        students,
+        totalClasses: classCount || 0,
+        totalQuizzes: quizCount || 0,
+      });
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('데이터를 불러오는데 실패했습니다');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRoleChange = async (userId: string, newRole: 'admin' | 'teacher' | 'student') => {
+    if (userId === user?.id) {
+      toast.error('자신의 역할은 변경할 수 없습니다');
+      return;
+    }
+
+    setUpdatingUserId(userId);
+    try {
+      const { error } = await supabase
+        .from('user_roles')
+        .update({ role: newRole })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.map(u => 
+        u.user_id === userId ? { ...u, role: newRole } : u
+      ));
+
+      // Update stats
+      setStats(prev => {
+        const oldUser = users.find(u => u.user_id === userId);
+        if (!oldUser) return prev;
+
+        const newStats = { ...prev };
+        if (oldUser.role === 'admin') newStats.admins--;
+        else if (oldUser.role === 'teacher') newStats.teachers--;
+        else newStats.students--;
+
+        if (newRole === 'admin') newStats.admins++;
+        else if (newRole === 'teacher') newStats.teachers++;
+        else newStats.students++;
+
+        return newStats;
+      });
+
+      toast.success('역할이 변경되었습니다');
+    } catch (error) {
+      console.error('Error updating role:', error);
+      toast.error('역할 변경에 실패했습니다');
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return <Badge variant="destructive" className="gap-1"><Shield className="h-3 w-3" />관리자</Badge>;
+      case 'teacher':
+        return <Badge variant="default" className="gap-1"><GraduationCap className="h-3 w-3" />선생님</Badge>;
+      case 'student':
+        return <Badge variant="secondary" className="gap-1"><Users className="h-3 w-3" />학생</Badge>;
+      default:
+        return <Badge variant="outline">{role}</Badge>;
+    }
+  };
+
+  const filteredUsers = users.filter(u => 
+    u.profile?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.user_id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (!user || role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return (
+    <AppLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Shield className="h-8 w-8 text-destructive" />
+            관리자 대시보드
+          </h1>
+          <p className="text-muted-foreground">
+            시스템 전체 사용자와 콘텐츠를 관리합니다
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">전체 사용자</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalUsers}</div>
+              <p className="text-xs text-muted-foreground">
+                관리자 {stats.admins} · 선생님 {stats.teachers} · 학생 {stats.students}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">선생님</CardTitle>
+              <GraduationCap className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.teachers}</div>
+              <p className="text-xs text-muted-foreground">퀴즈 생성 가능</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">전체 클래스</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalClasses}</div>
+              <p className="text-xs text-muted-foreground">개설된 클래스</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">전체 퀴즈</CardTitle>
+              <BookOpen className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalQuizzes}</div>
+              <p className="text-xs text-muted-foreground">생성된 퀴즈</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* User Management */}
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle>사용자 관리</CardTitle>
+                <CardDescription>사용자 역할을 확인하고 변경합니다</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="이름 또는 ID 검색..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 w-64"
+                  />
+                </div>
+                <Button variant="outline" size="icon" onClick={fetchData} disabled={isLoading}>
+                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>이름</TableHead>
+                      <TableHead>사용자 ID</TableHead>
+                      <TableHead>현재 역할</TableHead>
+                      <TableHead>가입일</TableHead>
+                      <TableHead className="text-right">역할 변경</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          {searchTerm ? '검색 결과가 없습니다' : '사용자가 없습니다'}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredUsers.map((u) => (
+                        <TableRow key={u.user_id}>
+                          <TableCell className="font-medium">
+                            {u.profile?.name || '(이름 없음)'}
+                            {u.user_id === user?.id && (
+                              <Badge variant="outline" className="ml-2 text-xs">나</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground">
+                            {u.user_id.substring(0, 8)}...
+                          </TableCell>
+                          <TableCell>{getRoleBadge(u.role)}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {new Date(u.created_at).toLocaleDateString('ko-KR')}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {u.user_id === user?.id ? (
+                              <span className="text-xs text-muted-foreground">변경 불가</span>
+                            ) : (
+                              <Select
+                                value={u.role}
+                                onValueChange={(value) => handleRoleChange(u.user_id, value as 'admin' | 'teacher' | 'student')}
+                                disabled={updatingUserId === u.user_id}
+                              >
+                                <SelectTrigger className="w-32">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="admin">관리자</SelectItem>
+                                  <SelectItem value="teacher">선생님</SelectItem>
+                                  <SelectItem value="student">학생</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </AppLayout>
+  );
+}
