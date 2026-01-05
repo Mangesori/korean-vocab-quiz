@@ -55,30 +55,20 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch all users with roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select(`
-          user_id,
-          role,
-          created_at
-        `)
-        .order('created_at', { ascending: false });
-
-      if (rolesError) throw rolesError;
-
-      // Fetch profiles separately
+      // Fetch all users with roles from profiles table
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('user_id, name');
+        .select('user_id, name, role, created_at')
+        .order('created_at', { ascending: false });
 
       if (profilesError) throw profilesError;
 
-      // Combine data
-      const usersWithProfiles = rolesData?.map(r => ({
-        ...r,
-        role: r.role as 'admin' | 'teacher' | 'student',
-        profile: profilesData?.find(p => p.user_id === r.user_id) || null
+      // Map to expected format
+      const usersWithProfiles = profilesData?.map(p => ({
+        user_id: p.user_id,
+        role: p.role as 'admin' | 'teacher' | 'student',
+        created_at: p.created_at,
+        profile: { name: p.name }
       })) || [];
 
       setUsers(usersWithProfiles);
@@ -122,7 +112,7 @@ export default function AdminDashboard() {
     setUpdatingUserId(userId);
     try {
       const { error } = await supabase
-        .from('user_roles')
+        .from('profiles')
         .update({ role: newRole })
         .eq('user_id', userId);
 

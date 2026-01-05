@@ -28,7 +28,7 @@ export default function AuthCallback() {
 
       // Check if user already has a role
       const { data: roleData } = await supabase
-        .from('user_roles')
+        .from('profiles')
         .select('role')
         .eq('user_id', session.user.id)
         .single();
@@ -52,27 +52,17 @@ export default function AuthCallback() {
     setIsLoading(true);
     
     try {
-      // Create profile
+      // Create profile with role in one operation
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
           user_id: userId,
           name: userName || 'User',
-        });
-
-      if (profileError && profileError.code !== '23505') {
-        console.error('Profile error:', profileError);
-      }
-
-      // Create role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userId,
           role: role,
         });
 
-      if (roleError) {
+      if (profileError) {
+        console.error('Profile error:', profileError);
         toast.error('역할 설정 실패');
         setIsLoading(false);
         return;

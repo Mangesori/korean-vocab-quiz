@@ -41,6 +41,20 @@ export type Database = {
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "class_members_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "class_members_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_with_email"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       classes: {
@@ -71,16 +85,31 @@ export type Database = {
           teacher_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "classes_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "classes_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_with_email"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       notifications: {
         Row: {
           created_at: string
           from_user_id: string | null
           id: string
-          is_read: boolean
           message: string
           quiz_id: string | null
+          read: boolean
           title: string
           type: Database["public"]["Enums"]["notification_type"]
           user_id: string
@@ -89,9 +118,9 @@ export type Database = {
           created_at?: string
           from_user_id?: string | null
           id?: string
-          is_read?: boolean
           message: string
           quiz_id?: string | null
+          read?: boolean
           title: string
           type: Database["public"]["Enums"]["notification_type"]
           user_id: string
@@ -100,14 +129,28 @@ export type Database = {
           created_at?: string
           from_user_id?: string | null
           id?: string
-          is_read?: boolean
           message?: string
           quiz_id?: string | null
+          read?: boolean
           title?: string
           type?: Database["public"]["Enums"]["notification_type"]
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notifications_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "notifications_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_with_email"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "notifications_quiz_id_fkey"
             columns: ["quiz_id"]
@@ -115,30 +158,44 @@ export type Database = {
             referencedRelation: "quizzes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_with_email"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
-          id: string
           name: string
+          role: Database["public"]["Enums"]["app_role"]
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
-          id?: string
           name: string
+          role: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
-          id?: string
           name?: string
+          role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id?: string
         }
@@ -179,24 +236,21 @@ export type Database = {
       quiz_assignments: {
         Row: {
           assigned_at: string
-          class_id: string | null
+          class_id: string
           id: string
           quiz_id: string
-          student_id: string | null
         }
         Insert: {
           assigned_at?: string
-          class_id?: string | null
+          class_id: string
           id?: string
           quiz_id: string
-          student_id?: string | null
         }
         Update: {
           assigned_at?: string
-          class_id?: string | null
+          class_id?: string
           id?: string
           quiz_id?: string
-          student_id?: string | null
         }
         Relationships: [
           {
@@ -270,16 +324,16 @@ export type Database = {
           quiz_id: string
           score: number
           student_id: string
-          total_questions: number
+          time_spent_seconds: number | null
         }
         Insert: {
-          answers?: Json
+          answers: Json
           completed_at?: string
           id?: string
           quiz_id: string
           score: number
           student_id: string
-          total_questions: number
+          time_spent_seconds?: number | null
         }
         Update: {
           answers?: Json
@@ -288,7 +342,7 @@ export type Database = {
           quiz_id?: string
           score?: number
           student_id?: string
-          total_questions?: number
+          time_spent_seconds?: number | null
         }
         Relationships: [
           {
@@ -297,6 +351,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "quizzes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_results_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "quiz_results_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_with_email"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -311,21 +379,19 @@ export type Database = {
           timer_seconds: number | null
           title: string
           translation_language: Database["public"]["Enums"]["translation_language"]
-          updated_at: string
           words: string[]
           words_per_set: number
         }
         Insert: {
           created_at?: string
-          difficulty?: Database["public"]["Enums"]["difficulty_level"]
+          difficulty: Database["public"]["Enums"]["difficulty_level"]
           id?: string
-          problems?: Json
+          problems: Json
           teacher_id: string
           timer_enabled?: boolean
           timer_seconds?: number | null
           title: string
-          translation_language?: Database["public"]["Enums"]["translation_language"]
-          updated_at?: string
+          translation_language: Database["public"]["Enums"]["translation_language"]
           words: string[]
           words_per_set?: number
         }
@@ -339,91 +405,43 @@ export type Database = {
           timer_seconds?: number | null
           title?: string
           translation_language?: Database["public"]["Enums"]["translation_language"]
-          updated_at?: string
           words?: string[]
           words_per_set?: number
         }
-        Relationships: []
-      }
-      user_roles: {
-        Row: {
-          created_at: string
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "quizzes_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "quizzes_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles_with_email"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
     }
     Views: {
-      [_ in never]: never
+      user_profiles_with_email: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          name: string | null
+          role: Database["public"]["Enums"]["app_role"] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      generate_invite_code: { Args: never; Returns: string }
-      get_class_by_invite_code: {
-        Args: { _invite_code: string }
-        Returns: {
-          description: string
-          id: string
-          name: string
-        }[]
-      }
-      get_class_with_secure_invite_code: {
-        Args: { _class_id: string }
-        Returns: {
-          created_at: string
-          description: string
-          id: string
-          invite_code: string
-          name: string
-          teacher_id: string
-          updated_at: string
-        }[]
-      }
-      get_quiz_for_student: { Args: { _quiz_id: string }; Returns: Json }
-      get_user_role: {
-        Args: { _user_id: string }
-        Returns: Database["public"]["Enums"]["app_role"]
-      }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_class_member: {
-        Args: { _class_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_class_teacher: {
-        Args: { _class_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_quiz_assigned_to_student: {
-        Args: { _quiz_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_quiz_owner: {
-        Args: { _quiz_id: string; _user_id: string }
-        Returns: boolean
-      }
-      submit_quiz_answers: {
-        Args: { _quiz_id: string; _student_answers: Json }
-        Returns: Json
-      }
+      [_ in never]: never
     }
     Enums: {
       app_role: "teacher" | "student" | "admin"
@@ -448,25 +466,21 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = Database["public"]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -484,16 +498,14 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -509,16 +521,14 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -534,16 +544,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof Database
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -551,16 +561,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof Database
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never

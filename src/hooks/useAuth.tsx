@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserRole = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from('user_roles')
+        .from('profiles')
         .select('role')
         .eq('user_id', userId)
         .single();
@@ -93,31 +93,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (authData.user) {
-        // Create profile
+        // Create profile with role in one operation
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             user_id: authData.user.id,
             name,
+            role: userRole || 'student', // Default to student if no role provided
           });
 
         if (profileError) {
           console.error('Profile creation error:', profileError);
-        }
-
-        // Create role if provided
-        if (userRole) {
-          const { error: roleError } = await supabase
-            .from('user_roles')
-            .insert({
-              user_id: authData.user.id,
-              role: userRole,
-            });
-
-          if (roleError) {
-            console.error('Role creation error:', roleError);
-          }
-
+        } else if (userRole) {
           setRole(userRole);
         }
       }
