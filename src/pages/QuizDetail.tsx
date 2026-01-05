@@ -252,13 +252,14 @@ export default function QuizDetail() {
       }
 
       const audioBlob = await response.blob();
-      const fileName = `${quizId}/${problemId}_sentence.mp3`;
+      const timestamp = Date.now();
+      const fileName = `${quizId}/${problemId}_${timestamp}.mp3`;
       
       const { error: uploadError } = await supabase.storage
         .from('quiz-audio')
         .upload(fileName, audioBlob, {
           contentType: 'audio/mpeg',
-          upsert: true,
+          upsert: false,
         });
 
       if (uploadError) {

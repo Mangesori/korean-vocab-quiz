@@ -13,7 +13,6 @@ export default function Auth() {
   const navigate = useNavigate();
   const { signIn, signUp, signInWithGoogle } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'teacher' | 'student'>('student');
 
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [signupForm, setSignupForm] = useState({ email: '', password: '', name: '' });
@@ -37,13 +36,15 @@ export default function Auth() {
     e.preventDefault();
     setIsLoading(true);
     
-    const { error } = await signUp(signupForm.email, signupForm.password, signupForm.name, selectedRole);
+    // Pass undefined for the role to defer selection to AuthCallback
+    const { error } = await signUp(signupForm.email, signupForm.password, signupForm.name);
     
     if (error) {
       toast.error('회원가입 실패', { description: error.message });
     } else {
-      toast.success('회원가입 성공!', { description: '로그인해주세요.' });
-      navigate('/dashboard');
+      toast.success('회원가입 성공!', { description: '역할을 선택해주세요.' });
+      // Redirect to callback to handle role selection
+      navigate('/auth/callback');
     }
     setIsLoading(false);
   };
