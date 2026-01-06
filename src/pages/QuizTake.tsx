@@ -431,7 +431,7 @@ export default function QuizTake() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="container mx-auto px-4 py-6 max-w-5xl">
         {/* Set Label */}
         <div className="mb-4 text-center">
           <span className="inline-block px-4 py-2 bg-muted rounded-md text-lg font-semibold">
@@ -540,16 +540,16 @@ export default function QuizTake() {
                         <div className="flex-1 flex items-center flex-wrap gap-1">
                           {parts.map((part, partIdx, arr) => (
                             <span key={partIdx} className="inline-flex items-center">
-                              <span className="text-base whitespace-nowrap">{part}</span>
+                              <span className="text-lg whitespace-nowrap">{part}</span>
                               {partIdx < arr.length - 1 && (
                                 <>
                                   <Input
                                     value={userAnswers[problem.id] || ""}
                                     onChange={(e) => handleAnswerChange(problem.id, e.target.value)}
-                                    className="w-48 h-8 mx-1 text-center text-sm inline-block"
+                                    className="w-48 h-9 mx-1 text-center text-base inline-block"
                                     autoComplete="off"
                                   />
-                                  {problem.hint && <span className="text-primary text-sm">{problem.hint}</span>}
+                                  {problem.hint && <span className="text-primary text-base">{problem.hint}</span>}
                                 </>
                               )}
                             </span>

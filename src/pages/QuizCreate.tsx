@@ -44,6 +44,7 @@ export default function QuizCreate() {
   const [wordsPerSet, setWordsPerSet] = useState(5);
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(60);
+  const [apiProvider, setApiProvider] = useState<"openai" | "gemini" | "gemini-pro">("openai");
   const [isGenerating, setIsGenerating] = useState(false);
 
   if (loading) {
@@ -83,6 +84,7 @@ export default function QuizCreate() {
           difficulty,
           translationLanguage,
           wordsPerSet,
+          apiProvider,
         },
       });
 
@@ -94,10 +96,9 @@ export default function QuizCreate() {
         throw new Error(data.error);
       }
 
-      // Shuffle problems randomly
-      const shuffledProblems = [...data.problems].sort(() => Math.random() - 0.5);
-
       // Store quiz data in sessionStorage for the preview page
+      // Keep problems in original order (same as words added) for preview
+      // Shuffling will happen when saving the quiz for students
       sessionStorage.setItem(
         "quizDraft",
         JSON.stringify({
@@ -108,14 +109,17 @@ export default function QuizCreate() {
           wordsPerSet,
           timerEnabled,
           timerSeconds: timerEnabled ? timerSeconds : null,
-          problems: shuffledProblems,
+          apiProvider,
+          problems: data.problems,
         }),
       );
 
       navigate("/quiz/preview");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Quiz generation error:", error);
-      toast.error("퀴즈 생성에 실패했습니다");
+      // Show the specific error message if available
+      const errorMessage = error.message || (error.error && error.error.message) || "퀴즈 생성에 실패했습니다";
+      toast.error(errorMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -281,6 +285,53 @@ export default function QuizCreate() {
                   </p>
                 </div>
               )}
+
+              <div className="space-y-3 mt-6 pt-6 border-t border-border">
+                <Label className="text-base font-semibold">AI 모델 선택</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setApiProvider("openai")}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      apiProvider === "openai"
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border hover:border-border-foreground/20 hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="font-bold text-foreground">OpenAI</div>
+                    <div className="text-xs text-muted-foreground mt-1">GPT-5.2</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">강력함</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setApiProvider("gemini")}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      apiProvider === "gemini"
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border hover:border-border-foreground/20 hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="font-bold text-foreground">Gemini</div>
+                    <div className="text-xs text-muted-foreground mt-1">3 Flash</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">빠름·저렴</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setApiProvider("gemini-pro")}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      apiProvider === "gemini-pro"
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border hover:border-border-foreground/20 hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="font-bold text-foreground">Gemini</div>
+                    <div className="text-xs text-muted-foreground mt-1">3 Pro</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">고성능</div>
+                  </button>
+                </div>
+              </div>
 
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setStep("words")} className="flex-1">

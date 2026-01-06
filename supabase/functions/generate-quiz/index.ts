@@ -12,6 +12,7 @@ interface QuizRequest {
   translationLanguage: string;
   wordsPerSet: number;
   regenerateSingle?: boolean;
+  apiProvider?: "openai" | "gemini" | "gemini-pro";
 }
 
 interface Problem {
@@ -165,30 +166,45 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
 
 4. **word (기본형)는 입력받은 단어 그대로**
 
-5. **answer (정답)**:
-   - 명사: 조사 없이 (예: 정치, 물가, 선생님)
-   - 동사/형용사: hint 포함 완전 활용형 (예: 발견됐어요, 올랐어요, 주요한)
+5. **answer (정답) - 매우 중요!**:
+   - **명사 + 조사**: 조사 반드시 포함! (예: 지구력이, 발굽을, 산악지대로, 망자의)
+     * ✅ 올바른 예: answer: "지구력이", sentence: "( ) 필요해요", hint: "이/가"
+     * ❌ 잘못된 예: answer: "지구력", sentence: "( )이/가 필요해요", hint: "이/가" (조사가 sentence에 있으면 안 됨!)
+     * ✅ 올바른 예: answer: "발굽을", sentence: "( ) 다쳐서", hint: "을/를"
+     * ❌ 잘못된 예: answer: "발굽", sentence: "( )을/를 다쳐서", hint: "을/를"
+     * ✅ 올바른 예: answer: "산악지대로", sentence: "( ) 이루어져", hint: "(으)로"
+     * ❌ 잘못된 예: answer: "산악지대", sentence: "( )(으)로 이루어져", hint: "(으)로"
+     * ✅ 올바른 예: answer: "망자의", sentence: "( ) 평화를", hint: "의"
+     * ❌ 잘못된 예: answer: "망자", sentence: "( )의 평화를", hint: "의"
+   - **동사/형용사**: hint에 표시된 문법 형태로 완전히 활용 (예: 발견됐어요, 올랐어요, 주요한)
+     * 예: answer: "하느라고", hint: "-느라고"
+     * 예: answer: "갈 거예요", hint: "-(으)ㄹ 거예요"
 
 6. **sentence (문장) 작성 규칙 - 매우 중요!**:
-   - **명사**: 빈칸 ( ) 뒤에 조사만 (예: "( )이/가", "( )을/를", "( )에")
+   - **명사 + 조사**: 빈칸 ( ) 뒤에 조사 절대 쓰지 말기! 조사는 answer에 포함됨
+     * ✅ 올바른 예: "마라톤을 잘하기 위해서는 ( ) 필요해요." (answer: "지구력이", hint: "이/가")
+     * ❌ 잘못된 예: "마라톤을 잘하기 위해서는 ( )이/가 필요해요." (조사 중복!)
+     * ✅ 올바른 예: "말이 거친 땅을 달리다가 ( ) 다쳐서" (answer: "발굽을", hint: "을/를")
+     * ❌ 잘못된 예: "말이 거친 땅을 달리다가 ( )을/를 다쳐서" (조사 중복!)
    - **동사/형용사 - 관형사형일 때**: 빈칸 ( ) 뒤에 아무것도 쓰지 말고 바로 명사
      * ✅ 올바른 예: "경제에 ( ) 역할을...", "( ) 음식이..."
-     * ❌ 잘못된 예: "경제에 ( )(으)ㄴ 역할을...", "( )(으)ㄴ 음식이..." (중복 발생!)
+     * ❌ 잘못된 예: "경제에 ( )(으)ㄴ 역할을...", "( )(으)ㄴ 음식이...\" (중복 발생!)
    - **동사/형용사 - 일반 활용일 때**: 빈칸 ( ) 뒤에 문장 계속
-   - **조사 중복 금지!**
+   - **조사 중복 절대 금지!**
    - **문장 끝 마침표/물음표 필수**
    - **${difficulty} 어휘 수준 준수!**
 
 7. **hint 규칙 - 매우 중요!**:
-   - **명사 + 조사가 있는 경우**: 문장에서 사용된 조사를 hint에 기재
-     * 예: "( )이/가" → hint: "이/가"
-     * 예: "( )을/를" → hint: "을/를"
-     * 예: "( )에게" → hint: "에게"
-     * 예: "( )에서" → hint: "에서"
-     * 예: "( )으로" → hint: "(으)로"
+   - **명사 + 조사**: answer에 포함된 조사 패턴을 hint에 표시
+     * 예: answer: "지구력이" → hint: "이/가"
+     * 예: answer: "발굽을" → hint: "을/를"
+     * 예: answer: "산악지대로" → hint: "(으)로"
+     * 예: answer: "망자의" → hint: "의"
+     * 예: answer: "학교에게" → hint: "에게"
+     * 예: answer: "집에서" → hint: "에서"
    - **명사 + 조사가 없는 경우**: "" (빈 문자열)
      * 예: 시간 부사처럼 쓰이는 명사 (오늘, 내일, 어제 등) → hint: ""
-     * 예: "저는 ( ) 회사에 가요." (오늘) → hint: "" (조사 없음)
+     * 예: answer: "오늘", sentence: "저는 ( ) 회사에 가요." → hint: ""
    - **동사/형용사**: 문법 형태만 (예: "-았어요/었어요", "(으)ㄴ", "-는", "-기 전에")
    - 설명이나 의미 절대 쓰지 않기!
 
@@ -251,77 +267,111 @@ serve(async (req) => {
     }
 
     // Verify user has teacher or admin role
-    const { data: roleData, error: roleError } = await supabase
-      .from('user_roles')
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
       .select('role')
       .eq('user_id', user.id)
       .single();
 
-    if (roleError || !roleData) {
-      console.error('Role fetch error:', roleError);
+    if (profileError || !profileData) {
+      console.error('Profile fetch error:', profileError);
       return new Response(
-        JSON.stringify({ error: '역할 정보를 가져올 수 없습니다.' }),
+        JSON.stringify({ error: '프로필 정보를 가져올 수 없습니다.' }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (roleData.role !== 'teacher' && roleData.role !== 'admin') {
+    if (profileData.role !== 'teacher' && profileData.role !== 'admin') {
       return new Response(
         JSON.stringify({ error: '퀴즈 생성 권한이 없습니다. 선생님 또는 관리자만 가능합니다.' }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`User ${user.id} (${roleData.role}) generating quiz`);
+    console.log(`User ${user.id} (${profileData.role}) generating quiz`);
 
-    const { words, difficulty, translationLanguage, wordsPerSet, regenerateSingle }: QuizRequest = await req.json();
+    const { words, difficulty, translationLanguage, wordsPerSet, regenerateSingle, apiProvider = "openai" }: QuizRequest = await req.json();
     
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
-    }
-
     const languageName = LANGUAGE_NAMES[translationLanguage] || "영어";
     const prompt = generateDetailedPrompt(words, difficulty, languageName);
 
-    console.log(`Generating quiz for ${words.length} words at ${difficulty} level${regenerateSingle ? ' (single regeneration)' : ''}`);
+    console.log(`Generating quiz using ${apiProvider} for ${words.length} words at ${difficulty} level`);
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [
-          { 
-            role: "system", 
-            content: "You are a helpful assistant that generates Korean language learning quizzes. You must respond ONLY with valid JSON." 
-          },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.7,
-        response_format: { type: "json_object" },
-      }),
-    });
+    let content: string;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("OpenAI API error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+    if (apiProvider === "gemini" || apiProvider === "gemini-pro") {
+      const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+      if (!GEMINI_API_KEY) {
+        throw new Error("GEMINI_API_KEY is not configured");
       }
-      
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+      const modelName = apiProvider === "gemini-pro" ? "gemini-3-pro-preview" : "gemini-3-flash-preview";
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            response_mime_type: "application/json",
+            temperature: 0.7,
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Gemini API error (${modelName}):`, response.status, errorText);
+        throw new Error(`Gemini API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    } else {
+      const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+      if (!OPENAI_API_KEY) {
+        throw new Error("OPENAI_API_KEY is not configured");
+      }
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-5.2",
+          messages: [
+            { 
+              role: "system", 
+              content: "You are a helpful assistant that generates Korean language learning quizzes. You must respond ONLY with valid JSON." 
+            },
+            { role: "user", content: prompt },
+          ],
+          temperature: 0.7,
+          response_format: { type: "json_object" },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("OpenAI API error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      content = data.choices?.[0]?.message?.content;
+    }
 
     if (!content) {
       throw new Error("No content received from AI");
