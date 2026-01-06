@@ -208,7 +208,7 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
    - **동사/형용사**: 문법 형태만 (예: "-았어요/었어요", "(으)ㄴ", "-는", "-기 전에")
    - 설명이나 의미 절대 쓰지 않기!
 
-8. 문제 순서는 랜덤
+8. **문제 순서**: 입력받은 단어 목록 순서대로 문제를 생성하세요. (선생님 미리보기용. 학생이 풀 때는 자동으로 섞입니다)
 
 응답 형식 (각 문제에 ${languageName} 번역 포함):
 {
@@ -401,14 +401,9 @@ serve(async (req) => {
       throw new Error("생성된 문제가 없습니다");
     }
 
-    // Shuffle problems (Fisher-Yates)
-    const shuffledProblems = [...parsed.problems];
-    for (let i = shuffledProblems.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffledProblems[i], shuffledProblems[j]] = [shuffledProblems[j], shuffledProblems[i]];
-    }
-
-    const problems: Problem[] = shuffledProblems.map((p: any, index: number) => ({
+    // Keep problems in original order (same as word input order)
+    // Shuffling will happen in QuizPreview when saving for students
+    const problems: Problem[] = parsed.problems.map((p: any, index: number) => ({
       id: `problem-${Date.now()}-${index}`,
       word: p.word,
       answer: p.answer,
