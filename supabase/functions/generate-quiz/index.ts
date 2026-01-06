@@ -401,9 +401,39 @@ serve(async (req) => {
       throw new Error("생성된 문제가 없습니다");
     }
 
-    // Keep problems in original order (same as word input order)
-    // Shuffling will happen in QuizPreview when saving for students
-    const problems: Problem[] = parsed.problems.map((p: any, index: number) => ({
+    // Keep problems in original order (same as input words)
+    const orderedProblems: any[] = [];
+    const availableProblems = [...parsed.problems];
+    
+    for (const word of words) {
+      const matchIndex = availableProblems.findIndex((p: any) => p.word.trim() === word.trim());
+      if (matchIndex !== -1) {
+        orderedProblems.push(availableProblems[matchIndex]);
+        availableProblems.splice(matchIndex, 1);
+      } else {
+        // If exact match not found, store null to fill later
+        orderedProblems.push(null);
+      }
+    }
+
+    // Fill any unmatched slots with remaining problems
+    for (let i = 0; i < orderedProblems.length; i++) {
+      if (orderedProblems[i] === null) {
+        if (availableProblems.length > 0) {
+          orderedProblems[i] = availableProblems.shift();
+        }
+      }
+    }
+    
+    // Filter out any remaining nulls (in case AI generated fewer problems than requested)
+    const validProblems = orderedProblems.filter(p => p !== null);
+    
+    // If we still have available problems (AI generated more than requested?), append them?
+    // The prompt asks for exact count. If we have extras, we might as well include them if they are good, 
+    // or ignore them to match strict count. 
+    // Let's just use what we have matched + filled.
+
+    const problems: Problem[] = validProblems.map((p: any, index: number) => ({
       id: `problem-${Date.now()}-${index}`,
       word: p.word,
       answer: p.answer,
