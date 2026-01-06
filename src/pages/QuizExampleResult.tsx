@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, XCircle, TrendingUp, Users, BookOpen, ArrowRight, Volume2, Lightbulb } from "lucide-react";
+import { CheckCircle, XCircle, ArrowRight, Volume2, Lightbulb } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface QuizResult {
@@ -22,10 +21,9 @@ interface QuizResult {
   }>;
 }
 
-export default function QuizShareResult() {
+export default function QuizExampleResult() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
   const [result, setResult] = useState<QuizResult | null>(null);
   const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
@@ -59,7 +57,6 @@ export default function QuizShareResult() {
   };
 
   const handleSignup = () => {
-    // Navigate to signup page
     navigate('/auth?mode=signup');
   };
 
@@ -74,7 +71,6 @@ export default function QuizShareResult() {
   }
 
   const percentage = Math.round((result.score / result.total) * 100);
-  const wrongAnswers = result.answers.filter(a => !a.isCorrect);
 
   return (
     <AppLayout>
@@ -146,15 +142,16 @@ export default function QuizShareResult() {
                               {parts[1]}
                             </div>
                             
-                            {/* Action Buttons */}
+                            {/* Action Buttons - Both enabled for QuizExample */}
                             <div className="flex gap-2 shrink-0">
-                              {/* Audio Button - Always disabled for anonymous users */}
+                              {/* Audio Button - Always enabled */}
                               <Button
                                 variant="outline"
                                 size="sm"
-                                disabled={true}
+                                onClick={() => answer.audioUrl && playAudio(answer.audioUrl, answer.problemId)}
+                                disabled={!answer.audioUrl}
                               >
-                                <Volume2 className="w-4 h-4 mr-1" />
+                                <Volume2 className={`w-4 h-4 mr-1 ${playingAudio === answer.problemId ? 'text-primary animate-pulse' : ''}`} />
                                 듣기
                               </Button>
                               
@@ -209,14 +206,14 @@ export default function QuizShareResult() {
               <CardContent className="space-y-6 relative z-10">
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="bg-background/60 p-4 rounded-xl flex items-start gap-3">
-                    <BookOpen className="w-6 h-6 text-primary mt-1" />
+                    <div className="w-6 h-6 text-primary mt-1">📝</div>
                     <div>
-                      <p className="font-bold text-base">오답노트 자동 생성</p>
-                      <p className="text-sm text-muted-foreground">틀린 문제만 모아서 다시 풀어보세요</p>
+                      <p className="font-bold text-base">나만의 퀴즈 생성</p>
+                      <p className="text-sm text-muted-foreground">원하는 단어로 맞춤 퀴즈를 만들어보세요</p>
                     </div>
                   </div>
                   <div className="bg-background/60 p-4 rounded-xl flex items-start gap-3">
-                    <Users className="w-6 h-6 text-primary mt-1" />
+                    <div className="w-6 h-6 text-primary mt-1">🔊</div>
                     <div>
                       <p className="font-bold text-base">원어민 발음 듣기</p>
                       <p className="text-sm text-muted-foreground">모든 예문의 정확한 발음을 들어보세요</p>

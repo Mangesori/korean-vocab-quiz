@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { maskTranslation } from "@/utils/maskTranslation";
 
 interface Problem {
   id: string;
@@ -71,23 +72,7 @@ const highlightAnswerInSentence = (sentence: string, answer: string) => {
   );
 };
 
-// 번역에서 정답 부분을 마스킹
-const maskAnswerInTranslation = (translation: string): string => {
-  if (!translation) return translation;
 
-  const words = translation.split(" ");
-  const wordCount = words.length;
-
-  if (wordCount <= 3) {
-    const middleIdx = Math.floor(wordCount / 2);
-    words[middleIdx] = "_____";
-  } else {
-    const verbIdx = Math.min(2, wordCount - 1);
-    words[verbIdx] = "_____";
-  }
-
-  return words.join(" ");
-};
 
 export default function QuizPreview() {
   const { user, role, loading } = useAuth();
@@ -97,6 +82,7 @@ export default function QuizPreview() {
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [studentPreview, setStudentPreview] = useState(false);
+  const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const stored = sessionStorage.getItem("quizDraft");
@@ -428,18 +414,20 @@ export default function QuizPreview() {
                                 <Button variant="outline" size="sm" disabled>
                                   <Volume2 className="w-4 h-4" />
                                 </Button>
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button variant="outline" size="sm">
-                                      <Lightbulb className="w-4 h-4" />
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-auto p-3">
-                                    <p className="text-sm">{maskAnswerInTranslation(problem.translation)}</p>
-                                  </PopoverContent>
-                                </Popover>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setShowTranslations(prev => ({ ...prev, [problem.id]: !prev[problem.id] }))}
+                                >
+                                  <Lightbulb className="w-4 h-4" />
+                                </Button>
                               </div>
                             </div>
+                            {showTranslations[problem.id] && problem.translation && (
+                              <div className="mt-2 px-3 py-2 bg-info/10 rounded-lg text-sm border border-info/30">
+                                {maskTranslation(problem.translation)}
+                              </div>
+                            )}
                             <Input
                               readOnly
                               className="h-10 text-center bg-muted/30"
@@ -473,19 +461,21 @@ export default function QuizPreview() {
                                   <Volume2 className="w-4 h-4 mr-1" />
                                   듣기
                                 </Button>
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button variant="outline" size="sm">
-                                      <Lightbulb className="w-4 h-4 mr-1" />
-                                      힌트
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-auto p-3">
-                                    <p className="text-sm">{maskAnswerInTranslation(problem.translation)}</p>
-                                  </PopoverContent>
-                                </Popover>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setShowTranslations(prev => ({ ...prev, [problem.id]: !prev[problem.id] }))}
+                                >
+                                  <Lightbulb className="w-4 h-4 mr-1" />
+                                  힌트
+                                </Button>
                               </div>
                             </div>
+                            {showTranslations[problem.id] && problem.translation && (
+                              <div className="mt-2 ml-8 px-3 py-2 bg-info/10 rounded-lg text-sm border border-info/30">
+                                {maskTranslation(problem.translation)}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );

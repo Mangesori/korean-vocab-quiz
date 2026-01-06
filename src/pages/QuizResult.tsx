@@ -1,22 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Loader2, 
-  Trophy,
   CheckCircle,
   XCircle,
   Home,
   ChevronDown,
   ChevronUp,
-  Globe
+  Lightbulb,
+  Volume2
 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
-import { LevelBadge } from '@/components/ui/level-badge';
 
 interface Problem {
   id: string;
@@ -25,6 +24,7 @@ interface Problem {
   sentence: string;
   hint: string;
   translation: string;
+  sentence_audio_url?: string;
 }
 
 interface UserAnswer {
@@ -58,6 +58,8 @@ export default function QuizResult() {
   const [result, setResult] = useState<Result | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (user && id && resultId) {
@@ -81,7 +83,24 @@ export default function QuizResult() {
       .single();
 
     if (quizData && resultData) {
-      setQuiz(quizData as unknown as Quiz);
+      // Fetch audio URLs from quiz_problems table
+      const { data: problemsData } = await supabase
+        .from('quiz_problems')
+        .select('problem_id, sentence_audio_url')
+        .eq('quiz_id', id);
+      
+      // Create audio URL map
+      const audioMap = new Map(
+        problemsData?.map(p => [p.problem_id, p.sentence_audio_url]) || []
+      );
+      
+      // Add audio URLs to problems
+      const problemsWithAudio = (quizData.problems as any[]).map(problem => ({
+        ...problem,
+        sentence_audio_url: audioMap.get(problem.id) || problem.sentence_audio_url,
+      }));
+      
+      setQuiz({ ...quizData, problems: problemsWithAudio } as unknown as Quiz);
       setResult(resultData as unknown as Result);
     }
     setIsLoading(false);
@@ -93,6 +112,41 @@ export default function QuizResult() {
       [key]: !prev[key]
     }));
   };
+
+  const playAudio = useCallback((audioUrl: string, problemId: string) => {
+    if (!audioUrl) return;
+    
+    // Stop currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    
+    if (playingAudio === problemId) {
+      setPlayingAudio(null);
+      return;
+    }
+    
+    const audio = new Audio(audioUrl);
+    audioRef.current = audio;
+    setPlayingAudio(problemId);
+    
+    audio.onended = () => {
+      setPlayingAudio(null);
+      audioRef.current = null;
+    };
+    
+    audio.onerror = () => {
+      console.error('Audio playback error');
+      setPlayingAudio(null);
+      audioRef.current = null;
+    };
+    
+    audio.play().catch((err) => {
+      console.error('Audio play error:', err);
+      setPlayingAudio(null);
+    });
+  }, [playingAudio]);
 
   if (loading || isLoading) {
     return (
@@ -125,116 +179,147 @@ export default function QuizResult() {
 
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        {/* Result Summary */}
-        <Card className="mb-8 overflow-hidden">
-          <div className={`p-6 sm:p-8 text-center ${isGood ? 'bg-success/10' : isMedium ? 'bg-warning/10' : 'bg-destructive/10'}`}>
-            <div className={`w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full flex items-center justify-center mb-4 ${isGood ? 'bg-success/20' : isMedium ? 'bg-warning/20' : 'bg-destructive/20'}`}>
-              <Trophy className={`w-8 h-8 sm:w-10 sm:h-10 ${isGood ? 'text-success' : isMedium ? 'text-warning' : 'text-destructive'}`} />
+      <div className="min-h-screen bg-gradient-to-br from-background to-primary/5">
+        <div className="container mx-auto px-4 py-8 max-w-5xl">
+          {/* Result Header */}
+          <div className="text-center mb-12 animate-fade-in">
+            <h1 className="text-2xl font-bold mb-4">{quiz.title}</h1>
+            <div className="relative inline-flex items-center justify-center">
+              <div className="text-6xl font-black bg-gradient-to-br from-primary to-purple-600 bg-clip-text text-transparent">
+                {percentage}%
+              </div>
+              {percentage >= 100 && (
+                <span className="absolute -top-4 -right-8 text-4xl animate-bounce">🎉</span>
+              )}
             </div>
-            
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">{quiz.title}</h1>
-            <LevelBadge level={quiz.difficulty} className="mb-4" />
-            
-            <div className={`text-5xl sm:text-6xl font-bold mb-2 ${isGood ? 'text-success' : isMedium ? 'text-warning' : 'text-destructive'}`}>
-              {percentage}%
-            </div>
-            <p className="text-muted-foreground">
-              {result.score} / {result.total_questions} 정답
+            <p className="mt-4 text-muted-foreground font-medium">
+              {result.total_questions}문제 중 {result.score}문제를 맞혔어요!
             </p>
-            
-            <p className="mt-4 text-base sm:text-lg font-medium">
-              {isGood ? '정말 잘했어요! 🎉' : isMedium ? '좋아요! 조금만 더 힘내세요! 💪' : '다시 한번 도전해보세요! 📚'}
+            <p className="mt-2 text-lg font-bold text-foreground">
+              {isGood ? '정말 잘했어요! 👏' : isMedium ? '좋아요! 조금만 더 힘내볼까요? 💪' : '다시 한번 도전해보세요! 📚'}
             </p>
           </div>
-          
-          <CardContent className="p-4">
-            <div className="flex gap-3 justify-center">
-              <Link to="/dashboard">
-                <Button variant="outline">
-                  <Home className="w-4 h-4 mr-2" /> 대시보드
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Problem Review - Grouped by Set */}
-        <div className="space-y-6">
-          {groupedProblems.map((setProblems, setIdx) => (
-            <div key={setIdx} className="bg-card rounded-2xl shadow-lg p-4 sm:p-6 border">
-              <h3 className="text-lg sm:text-xl font-bold mb-4 text-foreground">
-                세트 {setIdx + 1}
-              </h3>
-              <div className="space-y-3">
-                {setProblems.map((problem, idx) => {
-                  const userAnswer = getAnswerForProblem(problem.id);
-                  const isCorrect = userAnswer?.isCorrect;
-                  const completedSentence = problem.sentence.replace(/\(\s*\)|\(\)/, problem.answer);
-                  const translationKey = `result-${setIdx}-${idx}`;
-                  const showTranslation = showTranslations[translationKey];
-                  
-                  return (
-                    <div 
-                      key={problem.id}
-                      className={`p-4 rounded-xl ${
-                        isCorrect ? 'bg-success/10 border-2 border-success/30' : 'bg-destructive/10 border-2 border-destructive/30'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="text-xl mt-0.5">
-                          {isCorrect ? (
-                            <CheckCircle className="w-5 h-5 text-success" />
-                          ) : (
-                            <XCircle className="w-5 h-5 text-destructive" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-foreground mb-1 text-lg">
-                            {completedSentence}
-                          </p>
-                          {!isCorrect && (
-                            <div className="text-sm mt-2">
-                              <span className="text-destructive">내 답안: {userAnswer?.answer || '(답 없음)'}</span>
-                              <span className="text-muted-foreground mx-2">→</span>
-                              <span className="text-success">정답: {problem.answer}</span>
+          <div className="flex justify-center mb-8">
+            <Link to="/dashboard">
+              <Button variant="outline" size="sm" className="rounded-full">
+                <Home className="w-4 h-4 mr-2" /> 대시보드로 돌아가기
+              </Button>
+            </Link>
+          </div>
+
+          {/* Problem Review - Grouped by Set */}
+          <div className="space-y-8">
+            {groupedProblems.map((setProblems, setIdx) => (
+              <div key={setIdx} className="space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                  <span className="text-lg font-bold text-foreground">세트 {setIdx + 1}</span>
+                  <div className="h-px bg-border flex-1" />
+                </div>
+
+                <div className="grid gap-4">
+                  {setProblems.map((problem, idx) => {
+                    const userAnswer = getAnswerForProblem(problem.id);
+                    const isCorrect = userAnswer?.isCorrect;
+                    const parts = problem.sentence.split(/\(\s*\)|\(\)/);
+                    const translationKey = `result-${setIdx}-${idx}`;
+                    const showTranslation = showTranslations[translationKey];
+                    const problemNumber = setIdx * wordsPerSet + idx + 1;
+                    
+                    return (
+                      <Card 
+                        key={problem.id}
+                        className="overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+                      >
+                        <CardContent className="p-6">
+                          <div className="flex items-start gap-4">
+                            {/* Problem Number */}
+                            <span className="text-primary font-bold text-lg mt-1 min-w-[32px]">
+                              {problemNumber}.
+                            </span>
+                            
+                            {/* Icon Indicator */}
+                            <div className="mt-1 shrink-0">
+                               {isCorrect ? (
+                                 <div className="p-1 rounded-full bg-success/10 text-success">
+                                   <CheckCircle className="w-5 h-5" />
+                                 </div>
+                               ) : (
+                                 <div className="p-1 rounded-full bg-destructive/10 text-destructive">
+                                   <XCircle className="w-5 h-5" />
+                                 </div>
+                               )}
                             </div>
-                          )}
-                          
-                          {problem.translation && (
-                            <div className="mt-3">
-                              <button
-                                onClick={() => toggleTranslation(translationKey)}
-                                className="text-sm px-4 py-2 bg-info/10 text-info rounded-full hover:bg-info/20 transition-all inline-flex items-center gap-1"
-                              >
-                                <Globe className="w-3 h-3" />
-                                {showTranslation ? '번역 숨기기' : '번역 보기 🌐'}
-                                {showTranslation ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                              </button>
+
+                            <div className="flex-1 space-y-3">
+                              {/* Sentence Display with Buttons */}
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="text-lg leading-relaxed text-foreground flex-1">
+                                  {parts[0]}
+                                  <span className={isCorrect ? "font-bold text-success mx-1 underline decoration-2 underline-offset-4" : "font-bold text-success mx-1"}>
+                                    {problem.answer}
+                                  </span>
+                                  {parts[1]}
+                                </div>
+                                
+                                {/* Action Buttons */}
+                                <div className="flex gap-2 shrink-0">
+                                  {/* Audio Button */}
+                                  {problem.sentence_audio_url && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => playAudio(problem.sentence_audio_url!, problem.id)}
+                                    >
+                                      <Volume2 className={`w-4 h-4 mr-1 ${playingAudio === problem.id ? 'text-primary animate-pulse' : ''}`} />
+                                      듣기
+                                    </Button>
+                                  )}
+                                  
+                                  {/* Translation Toggle */}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => toggleTranslation(translationKey)}
+                                  >
+                                    <Lightbulb className={`w-4 h-4 mr-1 ${showTranslation ? 'text-warning' : ''}`} />
+                                    번역 보기
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Incorrect Answer Feedback */}
+                              {!isCorrect && (
+                                <div className="text-sm bg-destructive/5 text-destructive px-3 py-2 rounded-md inline-block">
+                                  <span className="font-medium mr-2">내 답안:</span>
+                                  <span className="line-through opacity-80">{userAnswer?.answer || '(입력 없음)'}</span>
+                                </div>
+                              )}
                               
+                              {/* Translation Display */}
                               {showTranslation && (
-                                <div className="mt-2 p-3 bg-info/10 rounded-lg border-2 border-info/30">
-                                  <p className="text-foreground">{problem.translation}</p>
+                                <div className="mt-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg animate-in slide-in-from-top-1 fade-in duration-200">
+                                  {problem.translation}
                                 </div>
                               )}
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div className="mt-8">
-          <Link to="/dashboard" className="block">
-            <Button className="w-full" size="lg">
-              새 퀴즈 풀기 ✨
-            </Button>
-          </Link>
+          <div className="mt-12 mb-20 text-center space-y-4">
+            <Link to="/dashboard">
+              <Button className="w-full sm:w-auto min-w-[200px] h-12 text-lg shadow-lg hover:shadow-xl transition-all" size="lg">
+                새 퀴즈 풀기 ✨
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </AppLayout>

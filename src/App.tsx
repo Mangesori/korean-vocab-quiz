@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import QuizCreate from "./pages/QuizCreate";
 import QuizPreview from "./pages/QuizPreview";
+import QuizExample from "./pages/QuizExample";
 import QuizDetail from "./pages/QuizDetail";
 import QuizTake from "./pages/QuizTake";
 import QuizResult from "./pages/QuizResult";
@@ -19,6 +20,7 @@ import Classes from "./pages/Classes";
 import ClassDetail from "./pages/ClassDetail";
 import QuizShare from "./pages/QuizShare";
 import QuizShareResult from "./pages/QuizShareResult";
+import QuizExampleResult from "./pages/QuizExampleResult";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +38,8 @@ const App = () => (
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/quiz/example" element={<QuizExample />} />
+            <Route path="/quiz/example/result" element={<QuizExampleResult />} />
             <Route path="/quiz/create" element={<QuizCreate />} />
             <Route path="/quiz/preview" element={<QuizPreview />} />
             <Route path="/quizzes" element={<Quizzes />} />

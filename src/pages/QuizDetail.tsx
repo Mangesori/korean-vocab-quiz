@@ -46,6 +46,7 @@ import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { nanoid } from "nanoid";
+import { maskTranslation } from "@/utils/maskTranslation";
 
 interface Problem {
   id: string;
@@ -109,23 +110,7 @@ const renderStudentSentence = (sentence: string, hint: string) => {
   );
 };
 
-// 번역에서 정답 부분을 마스킹
-const maskAnswerInTranslation = (translation: string): string => {
-  if (!translation) return translation;
 
-  const words = translation.split(" ");
-  const wordCount = words.length;
-
-  if (wordCount <= 3) {
-    const middleIdx = Math.floor(wordCount / 2);
-    words[middleIdx] = "_____";
-  } else {
-    const verbIdx = Math.min(2, wordCount - 1);
-    words[verbIdx] = "_____";
-  }
-
-  return words.join(" ");
-};
 
 export default function QuizDetail() {
   const { id } = useParams<{ id: string }>();
@@ -157,12 +142,41 @@ export default function QuizDetail() {
   // Title editing states
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
+  const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (user && id) {
       fetchQuiz();
       fetchClasses();
       checkAudioStatus();
+
+      // Realtime subscription for audio updates
+      const channel = supabase
+        .channel('quiz-detail-audio-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'quiz_problems',
+            filter: `quiz_id=eq.${id}`,
+          },
+          (payload) => {
+            const newProblem = payload.new as any;
+            if (newProblem.sentence_audio_url) {
+              setAudioUrls((prev) => ({
+                ...prev,
+                [newProblem.problem_id]: newProblem.sentence_audio_url,
+              }));
+              setHasAudio(true);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user, id]);
 
@@ -249,6 +263,7 @@ export default function QuizDetail() {
 
       setQuiz({ ...quiz, problems: editedProblems });
       setHasChanges(false);
+      setIsEditing(false);
       toast.success("변경사항이 저장되었습니다");
     } catch (error) {
       console.error("Save error:", error);
@@ -353,6 +368,10 @@ export default function QuizDetail() {
         );
 
         if (audioUrl) {
+          // 즉시 상태 업데이트하여 버튼 활성화
+          setAudioUrls(prev => ({ ...prev, [problem.id]: audioUrl }));
+          setHasAudio(true);
+          
           newUrls[problem.id] = audioUrl;
           // quiz_problems 테이블 업데이트
           await supabase
@@ -363,8 +382,8 @@ export default function QuizDetail() {
         }
       }
 
+      // 혹시 누락된 부분이 있을 수 있으므로 마지막에 한 번 더 병합
       setAudioUrls(prev => ({ ...prev, ...newUrls }));
-      setHasAudio(true);
       toast.success("음성 생성이 완료되었습니다!");
     } catch (error) {
       console.error("Audio generation error:", error);
@@ -859,18 +878,20 @@ export default function QuizDetail() {
                                     >
                                       <Volume2 className="w-4 h-4" />
                                     </Button>
-                                    <Popover>
-                                      <PopoverTrigger asChild>
-                                        <Button variant="outline" size="sm">
-                                          <Lightbulb className="w-4 h-4" />
-                                        </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-auto p-3">
-                                        <p className="text-sm">{maskAnswerInTranslation(problem.translation)}</p>
-                                      </PopoverContent>
-                                    </Popover>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => setShowTranslations(prev => ({ ...prev, [problem.id]: !prev[problem.id] }))}
+                                    >
+                                      <Lightbulb className="w-4 h-4" />
+                                    </Button>
                                   </div>
                                 </div>
+                                {showTranslations[problem.id] && problem.translation && (
+                                  <div className="mt-2 px-3 py-2 bg-info/10 rounded-lg text-sm border border-info/30">
+                                    {maskTranslation(problem.translation)}
+                                  </div>
+                                )}
                                 <Input
                                   readOnly
                                   className="h-10 text-center bg-muted/30"
@@ -909,19 +930,21 @@ export default function QuizDetail() {
                                       <Volume2 className="w-4 h-4 mr-1" />
                                       듣기
                                     </Button>
-                                    <Popover>
-                                      <PopoverTrigger asChild>
-                                        <Button variant="outline" size="sm">
-                                          <Lightbulb className="w-4 h-4 mr-1" />
-                                          힌트
-                                        </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-auto p-3">
-                                        <p className="text-sm">{maskAnswerInTranslation(problem.translation)}</p>
-                                      </PopoverContent>
-                                    </Popover>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => setShowTranslations(prev => ({ ...prev, [problem.id]: !prev[problem.id] }))}
+                                    >
+                                      <Lightbulb className="w-4 h-4 mr-1" />
+                                      힌트
+                                    </Button>
                                   </div>
                                 </div>
+                                {showTranslations[problem.id] && problem.translation && (
+                                  <div className="mt-2 ml-8 px-3 py-2 bg-info/10 rounded-lg text-sm border border-info/30">
+                                    {maskTranslation(problem.translation)}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );

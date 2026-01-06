@@ -226,6 +226,13 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
 번역 규칙:
 - ⚠️ 중요: translation에는 ( ) 사용 금지! 정답 단어가 들어간 완전한 문장으로 번역하세요
 - 한국어 sentence의 ( )에 answer를 채운 완전한 문장을 ${languageName}로 번역
+- **정답에 해당하는 부분을 대괄호 []로 감싸주세요**
+  * 예: 한국어 answer가 "학생이라서"이면 → translation: "Because I'm [a student], I don't have much money."
+  * 예: 한국어 answer가 "마음에 들면"이면 → translation: "If I [like] that outfit, I'll buy it right away."
+  * 예: 한국어 answer가 "예쁜"이면 → translation: "I want to buy a [pretty] bag."
+  * 예: 한국어 answer가 "무료로"이면 → translation: "You can get into the museum [for free] today since it's a public holiday."
+  * 예: 한국어 answer가 "알리기 전에"이면 → translation: "I told my parents about my college acceptance before [telling] my friends."
+- 대괄호는 정답에 해당하는 부분만 감싸세요 (중첩 금지)
 - 자연스러운 ${languageName} 문장으로 번역
 - 학생이 문맥을 이해할 수 있도록 정확하게 번역
 

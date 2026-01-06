@@ -1,73 +1,32 @@
-# Welcome to your Lovable project
+# Dalkom Korean (달콤 코리안)
 
-## Project info
+**Dalkom Korean**은 한국어 어휘 학습을 위한 퀴즈 애플리케이션입니다. 달콤하게 스며드는 배움의 즐거움을 경험해 보세요!
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 주요 기능 (Features)
 
-## How can I edit this code?
+- **맞춤형 퀴즈**: 자신의 수준에 맞는 어휘 퀴즈를 풀 수 있습니다.
+- **오답 노트**: 틀린 문제를 다시 확인하고 복습할 수 있습니다.
+- **성장 기록**: 학습 진행 상황을 시각적으로 확인할 수 있습니다.
 
-There are several ways of editing your application.
+## 시작하기 (Getting Started)
 
-**Use Lovable**
+프로젝트를 로컬 환경에서 실행하려면 다음 단계를 따르세요.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+```bash
+# 의존성 설치
+npm install
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 개발 서버 실행
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 기술 스택 (Tech Stack)
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
 - React
-- shadcn-ui
+- TypeScript
+- Vite
 - Tailwind CSS
+- Supabase (Backend/Database)
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+Developed with ❤️ by Vapor

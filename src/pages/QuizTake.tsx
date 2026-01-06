@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { maskTranslation } from "@/utils/maskTranslation";
 
 interface Problem {
   id: string;
@@ -41,25 +42,7 @@ interface UserAnswer {
   isCorrect: boolean;
 }
 
-// 번역에서 정답 부분을 마스킹
-const maskAnswerInTranslation = (translation: string, word: string): string => {
-  if (!translation || !word) return translation;
 
-  const words = translation.split(" ");
-  const wordCount = words.length;
-
-  if (wordCount <= 3) {
-    // 짧은 문장: 가운데 단어 가리기
-    const middleIdx = Math.floor(wordCount / 2);
-    words[middleIdx] = "_____";
-  } else {
-    // 긴 문장: 2-3번째 단어 가리기 (보통 동사 위치)
-    const verbIdx = Math.min(2, wordCount - 1);
-    words[verbIdx] = "_____";
-  }
-
-  return words.join(" ");
-};
 
 export default function QuizTake() {
   const { id } = useParams<{ id: string }>();
@@ -205,11 +188,12 @@ export default function QuizTake() {
   const progress = quiz ? ((currentSetIndex + 1) / totalSets) * 100 : 0;
 
   // 세트가 변경될 때만 보기 단어 순서를 셔플 (리렌더링 시 순서 유지)
+  const currentSetIds = currentSet.map(p => p.id).join(',');
   const shuffledWordBank = useMemo(() => {
     return [...currentSet]
       .map((p) => p.word)
       .sort(() => Math.random() - 0.5);
-  }, [currentSetIndex, quiz?.id]);
+  }, [currentSetIds]);
 
   const handleAnswerChange = (problemId: string, value: string) => {
     setUserAnswers({ ...userAnswers, [problemId]: value });
@@ -307,6 +291,8 @@ export default function QuizTake() {
             correctAnswer,
             isCorrect,
             sentence: problem.sentence,
+            translation: problem.translation,
+            audioUrl: problem.sentence_audio_url,
           };
         });
 
@@ -528,7 +514,7 @@ export default function QuizTake() {
                       />
                       {showTranslations[problem.id] && problem.translation && (
                         <div className="px-3 py-2 bg-info/10 rounded-lg text-sm border border-info/30">
-                          {maskAnswerInTranslation(problem.translation, problem.answer)}
+                          {maskTranslation(problem.translation)}
                         </div>
                       )}
                     </div>
@@ -605,7 +591,7 @@ export default function QuizTake() {
                       </div>
                       {showTranslations[problem.id] && problem.translation && (
                         <div className="mt-2 ml-8 px-4 py-2 bg-info/10 rounded-lg text-sm border border-info/30">
-                          {maskAnswerInTranslation(problem.translation, problem.answer)}
+                          {maskTranslation(problem.translation)}
                         </div>
                       )}
                     </div>
