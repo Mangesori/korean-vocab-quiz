@@ -395,6 +395,7 @@ export type Database = {
           created_by: string
           expires_at: string | null
           id: string
+          max_attempts: number
           quiz_id: string
           share_token: string
           view_count: number
@@ -406,6 +407,7 @@ export type Database = {
           created_by: string
           expires_at?: string | null
           id?: string
+          max_attempts?: number
           quiz_id: string
           share_token: string
           view_count?: number
@@ -417,6 +419,7 @@ export type Database = {
           created_by?: string
           expires_at?: string | null
           id?: string
+          max_attempts?: number
           quiz_id?: string
           share_token?: string
           view_count?: number

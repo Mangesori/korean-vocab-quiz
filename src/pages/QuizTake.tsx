@@ -306,6 +306,22 @@ export default function QuizTake() {
         
         localStorage.setItem('anonymous_quiz_result', JSON.stringify(resultData));
         
+        // Increment completion count for the share link
+        if (shareToken) {
+          const { data: shareData } = await supabase
+            .from("quiz_shares")
+            .select("completion_count")
+            .eq("share_token", shareToken)
+            .single();
+          
+          if (shareData) {
+            await supabase
+              .from("quiz_shares")
+              .update({ completion_count: shareData.completion_count + 1 })
+              .eq("share_token", shareToken);
+          }
+        }
+        
         // Navigate to result page
         navigate(`/quiz/share/result?token=${shareToken}`);
       } catch (error) {

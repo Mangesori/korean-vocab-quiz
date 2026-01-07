@@ -512,6 +512,7 @@ export default function QuizDetail() {
         share_token: shareToken,
         created_by: user?.id,
         allow_anonymous: allowAnonymous,
+        max_attempts: 3,
       });
 
       if (error) throw error;
@@ -685,7 +686,7 @@ export default function QuizDetail() {
                         />
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        비회원도 퀴즈를 풀 수 있습니다
+                        비회원도 퀴즈를 풀 수 있습니다 (최대 3회까지 응시 가능)
                       </p>
                     </div>
                     
@@ -720,7 +721,7 @@ export default function QuizDetail() {
                           </Button>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          이 링크를 공유하면 누구나 퀴즈를 풀 수 있습니다
+                          이 링크를 공유하면 누구나 퀴즈를 풀 수 있습니다 (최대 3회 응시 가능)
                         </p>
                       </div>
                     )}

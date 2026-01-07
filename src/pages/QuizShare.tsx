@@ -14,6 +14,7 @@ export default function QuizShare() {
   const [error, setError] = useState<string | null>(null);
   const [quiz, setQuiz] = useState<any>(null);
   const [teacherName, setTeacherName] = useState<string>("");
+  const [remainingAttempts, setRemainingAttempts] = useState<number>(0);
 
   useEffect(() => {
     loadSharedQuiz();
@@ -41,13 +42,26 @@ export default function QuizShare() {
         return;
       }
 
-      // 3. Increment view count
+      // 3. Check attempt limit
+      const maxAttempts = shareData.max_attempts || 3;
+      const completionCount = shareData.completion_count || 0;
+      const remaining = maxAttempts - completionCount;
+      
+      if (remaining <= 0) {
+        setError("응시 가능 횟수를 초과했습니다");
+        setIsLoading(false);
+        return;
+      }
+      
+      setRemainingAttempts(remaining);
+
+      // 4. Increment view count
       await supabase
         .from("quiz_shares")
         .update({ view_count: shareData.view_count + 1 })
         .eq("id", shareData.id);
 
-      // 4. Load quiz
+      // 5. Load quiz
       const { data: quizData, error: quizError } = await supabase
         .from("quizzes")
         .select("*")
@@ -60,7 +74,7 @@ export default function QuizShare() {
         return;
       }
 
-      // 5. Load teacher name
+      // 6. Load teacher name
       const { data: profileData } = await supabase
         .from("profiles")
         .select("name")
@@ -129,6 +143,10 @@ export default function QuizShare() {
               <div>
                 <span className="text-muted-foreground">문제 수:</span>{" "}
                 <span className="font-medium">{quiz.problems.length}개</span>
+              </div>
+              <div className="col-span-2">
+                <span className="text-muted-foreground">남은 응시 횟수:</span>{" "}
+                <span className="font-medium text-primary">{remainingAttempts}회</span>
               </div>
             </div>
 

@@ -34,7 +34,7 @@ export function Navbar() {
           <Link to="/" className="hover:opacity-80 transition-opacity shrink-0">
             <span className="whitespace-nowrap inline-flex items-center gap-0.5">
               <span className="text-3xl font-brand font-black bg-gradient-to-b from-pink-400 to-primary bg-clip-text text-transparent">D</span>
-              <span className="text-xl font-brand font-bold text-foreground">alkom Korean</span>
+              <span className="hidden sm:inline text-xl font-brand font-bold text-foreground mt-1">alkom Korean</span>
             </span>
           </Link>
 
