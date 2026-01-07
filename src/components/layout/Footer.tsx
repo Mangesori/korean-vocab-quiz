@@ -7,7 +7,7 @@ export function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-0.5">
             <span className="text-3xl font-brand font-black bg-gradient-to-b from-pink-400 to-primary bg-clip-text text-transparent">D</span>
-            <span className="text-xl font-brand font-bold text-foreground">alkom Korean</span>
+            <span className="text-xl font-brand font-bold text-foreground mt-1">alkom Korean</span>
           </div>
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Dalkom Korean. All rights reserved.
