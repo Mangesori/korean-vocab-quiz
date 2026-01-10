@@ -177,6 +177,20 @@ export function ProblemCard({
               <Volume2 className="w-4 h-4" />
             </Button>
             <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onRegenerateAudio(problem)}
+              disabled={regeneratingId === problem.id}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              {regeneratingId === problem.id ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-1" />
+              )}
+              <span className="hidden sm:inline">음성 재생성</span>
+            </Button>
+            <Button
               variant="default"
               size="sm"
               onClick={onRegenerateProblem}
@@ -190,20 +204,6 @@ export function ProblemCard({
               )}
               <span className="hidden sm:inline">문제 재생성</span>
               <span className="sm:hidden">재생성</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onRegenerateAudio(problem)}
-              disabled={regeneratingId === problem.id}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              {regeneratingId === problem.id ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-1" />
-              )}
-              <span className="hidden sm:inline">음성 재생성</span>
             </Button>
           </div>
         </div>
