@@ -64,7 +64,7 @@ const EXAMPLE_PROBLEMS = [
   }
 ];
 
-const EXAMPLE_WORDS = ["학생", "마음에 들다", "예쁘다", "무료", "알리다"];
+const EXAMPLE_WORDS = ["마음에 들다", "알리다", "학생", "무료", "예쁘다" ];
 
 
 

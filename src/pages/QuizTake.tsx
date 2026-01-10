@@ -62,6 +62,12 @@ export default function QuizTake() {
   const [searchParams] = useSearchParams();
   const shareToken = searchParams.get('share');
   const isAnonymous = !!shareToken && !user;
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Wait for initial render to complete before checking auth
+  useEffect(() => {
+    setIsInitialized(true);
+  }, []);
 
   useEffect(() => {
     if ((user || shareToken) && id) {
@@ -383,7 +389,7 @@ export default function QuizTake() {
     return currentSet.every((p) => userAnswers[p.id]?.trim());
   };
 
-  if (loading || isLoading) {
+  if (loading || isLoading || !isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

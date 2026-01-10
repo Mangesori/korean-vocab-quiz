@@ -69,11 +69,7 @@ const App = () => (
                 <QuizDetail />
               </ProtectedRoute>
             } />
-            <Route path="/quiz/:id/take" element={
-              <ProtectedRoute permission={PERMISSIONS.VIEW_QUIZ} redirectTo="/auth">
-                <QuizTake />
-              </ProtectedRoute>
-            } />
+            <Route path="/quiz/:id/take" element={<QuizTake />} />
             <Route path="/quiz/:id/result/:resultId" element={
               <ProtectedRoute permission={PERMISSIONS.VIEW_QUIZ} redirectTo="/auth">
                 <QuizResult />
