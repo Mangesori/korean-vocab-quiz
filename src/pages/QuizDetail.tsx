@@ -76,7 +76,7 @@ export default function QuizDetail() {
     setEditedProblems,
     cancelEdit,
     updateProblemObject,
-    setHasChanges,
+
     saveChanges
   } = useProblemEditor(
     useMemo(() => quiz?.problems || [], [quiz?.problems]),
@@ -174,7 +174,7 @@ export default function QuizDetail() {
                  });
                  
                  setEditedProblems(updatedProblems);
-                 setHasChanges(true);
+
                  // We also need to set hasChanges -> handled by setEditedProblems? 
                  // Wait, setEditedProblems is useState setter. It doesn't auto set hasChanges.
                  // I need to setHasChanges(true) manually if I use setEditedProblems directly?

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Problem, Quiz } from "./useQuizData";
@@ -10,34 +10,35 @@ export function useProblemEditor(
   onSaveSuccess: (updatedProblems: Problem[]) => void
 ) {
   const [editedProblems, setEditedProblems] = useState<Problem[]>(initialProblems);
-  const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
+  // Compute hasChanges by deep comparison
+  const hasChanges = useMemo(() => {
+    return JSON.stringify(initialProblems) !== JSON.stringify(editedProblems);
+  }, [initialProblems, editedProblems]);
+  
   // Update local state when initialProblems change (e.g. after fetch)
-  // Only update if not currently editing or if no unsaved changes
+  // Only update if not currently editing
   useEffect(() => {
-    if (!isEditing && !hasChanges) {
+    if (!isEditing) {
       setEditedProblems(initialProblems);
     }
-  }, [initialProblems, isEditing, hasChanges]);
+  }, [initialProblems, isEditing]);
 
   const cancelEdit = () => {
     setEditedProblems(initialProblems);
-    setHasChanges(false);
     setIsEditing(false);
   };
 
   const updateProblem = (problemId: string, field: keyof Problem, value: string) => {
     const updated = editedProblems.map((p) => (p.id === problemId ? { ...p, [field]: value } : p));
     setEditedProblems(updated);
-    setHasChanges(true);
   };
 
   const updateProblemObject = (problem: Problem) => {
     const updated = editedProblems.map((p) => (p.id === problem.id ? problem : p));
     setEditedProblems(updated);
-    setHasChanges(true);
   };
 
   const saveChanges = async () => {
@@ -55,7 +56,6 @@ export function useProblemEditor(
       if (error) throw error;
 
       onSaveSuccess(editedProblems);
-      setHasChanges(false);
       setIsEditing(false);
       toast.success("변경사항이 저장되었습니다");
     } catch (error: any) {
@@ -70,7 +70,6 @@ export function useProblemEditor(
     editedProblems,
     setEditedProblems,
     hasChanges,
-    setHasChanges,
     isSaving,
     isEditing,
     setIsEditing,

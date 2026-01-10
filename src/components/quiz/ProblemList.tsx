@@ -88,41 +88,41 @@ export function ProblemList({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-semibold">문제 미리보기</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start sm:gap-4">
           <div className="flex items-center gap-2">
-            {studentPreview ? (
-              <Eye className="w-4 h-4 text-primary" />
-            ) : (
-              <EyeOff className="w-4 h-4 text-muted-foreground" />
-            )}
+            <h2 className="text-lg font-semibold">단어 목록</h2>
+            <span className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground font-medium">
+              {problems.length}개
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-2">
             <Label htmlFor="student-preview" className="text-sm cursor-pointer whitespace-nowrap">
               학생 화면
             </Label>
             <Switch id="student-preview" checked={studentPreview} onCheckedChange={onToggleStudentPreview} />
           </div>
         </div>
-        <div className="flex items-center gap-2 justify-end">
-          {/* 전체 음성 재생성 버튼 */}
+
+        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2">
           <Button
             variant="default"
             size="sm"
             onClick={onRegenerateAllAudio}
             disabled={isGeneratingAudio}
-            className="bg-accent hover:bg-accent/90 text-accent-foreground"
+            className="bg-accent hover:bg-accent/90 text-accent-foreground w-full sm:w-auto"
           >
             {isGeneratingAudio ? (
               <>
-                <Loader2 className="w-4 h-4 mr-1 sm:mr-2 animate-spin" />
-                <span className="hidden sm:inline whitespace-nowrap">음성 생성 중...</span>
-                <span className="sm:hidden">생성 중...</span>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <span className="whitespace-nowrap">음성 생성 중...</span>
+                <span className="sm:hidden -ml-1">...</span>
               </>
             ) : (
               <>
-                <RefreshCw className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline whitespace-nowrap">전체 음성 재생성</span>
-                <span className="sm:hidden">전체 음성</span>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                <span className="whitespace-nowrap">전체 음성 재생성</span>
               </>
             )}
           </Button>
@@ -132,31 +132,36 @@ export function ProblemList({
             size="sm"
             onClick={onRegenerateAllProblems}
             disabled={isRegeneratingProblems}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
           >
              {isRegeneratingProblems ? (
-               <Loader2 className="w-4 h-4 mr-1 sm:mr-2 animate-spin" />
+               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
              ) : (
-               <RefreshCw className="w-4 h-4 mr-1 sm:mr-2" />
+               <RefreshCw className="w-4 h-4 mr-2" />
              )}
-             <span className="hidden sm:inline whitespace-nowrap">전체 문제 재생성</span>
-             <span className="sm:hidden">전체 문제</span>
+             <span className="whitespace-nowrap">전체 문제 재생성</span>
           </Button>
 
           <Button
             variant={isEditing ? "secondary" : "outline"}
             size="sm"
             onClick={() => isEditing ? onCancelEdit() : setIsEditing(true)}
+            className="w-full sm:w-auto"
           >
-            <Edit2 className="w-4 h-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">{isEditing ? "수정 취소" : "수정하기"}</span>
-            <span className="sm:hidden">{isEditing ? "취소" : "수정"}</span>
+            <Edit2 className="w-4 h-4 mr-2" />
+            <span>{isEditing ? "수정 취소" : "수정하기"}</span>
           </Button>
-          {hasChanges && (
-            <Button onClick={onSaveChanges} disabled={isSaving} size="icon">
-              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            </Button>
-          )}
+
+          <Button 
+            onClick={onSaveChanges} 
+            disabled={isSaving || !hasChanges} 
+            size="sm"
+            className="w-full sm:w-auto"
+            variant="default"
+          >
+            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            <span>저장하기</span>
+          </Button>
         </div>
       </div>
 

@@ -210,7 +210,7 @@ export function ProblemCard({
                 <RefreshCw className="w-4 h-4 mr-1" />
               )}
               <span className="hidden sm:inline">음성 재생성</span>
-              <span className="sm:hidden">음성</span>
+              <span className="sm:hidden">음성 재생성</span>
             </Button>
             <Button
               variant="default"
@@ -225,7 +225,7 @@ export function ProblemCard({
                 <RefreshCw className="w-4 h-4 mr-1" />
               )}
               <span className="hidden sm:inline">문제 재생성</span>
-              <span className="sm:hidden">문제</span>
+              <span className="sm:hidden">문제 재생성</span>
             </Button>
           </div>
         </div>

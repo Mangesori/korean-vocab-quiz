@@ -543,7 +543,7 @@ export default function QuizPreview() {
                         <Input
                           value={problem.sentence}
                           onChange={(e) => updateProblem(problem.id, "sentence", e.target.value)}
-                          className="text-lg bg-muted/30"
+                          className="text-sm sm:text-lg bg-muted/30"
                         />
                       </div>
 
@@ -556,7 +556,7 @@ export default function QuizPreview() {
                           <Input
                             value={problem.answer}
                             onChange={(e) => updateProblem(problem.id, "answer", e.target.value)}
-                            className="bg-muted/30"
+                            className="bg-muted/30 text-sm"
                           />
                         </div>
                         <div className="space-y-2">
@@ -566,7 +566,7 @@ export default function QuizPreview() {
                           <Input
                             value={problem.hint}
                             onChange={(e) => updateProblem(problem.id, "hint", e.target.value)}
-                            className="bg-muted/30"
+                            className="bg-muted/30 text-sm"
                           />
                         </div>
                       </div>
@@ -579,7 +579,7 @@ export default function QuizPreview() {
                         <Textarea
                           value={problem.translation}
                           onChange={(e) => updateProblem(problem.id, "translation", e.target.value)}
-                          className="bg-muted/30 min-h-[60px]"
+                          className="bg-muted/30 min-h-[60px] text-sm"
                           rows={2}
                         />
                       </div>
