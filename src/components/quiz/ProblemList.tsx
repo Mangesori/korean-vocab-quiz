@@ -146,19 +146,17 @@ export function ProblemList({
           <Button
             variant={isEditing ? "secondary" : "outline"}
             size="sm"
-                onClick={() => isEditing ? onCancelEdit() : setIsEditing(true)}
-              >
-                <Edit2 className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">{isEditing ? "수정 취소" : "수정하기"}</span>
-                <span className="sm:hidden">{isEditing ? "취소" : "수정"}</span>
-              </Button>
-              {hasChanges && (
-                <Button onClick={onSaveChanges} disabled={isSaving} size="sm">
-                  {isSaving ? <Loader2 className="w-4 h-4 mr-1 sm:mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-1 sm:mr-2" />}
-                  <span className="hidden sm:inline">저장하기</span>
-                  <span className="sm:hidden">저장</span>
-                </Button>
-              )}
+            onClick={() => isEditing ? onCancelEdit() : setIsEditing(true)}
+          >
+            <Edit2 className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">{isEditing ? "수정 취소" : "수정하기"}</span>
+            <span className="sm:hidden">{isEditing ? "취소" : "수정"}</span>
+          </Button>
+          {hasChanges && (
+            <Button onClick={onSaveChanges} disabled={isSaving} size="icon">
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -196,6 +194,15 @@ export function ProblemList({
           </div>
         ))}
       </div>
+
+      {isEditing && (
+        <div className="mt-8 flex justify-center">
+          <Button onClick={onSaveChanges} disabled={isSaving || !hasChanges} size="lg">
+            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            저장하기
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

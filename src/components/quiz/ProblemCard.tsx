@@ -157,25 +157,46 @@ export function ProblemCard({
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
       <CardHeader className="py-3 px-4 bg-muted/30">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
-              {index + 1}
-            </span>
-            <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold">
-              {problem.word}
-            </span>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          
+          {/* Mobile Line 1: Word + Play Button */}
+          <div className="flex items-center justify-between w-full sm:w-auto">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                {index + 1}
+              </span>
+              <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold">
+                {problem.word}
+              </span>
+            </div>
+            
+            {/* Play Button - Visible here only on Mobile */}
+            <div className="sm:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => audioUrl && onPlayAudio(audioUrl)}
+                disabled={!audioUrl}
+                className="text-muted-foreground hover:text-foreground h-8 w-8 p-0"
+              >
+                <Volume2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
+
+          {/* Desktop Right Side / Mobile Line 2 */}
+          <div className="flex items-center justify-end gap-1 w-full sm:w-auto mt-1 sm:mt-0">
+            {/* Play Button - Desktop Only */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => audioUrl && onPlayAudio(audioUrl)}
               disabled={!audioUrl}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground hidden sm:inline-flex"
             >
               <Volume2 className="w-4 h-4" />
             </Button>
+
             <Button
               variant="default"
               size="sm"
