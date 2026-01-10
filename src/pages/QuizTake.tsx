@@ -449,9 +449,9 @@ export default function QuizTake() {
 
         {/* Main Card */}
         <Card className="shadow-lg">
-          <CardContent className="py-6">
+          <CardContent className="p-4 sm:p-6">
             {/* Word Bank - get words from CURRENT SET's problems, shuffled once per set */}
-            <div className="mb-6">
+            <div className="mb-4 sm:mb-6">
               <p className="text-sm text-muted-foreground mb-3 text-center">보기</p>
               <div className="flex flex-wrap justify-center gap-2">
                 {shuffledWordBank.map((word, idx) => (
@@ -502,7 +502,7 @@ export default function QuizTake() {
                                       playAudio(problem.sentence_audio_url, problem.id);
                                     }
                                   }}
-                                  className={isAnonymous ? "opacity-60" : ""}
+                                  className={`h-8 w-8 p-0 ${isAnonymous ? "opacity-60" : ""}`}
                                 >
                                   {isAnonymous ? (
                                     <Lock className="w-4 h-4" />
@@ -521,6 +521,7 @@ export default function QuizTake() {
                           <Button
                             variant="outline"
                             size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => toggleTranslation(problem.id)}
                           >
                             <Lightbulb className={`w-4 h-4 ${showTranslations[problem.id] ? "text-warning" : ""}`} />

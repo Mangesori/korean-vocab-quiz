@@ -374,9 +374,9 @@ export default function QuizPreview() {
             {studentPreview ? (
               /* 학생 화면 미리보기 - QuizTake와 동일한 레이아웃 */
               <Card className="shadow-lg">
-                <CardContent className="py-6">
+                <CardContent className="p-4 sm:p-6">
                   {/* 보기 (워드 뱅크) */}
-                  <div className="mb-6">
+                  <div className="mb-4 sm:mb-6">
                     <p className="text-sm text-muted-foreground mb-3 text-center">보기</p>
                     <div className="flex flex-wrap justify-center gap-2">
                       {set.map((problem) => (
@@ -414,12 +414,13 @@ export default function QuizPreview() {
                                 </p>
                               </div>
                               <div className="flex gap-1 shrink-0">
-                                <Button variant="outline" size="sm" disabled>
+                                <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled>
                                   <Volume2 className="w-4 h-4" />
                                 </Button>
                                 <Button 
                                   variant="outline" 
                                   size="sm"
+                                  className="h-8 w-8 p-0"
                                   onClick={() => setShowTranslations(prev => ({ ...prev, [problem.id]: !prev[problem.id] }))}
                                 >
                                   <Lightbulb className="w-4 h-4" />

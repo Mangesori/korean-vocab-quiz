@@ -56,24 +56,21 @@ export function ProblemCard({
     }
 
     return (
-      <div className="py-2">
+      <div className="py-4">
          {/* Mobile Layout: Stacked */}
          <div className="flex flex-col gap-2 sm:hidden">
             <div className="flex items-start gap-2">
               <span className="text-primary font-bold">{index + 1}.</span>
               <div className="flex-1">
                 <p className="text-base leading-relaxed">
-                  {parts[0]}
-                  <span className="text-muted-foreground ml-1">( _____ )</span>
-                  {problem.hint && <span className="text-primary text-sm ml-1">{problem.hint}</span>}
-                  {parts[1]}
+                  {renderStudentSentence(problem.sentence, problem.hint)}
                 </p>
               </div>
               <div className="flex gap-1 shrink-0">
                 <Button 
                    variant="outline" 
                    size="sm" 
-                   className="h-8 w-8 text-primary"
+                   className="h-8 w-8 p-0 text-primary"
                    disabled={!audioUrl}
                    onClick={() => audioUrl && onPlayAudio(audioUrl)}
                 >
@@ -82,7 +79,7 @@ export function ProblemCard({
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="h-8 w-8"
+                  className="h-8 w-8 p-0"
                   onClick={() => onToggleTranslation(problem.id)}
                 >
                   <Lightbulb className="w-4 h-4" />

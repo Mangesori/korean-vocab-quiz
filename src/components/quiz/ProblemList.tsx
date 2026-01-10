@@ -77,9 +77,9 @@ export function ProblemList({
     return (
       <span className="flex items-center flex-wrap gap-1">
         <span>{parts[0]}</span>
-        <span className="inline-flex items-center gap-2">
-          <span className="inline-block min-w-[100px] h-8 rounded border bg-background"></span>
-          <span className="text-primary text-sm">{hint}</span>
+        <span className="inline-flex items-center gap-1">
+          <span className="text-muted-foreground">( _____ )</span>
+          {hint && <span className="text-primary text-sm">{hint}</span>}
         </span>
         <span>{parts[1]}</span>
       </span>
@@ -173,29 +173,75 @@ export function ProblemList({
                 세트 {setIndex + 1}
               </span>
             </div>
-            <div className="space-y-4">
-              {set.map((problem) => {
-                const globalIndex = setIndex * wordsPerSet + set.indexOf(problem);
-                return (
-                  <ProblemCard
-                    key={problem.id}
-                    problem={problem}
-                    index={globalIndex}
-                    isEditing={isEditing}
-                    onUpdateProblem={onUpdateProblem}
-                    audioUrl={audioUrls[problem.id]}
-                    onPlayAudio={onPlayAudio}
-                    onRegenerateAudio={() => onRegenerateSingleAudio(problem)}
-                  onRegenerateProblem={() => onRegenerateProblem(problem)}
-                  regeneratingId={regeneratingProblemId}
-                  showTranslation={!!showTranslations[problem.id]}
-                    onToggleTranslation={toggleTranslation}
-                    studentPreview={studentPreview}
-                    renderStudentSentence={renderStudentSentence}
-                  />
-                );
-              })}
-            </div>
+
+            {studentPreview ? (
+              <div className="border rounded-xl bg-card text-card-foreground shadow-sm">
+                 <div className="p-4 sm:p-6">
+                    {/* Word Bank for the Set */}
+                    <div className="mb-4 sm:mb-6">
+                      <p className="text-sm text-muted-foreground mb-3 text-center">보기</p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {set.map((problem) => (
+                          <span
+                            key={problem.id}
+                            className="px-4 py-1.5 rounded-full text-sm bg-background border font-medium"
+                          >
+                            {problem.word}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-0 divide-y">
+                      {set.map((problem) => {
+                        const globalIndex = setIndex * wordsPerSet + set.indexOf(problem);
+                        return (
+                          <ProblemCard
+                            key={problem.id}
+                            problem={problem}
+                            index={globalIndex}
+                            isEditing={isEditing}
+                            onUpdateProblem={onUpdateProblem}
+                            audioUrl={audioUrls[problem.id]}
+                            onPlayAudio={onPlayAudio}
+                            onRegenerateAudio={() => onRegenerateSingleAudio(problem)}
+                            onRegenerateProblem={() => onRegenerateProblem(problem)}
+                            regeneratingId={regeneratingProblemId}
+                            showTranslation={!!showTranslations[problem.id]}
+                            onToggleTranslation={toggleTranslation}
+                            studentPreview={studentPreview}
+                            renderStudentSentence={renderStudentSentence}
+                          />
+                        );
+                      })}
+                    </div>
+                 </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {set.map((problem) => {
+                  const globalIndex = setIndex * wordsPerSet + set.indexOf(problem);
+                  return (
+                    <ProblemCard
+                      key={problem.id}
+                      problem={problem}
+                      index={globalIndex}
+                      isEditing={isEditing}
+                      onUpdateProblem={onUpdateProblem}
+                      audioUrl={audioUrls[problem.id]}
+                      onPlayAudio={onPlayAudio}
+                      onRegenerateAudio={() => onRegenerateSingleAudio(problem)}
+                      onRegenerateProblem={() => onRegenerateProblem(problem)}
+                      regeneratingId={regeneratingProblemId}
+                      showTranslation={!!showTranslations[problem.id]}
+                      onToggleTranslation={toggleTranslation}
+                      studentPreview={studentPreview}
+                      renderStudentSentence={renderStudentSentence}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
         ))}
       </div>
