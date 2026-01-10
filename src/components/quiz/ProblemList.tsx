@@ -103,26 +103,26 @@ export function ProblemList({
             <Switch id="student-preview" checked={studentPreview} onCheckedChange={onToggleStudentPreview} />
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-end">
           {/* 전체 음성 재생성 버튼 */}
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
             onClick={onRegenerateAllAudio}
             disabled={isGeneratingAudio}
+            className="bg-accent hover:bg-accent/90 text-accent-foreground"
           >
             {isGeneratingAudio ? (
               <>
                 <Loader2 className="w-4 h-4 mr-1 sm:mr-2 animate-spin" />
-                <span className="whitespace-nowrap">
-                  ({audioProgress.current}/{audioProgress.total})
-                </span>
+                <span className="hidden sm:inline whitespace-nowrap">음성 생성 중...</span>
+                <span className="sm:hidden">생성 중...</span>
               </>
             ) : (
               <>
                 <RefreshCw className="w-4 h-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline whitespace-nowrap">전체 음성 재생성</span>
-                <span className="sm:hidden">전체 재생성</span>
+                <span className="sm:hidden">전체 음성</span>
               </>
             )}
           </Button>
@@ -132,6 +132,7 @@ export function ProblemList({
             size="sm"
             onClick={onRegenerateAllProblems}
             disabled={isRegeneratingProblems}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
              {isRegeneratingProblems ? (
                <Loader2 className="w-4 h-4 mr-1 sm:mr-2 animate-spin" />
@@ -139,7 +140,7 @@ export function ProblemList({
                <RefreshCw className="w-4 h-4 mr-1 sm:mr-2" />
              )}
              <span className="hidden sm:inline whitespace-nowrap">전체 문제 재생성</span>
-             <span className="sm:hidden">문제 재생성</span>
+             <span className="sm:hidden">전체 문제</span>
           </Button>
 
           <Button

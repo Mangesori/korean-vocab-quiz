@@ -177,11 +177,11 @@ export function ProblemCard({
               <Volume2 className="w-4 h-4" />
             </Button>
             <Button
-              variant="ghost"
+              variant="default"
               size="sm"
               onClick={() => onRegenerateAudio(problem)}
               disabled={regeneratingId === problem.id}
-              className="text-muted-foreground hover:text-foreground"
+              className="bg-accent hover:bg-accent/90 text-accent-foreground"
             >
               {regeneratingId === problem.id ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -189,6 +189,7 @@ export function ProblemCard({
                 <RefreshCw className="w-4 h-4 mr-1" />
               )}
               <span className="hidden sm:inline">음성 재생성</span>
+              <span className="sm:hidden">음성</span>
             </Button>
             <Button
               variant="default"
@@ -203,7 +204,7 @@ export function ProblemCard({
                 <RefreshCw className="w-4 h-4 mr-1" />
               )}
               <span className="hidden sm:inline">문제 재생성</span>
-              <span className="sm:hidden">재생성</span>
+              <span className="sm:hidden">문제</span>
             </Button>
           </div>
         </div>
@@ -234,7 +235,7 @@ export function ProblemCard({
             <Input
               value={problem.sentence}
               onChange={(e) => onUpdateProblem(problem.id, "sentence", e.target.value)}
-              className="text-lg bg-muted/30"
+              className="text-sm sm:text-lg bg-muted/30"
             />
           </div>
         )}
@@ -249,7 +250,7 @@ export function ProblemCard({
               <Input
                 value={problem.answer}
                 onChange={(e) => onUpdateProblem(problem.id, "answer", e.target.value)}
-                className="bg-muted/30"
+                className="text-sm bg-muted/30"
               />
             ) : (
               <p className="px-3 py-2 rounded-md bg-muted/30 text-sm">{problem.answer}</p>
@@ -263,7 +264,7 @@ export function ProblemCard({
               <Input
                 value={problem.hint}
                 onChange={(e) => onUpdateProblem(problem.id, "hint", e.target.value)}
-                className="bg-muted/30"
+                className="text-sm bg-muted/30"
               />
             ) : (
               <p className="px-3 py-2 rounded-md bg-muted/30 text-sm">{problem.hint}</p>

@@ -391,8 +391,8 @@ export default function QuizTake() {
     );
   }
 
-  // Allow anonymous users with share token
-  if (!shareToken && !user) {
+  // Allow anonymous users with share token - check shareToken first!
+  if (!user && !shareToken) {
     return <Navigate to="/auth" replace />;
   }
 
