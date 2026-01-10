@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, FileText, Bell, ChevronRight, BookOpen, Clock } from "lucide-react";
+import { Plus, Users, FileText, Bell, ChevronRight, BookOpen, Clock, GraduationCap } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
@@ -122,13 +122,16 @@ export default function TeacherDashboard() {
     <AppLayout>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">선생님 대시보드</h1>
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+            <GraduationCap className="h-8 w-8 text-primary" />
+            선생님 대시보드
+          </h1>
           <p className="text-muted-foreground mt-1">수업과 퀴즈를 관리하세요</p>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -140,7 +143,7 @@ export default function TeacherDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-accent/10 to-accent/5">
+          <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -152,7 +155,7 @@ export default function TeacherDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-success/10 to-success/5">
+          <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -164,7 +167,7 @@ export default function TeacherDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-warning/10 to-warning/5">
+          <Card className="bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>

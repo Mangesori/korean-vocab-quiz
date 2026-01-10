@@ -16,6 +16,8 @@ import {
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { LevelBadge } from '@/components/ui/level-badge';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/lib/rbac/roles';
 
 interface Quiz {
   id: string;
@@ -27,16 +29,17 @@ interface Quiz {
 }
 
 export default function Quizzes() {
-  const { user, role, loading } = useAuth();
+  const { user, loading } = useAuth();
+  const { can } = usePermissions();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    if (user && role === 'teacher') {
+    if (user && can(PERMISSIONS.CREATE_QUIZ)) {
       fetchQuizzes();
     }
-  }, [user, role]);
+  }, [user, can]);
 
   const fetchQuizzes = async () => {
     setIsLoading(true);
@@ -58,7 +61,7 @@ export default function Quizzes() {
     );
   }
 
-  if (!user || role !== 'teacher') {
+  if (!user || !can(PERMISSIONS.CREATE_QUIZ)) {
     return <Navigate to="/dashboard" replace />;
   }
 

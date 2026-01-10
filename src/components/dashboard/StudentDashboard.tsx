@@ -206,13 +206,16 @@ export default function StudentDashboard() {
     <AppLayout>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">학생 대시보드</h1>
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+            <Users className="h-8 w-8 text-primary" />
+            학생 대시보드
+          </h1>
           <p className="text-muted-foreground mt-1">퀴즈를 풀고 학습을 이어가세요</p>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -224,7 +227,7 @@ export default function StudentDashboard() {
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-success/10 to-success/5">
+          <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -236,7 +239,7 @@ export default function StudentDashboard() {
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-accent/10 to-accent/5">
+          <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -248,7 +251,7 @@ export default function StudentDashboard() {
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-br from-info/10 to-info/5">
+          <Card className="bg-gradient-to-br from-info/10 to-info/5 border-info/20">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>

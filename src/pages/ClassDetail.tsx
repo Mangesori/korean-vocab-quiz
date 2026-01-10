@@ -22,6 +22,8 @@ import { Navigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/lib/rbac/roles';
 
 interface ClassData {
   id: string;
@@ -42,7 +44,8 @@ interface Member {
 
 export default function ClassDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user, role, loading } = useAuth();
+  const { user, loading } = useAuth();
+  const { can } = usePermissions();
   const navigate = useNavigate();
   
   const [classData, setClassData] = useState<ClassData | null>(null);
@@ -173,7 +176,7 @@ export default function ClassDetail() {
     );
   }
 
-  if (!user || role !== 'teacher') {
+  if (!user || !can(PERMISSIONS.EDIT_CLASS)) {
     return <Navigate to="/dashboard" replace />;
   }
 

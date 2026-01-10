@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Navigate } from "react-router-dom";
 import { LevelBadge } from "@/components/ui/level-badge";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/lib/rbac/roles";
 
 const DIFFICULTY_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 
@@ -33,7 +35,8 @@ const TRANSLATION_LANGUAGES = [
 ];
 
 export default function QuizCreate() {
-  const { user, role, loading } = useAuth();
+  const { user, loading } = useAuth();
+  const { can } = usePermissions();
   const navigate = useNavigate();
 
   const [step, setStep] = useState<"words" | "settings">("words");
@@ -55,7 +58,7 @@ export default function QuizCreate() {
     );
   }
 
-  if (!user || role !== "teacher") {
+  if (!user || !can(PERMISSIONS.CREATE_QUIZ)) {
     return <Navigate to="/dashboard" replace />;
   }
 

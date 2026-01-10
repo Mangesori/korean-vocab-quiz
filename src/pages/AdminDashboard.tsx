@@ -12,11 +12,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Users, GraduationCap, BookOpen, Shield, Search, RefreshCw } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/lib/rbac/roles';
 
 interface UserWithRole {
   user_id: string;
   role: 'admin' | 'teacher' | 'student';
   created_at: string;
+  email: string | null;
   profile: {
     name: string;
   } | null;
@@ -32,7 +35,8 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
-  const { user, role, loading } = useAuth();
+  const { user, loading } = useAuth();
+  const { can } = usePermissions();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
@@ -47,18 +51,18 @@ export default function AdminDashboard() {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user && role === 'admin') {
+    if (user && can(PERMISSIONS.MANAGE_USERS)) {
       fetchData();
     }
-  }, [user, role]);
+  }, [user?.id, can]);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch all users with roles from profiles table
+      // Fetch all users with roles and emails from the view
       const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, name, role, created_at')
+        .from('user_profiles_with_email')
+        .select('user_id, name, email, role, created_at')
         .order('created_at', { ascending: false });
 
       if (profilesError) throw profilesError;
@@ -68,6 +72,7 @@ export default function AdminDashboard() {
         user_id: p.user_id,
         role: p.role as 'admin' | 'teacher' | 'student',
         created_at: p.created_at,
+        email: p.email,
         profile: { name: p.name }
       })) || [];
 
@@ -174,75 +179,88 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!user || role !== 'admin') {
+  if (!user || !can(PERMISSIONS.MANAGE_USERS)) {
     return <Navigate to="/dashboard" replace />;
   }
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
             <Shield className="h-8 w-8 text-destructive" />
             관리자 대시보드
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-1">
             시스템 전체 사용자와 콘텐츠를 관리합니다
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">전체 사용자</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalUsers}</div>
-              <p className="text-xs text-muted-foreground">
-                관리자 {stats.admins} · 선생님 {stats.teachers} · 학생 {stats.students}
-              </p>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">전체 사용자</p>
+                  <p className="text-2xl font-bold">{stats.totalUsers}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    관리자 {stats.admins} · 선생님 {stats.teachers} · 학생 {stats.students}
+                  </p>
+                </div>
+                <Users className="h-8 w-8 text-primary/60" />
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">선생님</CardTitle>
-              <GraduationCap className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.teachers}</div>
-              <p className="text-xs text-muted-foreground">퀴즈 생성 가능</p>
+          <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">선생님</p>
+                  <p className="text-2xl font-bold">{stats.teachers}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    퀴즈 생성 가능
+                  </p>
+                </div>
+                <GraduationCap className="h-8 w-8 text-accent/60" />
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">전체 클래스</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalClasses}</div>
-              <p className="text-xs text-muted-foreground">개설된 클래스</p>
+          <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">전체 클래스</p>
+                  <p className="text-2xl font-bold">{stats.totalClasses}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    개설된 클래스
+                  </p>
+                </div>
+                <Users className="h-8 w-8 text-success/60" />
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">전체 퀴즈</CardTitle>
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalQuizzes}</div>
-              <p className="text-xs text-muted-foreground">생성된 퀴즈</p>
+          <Card className="bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">전체 퀴즈</p>
+                  <p className="text-2xl font-bold">{stats.totalQuizzes}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    생성된 퀴즈
+                  </p>
+                </div>
+                <BookOpen className="h-8 w-8 text-warning/60" />
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* User Management */}
-        <Card>
+        <Card className="mb-8">
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
@@ -275,11 +293,11 @@ export default function AdminDashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>이름</TableHead>
-                      <TableHead>사용자 ID</TableHead>
-                      <TableHead>현재 역할</TableHead>
-                      <TableHead>가입일</TableHead>
-                      <TableHead className="text-right">역할 변경</TableHead>
+                      <TableHead className="w-[150px]">이름</TableHead>
+                      <TableHead className="w-[200px]">이메일</TableHead>
+                      <TableHead className="w-[100px]">현재 역할</TableHead>
+                      <TableHead className="w-[120px]">가입일</TableHead>
+                      <TableHead className="w-[150px]">역할 변경</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -298,16 +316,16 @@ export default function AdminDashboard() {
                               <Badge variant="outline" className="ml-2 text-xs">나</Badge>
                             )}
                           </TableCell>
-                          <TableCell className="font-mono text-xs text-muted-foreground">
-                            {u.user_id.substring(0, 8)}...
+                          <TableCell className="text-sm">
+                            {u.email || '(이메일 없음)'}
                           </TableCell>
                           <TableCell>{getRoleBadge(u.role)}</TableCell>
                           <TableCell className="text-muted-foreground">
                             {new Date(u.created_at).toLocaleDateString('ko-KR')}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell>
                             {u.user_id === user?.id ? (
-                              <span className="text-xs text-muted-foreground">변경 불가</span>
+                              <span className="text-sm text-muted-foreground">변경 불가</span>
                             ) : (
                               <Select
                                 value={u.role}

@@ -119,7 +119,7 @@ export default function Classes() {
     );
   }
 
-  if (!user || role !== 'teacher') {
+  if (!user || (role !== 'teacher' && role !== 'admin')) {
     return <Navigate to="/dashboard" replace />;
   }
 

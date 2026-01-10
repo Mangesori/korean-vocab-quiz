@@ -21,9 +21,18 @@ import ClassDetail from "./pages/ClassDetail";
 import QuizShare from "./pages/QuizShare";
 import QuizShareResult from "./pages/QuizShareResult";
 import QuizExampleResult from "./pages/QuizExampleResult";
-import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+import NotFound from "./pages/NotFound";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { PERMISSIONS } from "@/lib/rbac/roles";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -37,17 +46,49 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin" element={
+              <ProtectedRoute permission={PERMISSIONS.MANAGE_USERS} redirectTo="/dashboard">
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
             <Route path="/quiz/example" element={<QuizExample />} />
             <Route path="/quiz/example/result" element={<QuizExampleResult />} />
-            <Route path="/quiz/create" element={<QuizCreate />} />
-            <Route path="/quiz/preview" element={<QuizPreview />} />
+            <Route path="/quiz/create" element={
+              <ProtectedRoute permission={PERMISSIONS.CREATE_QUIZ} redirectTo="/dashboard">
+                <QuizCreate />
+              </ProtectedRoute>
+            } />
+            <Route path="/quiz/preview" element={
+              <ProtectedRoute permission={PERMISSIONS.CREATE_QUIZ} redirectTo="/dashboard">
+                <QuizPreview />
+              </ProtectedRoute>
+            } />
             <Route path="/quizzes" element={<Quizzes />} />
-            <Route path="/quiz/:id" element={<QuizDetail />} />
-            <Route path="/quiz/:id/take" element={<QuizTake />} />
-            <Route path="/quiz/:id/result/:resultId" element={<QuizResult />} />
-            <Route path="/classes" element={<Classes />} />
-            <Route path="/class/:id" element={<ClassDetail />} />
+            <Route path="/quiz/:id" element={
+              <ProtectedRoute permission={PERMISSIONS.VIEW_QUIZ} redirectTo="/auth">
+                <QuizDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/quiz/:id/take" element={
+              <ProtectedRoute permission={PERMISSIONS.VIEW_QUIZ} redirectTo="/auth">
+                <QuizTake />
+              </ProtectedRoute>
+            } />
+            <Route path="/quiz/:id/result/:resultId" element={
+              <ProtectedRoute permission={PERMISSIONS.VIEW_QUIZ} redirectTo="/auth">
+                <QuizResult />
+              </ProtectedRoute>
+            } />
+            <Route path="/classes" element={
+              <ProtectedRoute permission={PERMISSIONS.VIEW_CLASS} redirectTo="/auth">
+                <Classes />
+              </ProtectedRoute>
+            } />
+            <Route path="/class/:id" element={
+              <ProtectedRoute permission={PERMISSIONS.VIEW_CLASS} redirectTo="/auth">
+                <ClassDetail />
+              </ProtectedRoute>
+            } />
             <Route path="/quiz/share/:token" element={<QuizShare />} />
             <Route path="/quiz/share/result" element={<QuizShareResult />} />
             <Route path="*" element={<NotFound />} />

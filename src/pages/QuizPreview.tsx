@@ -15,6 +15,8 @@ import { Navigate } from "react-router-dom";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { maskTranslation } from "@/utils/maskTranslation";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/lib/rbac/roles";
 
 interface Problem {
   id: string;
@@ -75,7 +77,8 @@ const highlightAnswerInSentence = (sentence: string, answer: string) => {
 
 
 export default function QuizPreview() {
-  const { user, role, loading } = useAuth();
+  const { user, loading } = useAuth();
+  const { can } = usePermissions();
   const navigate = useNavigate();
 
   const [draft, setDraft] = useState<QuizDraft | null>(null);
@@ -101,7 +104,7 @@ export default function QuizPreview() {
     );
   }
 
-  if (!user || role !== "teacher") {
+  if (!user || !can(PERMISSIONS.CREATE_QUIZ)) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -510,7 +513,7 @@ export default function QuizPreview() {
                           ) : (
                             <RefreshCw className="w-4 h-4 mr-1" />
                           )}
-                          <span className="hidden sm:inline">문제 다시 생성</span>
+                          <span className="hidden sm:inline">문제 재생성</span>
                           <span className="sm:hidden">재생성</span>
                         </Button>
                       </div>

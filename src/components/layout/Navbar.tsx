@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Bell, Menu, X, BookOpen, LogOut, User, GraduationCap, Users, Shield } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
+import { Protect } from '@/components/auth/Protect';
+import { PERMISSIONS } from '@/lib/rbac/roles';
 
 export function Navbar() {
   const { user, role, signOut } = useAuth();
@@ -45,35 +47,30 @@ export function Navbar() {
                   대시보드
                 </Button>
               </Link>
-              {role === 'admin' && (
+              <Protect permission={PERMISSIONS.MANAGE_USERS}>
                 <Link to="/admin">
                   <Button variant="ghost" size="sm" className="text-destructive">
                     <Shield className="h-4 w-4 mr-1" />
                     관리자
                   </Button>
                 </Link>
-              )}
-              {(role === 'teacher' || role === 'admin') && (
-                <>
-                  <Link to="/quiz/create">
-                    <Button variant="ghost" size="sm">
-                      퀴즈 만들기
-                    </Button>
-                  </Link>
-                  <Link to="/classes">
-                    <Button variant="ghost" size="sm">
-                      클래스 관리
-                    </Button>
-                  </Link>
-                </>
-              )}
-              {role === 'student' && (
-                <Link to="/classes">
+              </Protect>
+              
+              <Protect permission={PERMISSIONS.CREATE_QUIZ}>
+                <Link to="/quiz/create">
                   <Button variant="ghost" size="sm">
-                    클래스 참여
+                    퀴즈 만들기
                   </Button>
                 </Link>
-              )}
+              </Protect>
+
+              <Protect permission={PERMISSIONS.VIEW_CLASS}>
+                <Link to="/classes">
+                  <Button variant="ghost" size="sm">
+                    {role === 'student' ? '클래스 참여' : '클래스 관리'}
+                  </Button>
+                </Link>
+              </Protect>
             </div>
           )}
         </div>
@@ -164,35 +161,30 @@ export function Navbar() {
                 대시보드
               </Button>
             </Link>
-            {role === 'admin' && (
+            <Protect permission={PERMISSIONS.MANAGE_USERS}>
               <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start text-destructive">
                   <Shield className="h-4 w-4 mr-2" />
                   관리자
                 </Button>
               </Link>
-            )}
-            {(role === 'teacher' || role === 'admin') && (
-              <>
-                <Link to="/quiz/create" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start">
-                    퀴즈 만들기
-                  </Button>
-                </Link>
-                <Link to="/classes" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start">
-                    클래스 관리
-                  </Button>
-                </Link>
-              </>
-            )}
-            {role === 'student' && (
-              <Link to="/classes" onClick={() => setMobileMenuOpen(false)}>
+            </Protect>
+
+            <Protect permission={PERMISSIONS.CREATE_QUIZ}>
+              <Link to="/quiz/create" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">
-                  클래스 참여
+                  퀴즈 만들기
                 </Button>
               </Link>
-            )}
+            </Protect>
+
+            <Protect permission={PERMISSIONS.VIEW_CLASS}>
+              <Link to="/classes" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start">
+                  {role === 'student' ? '클래스 참여' : '클래스 관리'}
+                </Button>
+              </Link>
+            </Protect>
           </div>
         </div>
       )}
