@@ -200,7 +200,7 @@ export default function QuizCreate() {
               </div>
 
               <div className="space-y-2">
-                <Label>난이도 (TOPIK 기준)</Label>
+                <Label>난이도</Label>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {DIFFICULTY_LEVELS.map((level) => (
                     <button

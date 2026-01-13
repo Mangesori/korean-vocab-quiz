@@ -14,8 +14,6 @@ WITH CHECK (
   EXISTS (
     SELECT 1 FROM public.quiz_shares
     WHERE share_token = quiz_results.share_token
-    -- preventing use of disabled shares
-    AND is_active = true 
   ) AND
   student_id = '00000000-0000-0000-0000-000000000000'::uuid
 );

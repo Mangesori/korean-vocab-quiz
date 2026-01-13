@@ -1,4 +1,4 @@
-# Dalkom Korean (달콤 코리안)
+# Dalkom Korean (달콤한 한국어)
 
 **Dalkom Korean**은 한국어 어휘 학습을 위한 퀴즈 애플리케이션입니다. 달콤하게 스며드는 배움의 즐거움을 경험해 보세요!
 

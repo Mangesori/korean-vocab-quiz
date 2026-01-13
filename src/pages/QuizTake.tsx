@@ -319,7 +319,7 @@ export default function QuizTake() {
             .from("quiz_results")
             .insert({
               quiz_id: quiz.id,
-              student_id: "00000000-0000-0000-0000-000000000000",
+              student_id: null,
               score: correctCount,
               total_questions: quiz.problems.length,
               answers: detailedAnswers,

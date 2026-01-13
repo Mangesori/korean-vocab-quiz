@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -10,6 +11,7 @@ import { toast } from "sonner";
 export default function QuizShare() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quiz, setQuiz] = useState<any>(null);
@@ -17,6 +19,12 @@ export default function QuizShare() {
   const [remainingAttempts, setRemainingAttempts] = useState<number>(0);
   const [anonymousName, setAnonymousName] = useState("");
 
+
+  useEffect(() => {
+    if (user?.user_metadata?.name) {
+      setAnonymousName(user.user_metadata.name);
+    }
+  }, [user]);
 
   useEffect(() => {
     loadSharedQuiz();
@@ -152,39 +160,53 @@ export default function QuizShare() {
               </div>
             </div>
 
+
             <div className="space-y-4 pt-4 border-t">
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">
-                  이름을 입력해주세요
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={anonymousName}
-                    onChange={(e) => setAnonymousName(e.target.value)}
-                    placeholder="홍길동"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  />
-                  {anonymousName.trim().length > 0 && anonymousName.trim().length < 2 && (
-                    <p className="text-xs text-destructive mt-1">
-                      이름은 2글자 이상 입력해주세요
-                    </p>
-                  )}
+              {user ? (
+                <div className="text-center space-y-2">
+                  <p className="font-medium text-lg">
+                    <span className="text-primary">{user.user_metadata.name}</span>님으로 참여합니다
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    준비되셨나요?
+                  </p>
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    이름을 입력해주세요
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={anonymousName}
+                      onChange={(e) => setAnonymousName(e.target.value)}
+                      placeholder="홍길동"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    {anonymousName.trim().length > 0 && anonymousName.trim().length < 2 && (
+                      <p className="text-xs text-destructive mt-1">
+                        이름은 2글자 이상 입력해주세요
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <button
                 onClick={startQuiz}
-                disabled={!anonymousName.trim() || anonymousName.trim().length < 2}
+                disabled={(!user && (!anonymousName.trim() || anonymousName.trim().length < 2))}
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 퀴즈 시작하기
               </button>
             </div>
 
-            <p className="text-sm text-muted-foreground text-center">
-              로그인 없이 바로 시작할 수 있습니다
-            </p>
+            {!user && (
+              <p className="text-sm text-muted-foreground text-center">
+                로그인 없이 바로 시작할 수 있습니다
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

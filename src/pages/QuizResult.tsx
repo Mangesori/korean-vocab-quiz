@@ -1,21 +1,11 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams, Link, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Loader2, 
-  CheckCircle,
-  XCircle,
-  Home,
-  ChevronDown,
-  ChevronUp,
-  Lightbulb,
-  Volume2
-} from 'lucide-react';
-import { Navigate } from 'react-router-dom';
+import { Loader2, Home } from 'lucide-react';
+import { QuizReviewCard } from '@/components/quiz/QuizReviewCard';
 
 interface Problem {
   id: string;
@@ -52,14 +42,10 @@ interface Result {
 export default function QuizResult() {
   const { id, resultId } = useParams<{ id: string; resultId: string }>();
   const { user, role, loading } = useAuth();
-  const navigate = useNavigate();
   
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
-  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (user && id && resultId) {
@@ -105,48 +91,6 @@ export default function QuizResult() {
     }
     setIsLoading(false);
   };
-
-  const toggleTranslation = (key: string) => {
-    setShowTranslations(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
-
-  const playAudio = useCallback((audioUrl: string, problemId: string) => {
-    if (!audioUrl) return;
-    
-    // Stop currently playing audio
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    
-    if (playingAudio === problemId) {
-      setPlayingAudio(null);
-      return;
-    }
-    
-    const audio = new Audio(audioUrl);
-    audioRef.current = audio;
-    setPlayingAudio(problemId);
-    
-    audio.onended = () => {
-      setPlayingAudio(null);
-      audioRef.current = null;
-    };
-    
-    audio.onerror = () => {
-      console.error('Audio playback error');
-      setPlayingAudio(null);
-      audioRef.current = null;
-    };
-    
-    audio.play().catch((err) => {
-      console.error('Audio play error:', err);
-      setPlayingAudio(null);
-    });
-  }, [playingAudio]);
 
   if (loading || isLoading) {
     return (
@@ -220,92 +164,17 @@ export default function QuizResult() {
                 <div className="grid gap-4">
                   {setProblems.map((problem, idx) => {
                     const userAnswer = getAnswerForProblem(problem.id);
-                    const isCorrect = userAnswer?.isCorrect;
-                    const parts = problem.sentence.split(/\(\s*\)|\(\)/);
-                    const translationKey = `result-${setIdx}-${idx}`;
-                    const showTranslation = showTranslations[translationKey];
+                    const isCorrect = userAnswer?.isCorrect || false;
                     const problemNumber = setIdx * wordsPerSet + idx + 1;
                     
                     return (
-                      <Card 
+                      <QuizReviewCard
                         key={problem.id}
-                        className="overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
-                      >
-                        <CardContent className="p-6">
-                          <div className="flex items-start gap-4">
-                            {/* Problem Number */}
-                            <span className="text-primary font-bold text-lg mt-1 min-w-[32px]">
-                              {problemNumber}.
-                            </span>
-                            
-                            {/* Icon Indicator */}
-                            <div className="mt-1 shrink-0">
-                               {isCorrect ? (
-                                 <div className="p-1 rounded-full bg-success/10 text-success">
-                                   <CheckCircle className="w-5 h-5" />
-                                 </div>
-                               ) : (
-                                 <div className="p-1 rounded-full bg-destructive/10 text-destructive">
-                                   <XCircle className="w-5 h-5" />
-                                 </div>
-                               )}
-                            </div>
-
-                            <div className="flex-1 space-y-3">
-                              {/* Sentence Display with Buttons */}
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="text-lg leading-relaxed text-foreground flex-1">
-                                  {parts[0]}
-                                  <span className={isCorrect ? "font-bold text-success mx-1 underline decoration-2 underline-offset-4" : "font-bold text-success mx-1"}>
-                                    {problem.answer}
-                                  </span>
-                                  {parts[1]}
-                                </div>
-                                
-                                {/* Action Buttons */}
-                                <div className="flex gap-2 shrink-0">
-                                  {/* Audio Button */}
-                                  {problem.sentence_audio_url && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => playAudio(problem.sentence_audio_url!, problem.id)}
-                                    >
-                                      <Volume2 className={`w-4 h-4 mr-1 ${playingAudio === problem.id ? 'text-primary animate-pulse' : ''}`} />
-                                      듣기
-                                    </Button>
-                                  )}
-                                  
-                                  {/* Translation Toggle */}
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => toggleTranslation(translationKey)}
-                                  >
-                                    <Lightbulb className={`w-4 h-4 mr-1 ${showTranslation ? 'text-warning' : ''}`} />
-                                    번역 보기
-                                  </Button>
-                                </div>
-                              </div>
-
-                              {/* Incorrect Answer Feedback */}
-                              {!isCorrect && (
-                                <div className="text-sm bg-destructive/5 text-destructive px-3 py-2 rounded-md inline-block">
-                                  <span className="font-medium mr-2">내 답안:</span>
-                                  <span className="line-through opacity-80">{userAnswer?.answer || '(입력 없음)'}</span>
-                                </div>
-                              )}
-                              
-                              {/* Translation Display */}
-                              {showTranslation && (
-                                <div className="mt-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg animate-in slide-in-from-top-1 fade-in duration-200">
-                                  {problem.translation}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                        problem={problem}
+                        userAnswer={userAnswer?.answer}
+                        isCorrect={isCorrect}
+                        problemNumber={problemNumber}
+                      />
                     );
                   })}
                 </div>

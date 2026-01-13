@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, User, UserCircle, Loader2, Eye } from "lucide-react";
+import { QuizReviewCard } from "@/components/quiz/QuizReviewCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface QuizResultsListProps {
@@ -120,7 +121,7 @@ export function QuizResultsList({ quizId }: QuizResultsListProps) {
             {filteredResults.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  제출된 결과가 없습니다/
+                  제출된 결과가 없습니다
                 </TableCell>
               </TableRow>
             ) : (
@@ -211,46 +212,29 @@ export function QuizResultsList({ quizId }: QuizResultsListProps) {
 
               <div className="space-y-4">
                 <h3 className="font-medium text-lg">문제별 상세</h3>
-                {selectedResult.answers.map((answer: any, index: number) => (
-                  <div 
-                    key={index} 
-                    className={`p-4 rounded-lg border ${answer.isCorrect ? 'bg-green-50/50 border-green-100' : 'bg-red-50/50 border-red-100'}`}
-                  >
-                    <div className="flex gap-3">
-                       <div className={`mt-1 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${answer.isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                         {index + 1}
-                       </div>
-                       <div className="flex-1 space-y-2">
-                          <div className="flex justify-between">
-                            <p className="font-medium">{answer.sentence || "문제 내용 없음"}</p>
-                            <span className={`text-sm font-medium ${answer.isCorrect ? 'text-green-600' : 'text-red-500'}`}>
-                              {answer.isCorrect ? "정답" : "오답"}
-                            </span>
-                          </div>
-                          {answer.translation && (
-                            <p className="text-sm text-muted-foreground">{answer.translation}</p>
-                          )}
-                          
-                          <div className="grid grid-cols-2 gap-4 mt-2 text-sm">
-                            <div className="p-2 bg-white rounded border">
-                              <span className="text-muted-foreground block mb-1">제출한 답</span>
-                              <span className={answer.isCorrect ? 'text-green-700' : 'text-red-700'}>
-                                {answer.userAnswer || "(미입력)"}
-                              </span>
-                            </div>
-                            {!answer.isCorrect && (
-                              <div className="p-2 bg-green-50 rounded border border-green-100">
-                                <span className="text-muted-foreground block mb-1">정답</span>
-                                <span className="text-green-700 font-medium">
-                                  {answer.correctAnswer}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                       </div>
-                    </div>
-                  </div>
-                ))}
+                <div className="grid gap-4">
+                  {selectedResult.answers.map((answer: any, index: number) => {
+                    const problemData = {
+                      id: answer.problemId || String(index),
+                      word: "",
+                      answer: answer.correctAnswer,
+                      sentence: answer.sentence || "문제 내용 없음",
+                      hint: "",
+                      translation: answer.translation || "",
+                      sentence_audio_url: answer.audioUrl,
+                    };
+                    
+                    return (
+                      <QuizReviewCard
+                        key={index}
+                        problem={problemData}
+                        userAnswer={answer.userAnswer}
+                        isCorrect={answer.isCorrect}
+                        problemNumber={index + 1}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
