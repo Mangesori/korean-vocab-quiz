@@ -22,6 +22,8 @@ import { QuizHeader } from "@/components/quiz/QuizHeader";
 import { QuizWords } from "@/components/quiz/QuizWords";
 import { ProblemList } from "@/components/quiz/ProblemList";
 import { ShareQuizDialogContent } from "@/components/quiz/ShareQuizDialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { QuizResultsList } from "@/components/quiz/QuizResultsList";
 
 export default function QuizDetail() {
   const { id } = useParams<{ id: string }>();
@@ -285,31 +287,44 @@ export default function QuizDetail() {
           />
         </Dialog>
 
-        <QuizWords words={quiz.words} />
+        <Tabs defaultValue="problems" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsTrigger value="problems">문제 목록</TabsTrigger>
+            <TabsTrigger value="results">퀴즈 결과</TabsTrigger>
+          </TabsList>
 
-        <ProblemList 
-          problems={hasChanges ? editedProblems : quiz.problems}
-          isEditing={isEditing}
-          onUpdateProblem={updateProblem}
-          audioUrls={audioUrls}
-          onPlayAudio={playAudio}
-          onRegenerateAllAudio={handleRegenerateAll}
-          onRegenerateAllProblems={handleRegenerateAllProblems}
-          onRegenerateProblem={handleRegenerateProblem}
-          isRegeneratingProblems={isRegeneratingProblems}
-          onRegenerateSingleAudio={(problem) => regenerateSingleAudio(problem, () => {})}
-          isGeneratingAudio={isGeneratingAudio}
-          audioProgress={audioProgress}
-          regeneratingProblemId={regeneratingProblemId}
-          studentPreview={studentPreview}
-          onToggleStudentPreview={setStudentPreview}
-          setIsEditing={setIsEditing}
-          onCancelEdit={cancelEdit}
-          onSaveChanges={saveChanges}
-          isSaving={isSaving}
-          hasChanges={hasChanges}
-          wordsPerSet={quiz.words_per_set}
-        />
+          <TabsContent value="problems" className="mt-0">
+            <QuizWords words={quiz.words} />
+
+            <ProblemList 
+              problems={hasChanges ? editedProblems : quiz.problems}
+              isEditing={isEditing}
+              onUpdateProblem={updateProblem}
+              audioUrls={audioUrls}
+              onPlayAudio={playAudio}
+              onRegenerateAllAudio={handleRegenerateAll}
+              onRegenerateAllProblems={handleRegenerateAllProblems}
+              onRegenerateProblem={handleRegenerateProblem}
+              isRegeneratingProblems={isRegeneratingProblems}
+              onRegenerateSingleAudio={(problem) => regenerateSingleAudio(problem, () => {})}
+              isGeneratingAudio={isGeneratingAudio}
+              audioProgress={audioProgress}
+              regeneratingProblemId={regeneratingProblemId}
+              studentPreview={studentPreview}
+              onToggleStudentPreview={setStudentPreview}
+              setIsEditing={setIsEditing}
+              onCancelEdit={cancelEdit}
+              onSaveChanges={saveChanges}
+              isSaving={isSaving}
+              hasChanges={hasChanges}
+              wordsPerSet={quiz.words_per_set}
+            />
+          </TabsContent>
+          
+          <TabsContent value="results" className="mt-0">
+            <QuizResultsList quizId={quiz.id} />
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );

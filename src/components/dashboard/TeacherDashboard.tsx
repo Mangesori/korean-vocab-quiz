@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Plus, Users, FileText, Bell, ChevronRight, BookOpen, Clock, GraduationCap } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { QuizResultsDialog } from "@/components/quiz/QuizResultsDialog";
 
+// Interface Definitions
 interface Class {
   id: string;
   name: string;
@@ -45,6 +47,7 @@ export default function TeacherDashboard() {
     totalQuizzes: 0,
     pendingResults: 0,
   });
+  const [selectedQuizForResult, setSelectedResult] = useState<Quiz | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -235,22 +238,33 @@ export default function TeacherDashboard() {
               ) : (
                 <div className="space-y-3">
                   {quizzes.map((quiz) => (
-                    <Link key={quiz.id} to={`/quiz/${quiz.id}`}>
-                      <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                            <FileText className="w-5 h-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">{quiz.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {quiz.words.length}개 단어 · {Math.ceil(quiz.words.length / quiz.words_per_set)}세트
-                            </p>
-                          </div>
+                    <div key={quiz.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                      <Link to={`/quiz/${quiz.id}`} className="flex-1 flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-primary" />
                         </div>
-                        <LevelBadge level={quiz.difficulty} />
-                      </div>
-                    </Link>
+                        <div>
+                          <div className="flex items-center gap-2">
+                             <p className="font-medium text-foreground">{quiz.title}</p>
+                             <LevelBadge level={quiz.difficulty} />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {quiz.words.length}개 단어 · {Math.ceil(quiz.words.length / quiz.words_per_set)}세트
+                          </p>
+                        </div>
+                      </Link>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="ml-2"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setSelectedResult(quiz);
+                        }}
+                      >
+                        결과
+                      </Button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -300,6 +314,12 @@ export default function TeacherDashboard() {
           </Card>
         </div>
       </div>
+      <QuizResultsDialog 
+        quizId={selectedQuizForResult?.id || null}
+        quizTitle={selectedQuizForResult?.title || ""}
+        open={!!selectedQuizForResult}
+        onOpenChange={(open) => !open && setSelectedResult(null)}
+      />
     </AppLayout>
   );
 }

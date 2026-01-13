@@ -15,7 +15,8 @@ import {
   UserMinus,
   Edit2,
   Check,
-  X
+  X,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
@@ -24,6 +25,7 @@ import { ko } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
+import { StudentHistoryDialog } from '@/components/class/StudentHistoryDialog';
 
 interface ClassData {
   id: string;
@@ -53,6 +55,7 @@ export default function ClassDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
+  const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (user && id) {
@@ -281,14 +284,23 @@ export default function ClassDetail() {
                           </p>
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => handleRemoveMember(member.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <UserMinus className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => setSelectedStudentForHistory({ id: member.student_id, name: member.profile?.name || '이름 없음' })}
+                        >
+                          <Clock className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleRemoveMember(member.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <UserMinus className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -296,6 +308,14 @@ export default function ClassDetail() {
             </CardContent>
           </Card>
         </div>
+
+        <StudentHistoryDialog
+          isOpen={!!selectedStudentForHistory}
+          onClose={() => setSelectedStudentForHistory(null)}
+          studentId={selectedStudentForHistory?.id || ""}
+          studentName={selectedStudentForHistory?.name || ""}
+          classId={id || ""}
+        />
       </div>
     </AppLayout>
   );

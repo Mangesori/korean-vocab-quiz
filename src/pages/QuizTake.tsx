@@ -61,6 +61,7 @@ export default function QuizTake() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [searchParams] = useSearchParams();
   const shareToken = searchParams.get('share');
+  const anonymousName = searchParams.get('name') || "";
   const isAnonymous = !!shareToken && !user;
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -312,8 +313,28 @@ export default function QuizTake() {
         
         localStorage.setItem('anonymous_quiz_result', JSON.stringify(resultData));
         
-        // Increment completion count for the share link
+        // Save to Database
         if (shareToken) {
+           const { error: insertError } = await supabase
+            .from("quiz_results")
+            .insert({
+              quiz_id: quiz.id,
+              student_id: "00000000-0000-0000-0000-000000000000",
+              score: correctCount,
+              total_questions: quiz.problems.length,
+              answers: detailedAnswers,
+              is_anonymous: true,
+              anonymous_name: anonymousName || "Anonymous",
+              share_token: shareToken,
+              completed_at: new Date().toISOString(),
+            });
+
+          if (insertError) {
+            console.error("Failed to save result:", insertError);
+            toast.error("결과 저장에 실패했지만, 로컬 결과는 확인할 수 있습니다.");
+          }
+
+          // Increment completion count for the share link
           const { data: shareData } = await supabase
             .from("quiz_shares")
             .select("completion_count")
@@ -372,7 +393,7 @@ export default function QuizTake() {
       toast.error("제출에 실패했습니다");
       setIsSubmitting(false);
     }
-  }, [quiz, user, userAnswers, navigate, isSubmitting]);
+  }, [quiz, user, userAnswers, navigate, isSubmitting, isAnonymous, shareToken, anonymousName]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

@@ -18,6 +18,7 @@ import { ko } from 'date-fns/locale';
 import { LevelBadge } from '@/components/ui/level-badge';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
+import { QuizResultsDialog } from "@/components/quiz/QuizResultsDialog";
 
 interface Quiz {
   id: string;
@@ -35,6 +36,8 @@ export default function Quizzes() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [selectedQuizForResult, setSelectedResult] = useState<Quiz | null>(null);
+
   useEffect(() => {
     if (user && can(PERMISSIONS.CREATE_QUIZ)) {
       fetchQuizzes();
@@ -45,7 +48,7 @@ export default function Quizzes() {
     setIsLoading(true);
     const { data } = await supabase
       .from('quizzes')
-      .select('*')
+      .select('id, title, words, words_per_set, difficulty, created_at')
       .eq('teacher_id', user?.id)
       .order('created_at', { ascending: false });
     
@@ -152,9 +155,23 @@ export default function Quizzes() {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {format(new Date(quiz.created_at), 'yyyy년 M월 d일', { locale: ko })}
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {format(new Date(quiz.created_at), 'yyyy년 M월 d일', { locale: ko })}
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 text-xs"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedResult(quiz);
+                        }}
+                      >
+                        결과
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -163,6 +180,12 @@ export default function Quizzes() {
           </div>
         )}
       </div>
+      <QuizResultsDialog 
+        quizId={selectedQuizForResult?.id || null}
+        quizTitle={selectedQuizForResult?.title || ""}
+        open={!!selectedQuizForResult}
+        onOpenChange={(open) => !open && setSelectedResult(null)}
+      />
     </AppLayout>
   );
 }

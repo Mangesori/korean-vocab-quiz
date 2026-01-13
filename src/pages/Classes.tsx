@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -16,7 +16,6 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Navigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -39,34 +38,51 @@ export default function Classes() {
   const [newClass, setNewClass] = useState({ name: '', description: '' });
 
   useEffect(() => {
-    if (user && role === 'teacher') {
+    // Only fetch if user is logged in and is teacher or admin
+    if (user && (role === 'teacher' || role === 'admin')) {
       fetchClasses();
+    } else if (!loading && user && role === 'student') {
+        // If student somehow gets here (though ProtectedRoute should prevent it), 
+        // stop loading so we can redirect
+        setIsLoading(false);
+    } else if (!loading && !user) {
+        setIsLoading(false);
     }
-  }, [user, role]);
+  }, [user, role, loading]);
 
   const fetchClasses = async () => {
-    const { data, error } = await supabase
-      .from('classes')
-      .select('*')
-      .eq('teacher_id', user?.id)
-      .order('created_at', { ascending: false });
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('teacher_id', user?.id)
+        .order('created_at', { ascending: false });
 
-    if (data) {
-      // Get member counts
-      const classesWithCounts = await Promise.all(
-        data.map(async (cls) => {
-          const { count } = await supabase
-            .from('class_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('class_id', cls.id);
-          
-          return { ...cls, member_count: count || 0 };
-        })
-      );
-      
-      setClasses(classesWithCounts);
+      if (error) throw error;
+
+      if (data) {
+        // Get member counts
+        // Note: Ideally use a view or join, but keeping consistent with existing pattern for now
+        const classesWithCounts = await Promise.all(
+          data.map(async (cls) => {
+            const { count } = await supabase
+              .from('class_members')
+              .select('*', { count: 'exact', head: true })
+              .eq('class_id', cls.id);
+            
+            return { ...cls, member_count: count || 0 };
+          })
+        );
+        
+        setClasses(classesWithCounts);
+      }
+    } catch (err) {
+      console.error('Error fetching classes:', err);
+      toast.error('클래스 목록을 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleCreateClass = async () => {
@@ -111,7 +127,7 @@ export default function Classes() {
     toast.success('초대 코드가 복사되었습니다');
   };
 
-  if (loading || isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -119,8 +135,20 @@ export default function Classes() {
     );
   }
 
+  // Redirect if not authorized
+  // Note: ProtectedRoute in App.tsx handles the main protection, but this is a fallback
   if (!user || (role !== 'teacher' && role !== 'admin')) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  if (isLoading) {
+     return (
+       <AppLayout>
+         <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[50vh]">
+           <Loader2 className="w-8 h-8 animate-spin text-primary" />
+         </div>
+       </AppLayout>
+     );
   }
 
   return (

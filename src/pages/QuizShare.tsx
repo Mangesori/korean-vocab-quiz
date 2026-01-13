@@ -15,6 +15,8 @@ export default function QuizShare() {
   const [quiz, setQuiz] = useState<any>(null);
   const [teacherName, setTeacherName] = useState<string>("");
   const [remainingAttempts, setRemainingAttempts] = useState<number>(0);
+  const [anonymousName, setAnonymousName] = useState("");
+
 
   useEffect(() => {
     loadSharedQuiz();
@@ -92,8 +94,8 @@ export default function QuizShare() {
   };
 
   const startQuiz = () => {
-    // Navigate to existing quiz take page with share token
-    navigate(`/quiz/${quiz.id}/take?share=${token}`);
+    // Navigate to existing quiz take page with share token and name
+    navigate(`/quiz/${quiz.id}/take?share=${token}&name=${encodeURIComponent(anonymousName.trim())}`);
   };
 
   if (isLoading) {
@@ -150,12 +152,35 @@ export default function QuizShare() {
               </div>
             </div>
 
-            <button
-              onClick={startQuiz}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 rounded-md font-medium transition-colors"
-            >
-              퀴즈 시작하기
-            </button>
+            <div className="space-y-4 pt-4 border-t">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">
+                  이름을 입력해주세요
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={anonymousName}
+                    onChange={(e) => setAnonymousName(e.target.value)}
+                    placeholder="홍길동"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  {anonymousName.trim().length > 0 && anonymousName.trim().length < 2 && (
+                    <p className="text-xs text-destructive mt-1">
+                      이름은 2글자 이상 입력해주세요
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={startQuiz}
+                disabled={!anonymousName.trim() || anonymousName.trim().length < 2}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                퀴즈 시작하기
+              </button>
+            </div>
 
             <p className="text-sm text-muted-foreground text-center">
               로그인 없이 바로 시작할 수 있습니다
