@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -31,11 +31,23 @@ interface Class {
 
 export default function Classes() {
   const { user, role, loading } = useAuth();
+  const location = useLocation();
   const [classes, setClasses] = useState<Class[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newClass, setNewClass] = useState({ name: '', description: '' });
+
+  useEffect(() => {
+    // Check for openCreateDialog state
+    if (location.state?.openCreateDialog) {
+      setDialogOpen(true);
+      // Clear the state so it doesn't reopen on refresh/back navigation if desired
+      // But clearing state in history requires navigating again, might be overkill.
+      // Just opening it is fine.
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   useEffect(() => {
     // Only fetch if user is logged in and is teacher or admin

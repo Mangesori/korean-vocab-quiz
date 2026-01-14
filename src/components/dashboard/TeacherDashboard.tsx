@@ -199,7 +199,7 @@ export default function TeacherDashboard() {
             </Card>
           </Link>
 
-          <Link to="/classes">
+          <Link to="/classes" state={{ openCreateDialog: true }}>
             <Card className="hover:shadow-lg transition-shadow cursor-pointer border-dashed border-2 border-accent/30 hover:border-accent">
               <CardContent className="flex items-center justify-center py-8">
                 <div className="text-center">
