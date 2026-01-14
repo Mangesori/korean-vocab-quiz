@@ -95,7 +95,8 @@ export function NotificationDropdown() {
       if (notification.type === 'quiz_assigned') {
         navigate(`/quiz/${notification.quiz_id}/take`);
       } else {
-        navigate(`/quiz/${notification.quiz_id}/results`);
+        // Redirect to quiz detail page with results tab active
+        navigate(`/quiz/${notification.quiz_id}?tab=results`);
       }
     }
   };

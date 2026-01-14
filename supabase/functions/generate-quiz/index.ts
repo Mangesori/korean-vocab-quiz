@@ -357,70 +357,94 @@ serve(async (req) => {
 
       const modelName = apiProvider === "gemini-pro" ? "gemini-3-pro-preview" : "gemini-3-flash-preview";
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            response_mime_type: "application/json",
-            temperature: 0.7,
-          }
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 130000); // 130 second timeout
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Gemini API error (${modelName}):`, response.status, errorText);
-        throw new Error(`Gemini API error: ${response.status}`);
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              response_mime_type: "application/json",
+              temperature: 0.7,
+            }
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Gemini API error (${modelName}):`, response.status, errorText);
+          throw new Error(`Gemini API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
       }
 
-      const data = await response.json();
-      content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
     } else {
       const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
       if (!OPENAI_API_KEY) {
         throw new Error("OPENAI_API_KEY is not configured");
       }
 
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-5.2",
-          messages: [
-            { 
-              role: "system", 
-              content: "You are a helpful assistant that generates Korean language learning quizzes. You must respond ONLY with valid JSON." 
-            },
-            { role: "user", content: prompt },
-          ],
-          temperature: 0.7,
-          response_format: { type: "json_object" },
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 130000); // 130 second timeout
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("OpenAI API error:", response.status, errorText);
-        
-        if (response.status === 429) {
-          return new Response(
-            JSON.stringify({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+      try {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "gpt-5.2",
+            messages: [
+              { 
+                role: "system", 
+                content: "You are a helpful assistant that generates Korean language learning quizzes. You must respond ONLY with valid JSON." 
+              },
+              { role: "user", content: prompt },
+            ],
+            temperature: 0.7,
+            response_format: { type: "json_object" },
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("OpenAI API error:", response.status, errorText);
+          
+          if (response.status === 429) {
+            return new Response(
+              JSON.stringify({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }),
+              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          
+          throw new Error(`OpenAI API error: ${response.status}`);
         }
-        
-        throw new Error(`OpenAI API error: ${response.status}`);
+
+        const data = await response.json();
+        content = data.choices?.[0]?.message?.content;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
       }
 
-      const data = await response.json();
-      content = data.choices?.[0]?.message?.content;
+
     }
 
     if (!content) {

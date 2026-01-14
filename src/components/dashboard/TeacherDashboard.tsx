@@ -206,8 +206,8 @@ export default function TeacherDashboard() {
                   <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Users className="w-6 h-6 text-accent" />
                   </div>
-                  <p className="font-semibold text-foreground">클래스 관리</p>
-                  <p className="text-sm text-muted-foreground">학생을 초대하세요</p>
+                  <p className="font-semibold text-foreground">새 클래스 만들기</p>
+                  <p className="text-sm text-muted-foreground">새로운 클래스를 만들어보세요</p>
                 </div>
               </CardContent>
             </Card>

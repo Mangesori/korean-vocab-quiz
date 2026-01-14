@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom"; // Added useSearchParams
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -30,10 +30,29 @@ export default function QuizDetail() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams(); // Added
 
   // State
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [studentPreview, setStudentPreview] = useState(false);
+  
+  // Tab State
+  const [currentTab, setCurrentTab] = useState("problems");
+
+  // Sync tab with URL
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && (tabParam === "problems" || tabParam === "results")) {
+      setCurrentTab(tabParam);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (value: string) => {
+    setCurrentTab(value);
+    // Optional: update URL when tab changes, but might be annoying for history
+    // setSearchParams({ tab: value }); 
+  };
+
 
   // Hooks
   const { 
@@ -107,6 +126,7 @@ export default function QuizDetail() {
                       difficulty: quiz.difficulty,
                       translationLanguage: quiz.translation_language,
                       wordsPerSet: 1,
+                      apiProvider: quiz.api_provider as "openai" | "gemini" | "gemini-pro" | undefined,
                     },
                  });
                  if (error || data.error) throw new Error(data?.error || "Regeneration failed");
@@ -143,6 +163,7 @@ export default function QuizDetail() {
                       difficulty: quiz.difficulty,
                       translationLanguage: quiz.translation_language,
                       wordsPerSet: quiz.words_per_set,
+                      apiProvider: quiz.api_provider as "openai" | "gemini" | "gemini-pro" | undefined,
                     },
                 });
                  if (error || data.error) throw new Error(data?.error || "Regeneration failed");
@@ -287,7 +308,7 @@ export default function QuizDetail() {
           />
         </Dialog>
 
-        <Tabs defaultValue="problems" className="w-full">
+        <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8">
             <TabsTrigger value="problems">문제 목록</TabsTrigger>
             <TabsTrigger value="results">퀴즈 결과</TabsTrigger>

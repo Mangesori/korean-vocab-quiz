@@ -25,6 +25,7 @@ export interface Quiz {
   problems: Problem[];
   created_at: string;
   teacher_id: string;
+  api_provider?: "openai" | "gemini" | "gemini-pro";
 }
 
 export interface Class {

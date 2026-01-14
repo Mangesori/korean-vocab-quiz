@@ -36,6 +36,7 @@ interface QuizDraft {
   timerEnabled: boolean;
   timerSeconds: number | null;
   problems: Problem[];
+  apiProvider?: "openai" | "gemini" | "gemini-pro";
 }
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -127,11 +128,12 @@ export default function QuizPreview() {
           difficulty: draft.difficulty,
           translationLanguage: draft.translationLanguage,
           wordsPerSet: 1,
+          apiProvider: draft.apiProvider,
         },
       });
 
-      if (error || data.error) {
-        throw new Error(data?.error || "Regeneration failed");
+      if (error || data?.error) {
+        throw new Error(data?.error || error?.message || error?.toString() || "Regeneration failed");
       }
 
       const newProblem = data.problems[0];
@@ -238,10 +240,10 @@ export default function QuizPreview() {
           | "de"
           | "ru",
         words_per_set: draft.wordsPerSet,
-        timer_enabled: draft.timerEnabled,
         timer_seconds: draft.timerSeconds,
         problems: JSON.parse(JSON.stringify(shuffledProblems)),
         teacher_id: user.id,
+        api_provider: draft.apiProvider || "openai",
       };
 
       const { data, error } = await supabase.from("quizzes").insert(quizData).select().single();

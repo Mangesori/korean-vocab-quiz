@@ -355,8 +355,31 @@ export default function QuizTake() {
         console.error("Anonymous submit error:", error);
         toast.error("결과를 저장할 수 없습니다");
         setIsSubmitting(false);
+        return; // Stop here if error
       }
-      return;
+
+      // Notification logic - fire and forget, don't block navigation
+      if (shareToken && quiz.teacher_id) {
+        try {
+          // Check if we should notify the teacher
+          const { error: notifyError } = await supabase.from("notifications").insert({
+            user_id: quiz.teacher_id,
+            type: "quiz_completed",
+            title: "새 퀴즈 완료 알림",
+            message: `익명 사용자(${anonymousName || "Anonymous"})가 '${quiz.title}' 퀴즈를 완료했습니다.`,
+            quiz_id: quiz.id,
+            is_read: false,
+          });
+
+          if (notifyError) {
+             console.error("Failed to send notification:", notifyError);
+          }
+        } catch (err) {
+          console.error("Notification handling error:", err);
+        }
+      }
+      
+      return navigate(`/quiz/share/result?token=${shareToken}`);
     }
 
     if (!user) return;
