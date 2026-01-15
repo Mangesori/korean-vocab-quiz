@@ -358,21 +358,17 @@ export default function QuizTake() {
         return; // Stop here if error
       }
 
-      // Notification logic - fire and forget, don't block navigation
-      if (shareToken && quiz.teacher_id) {
+      // Notification logic - use RPC to bypass RLS for anonymous users
+      if (shareToken) {
         try {
-          // Check if we should notify the teacher
-          const { error: notifyError } = await supabase.from("notifications").insert({
-            user_id: quiz.teacher_id,
-            type: "quiz_completed",
-            title: "새 퀴즈 완료 알림",
-            message: `익명 사용자(${anonymousName || "Anonymous"})가 '${quiz.title}' 퀴즈를 완료했습니다.`,
-            quiz_id: quiz.id,
-            is_read: false,
+          // Call the security definer function to send notification
+          const { error: notifyError } = await supabase.rpc("notify_quiz_completion", {
+            _quiz_id: quiz.id,
+            _anonymous_name: anonymousName || "Anonymous"
           });
 
           if (notifyError) {
-             console.error("Failed to send notification:", notifyError);
+             console.error("Failed to send notification via RPC:", notifyError);
           }
         } catch (err) {
           console.error("Notification handling error:", err);

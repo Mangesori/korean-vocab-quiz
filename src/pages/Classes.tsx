@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -13,7 +13,8 @@ import {
   Users, 
   Copy,
   Loader2,
-  ChevronRight
+  ChevronRight,
+  Search // Added Search icon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -27,16 +28,19 @@ interface Class {
   invite_code: string;
   created_at: string;
   member_count?: number;
+  student_names?: string[]; // Added: storage for student names
 }
 
 export default function Classes() {
   const { user, role, loading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [classes, setClasses] = useState<Class[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newClass, setNewClass] = useState({ name: '', description: '' });
+  const [searchQuery, setSearchQuery] = useState(''); // Added search state
 
   useEffect(() => {
     // Check for openCreateDialog state
@@ -74,20 +78,37 @@ export default function Classes() {
       if (error) throw error;
 
       if (data) {
-        // Get member counts
-        // Note: Ideally use a view or join, but keeping consistent with existing pattern for now
-        const classesWithCounts = await Promise.all(
+        // Get member counts and names for search
+        const classesWithDetails = await Promise.all(
           data.map(async (cls) => {
+            // Fetch count
             const { count } = await supabase
               .from('class_members')
               .select('*', { count: 'exact', head: true })
               .eq('class_id', cls.id);
             
-            return { ...cls, member_count: count || 0 };
+            // Fetch member names
+            const { data: members } = await supabase
+              .from('class_members')
+              .select(`
+                student_id,
+                profiles:student_id (
+                  name
+                )
+              `)
+              .eq('class_id', cls.id);
+
+            const studentNames = members?.map((m: any) => m.profiles?.name).filter(Boolean) || [];
+
+            return { 
+              ...cls, 
+              member_count: count || 0,
+              student_names: studentNames
+            };
           })
         );
         
-        setClasses(classesWithCounts);
+        setClasses(classesWithDetails);
       }
     } catch (err) {
       console.error('Error fetching classes:', err);
@@ -219,21 +240,59 @@ export default function Classes() {
           </Dialog>
         </div>
 
-        {classes.length === 0 ? (
+
+
+        {/* Search Bar */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="클래스 이름 또는 학생 이름으로 검색..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Filtered List */}
+        {classes.filter(cls => {
+          const searchLower = searchQuery.toLowerCase();
+          return (
+            cls.name.toLowerCase().includes(searchLower) ||
+            cls.student_names?.some(name => name.toLowerCase().includes(searchLower))
+          );
+        }).length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Users className="w-12 h-12 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium mb-2">아직 클래스가 없습니다</p>
-              <p className="text-muted-foreground mb-4">첫 번째 클래스를 만들어보세요</p>
-              <Button onClick={() => setDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" /> 새 클래스 만들기
-              </Button>
+              <p className="text-lg font-medium mb-2">
+                {searchQuery ? '검색 결과가 없습니다' : '아직 클래스가 없습니다'}
+              </p>
+              <p className="text-muted-foreground mb-4">
+                {searchQuery ? '다른 검색어를 입력해보세요' : '첫 번째 클래스를 만들어보세요'}
+              </p>
+              {!searchQuery && (
+                <Button onClick={() => setDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" /> 새 클래스 만들기
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {classes.map((cls) => (
-              <Card key={cls.id} className="hover:shadow-lg transition-shadow">
+            {classes
+              .filter(cls => {
+                const searchLower = searchQuery.toLowerCase();
+                return (
+                  cls.name.toLowerCase().includes(searchLower) ||
+                  cls.student_names?.some(name => name.toLowerCase().includes(searchLower))
+                );
+              })
+              .map((cls) => (
+              <Card 
+                key={cls.id} 
+                className="hover:shadow-lg transition-all cursor-pointer hover:border-primary/50" // Updated className
+                onClick={() => navigate(`/class/${cls.id}`)}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>{cls.name}</span>
@@ -255,7 +314,10 @@ export default function Classes() {
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      onClick={() => copyInviteCode(cls.invite_code)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyInviteCode(cls.invite_code);
+                      }}
                     >
                       <Copy className="w-4 h-4" />
                     </Button>
@@ -265,11 +327,9 @@ export default function Classes() {
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(cls.created_at), 'yyyy년 M월 d일', { locale: ko })}
                     </p>
-                    <Link to={`/class/${cls.id}`}>
-                      <Button variant="ghost" size="sm">
-                        상세보기 <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </Link>
+                    <Button variant="ghost" size="sm">
+                      상세보기 <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -280,3 +340,4 @@ export default function Classes() {
     </AppLayout>
   );
 }
+

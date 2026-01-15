@@ -573,6 +573,10 @@ export type Database = {
         Args: { _quiz_id: string; _user_id: string }
         Returns: boolean
       }
+      notify_quiz_completion: {
+        Args: { _quiz_id: string; _anonymous_name: string }
+        Returns: undefined
+      }
       submit_quiz_answers: {
         Args: { _quiz_id: string; _student_answers: Json }
         Returns: Json

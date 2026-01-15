@@ -37,7 +37,7 @@ export function useStudentHistory(studentId: string, classId: string) {
         .from("quiz_assignments")
         .select(`
           quiz_id,
-          created_at,
+          assigned_at,
           quizzes (
             id,
             title
@@ -89,7 +89,7 @@ export function useStudentHistory(studentId: string, classId: string) {
           id: cq.quiz_id, 
           quiz_id: cq.quiz_id,
           title: cq.quizzes?.title || "삭제된 퀴즈",
-          created_at: cq.created_at,
+          created_at: cq.assigned_at, // Map assigned_at to created_at for interface or change interface?
           status: result ? "completed" : "pending",
           result: result ? {
             ...result,
@@ -99,6 +99,7 @@ export function useStudentHistory(studentId: string, classId: string) {
       });
 
       setActivities(combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+
     } catch (e) {
       console.error("Error fetching student history:", e);
     } finally {
