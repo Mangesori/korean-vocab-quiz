@@ -18,6 +18,8 @@ import QuizResult from "./pages/QuizResult";
 import Quizzes from "./pages/Quizzes";
 import Classes from "./pages/Classes";
 import ClassDetail from "./pages/ClassDetail";
+import ClassStudents from "./pages/ClassStudents";
+import ClassAssignedQuizzes from "./pages/ClassAssignedQuizzes";
 import QuizShare from "./pages/QuizShare";
 import QuizShareResult from "./pages/QuizShareResult";
 import QuizExampleResult from "./pages/QuizExampleResult";
@@ -83,6 +85,16 @@ const App = () => (
             <Route path="/class/:id" element={
               <ProtectedRoute permission={PERMISSIONS.VIEW_CLASS} redirectTo="/auth">
                 <ClassDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/class/:id/students" element={
+              <ProtectedRoute permission={PERMISSIONS.VIEW_CLASS} redirectTo="/auth">
+                <ClassStudents />
+              </ProtectedRoute>
+            } />
+            <Route path="/class/:id/quizzes" element={
+              <ProtectedRoute permission={PERMISSIONS.VIEW_CLASS} redirectTo="/auth">
+                <ClassAssignedQuizzes />
               </ProtectedRoute>
             } />
             <Route path="/quiz/share/:token" element={<QuizShare />} />

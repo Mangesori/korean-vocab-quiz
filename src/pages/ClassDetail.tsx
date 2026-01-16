@@ -16,7 +16,13 @@ import {
   Edit2,
   Check,
   X,
-  Clock
+  Clock,
+  FileText, // Added for quiz icon
+  Calendar, // Added for date icon
+  BarChart2, // Added for results icon
+  ChevronDown,
+  ChevronUp,
+  ChevronRight // Added ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
@@ -26,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { StudentHistoryDialog } from '@/components/class/StudentHistoryDialog';
+import { LevelBadge } from '@/components/ui/level-badge';
 
 interface ClassData {
   id: string;
@@ -44,6 +51,18 @@ interface Member {
   };
 }
 
+interface Assignment {
+  id: string;
+  quiz_id: string;
+  assigned_at: string;
+  quizzes: {
+    id: string;
+    title: string;
+    difficulty: string;
+    words: string[];
+  };
+}
+
 export default function ClassDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, loading } = useAuth();
@@ -52,6 +71,8 @@ export default function ClassDetail() {
   
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]); // Added assignments state
+  const [showAllAssignments, setShowAllAssignments] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -104,6 +125,29 @@ export default function ClassDetail() {
       }));
 
       setMembers(membersWithProfiles);
+      setMembers(membersWithProfiles);
+    }
+
+    // Fetch assignments
+    const { data: assignmentsData } = await supabase
+      .from('quiz_assignments')
+      .select(`
+        id,
+        quiz_id,
+        assigned_at,
+        quizzes (
+          id,
+          title,
+          difficulty,
+          words
+        )
+      `)
+      .eq('class_id', id)
+      .order('assigned_at', { ascending: false });
+
+    if (assignmentsData) {
+      // @ts-ignore: Supabase types complexity
+      setAssignments(assignmentsData);
     }
 
     setIsLoading(false);
@@ -192,81 +236,85 @@ export default function ClassDetail() {
           <ArrowLeft className="w-4 h-4 mr-2" /> 클래스 목록
         </Button>
 
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-          <div className="flex-1 min-w-0">
-            {isEditing ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="text-xl sm:text-2xl font-bold h-10 sm:h-12"
-                />
-                <Button size="icon" onClick={handleUpdateName}>
-                  <Check className="w-4 h-4" />
-                </Button>
-                <Button size="icon" variant="ghost" onClick={() => setIsEditing(false)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">{classData.name}</h1>
-                <Button size="icon" variant="ghost" onClick={() => setIsEditing(true)}>
-                  <Edit2 className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-            {classData.description && (
-              <p className="text-muted-foreground mt-1">{classData.description}</p>
-            )}
-          </div>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex items-center gap-3 flex-wrap">
+                {isEditing ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="text-xl sm:text-2xl font-bold h-10 sm:h-12"
+                    />
+                    <Button size="icon" onClick={handleUpdateName}>
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => setIsEditing(false)}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">{classData.name}</h1>
+                    <Button size="icon" variant="ghost" onClick={() => setIsEditing(true)}>
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+                
+                </div>
 
-          <Button variant="destructive" onClick={handleDeleteClass} className="shrink-0">
-            <Trash2 className="w-4 h-4 mr-2" /> 클래스 삭제
-          </Button>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Invite Code Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">초대 코드</CardTitle>
-              <CardDescription>학생들에게 이 코드를 공유하세요</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg">
-                <span className="font-mono text-2xl font-bold text-primary tracking-wider">
-                  {classData.invite_code}
-                </span>
-                <Button variant="ghost" size="icon" onClick={copyInviteCode}>
-                  <Copy className="w-5 h-5" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-3 text-center">
+              {classData.description && (
+                <p className="text-muted-foreground">{classData.description}</p>
+              )}
+              
+              <p className="text-xs text-muted-foreground">
                 생성일: {format(new Date(classData.created_at), 'yyyy년 M월 d일', { locale: ko })}
               </p>
-            </CardContent>
-          </Card>
+            </div>
 
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-2 bg-muted/50 px-3 h-10 rounded-lg border">
+                <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">초대 코드:</span>
+                <span className="font-mono font-bold text-primary tracking-wider">{classData.invite_code}</span>
+                <Button variant="ghost" size="icon" className="h-6 w-6 ml-1" onClick={copyInviteCode}>
+                  <Copy className="w-3 h-3" />
+                </Button>
+              </div>
+              <Button variant="destructive" onClick={handleDeleteClass}>
+                <Trash2 className="w-4 h-4 mr-2" /> 클래스 삭제
+              </Button>
+            </div>
+          </div>
+
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           {/* Members Card */}
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-4 space-y-0">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                 <Users className="w-5 h-5" />
                 학생 목록
                 <span className="text-muted-foreground font-normal">({members.length}명)</span>
               </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate(`/class/${id}/students`)}
+              >
+                전체 학생 보기 <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
             </CardHeader>
             <CardContent>
               {members.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>아직 가입한 학생이 없습니다</p>
-                  <p className="text-sm mt-1">초대 코드를 학생들에게 공유해주세요</p>
+                  <p className="text-sm mt-1">상단의 초대 코드를 학생들에게 공유해주세요</p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {members.map((member) => (
+                <div className="space-y-2.5 pr-2">
+                  {members.slice(0, 7).map((member) => (
                     <div 
                       key={member.id} 
                       className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
@@ -304,6 +352,80 @@ export default function ClassDetail() {
                     </div>
                   ))}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Assigned Quizzes Card */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-4 space-y-0">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                <FileText className="w-5 h-5" />
+                배정된 퀴즈
+                <span className="text-muted-foreground font-normal">({assignments.length}개)</span>
+              </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate(`/class/${id}/quizzes`)}
+              >
+                전체 퀴즈 보기 <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {assignments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>아직 배정된 퀴즈가 없습니다</p>
+                  <p className="text-sm mt-1">퀴즈 상세 페이지에서 이 클래스에 퀴즈를 배정해보세요</p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-1 xl:grid-cols-2">
+                    {assignments.slice(0, 6).map((assignment) => (
+                      <div 
+                        key={assignment.id} 
+                        className="group relative flex flex-col p-4 border rounded-lg hover:border-primary/50 transition-colors bg-card hover:shadow-sm"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-semibold line-clamp-1 group-hover:text-primary transition-colors">
+                            {assignment.quizzes?.title || '삭제된 퀴즈'}
+                          </h4>
+                          <LevelBadge level={assignment.quizzes?.difficulty || 'A1'} className="text-[10px] px-2 py-0.5" />
+                        </div>
+                        
+                        <div className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
+                           {assignment.quizzes?.words?.slice(0, 5).join(', ')}
+                           {(assignment.quizzes?.words?.length || 0) > 5 ? '...' : ''}
+                        </div>
+
+                        <div className="mt-auto pt-3 flex items-center justify-between text-xs text-muted-foreground border-t">
+                          <div className="flex items-center bg-muted/50 px-2 py-1 rounded">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {format(new Date(assignment.assigned_at), 'yyyy.MM.dd', { locale: ko })}
+                          </div>
+                          <div className="flex gap-1 ml-auto">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-7 px-2 text-xs"
+                              onClick={() => navigate(`/quiz/${assignment.quiz_id}`)}
+                            >
+                              문제 보기
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              className="h-7 px-2 text-xs"
+                              onClick={() => navigate(`/quiz/${assignment.quiz_id}?tab=results`)}
+                            >
+                              결과 확인 
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

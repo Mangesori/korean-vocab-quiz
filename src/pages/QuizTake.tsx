@@ -103,8 +103,8 @@ export default function QuizTake() {
     try {
       let quizData: Quiz;
 
-      if (isAnonymous && shareToken) {
-        // Anonymous users: load quiz directly
+      if (shareToken) {
+        // Shared link access (Anonymous or Logged-in): load quiz directly
         const { data: quiz, error: quizError } = await supabase
           .from("quizzes")
           .select("*")
@@ -134,7 +134,7 @@ export default function QuizTake() {
           problems: problemsWithoutAnswers,
         } as Quiz;
       } else {
-        // Authenticated users: use RPC function
+        // Authenticated users with assigned quiz: use RPC function
         const { data, error } = await supabase.rpc("get_quiz_for_student", {
           _quiz_id: id,
         });
@@ -262,8 +262,8 @@ export default function QuizTake() {
   const handleSubmit = useCallback(async () => {
     if (!quiz || isSubmitting) return;
     
-    // Anonymous users: calculate score locally and show result page
-    if (isAnonymous && !user) {
+    // Shared Link users (Anonymous OR Logged-in): direct submission
+    if (shareToken) {
       setIsSubmitting(true);
 
       try {
@@ -319,12 +319,12 @@ export default function QuizTake() {
             .from("quiz_results")
             .insert({
               quiz_id: quiz.id,
-              student_id: null,
+              student_id: user ? user.id : null,
               score: correctCount,
               total_questions: quiz.problems.length,
               answers: detailedAnswers,
-              is_anonymous: true,
-              anonymous_name: anonymousName || "Anonymous",
+              is_anonymous: !user,
+              anonymous_name: user ? "" : (anonymousName || "Anonymous"),
               share_token: shareToken,
               completed_at: new Date().toISOString(),
             });
@@ -378,7 +378,7 @@ export default function QuizTake() {
       return navigate(`/quiz/share/result?token=${shareToken}`);
     }
 
-    if (!user) return;
+    if (!user) return; // Should not happen if shareToken logic covers it, but for safety
 
     setIsSubmitting(true);
 
