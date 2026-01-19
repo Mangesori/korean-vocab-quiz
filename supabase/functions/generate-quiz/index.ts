@@ -201,6 +201,12 @@ ${selectedGuide}
 5. **word (기본형)는 입력받은 단어 그대로**
 
 6. **answer (정답) - 매우 중요!**:
+   - **문법 패턴 포함 필수 (Grammar Integrity)**:
+     * 힌트로 제시된 문법 패턴 전체가 반드시 \`answer\`에 포함되어야 합니다. 문법의 일부를 \`sentence\`에 남겨두지 마세요.
+     * ❌ 잘못된 예: sentence: "비가 ( ) 것 같아요", answer: "올", hint: "-(으)ㄹ 것 같다" (문법이 쪼개짐!)
+     * ✅ 올바른 예: sentence: "하늘을 보니 비가 ( ).", answer: "올 것 같아요", hint: "-(으)ㄹ 것 같다 + 아요/어요" (문법이 answer에 온전히 포함됨)
+     * ✅ 올바른 예: sentence: "저 사람은 옷을 아주 잘 입어서 ( ).", answer: "연예인인 것 같아요", hint: "-(으)ㄴ 것 같다 + 아요/어요"
+
    - **명사 + 조사**: 조사 반드시 포함! (예: 지구력이, 발굽을, 산악지대로, 망자의)
      * ✅ 올바른 예: answer: "지구력이", sentence: "( ) 필요해요", hint: "이/가"
      * ❌ 잘못된 예: answer: "지구력", sentence: "( )이/가 필요해요", hint: "이/가" (조사가 sentence에 있으면 안 됨!)
@@ -210,20 +216,24 @@ ${selectedGuide}
      * ❌ 잘못된 예: answer: "산악지대", sentence: "( )(으)로 이루어져", hint: "(으)로"
      * ✅ 올바른 예: answer: "망자의", sentence: "( ) 평화를", hint: "의"
      * ❌ 잘못된 예: answer: "망자", sentence: "( )의 평화를", hint: "의"
+
    - **동사/형용사**: hint에 표시된 문법 형태로 완전히 활용 (예: 발견됐어요, 올랐어요, 주요한)
      * 예: answer: "하느라고", hint: "-느라고"
      * 예: answer: "갈 거예요", hint: "-(으)ㄹ 거예요"
 
 7. **sentence (문장) 작성 규칙 - 매우 중요!**:
+   - **문법 패턴 분리 금지**: 위에서 설명했듯이, 정답(answer)에 포함된 문법 부분을 문장(sentence)에 중복해서 쓰거나 남겨두지 마세요. 
+     * 빈칸 ( ) 뒤에는 문법 요소가 없어야 합니다. (마침표나 쉼표 등 문장 부호는 가능)
+     * ✅ 올바른 예: "하늘을 보니 비가 ( )." (O)
+     * ❌ 잘못된 예: "하늘을 보니 비가 ( ) 것 같아요." (X)
+
    - **명사 + 조사**: 빈칸 ( ) 뒤에 조사 절대 쓰지 말기! 조사는 answer에 포함됨
      * ✅ 올바른 예: "마라톤을 잘하기 위해서는 ( ) 필요해요." (answer: "지구력이", hint: "이/가")
      * ❌ 잘못된 예: "마라톤을 잘하기 위해서는 ( )이/가 필요해요." (조사 중복!)
-     * ✅ 올바른 예: "말이 거친 땅을 달리다가 ( ) 다쳐서" (answer: "발굽을", hint: "을/를")
-     * ❌ 잘못된 예: "말이 거친 땅을 달리다가 ( )을/를 다쳐서" (조사 중복!)
    - **동사/형용사 - 관형사형일 때**: 빈칸 ( ) 뒤에 아무것도 쓰지 말고 바로 명사
      * ✅ 올바른 예: "경제에 ( ) 역할을...", "( ) 음식이..."
-     * ❌ 잘못된 예: "경제에 ( )(으)ㄴ 역할을...", "( )(으)ㄴ 음식이...\" (중복 발생!)
-   - **동사/형용사 - 일반 활용일 때**: 빈칸 ( ) 뒤에 문장 계속
+     * ❌ 잘못된 예: "경제에 ( )(으)ㄴ 역할을...", "( )(으)ㄴ 음식이...\\" (중복 발생!)
+   - **동사/형용사 - 일반 활용일 때**: 빈칸 ( ) 뒤에 문장 표기 주의
    - **조사 중복 절대 금지!**
    - **문장 끝 마침표/물음표 필수**
    - **${difficulty} 어휘 수준 준수!**
@@ -265,13 +275,13 @@ ${selectedGuide}
 🚨🚨🚨 번역 규칙 - 매우 중요! 🚨🚨🚨:
 - ⚠️ translation에는 ( ) 사용 금지! 정답 단어가 들어간 완전한 문장으로 번역하세요
 - 한국어 sentence의 ( )에 answer를 채운 완전한 문장을 ${languageName}로 번역
-- 🔴 **필수: 정답에 해당하는 부분을 반드시 대괄호 []로 감싸주세요!** 🔴
-  * 이것은 선택사항이 아닙니다. 모든 translation에서 answer에 해당하는 부분을 대괄호로 표시해야 합니다.
-  * 예시 1: 한국어 answer가 "학생이라서"이면 → translation: "Because I'm [a student], I don't have much money."
-  * 예시 2: 한국어 answer가 "마음에 들면"이면 → translation: "If I [like] that outfit, I'll buy it right away."
-  * 예시 3: 한국어 answer가 "예쁜"이면 → translation: "I want to buy a [pretty] bag."
-  * 예시 4: 한국어 answer가 "무료로"이면 → translation: "You can get into the museum [for free] today since it's a public holiday."
-  * 예시 5: 한국어 answer가 "알리기 전에"이면 → translation: "I told my parents about my college acceptance before [telling] my friends."
+- 🔴 **필수: 정답 단어의 '핵심 의미(Core Meaning)'만 대괄호 []로 감싸주세요!** 🔴
+  * **문법적인 패턴(Grammar Pattern)이나 보조 동사(Auxiliary Verbs)는 대괄호 밖으로 빼고, 순수 어휘(Content Word)만 감싸야 합니다.**
+  * 예시 1: 한국어 answer가 "가고 싶어요" (want to go) → translation: "I want to [go] home." (O), "I [want to go] home." (X)
+  * 예시 2: 한국어 answer가 "먹어야 해요" (have to eat) → translation: "I have to [eat] dinner." (O), "I [have to eat] dinner." (X)
+  * 예시 3: 한국어 answer가 "구독하기로 했어요" (decided to subscribe) → translation: "I decided to [subscribe] to this channel." (O), "I [decided to subscribe]..." (X)
+  * 예시 4: 한국어 answer가 "공부하기 위해서" (in order to study) → translation: "In order to [study], I went to the library." (O)
+  * 예시 5: 한국어 answer가 "연예인인 것 같아요" (seem like a celebrity) → translation: "That person seems like a [celebrity]." (O)
 - 대괄호는 정답에 해당하는 부분만 감싸세요 (중첩 금지)
 - 대괄호를 빠뜨리면 안 됩니다! 모든 문제의 translation에 반드시 대괄호가 있어야 합니다!
 - 자연스러운 ${languageName} 문장으로 번역
@@ -340,7 +350,7 @@ serve(async (req) => {
 
     console.log(`User ${user.id} (${profileData.role}) generating quiz`);
 
-    const { words, difficulty, translationLanguage, wordsPerSet, regenerateSingle, apiProvider = "openai" }: QuizRequest = await req.json();
+    const { words, difficulty, translationLanguage, wordsPerSet: _wordsPerSet, regenerateSingle: _regenerateSingle, apiProvider = "openai" }: QuizRequest = await req.json();
     
     const languageName = LANGUAGE_NAMES[translationLanguage] || "영어";
     const prompt = generateDetailedPrompt(words, difficulty, languageName);
@@ -466,7 +476,7 @@ serve(async (req) => {
     let parsed;
     try {
       parsed = JSON.parse(jsonStr);
-    } catch (parseError) {
+    } catch (_parseError) {
       console.error("JSON parse error:", jsonStr.substring(0, 200));
       throw new Error("AI 응답을 JSON으로 변환할 수 없습니다. 다시 시도해주세요.");
     }
@@ -476,11 +486,11 @@ serve(async (req) => {
     }
 
     // Keep problems in original order (same as input words)
-    const orderedProblems: any[] = [];
-    const availableProblems = [...parsed.problems];
+    const orderedProblems: (Problem | null)[] = [];
+    const availableProblems: Problem[] = [...parsed.problems];
     
     for (const word of words) {
-      const matchIndex = availableProblems.findIndex((p: any) => p.word.trim() === word.trim());
+      const matchIndex = availableProblems.findIndex((p: Problem) => p.word.trim() === word.trim());
       if (matchIndex !== -1) {
         orderedProblems.push(availableProblems[matchIndex]);
         availableProblems.splice(matchIndex, 1);
@@ -494,20 +504,23 @@ serve(async (req) => {
     for (let i = 0; i < orderedProblems.length; i++) {
       if (orderedProblems[i] === null) {
         if (availableProblems.length > 0) {
-          orderedProblems[i] = availableProblems.shift();
+          const shifted = availableProblems.shift();
+          if (shifted) {
+            orderedProblems[i] = shifted;
+          }
         }
       }
     }
     
     // Filter out any remaining nulls (in case AI generated fewer problems than requested)
-    const validProblems = orderedProblems.filter(p => p !== null);
+    const validProblems = orderedProblems.filter((p): p is Problem => p !== null);
     
     // If we still have available problems (AI generated more than requested?), append them?
     // The prompt asks for exact count. If we have extras, we might as well include them if they are good, 
     // or ignore them to match strict count. 
     // Let's just use what we have matched + filled.
 
-    const problems: Problem[] = validProblems.map((p: any, index: number) => ({
+    const problems: Problem[] = validProblems.map((p: Problem, index: number) => ({
       id: `problem-${Date.now()}-${index}`,
       word: p.word,
       answer: p.answer,

@@ -4,8 +4,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText, Calendar, Loader2 } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, Loader2, Trash2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -13,6 +14,16 @@ import { ko } from 'date-fns/locale';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { LevelBadge } from '@/components/ui/level-badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Assignment {
   id: string;
@@ -23,6 +34,7 @@ interface Assignment {
     title: string;
     difficulty: string;
     words: string[];
+    words_per_set: number;
   };
 }
 
@@ -35,6 +47,9 @@ export default function ClassAssignedQuizzes() {
   const [className, setClassName] = useState('');
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (user && id) {
@@ -69,7 +84,8 @@ export default function ClassAssignedQuizzes() {
           id,
           title,
           difficulty,
-          words
+          words,
+          words_per_set
         )
       `)
       .eq('class_id', id)
@@ -86,6 +102,39 @@ export default function ClassAssignedQuizzes() {
     }
 
     setIsLoading(false);
+  };
+
+  const handleDeleteClick = (assignment: Assignment) => {
+    setAssignmentToDelete(assignment);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!assignmentToDelete) return;
+
+    setIsDeleting(true);
+
+    try {
+      const { error } = await supabase
+        .from('quiz_assignments')
+        .delete()
+        .eq('id', assignmentToDelete.id);
+
+      if (error) throw error;
+
+      toast.success('퀴즈 할당이 삭제되었습니다');
+      
+      // Remove from local state
+      setAssignments(prev => prev.filter(a => a.id !== assignmentToDelete.id));
+      
+      setDeleteDialogOpen(false);
+      setAssignmentToDelete(null);
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('삭제에 실패했습니다');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (loading || isLoading) {
@@ -125,52 +174,113 @@ export default function ClassAssignedQuizzes() {
              <p className="text-lg font-medium text-muted-foreground">배정된 퀴즈가 없습니다</p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {assignments.map((assignment) => (
-              <div 
-                key={assignment.id} 
-                className="group relative flex flex-col p-4 border rounded-lg hover:border-primary/50 transition-all bg-card hover:shadow-sm"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-semibold line-clamp-1 group-hover:text-primary transition-colors">
-                    {assignment.quizzes?.title || '삭제된 퀴즈'}
-                  </h4>
-                  <LevelBadge level={assignment.quizzes?.difficulty || 'A1'} />
-                </div>
-                
-                <div className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
-                    {assignment.quizzes?.words?.slice(0, 5).join(', ')}
-                    {(assignment.quizzes?.words?.length || 0) > 5 ? '...' : ''}
-                </div>
+              <div key={assignment.id} className="group">
+                <Card className="hover:shadow-lg transition-all hover:border-primary/50 h-full">
+                  <CardContent className="p-5">
+                    {/* Icon + Badge */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-primary" />
+                      </div>
+                      <LevelBadge level={assignment.quizzes?.difficulty || 'A1'} />
+                    </div>
+                    
+                    {/* Title */}
+                    <h3 className="font-semibold text-foreground mb-2 line-clamp-1">
+                      {assignment.quizzes?.title || '삭제된 퀴즈'}
+                    </h3>
+                    
+                    {/* Word count · Sets */}
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {assignment.quizzes?.words?.length || 0}개 단어 · {Math.ceil((assignment.quizzes?.words?.length || 0) / (assignment.quizzes?.words_per_set || 1))}세트
+                    </p>
+                    
+                    {/* Word tags */}
+                    <div className="flex flex-wrap items-center gap-1 mb-3">
+                      {assignment.quizzes?.words?.slice(0, 5).map((word, idx) => (
+                        <span 
+                          key={idx} 
+                          className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground"
+                        >
+                          {word}
+                        </span>
+                      ))}
+                      {(assignment.quizzes?.words?.length || 0) > 5 && (
+                        <span className="text-xs text-muted-foreground">
+                          +{(assignment.quizzes?.words?.length || 0) - 5}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Date + Buttons */}
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {format(new Date(assignment.assigned_at), 'yyyy년 M월 d일', { locale: ko })}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs"
+                          onClick={() => navigate(`/quiz/${assignment.quiz_id}`)}
+                        >
+                          문제 보기
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="h-8 text-xs"
+                          onClick={() => navigate(`/quiz/${assignment.quiz_id}?tab=results`)}
+                        >
+                          결과 확인
+                        </Button>
 
-                <div className="mt-auto pt-3 flex items-center justify-between text-xs text-muted-foreground border-t">
-                  <div className="flex items-center bg-muted/50 px-2 py-1 rounded">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    {format(new Date(assignment.assigned_at), 'yyyy.MM.dd', { locale: ko })}
-                  </div>
-                  <div className="flex gap-1 ml-auto">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-7 px-2 text-xs"
-                      onClick={() => navigate(`/quiz/${assignment.quiz_id}`)}
-                    >
-                      문제 보기
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      className="h-7 px-2 text-xs"
-                      onClick={() => navigate(`/quiz/${assignment.quiz_id}?tab=results`)}
-                    >
-                      결과 확인
-                    </Button>
-                  </div>
-                </div>
+                        <Button variant="destructive" size="sm" 
+                          className="h-8 text-xs"
+                          onClick={() => handleDeleteClick(assignment)}>
+                          삭제
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>퀴즈 할당 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{assignmentToDelete?.quizzes?.title}" 퀴즈의 할당을 삭제하시겠습니까?
+              <br />
+              <span className="text-destructive font-medium">이 작업은 되돌릴 수 없습니다.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  삭제 중...
+                </>
+              ) : (
+                '삭제'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

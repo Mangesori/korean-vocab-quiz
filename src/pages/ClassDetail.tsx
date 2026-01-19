@@ -24,6 +24,16 @@ import {
   ChevronUp,
   ChevronRight // Added ChevronRight
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -60,6 +70,7 @@ interface Assignment {
     title: string;
     difficulty: string;
     words: string[];
+    words_per_set: number;
   };
 }
 
@@ -76,7 +87,11 @@ export default function ClassDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
+  const [copiedCode, setCopiedCode] = useState(false);
   const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<{ id: string; name: string } | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (user && id) {
@@ -139,7 +154,8 @@ export default function ClassDetail() {
           id,
           title,
           difficulty,
-          words
+          words,
+          words_per_set
         )
       `)
       .eq('class_id', id)
@@ -151,6 +167,39 @@ export default function ClassDetail() {
     }
 
     setIsLoading(false);
+  };
+
+  const handleDeleteClick = (assignment: Assignment) => {
+    setAssignmentToDelete(assignment);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!assignmentToDelete) return;
+
+    setIsDeleting(true);
+
+    try {
+      const { error } = await supabase
+        .from('quiz_assignments')
+        .delete()
+        .eq('id', assignmentToDelete.id);
+
+      if (error) throw error;
+
+      toast.success('퀴즈 할당이 삭제되었습니다');
+      
+      // Remove from local state
+      setAssignments(prev => prev.filter(a => a.id !== assignmentToDelete.id));
+      
+      setDeleteDialogOpen(false);
+      setAssignmentToDelete(null);
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      toast.error('퀴즈 할당 삭제에 실패했습니다');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const copyInviteCode = () => {
@@ -288,9 +337,114 @@ export default function ClassDetail() {
           </div>
 
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          {/* Members Card */}
-          <Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+          {/* Assigned Quizzes Card - 2/3 (Left) */}
+          <Card className="lg:col-span-2 flex flex-col h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 space-y-0">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                <FileText className="w-5 h-5" />
+                배정된 퀴즈
+                <span className="text-muted-foreground font-normal">({assignments.length}개)</span>
+              </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate(`/class/${id}/quizzes`)}
+              >
+                전체 퀴즈 보기 <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </CardHeader>
+            <CardContent className="flex-1">
+              {assignments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>아직 배정된 퀴즈가 없습니다</p>
+                  <p className="text-sm mt-1">퀴즈 상세 페이지에서 이 클래스에 퀴즈를 배정해보세요</p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-1 xl:grid-cols-2">
+                    {assignments.slice(0, 6).map((assignment) => (
+                      <Card key={assignment.id} className="hover:shadow-lg transition-all hover:border-primary/50 h-full">
+                        <CardContent className="p-5">
+                          {/* Icon + Badge */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                              <FileText className="w-5 h-5 text-primary" />
+                            </div>
+                            <LevelBadge level={assignment.quizzes?.difficulty || 'A1'} />
+                          </div>
+                          
+                          {/* Title */}
+                          <h3 className="font-semibold text-foreground mb-2 line-clamp-1">
+                            {assignment.quizzes?.title || '삭제된 퀴즈'}
+                          </h3>
+                          
+                          {/* Word count · Sets */}
+                          <p className="text-sm text-muted-foreground mb-3">
+                            {assignment.quizzes?.words?.length || 0}개 단어 · {Math.ceil((assignment.quizzes?.words?.length || 0) / (assignment.quizzes?.words_per_set || 1))}세트
+                          </p>
+                          
+                          {/* Word tags */}
+                          <div className="flex flex-wrap items-center gap-1 mb-3">
+                            {assignment.quizzes?.words?.slice(0, 5).map((word, idx) => (
+                              <span 
+                                key={idx} 
+                                className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground"
+                              >
+                                {word}
+                              </span>
+                            ))}
+                            {(assignment.quizzes?.words?.length || 0) > 5 && (
+                              <span className="text-xs text-muted-foreground">
+                                +{(assignment.quizzes?.words?.length || 0) - 5}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Date + Buttons */}
+                          <div className="flex items-center justify-between mt-4">
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {format(new Date(assignment.assigned_at), 'yyyy년 M월 d일', { locale: ko })}
+                            </div>
+                            <div className="flex gap-1">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 text-xs"
+                                onClick={() => navigate(`/quiz/${assignment.quiz_id}`)}
+                              >
+                                문제 보기
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                className="h-8 text-xs"
+                                onClick={() => navigate(`/quiz/${assignment.quiz_id}?tab=results`)}
+                              >
+                                결과 확인
+                              </Button>
+                              <Button 
+                                variant="destructive" 
+                                size="sm" 
+                                className="h-8 text-xs"
+                                onClick={() => handleDeleteClick(assignment)}
+                              >
+                                삭제
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Members Card - 1/3 (Right) */}
+          <Card className="lg:col-span-1 flex flex-col h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-4 space-y-0">
               <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                 <Users className="w-5 h-5" />
@@ -305,7 +459,7 @@ export default function ClassDetail() {
                 전체 학생 보기 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
               {members.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -313,8 +467,8 @@ export default function ClassDetail() {
                   <p className="text-sm mt-1">상단의 초대 코드를 학생들에게 공유해주세요</p>
                 </div>
               ) : (
-                <div className="space-y-2.5 pr-2">
-                  {members.slice(0, 7).map((member) => (
+                <div className="space-y-2 pr-2">
+                  {members.slice(0, 10).map((member) => (
                     <div 
                       key={member.id} 
                       className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
@@ -355,89 +509,42 @@ export default function ClassDetail() {
               )}
             </CardContent>
           </Card>
-
-          {/* Assigned Quizzes Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-4 space-y-0">
-              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                <FileText className="w-5 h-5" />
-                배정된 퀴즈
-                <span className="text-muted-foreground font-normal">({assignments.length}개)</span>
-              </CardTitle>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => navigate(`/class/${id}/quizzes`)}
-              >
-                전체 퀴즈 보기 <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {assignments.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>아직 배정된 퀴즈가 없습니다</p>
-                  <p className="text-sm mt-1">퀴즈 상세 페이지에서 이 클래스에 퀴즈를 배정해보세요</p>
-                </div>
-              ) : (
-                <>
-                  <div className="grid gap-4 sm:grid-cols-1 xl:grid-cols-2">
-                    {assignments.slice(0, 6).map((assignment) => (
-                      <div 
-                        key={assignment.id} 
-                        className="group relative flex flex-col p-4 border rounded-lg hover:border-primary/50 transition-colors bg-card hover:shadow-sm"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-semibold line-clamp-1 group-hover:text-primary transition-colors">
-                            {assignment.quizzes?.title || '삭제된 퀴즈'}
-                          </h4>
-                          <LevelBadge level={assignment.quizzes?.difficulty || 'A1'} className="text-[10px] px-2 py-0.5" />
-                        </div>
-                        
-                        <div className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
-                           {assignment.quizzes?.words?.slice(0, 5).join(', ')}
-                           {(assignment.quizzes?.words?.length || 0) > 5 ? '...' : ''}
-                        </div>
-
-                        <div className="mt-auto pt-3 flex items-center justify-between text-xs text-muted-foreground border-t">
-                          <div className="flex items-center bg-muted/50 px-2 py-1 rounded">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            {format(new Date(assignment.assigned_at), 'yyyy.MM.dd', { locale: ko })}
-                          </div>
-                          <div className="flex gap-1 ml-auto">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="h-7 px-2 text-xs"
-                              onClick={() => navigate(`/quiz/${assignment.quiz_id}`)}
-                            >
-                              문제 보기
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              className="h-7 px-2 text-xs"
-                              onClick={() => navigate(`/quiz/${assignment.quiz_id}?tab=results`)}
-                            >
-                              결과 확인 
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
         </div>
 
-        <StudentHistoryDialog
-          isOpen={!!selectedStudentForHistory}
-          onClose={() => setSelectedStudentForHistory(null)}
-          studentId={selectedStudentForHistory?.id || ""}
-          studentName={selectedStudentForHistory?.name || ""}
-          classId={id || ""}
-        />
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>퀴즈 할당 삭제</AlertDialogTitle>
+              <AlertDialogDescription>
+                정말로 "{assignmentToDelete?.quizzes?.title || '이 퀴즈'}" 할당을 삭제하시겠습니까?
+                <br />
+                이 작업은 되돌릴 수 없습니다.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>취소</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? '삭제 중...' : '삭제'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Student History Dialog */}
+        {selectedStudentForHistory && (
+          <StudentHistoryDialog
+            isOpen={!!selectedStudentForHistory}
+            onClose={() => setSelectedStudentForHistory(null)}
+            studentId={selectedStudentForHistory.id}
+            studentName={selectedStudentForHistory.name}
+            classId={id || ""}
+          />
+        )}
       </div>
     </AppLayout>
   );

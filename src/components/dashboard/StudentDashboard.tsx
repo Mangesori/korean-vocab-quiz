@@ -321,8 +321,10 @@ export default function StudentDashboard() {
                   <p>풀어야 할 퀴즈가 없습니다</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {assignments.map((assignment) => (
+                <div className="flex flex-col gap-3">
+                  {assignments
+                    .filter((assignment) => assignment.quizzes) // Filter out null quizzes
+                    .map((assignment) => (
                     <Link key={assignment.id} to={`/quiz/${assignment.quiz_id}/take`}>
                       <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors border border-border">
                         <div className="flex items-center gap-3">

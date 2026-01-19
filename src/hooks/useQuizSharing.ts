@@ -57,7 +57,21 @@ export function useQuizSharing(quiz: Quiz | null, user: any, classes: Class[]) {
           from_user_id: user?.id,
         }));
 
-        await supabase.from("notifications").insert(notifications);
+        const { error: notifError } = await supabase
+          .from("notifications")
+          .insert(notifications);
+
+        if (notifError) {
+          console.error("Notification creation error:", notifError);
+          console.error("Error details:", JSON.stringify(notifError, null, 2));
+          console.error("User ID:", user?.id);
+          console.error("Notifications to insert:", notifications);
+          toast.error("알림 전송에 실패했습니다", {
+            description: "퀴즈는 할당되었지만 학생들에게 알림이 전송되지 않았습니다."
+          });
+        } else {
+          console.log(`Successfully created ${notifications.length} notifications for quiz assignment`);
+        }
       }
 
       toast.success(`${selectedClass?.name} 클래스에 퀴즈를 보냈습니다!`);

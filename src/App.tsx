@@ -99,6 +99,7 @@ const App = () => (
             } />
             <Route path="/quiz/share/:token" element={<QuizShare />} />
             <Route path="/quiz/share/result" element={<QuizShareResult />} />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

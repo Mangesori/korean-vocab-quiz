@@ -11,7 +11,8 @@ import {
   FileText, 
   Clock,
   Search,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -19,6 +20,17 @@ import { LevelBadge } from '@/components/ui/level-badge';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { QuizResultsDialog } from "@/components/quiz/QuizResultsDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 interface Quiz {
   id: string;
@@ -37,6 +49,9 @@ export default function Quizzes() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [selectedQuizForResult, setSelectedResult] = useState<Quiz | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [quizToDelete, setQuizToDelete] = useState<Quiz | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (user && can(PERMISSIONS.CREATE_QUIZ)) {
@@ -54,6 +69,41 @@ export default function Quizzes() {
     
     if (data) setQuizzes(data);
     setIsLoading(false);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, quiz: Quiz) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setQuizToDelete(quiz);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!quizToDelete) return;
+
+    setIsDeleting(true);
+
+    try {
+      const { error } = await supabase
+        .from('quizzes')
+        .delete()
+        .eq('id', quizToDelete.id);
+
+      if (error) throw error;
+
+      toast.success('퀴즈가 삭제되었습니다');
+      
+      // Remove from local state
+      setQuizzes(prev => prev.filter(q => q.id !== quizToDelete.id));
+      
+      setDeleteDialogOpen(false);
+      setQuizToDelete(null);
+    } catch (error) {
+      console.error('Error deleting quiz:', error);
+      toast.error('퀴즈 삭제에 실패했습니다');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (loading) {
@@ -140,7 +190,7 @@ export default function Quizzes() {
                     <p className="text-sm text-muted-foreground mb-3">
                       {quiz.words.length}개 단어 · {Math.ceil(quiz.words.length / quiz.words_per_set)}세트
                     </p>
-                    <div className="flex flex-wrap gap-1 mb-3">
+                    <div className="flex flex-wrap items-center gap-1 mb-3">
                       {quiz.words.slice(0, 5).map((word, idx) => (
                         <span 
                           key={idx} 
@@ -160,18 +210,27 @@ export default function Quizzes() {
                         <Clock className="w-3 h-3 mr-1" />
                         {format(new Date(quiz.created_at), 'yyyy년 M월 d일', { locale: ko })}
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-8 text-xs"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setSelectedResult(quiz);
-                        }}
-                      >
-                        결과
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button 
+                          size="sm" 
+                          className="h-8 text-xs"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedResult(quiz);
+                          }}
+                        >
+                          결과 확인
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={(e) => handleDeleteClick(e, quiz)}
+                        >
+                          삭제
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -186,6 +245,30 @@ export default function Quizzes() {
         open={!!selectedQuizForResult}
         onOpenChange={(open) => !open && setSelectedResult(null)}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>퀴즈 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              정말로 "{quizToDelete?.title || '이 퀴즈'}"를 삭제하시겠습니까?
+              <br />
+              이 작업은 되돌릴 수 없으며, 모든 할당 정보와 결과도 함께 삭제됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>취소</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? '삭제 중...' : '삭제'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

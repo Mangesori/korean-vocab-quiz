@@ -114,8 +114,11 @@ export default function QuizPreview() {
   }
 
   const updateProblem = (problemId: string, field: keyof Problem, value: string) => {
-    const updated = draft.problems.map((p) => (p.id === problemId ? { ...p, [field]: value } : p));
-    setDraft({ ...draft, problems: updated });
+    setDraft((prev) => {
+      if (!prev) return null;
+      const updated = prev.problems.map((p) => (p.id === problemId ? { ...p, [field]: value } : p));
+      return { ...prev, problems: updated };
+    });
   };
 
   const regenerateProblem = async (problem: Problem) => {
@@ -137,9 +140,12 @@ export default function QuizPreview() {
       }
 
       const newProblem = data.problems[0];
-      const updated = draft.problems.map((p) => (p.id === problem.id ? { ...newProblem, id: problem.id } : p));
-
-      setDraft({ ...draft, problems: updated });
+      
+      setDraft((prev) => {
+        if (!prev) return null;
+        const updated = prev.problems.map((p) => (p.id === problem.id ? { ...newProblem, id: problem.id } : p));
+        return { ...prev, problems: updated };
+      });
       toast.success("문제가 재생성되었습니다");
     } catch (error) {
       console.error("Regenerate error:", error);
