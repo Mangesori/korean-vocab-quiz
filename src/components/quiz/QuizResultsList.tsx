@@ -23,6 +23,7 @@ import {
 import { Search, User, UserCircle, Loader2, Eye } from "lucide-react";
 import { QuizReviewCard } from "@/components/quiz/QuizReviewCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { QuizResultDialog } from "@/components/quiz/QuizResultDialog";
 
 interface QuizResultsListProps {
   quizId: string;
@@ -172,74 +173,13 @@ export function QuizResultsList({ quizId }: QuizResultsListProps) {
       </div>
 
       {/* Result Detail Dialog */}
-      <Dialog open={!!selectedResult} onOpenChange={(open) => !open && setSelectedResult(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>퀴즈 결과 상세</DialogTitle>
-          </DialogHeader>
-          
-          {selectedResult && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                   {selectedResult.is_anonymous ? (
-                      <UserCircle className="h-10 w-10 text-muted-foreground" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                         <span className="text-lg font-bold text-primary">
-                            {(selectedResult.student_profile?.name || "?")[0]}
-                         </span>
-                      </div>
-                    )}
-                   <div>
-                      <p className="font-semibold text-lg">
-                        {selectedResult.is_anonymous ? selectedResult.anonymous_name : selectedResult.student_profile?.name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(selectedResult.completed_at), "yyyy년 M월 d일 a h:mm", { locale: ko })}
-                      </p>
-                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-primary">
-                    {selectedResult.score} / {selectedResult.total_questions}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    정답률 {Math.round((selectedResult.score / selectedResult.total_questions) * 100)}%
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="font-medium text-lg">문제별 상세</h3>
-                <div className="grid gap-4">
-                  {selectedResult.answers.map((answer: any, index: number) => {
-                    const problemData = {
-                      id: answer.problemId || String(index),
-                      word: "",
-                      answer: answer.correctAnswer,
-                      sentence: answer.sentence || "문제 내용 없음",
-                      hint: "",
-                      translation: answer.translation || "",
-                      sentence_audio_url: answer.audioUrl,
-                    };
-                    
-                    return (
-                      <QuizReviewCard
-                        key={index}
-                        problem={problemData}
-                        userAnswer={answer.userAnswer}
-                        isCorrect={answer.isCorrect}
-                        problemNumber={index + 1}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <QuizResultDialog 
+        isOpen={!!selectedResult}
+        onClose={() => setSelectedResult(null)}
+        result={selectedResult}
+        studentName={selectedResult ? (selectedResult.is_anonymous ? selectedResult.anonymous_name || "익명" : selectedResult.student_profile?.name || "알 수 없음") : ""}
+        isAnonymous={selectedResult?.is_anonymous}
+      />
     </div>
   );
 }

@@ -6,18 +6,20 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, FileText, Bell, ChevronRight, BookOpen, Clock, GraduationCap } from "lucide-react";
+import { Plus, Users, FileText, Bell, ChevronRight, BookOpen, Clock, GraduationCap, Share, Send } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { Dialog } from "@/components/ui/dialog";
+import { ShareQuizDialogContent } from "@/components/quiz/ShareQuizDialog";
+import { useQuizSharing } from "@/hooks/useQuizSharing";
 import { QuizResultsDialog } from "@/components/quiz/QuizResultsDialog";
 
 // Interface Definitions
-interface Class {
-  id: string;
-  name: string;
-  invite_code: string;
-  created_at: string;
-}
+import { useClasses, Class as ClassModel } from "@/hooks/useClasses";
+
+// Interface Definitions
+// Use Class from hook
+type Class = ClassModel;
 
 interface Quiz {
   id: string;
@@ -38,7 +40,7 @@ interface Notification {
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
-  const [classes, setClasses] = useState<Class[]>([]);
+  const { classes } = useClasses(user?.id);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stats, setStats] = useState({
@@ -48,6 +50,24 @@ export default function TeacherDashboard() {
     pendingResults: 0,
   });
   const [selectedQuizForResult, setSelectedResult] = useState<Quiz | null>(null);
+  const [selectedQuizForShare, setSelectedQuizForShare] = useState<Quiz | null>(null);
+
+  // Use the sharing hook
+  // Note: We need to cast the local classes/quiz types to match the hook's expected types if they differ slightly,
+  // but since we fetch "*" they should be compatible in runtime.
+  // We'll cast classes to any to avoid strict type issues for now, or ensure the interface matches.
+  const {
+    isSending,
+    sendDialogOpen,
+    setSendDialogOpen,
+    shareUrl,
+    allowAnonymous,
+    setAllowAnonymous,
+    isGeneratingLink,
+    handleSendQuiz,
+    generateShareLink,
+    copyToClipboard
+  } = useQuizSharing(selectedQuizForShare as any, user, classes as any);
 
   useEffect(() => {
     if (user) {
@@ -56,15 +76,7 @@ export default function TeacherDashboard() {
   }, [user]);
 
   const fetchData = async () => {
-    // Fetch classes
-    const { data: classesData } = await supabase
-      .from("classes")
-      .select("*")
-      .eq("teacher_id", user?.id)
-      .order("created_at", { ascending: false })
-      .limit(5);
 
-    if (classesData) setClasses(classesData);
 
     // Fetch quizzes
     const { data: quizzesData } = await supabase
@@ -88,10 +100,7 @@ export default function TeacherDashboard() {
     if (notificationsData) setNotifications(notificationsData);
 
     // Fetch stats
-    const { count: classCount } = await supabase
-      .from("classes")
-      .select("*", { count: "exact", head: true })
-      .eq("teacher_id", user?.id);
+    // Class count is now handled by classes.length from hook
 
     const { count: quizCount } = await supabase
       .from("quizzes")
@@ -114,12 +123,25 @@ export default function TeacherDashboard() {
     }
 
     setStats({
-      totalClasses: classCount || 0,
+      totalClasses: 0, // Not used directly in UI anymore, we use classes.length
       totalStudents: studentCount,
       totalQuizzes: quizCount || 0,
       pendingResults: notifications.length,
     });
   };
+
+  const onSendQuiz = () => {
+    handleSendQuiz("", () => {}); // The dialog handles class selection internally? 
+    // Wait, useQuizSharing's handleSendQuiz takes (selectedClassId, onSuccess).
+    // The ShareQuizDialogContent calls onSendQuiz without arguments?
+    // Let's check ShareQuizDialogContent usage in QuizDetail.
+    // In QuizDetail: onSendQuiz={() => handleSendQuiz(selectedClassId, ...)}
+    // So here I need a local selectedClassId state for the dialog?
+    // The hook DOES NOT manage selectedClassId. The CONSUMER does.
+    // I need to add `selectedClassId` state here too!
+  };
+
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
 
   return (
     <AppLayout>
@@ -139,7 +161,7 @@ export default function TeacherDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">전체 클래스</p>
-                  <p className="text-2xl font-bold">{stats.totalClasses}</p>
+                  <p className="text-2xl font-bold">{classes.length}</p>
                 </div>
                 <Users className="w-8 h-8 text-primary/60" />
               </div>
@@ -253,17 +275,33 @@ export default function TeacherDashboard() {
                           </p>
                         </div>
                       </Link>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="ml-2"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setSelectedResult(quiz);
-                        }}
-                      >
-                        결과
-                      </Button>
+                      <div className="flex items-center">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="mr-2 bg-accent hover:bg-accent/90 text-accent-foreground w-full sm:w-auto"
+                          onClick={(e) => {
+                             e.preventDefault();
+                             setSelectedQuizForShare(quiz as any);
+                             setSendDialogOpen(true);
+                             setSelectedClassId("");
+                          }}
+                        >
+                          <Send className="w-4 h-4 mr-1" />
+                          공유
+                        </Button>
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSelectedResult(quiz);
+                          }}
+                        >
+                          결과 확인
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -291,7 +329,7 @@ export default function TeacherDashboard() {
                   <p>아직 생성된 클래스가 없습니다</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="flex flex-col gap-3">
                   {classes.map((cls) => (
                     <Link key={cls.id} to={`/class/${cls.id}`}>
                       <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
@@ -320,6 +358,22 @@ export default function TeacherDashboard() {
         open={!!selectedQuizForResult}
         onOpenChange={(open) => !open && setSelectedResult(null)}
       />
+      
+      <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
+          <ShareQuizDialogContent 
+            classes={classes as any}
+            selectedClassId={selectedClassId}
+            onSelectClass={setSelectedClassId}
+            onSendQuiz={() => handleSendQuiz(selectedClassId, () => setSelectedClassId(""))}
+            isSending={isSending}
+            shareUrl={shareUrl}
+            allowAnonymous={allowAnonymous}
+            onSetAllowAnonymous={setAllowAnonymous}
+            onGenerateLink={generateShareLink}
+            isGeneratingLink={isGeneratingLink}
+            onCopyLink={copyToClipboard}
+          />
+        </Dialog>
     </AppLayout>
   );
 }

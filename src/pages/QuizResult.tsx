@@ -19,7 +19,7 @@ interface Problem {
 
 interface UserAnswer {
   problemId: string;
-  answer: string;
+  userAnswer: string;
   isCorrect: boolean;
 }
 
@@ -100,7 +100,7 @@ export default function QuizResult() {
     );
   }
 
-  if (!user || role !== 'student') {
+  if (!user) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -111,7 +111,7 @@ export default function QuizResult() {
   const isMedium = percentage >= 50 && percentage < 80;
 
   const getAnswerForProblem = (problemId: string) => {
-    return result.answers.find(a => a.problemId === problemId);
+    return result.answers.find(a => (a as any).problemId === problemId || (a as any).problem_id === problemId || (a as any).id === problemId);
   };
 
   // Group problems by set
@@ -167,15 +167,15 @@ export default function QuizResult() {
                     const isCorrect = userAnswer?.isCorrect || false;
                     const problemNumber = setIdx * wordsPerSet + idx + 1;
                     
-                    return (
-                      <QuizReviewCard
-                        key={problem.id}
-                        problem={problem}
-                        userAnswer={userAnswer?.answer}
-                        isCorrect={isCorrect}
-                        problemNumber={problemNumber}
-                      />
-                    );
+                      return (
+                        <QuizReviewCard
+                          key={problem.id}
+                          problem={problem}
+                          userAnswer={userAnswer?.userAnswer}
+                          isCorrect={isCorrect}
+                          problemNumber={problemNumber}
+                        />
+                      );
                   })}
                 </div>
               </div>

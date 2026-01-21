@@ -163,7 +163,8 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
    - ✅ 자연스러운 조합: "밥을 먹다", "식사하다", "한국어를 배우다", "집에 가다", "귀가하다", "옷을 입다"
    - ❌ 부자연스러운 조합: "식사를 먹다", "한국 언어를 배우다"
    - 난이도별 어휘 선택:
-${selectedGuide}
+   - 난이도별 어휘 선택:
+      (아래 1번 항목 참조)
 
 1. **난이도별 어휘 수준 (TOPIK 기준) - 매우 중요!**:
 ${selectedGuide}
@@ -175,28 +176,20 @@ ${selectedGuide}
 3. **동사/형용사 문법 활용 - 매우 중요!**:
    동사/형용사는 다양한 문법으로 활용해주세요. 단순히 "-아요/어요"만 사용하지 마세요!
    
-   **관형사형 (명사 수식) - 필수!**:
-   - 현재: -는 (동사), -(으)ㄴ (형용사)
-     예: "먹는 음식", "주요한 역할", "큰 집"
-   - 과거: -(으)ㄴ
-     예: "먹은 음식", "본 영화"
-   - 미래: -(으)ㄹ
-     예: "먹을 음식", "갈 곳"
-
-   **hint 작성 시 (문법 형태만 사용)**:
-   - **관형사형**: "(으)ㄴ", "-는", "-(으)ㄹ" 
-     * 중요: sentence에는 어미 포함 X!
-     * ✅ 예: sentence: "경제에 ( ) 역할을...", answer: "주요한", hint: "(으)ㄴ"
-     * ❌ 잘못: sentence: "경제에 ( )(으)ㄴ 역할을...", answer: "주요한", hint: "(으)ㄴ" (중복!)
-   - **일반 활용**: "-아요/어요", "-기 전에", "-느라고", "-게 되다", "-았어요/었어요", "-(으)ㄴ 바 있다" 등
-     * 예: sentence: "공부( ) 시간이 없었어요.", answer: "하느라고", hint: "-느라고"
+   - **관형사형 (명사 수식) - 필수!**:
+     * 현재: -는 (동사), -(으)ㄴ (형용사)
+       예: "먹는 음식", "주요한 역할", "큰 집"
+     * 과거: -(으)ㄴ
+       예: "먹은 음식", "본 영화"
+     * 미래: -(으)ㄹ
+       예: "먹을 음식", "갈 곳"
 
 4. **난이도별 문장 예시 (TOPIK 문법 활용)**:
    - A1 (1급): "저는 내일 학교에 ( ).", answer: "갈 거예요", hint: "-(으)ㄹ 거예요"
    - A2 (2급): "학교에 ( ) 밥 먹었어요.", answer: "가기 전에", hint: "-기 전에"
    - B1 (3급): "숙제를 ( ) 시간이 없었어요.", answer: "하느라고", hint: "-느라고"
    - B2 (4급): "노력( ) 실력이 늘어요.", answer: "할수록", hint: "-(으)ㄹ수록"
-   - C1 (5급): "정책이 발전에 ( ).", answer: "기여한 바 있습니다", hint: "-(으)ㄴ 바 있다"
+   - C1 (5급): "정책이 발전에 ( ).", answer: "기여한 바 있습니다", hint: "-(으)ㄴ 바 있다 + 아요/어요"
 
 5. **word (기본형)는 입력받은 단어 그대로**
 
@@ -208,56 +201,35 @@ ${selectedGuide}
      * ✅ 올바른 예: sentence: "저 사람은 옷을 아주 잘 입어서 ( ).", answer: "연예인인 것 같아요", hint: "-(으)ㄴ 것 같다 + 아요/어요"
 
    - **명사 + 조사**: 조사 반드시 포함! (예: 지구력이, 발굽을, 산악지대로, 망자의)
-     * ✅ 올바른 예: answer: "지구력이", sentence: "( ) 필요해요", hint: "이/가"
-     * ❌ 잘못된 예: answer: "지구력", sentence: "( )이/가 필요해요", hint: "이/가" (조사가 sentence에 있으면 안 됨!)
-     * ✅ 올바른 예: answer: "발굽을", sentence: "( ) 다쳐서", hint: "을/를"
-     * ❌ 잘못된 예: answer: "발굽", sentence: "( )을/를 다쳐서", hint: "을/를"
-     * ✅ 올바른 예: answer: "산악지대로", sentence: "( ) 이루어져", hint: "(으)로"
-     * ❌ 잘못된 예: answer: "산악지대", sentence: "( )(으)로 이루어져", hint: "(으)로"
-     * ✅ 올바른 예: answer: "망자의", sentence: "( ) 평화를", hint: "의"
-     * ❌ 잘못된 예: answer: "망자", sentence: "( )의 평화를", hint: "의"
-
-   - **동사/형용사**: hint에 표시된 문법 형태로 완전히 활용 (예: 발견됐어요, 올랐어요, 주요한)
-     * 예: answer: "하느라고", hint: "-느라고"
-     * 예: answer: "갈 거예요", hint: "-(으)ㄹ 거예요"
+     * ✅ 올바른 예: sentence: "( ) 필요해요",answer: "지구력이", hint: "이/가"
+     * ❌ 잘못된 예: sentence: "( )이/가 필요해요",answer: "지구력", hint: "이/가"  (조사가 sentence에 있으면 안 됨!)
 
 7. **sentence (문장) 작성 규칙 - 매우 중요!**:
-   - **문법 패턴 분리 금지**: 위에서 설명했듯이, 정답(answer)에 포함된 문법 부분을 문장(sentence)에 중복해서 쓰거나 남겨두지 마세요. 
+   - **문법 패턴 분리 금지**: 정답(answer)에 포함된 문법 부분을 문장(sentence)에 중복해서 쓰거나 남겨두지 마세요.
      * 빈칸 ( ) 뒤에는 문법 요소가 없어야 합니다. (마침표나 쉼표 등 문장 부호는 가능)
-     * ✅ 올바른 예: "하늘을 보니 비가 ( )." (O)
-     * ❌ 잘못된 예: "하늘을 보니 비가 ( ) 것 같아요." (X)
-
    - **명사 + 조사**: 빈칸 ( ) 뒤에 조사 절대 쓰지 말기! 조사는 answer에 포함됨
-     * ✅ 올바른 예: "마라톤을 잘하기 위해서는 ( ) 필요해요." (answer: "지구력이", hint: "이/가")
-     * ❌ 잘못된 예: "마라톤을 잘하기 위해서는 ( )이/가 필요해요." (조사 중복!)
    - **동사/형용사 - 관형사형일 때**: 빈칸 ( ) 뒤에 아무것도 쓰지 말고 바로 명사
-     * ✅ 올바른 예: "경제에 ( ) 역할을...", "( ) 음식이..."
-     * ❌ 잘못된 예: "경제에 ( )(으)ㄴ 역할을...", "( )(으)ㄴ 음식이...\\" (중복 발생!)
-   - **동사/형용사 - 일반 활용일 때**: 빈칸 ( ) 뒤에 문장 표기 주의
    - **조사 중복 절대 금지!**
    - **문장 끝 마침표/물음표 필수**
    - **${difficulty} 어휘 수준 준수!**
 
-8. **hint 규칙 - 매우 중요!**:
-   - **명사 + 조사**: answer에 포함된 조사 패턴을 hint에 표시
-     * 예: answer: "지구력이" → hint: "이/가"
-     * 예: answer: "발굽을" → hint: "을/를"
-     * 예: answer: "산악지대로" → hint: "(으)로"
-     * 예: answer: "망자의" → hint: "의"
-     * 예: answer: "학교에게" → hint: "에게"
-     * 예: answer: "집에서" → hint: "에서"
-   - **명사 + 조사가 없는 경우**: "" (빈 문자열)
-     * 예: 시간 부사처럼 쓰이는 명사 (오늘, 내일, 어제 등) → hint: ""
-     * 예: answer: "오늘", sentence: "저는 ( ) 회사에 가요." → hint: ""
-   - **동사/형용사**: 문법 형태만 (예: "-았어요/었어요", "(으)ㄴ", "-는", "-기 전에")
-     * **복합 구성(중요!)**: 보조 용언이나 관용 표현 뒤에 어미가 결합된 경우, 반드시 '기본 문법 + 어미' 형태로 표시해주세요.
-       - 예: "가기로 했습니다" (기로 하다 + 습니다) -> hint: "-기로 하다 + 습니다"
-       - 예: "좋지 않아서" (지 않다 + 아서) -> hint: "-지 않다 + 아서/어서"
-       - 예: "할 수 있었어요" (ㄹ 수 있다 + 었을) -> hint: "-(으)ㄹ 수 있다 + 았어요/었어요"
-       - 예: "칠 줄 알았어요" (-(으)ㄹ 줄 알다 + 았어요/었어요) -> hint: "-(으)ㄹ 줄 알다 + 았어요/었어요"
-   - 설명이나 의미 절대 쓰지 않기!
+8. **hint 작성 규칙 (통합됨) - 매우 중요!**:
+   - **기본 원칙**: 설명이나 의미를 쓰지 말고, 오직 **'문법 형태'**만 표기하세요.
+   - **명사 + 조사**: answer에 사용된 조사를 표시
+     * 예: answer: "학교에" → hint: "에"
+     * 예: answer: "친구를" → hint: "을/를"
+     * 예: answer: "오늘" (조사 없음/부사) → hint: "" (빈 문자열)
+   - **동사/형용사 (활용형)**: 사용된 어미/문법 패턴만 표시
+     * **일반 활용**: "-아요/어요", "-기 전에", "-느라고", "-게 되다"
+     * **관형사형**: "(으)ㄴ", "-는", "-(으)ㄹ" (절대 sentence에 어미를 남기지 말 것!)
+       * ✅ 예: sentence: "경제에 ( ) 역할을...", answer: "주요한", hint: "(으)ㄴ"
+     * **복합 구성**: 보조 용언 등은 '기본 문법 + 어미' 형태로 표시
+       * 예: "가기로 했습니다" → hint: "-기로 하다 + 습니다"
+       * 예: "좋지 않아서" → hint: "-지 않다 + 아서/어서"
+       * 예: "할 수 있었어요" → hint: "-(으)ㄹ 수 있다 + 았어요/었어요"
+       * 예: "연예인인 것 같아요" → hint: "-(으)ㄴ 것 같다 + 아요/어요"
 
-9. **문제 순서**: 입력받은 단어 목록 순서대로 문제를 생성하세요. (선생님 미리보기용. 학생이 풀 때는 자동으로 섞입니다)
+9. **문제 순서**: 입력받은 단어 목록 순서대로 문제를 생성하세요.
 
 응답 형식 (각 문제에 ${languageName} 번역 포함):
 {
@@ -292,6 +264,43 @@ ${selectedGuide}
 - \`\`\`json 이나 \`\`\` 마크다운 코드 블록 사용 금지
 - 오직 { "problems": [...] } JSON만 출력하세요
 - 첫 글자는 반드시 { 로 시작해야 합니다`;
+};
+
+// 가벼운 프롬프트 (Single Regeneration용)
+const generateSimplePrompt = (words: string[], difficulty: string, _languageName: string) => {
+  // 전체 가이드 대신 해당 레벨의 핵심 문법 리스트만 추출 (간략화)
+  const fullGuide = DIFFICULTY_GUIDES[difficulty] || DIFFICULTY_GUIDES["A1"];
+  // 가이드에서 문법 목록 부분만 간단히 사용 (줄바꿈 등으로 인해 전체 텍스트가 들어가지만, 위쪽의 긴 설명들은 제외됨)
+
+  return `역할: 한국어 교육자.
+목표: 단어 "${words[0]}"을(를) 사용하여 ${difficulty} 수준의 빈칸 채우기 문제 1개 생성.
+
+[필수 문법 목록 - ${difficulty} 레벨]
+${fullGuide}
+* 위 목록 중 하나를 골라 반드시 활용하세요.
+* 문장은 자연스러워야 합니다.
+
+[작성 규칙]
+1. Answer: 문법이 적용된 활용형 (예: "가다" -> "가기 때문에"). **조사 포함 필수**.
+2. Salary: 빈칸 ( ) 뒤에 조사/어미를 남기지 마세요. (Answer에 모두 포함)
+3. Hint: 사용된 문법 형태만 표기 (설명 금지).
+   - 예: "학교에" -> "에", "먹어서" -> "-아서/어서", "갈 거예요" -> "-(으)ㄹ 거예요"
+   - 보조용언 결합 시: "가고 싶어요" -> "-고 싶다 + 아요/어요"
+4. Translation: 대괄호[]로 정답 단어의 **핵심 의미**만 감싸세요. (문법 등 제외)
+   - 예: answer "가고 싶어요" -> "I want to [go]."
+
+[출력 형식 - JSON Only]
+{
+  "problems": [
+    {
+      "word": "${words[0]}",
+      "answer": "...",
+      "sentence": "... ( ).",
+      "hint": "...",
+      "translation": "... [core meaning] ..."
+    }
+  ]
+}`;
 };
 
 serve(async (req) => {
@@ -350,10 +359,14 @@ serve(async (req) => {
 
     console.log(`User ${user.id} (${profileData.role}) generating quiz`);
 
-    const { words, difficulty, translationLanguage, wordsPerSet: _wordsPerSet, regenerateSingle: _regenerateSingle, apiProvider = "openai" }: QuizRequest = await req.json();
+    const { words, difficulty, translationLanguage, wordsPerSet: _wordsPerSet, regenerateSingle, apiProvider = "openai" }: QuizRequest = await req.json();
     
     const languageName = LANGUAGE_NAMES[translationLanguage] || "영어";
-    const prompt = generateDetailedPrompt(words, difficulty, languageName);
+    
+    // regenerateSingle이 true이면 가벼운 프롬프트 사용
+    const prompt = regenerateSingle 
+      ? generateSimplePrompt(words, difficulty, languageName)
+      : generateDetailedPrompt(words, difficulty, languageName);
 
     console.log(`Generating quiz using ${apiProvider} for ${words.length} words at ${difficulty} level`);
 

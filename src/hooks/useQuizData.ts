@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
+import { useClasses, Class as ClassModel } from "./useClasses";
+
 export interface Problem {
   id: string;
   word: string;
@@ -28,15 +30,12 @@ export interface Quiz {
   api_provider?: "openai" | "gemini" | "gemini-pro";
 }
 
-export interface Class {
-  id: string;
-  name: string;
-}
+export type Class = ClassModel;
 
 export function useQuizData(quizId: string | undefined, userId: string | undefined) {
   const navigate = useNavigate();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
-  const [classes, setClasses] = useState<Class[]>([]);
+  const { classes } = useClasses(userId);
   const [isLoading, setIsLoading] = useState(true);
   const [hasAudio, setHasAudio] = useState<boolean | null>(null);
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
@@ -44,7 +43,6 @@ export function useQuizData(quizId: string | undefined, userId: string | undefin
   useEffect(() => {
     if (userId && quizId) {
       fetchQuiz();
-      fetchClasses();
       checkAudioStatus();
 
       // Realtime subscription for audio updates
@@ -104,12 +102,7 @@ export function useQuizData(quizId: string | undefined, userId: string | undefin
     setIsLoading(false);
   };
 
-  const fetchClasses = async () => {
-    if (!userId) return;
-    const { data } = await supabase.from("classes").select("id, name").eq("teacher_id", userId);
 
-    if (data) setClasses(data);
-  };
 
   const checkAudioStatus = async () => {
     if (!quizId) return;

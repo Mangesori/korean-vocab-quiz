@@ -132,6 +132,7 @@ export default function QuizPreview() {
           translationLanguage: draft.translationLanguage,
           wordsPerSet: 1,
           apiProvider: draft.apiProvider,
+          regenerateSingle: true,
         },
       });
 
