@@ -81,46 +81,91 @@ export default function QuizCreate() {
     setIsGenerating(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("generate-quiz", {
-        body: {
-          words,
-          difficulty,
-          translationLanguage,
-          wordsPerSet,
-          apiProvider,
-        },
-      });
-
-      if (error) {
-        throw error;
+      const BATCH_SIZE = 15;
+      const allProblems: any[] = [];
+      
+      // 단어를 10개씩 청크로 분할
+      const wordChunks: string[][] = [];
+      for (let i = 0; i < words.length; i += BATCH_SIZE) {
+        wordChunks.push(words.slice(i, i + BATCH_SIZE));
       }
 
-      if (data.error) {
-        throw new Error(data.error);
+      // 각 청크마다 순차적으로 API 호출
+      for (let i = 0; i < wordChunks.length; i++) {
+        const chunk = wordChunks[i];
+        const currentProgress = i * BATCH_SIZE + chunk.length;
+        
+        // 진행 상황 표시
+        toast.loading(`문제 생성 중... (${currentProgress}/${words.length})`, {
+          id: 'quiz-generation',
+        });
+
+        try {
+          const { data, error } = await supabase.functions.invoke("generate-quiz", {
+            body: {
+              words: chunk,
+              difficulty,
+              translationLanguage,
+              wordsPerSet,
+              apiProvider,
+            },
+          });
+
+          if (error) {
+            throw error;
+          }
+
+          if (data.error) {
+            throw new Error(data.error);
+          }
+
+          // 생성된 문제 추가
+          allProblems.push(...data.problems);
+          
+        } catch (batchError: any) {
+          console.error(`Batch ${i + 1} generation error:`, batchError);
+          
+          // 이미 생성된 문제가 있으면 부분 성공으로 처리
+          if (allProblems.length > 0) {
+            toast.dismiss('quiz-generation');
+            toast.warning(
+              `일부 문제만 생성되었습니다 (${allProblems.length}/${words.length}개).\n생성된 문제로 계속 진행하시겠습니까?`,
+              {
+                duration: 5000,
+              }
+            );
+            break; // 루프 종료하고 생성된 문제로 진행
+          } else {
+            // 아무것도 생성되지 않았으면 에러 발생
+            throw batchError;
+          }
+        }
       }
+
+      // 모든 배치 완료
+      toast.dismiss('quiz-generation');
+      toast.success(`${allProblems.length}개 문제 생성 완료!`);
 
       // Store quiz data in sessionStorage for the preview page
-      // Keep problems in original order (same as words added) for preview
-      // Shuffling will happen when saving the quiz for students
       sessionStorage.setItem(
         "quizDraft",
         JSON.stringify({
           title,
-          words,
+          words: words.slice(0, allProblems.length), // 실제 생성된 문제 수만큼만
           difficulty,
           translationLanguage,
           wordsPerSet,
           timerEnabled,
           timerSeconds: timerEnabled ? timerSeconds : null,
           apiProvider,
-          problems: data.problems,
+          problems: allProblems,
         }),
       );
 
       navigate("/quiz/preview");
     } catch (error: any) {
       console.error("Quiz generation error:", error);
-      // Show the specific error message if available
+      toast.dismiss('quiz-generation');
       const errorMessage = error.message || (error.error && error.error.message) || "퀴즈 생성에 실패했습니다";
       toast.error(errorMessage);
     } finally {
