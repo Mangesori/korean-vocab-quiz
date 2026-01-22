@@ -48,13 +48,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
-          {
-            foreignKeyName: "class_members_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles_with_email"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       classes: {
@@ -91,13 +84,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "classes_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles_with_email"
             referencedColumns: ["user_id"]
           },
         ]
@@ -145,13 +131,6 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
           {
-            foreignKeyName: "notifications_from_user_id_fkey"
-            columns: ["from_user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles_with_email"
-            referencedColumns: ["user_id"]
-          },
-          {
             foreignKeyName: "notifications_quiz_id_fkey"
             columns: ["quiz_id"]
             isOneToOne: false
@@ -163,13 +142,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles_with_email"
             referencedColumns: ["user_id"]
           },
         ]
@@ -329,7 +301,7 @@ export type Database = {
           quiz_id: string
           score: number
           share_token: string | null
-          student_id: string
+          student_id: string | null
           total_questions: number
         }
         Insert: {
@@ -341,7 +313,7 @@ export type Database = {
           quiz_id: string
           score: number
           share_token?: string | null
-          student_id: string
+          student_id?: string | null
           total_questions: number
         }
         Update: {
@@ -353,7 +325,7 @@ export type Database = {
           quiz_id?: string
           score?: number
           share_token?: string | null
-          student_id?: string
+          student_id?: string | null
           total_questions?: number
         }
         Relationships: [
@@ -376,13 +348,6 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "quiz_results_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles_with_email"
             referencedColumns: ["user_id"]
           },
         ]
@@ -433,13 +398,6 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
           {
-            foreignKeyName: "quiz_shares_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles_with_email"
-            referencedColumns: ["user_id"]
-          },
-          {
             foreignKeyName: "quiz_shares_quiz_id_fkey"
             columns: ["quiz_id"]
             isOneToOne: false
@@ -450,6 +408,7 @@ export type Database = {
       }
       quizzes: {
         Row: {
+          api_provider: string | null
           created_at: string
           difficulty: Database["public"]["Enums"]["difficulty_level"]
           id: string
@@ -464,6 +423,7 @@ export type Database = {
           words_per_set: number
         }
         Insert: {
+          api_provider?: string | null
           created_at?: string
           difficulty?: Database["public"]["Enums"]["difficulty_level"]
           id?: string
@@ -478,6 +438,7 @@ export type Database = {
           words_per_set?: number
         }
         Update: {
+          api_provider?: string | null
           created_at?: string
           difficulty?: Database["public"]["Enums"]["difficulty_level"]
           id?: string
@@ -499,29 +460,11 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
-          {
-            foreignKeyName: "quizzes_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles_with_email"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
     }
     Views: {
-      user_profiles_with_email: {
-        Row: {
-          avatar_url: string | null
-          created_at: string | null
-          email: string | null
-          name: string | null
-          role: Database["public"]["Enums"]["app_role"] | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       generate_invite_code: { Args: never; Returns: string }
@@ -546,6 +489,18 @@ export type Database = {
         }[]
       }
       get_quiz_for_student: { Args: { _quiz_id: string }; Returns: Json }
+      get_user_profiles_with_email: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          created_at: string
+          email: string
+          name: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -557,6 +512,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: never; Returns: boolean }
       is_class_member: {
         Args: { _class_id: string; _user_id: string }
         Returns: boolean
@@ -573,8 +529,12 @@ export type Database = {
         Args: { _quiz_id: string; _user_id: string }
         Returns: boolean
       }
+      is_teacher: { Args: never; Returns: boolean }
+      is_teacher_or_admin:
+        | { Args: never; Returns: boolean }
+        | { Args: { user_id: string }; Returns: boolean }
       notify_quiz_completion: {
-        Args: { _quiz_id: string; _anonymous_name: string }
+        Args: { _anonymous_name: string; _quiz_id: string }
         Returns: undefined
       }
       submit_quiz_answers: {

@@ -59,22 +59,22 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch all users with roles and emails from the view
+      // Fetch all users with roles and emails using secure function
       const { data: profilesData, error: profilesError } = await supabase
-        .from('user_profiles_with_email')
-        .select('user_id, name, email, role, created_at')
-        .order('created_at', { ascending: false });
+        .rpc('get_user_profiles_with_email');
 
       if (profilesError) throw profilesError;
 
-      // Map to expected format
-      const usersWithProfiles = profilesData?.map(p => ({
+      // Map to expected format and sort by created_at descending
+      const usersWithProfiles = (profilesData?.map(p => ({
         user_id: p.user_id,
         role: p.role as 'admin' | 'teacher' | 'student',
         created_at: p.created_at,
         email: p.email,
         profile: { name: p.name }
-      })) || [];
+      })) || []).sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
 
       setUsers(usersWithProfiles);
 
