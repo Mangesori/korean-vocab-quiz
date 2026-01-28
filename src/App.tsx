@@ -23,6 +23,11 @@ import ClassAssignedQuizzes from "./pages/ClassAssignedQuizzes";
 import QuizShare from "./pages/QuizShare";
 import QuizShareResult from "./pages/QuizShareResult";
 import QuizExampleResult from "./pages/QuizExampleResult";
+import ProfileSettings from "./pages/ProfileSettings";
+import VocabularyList from "./pages/VocabularyList";
+import WrongAnswerNotebook from "./pages/WrongAnswerNotebook";
+import ClassAnnouncements from "./pages/ClassAnnouncements";
+import WrongAnswerQuizCreate from "./pages/WrongAnswerQuizCreate";
 
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -99,7 +104,22 @@ const App = () => (
             } />
             <Route path="/quiz/share/:token" element={<QuizShare />} />
             <Route path="/quiz/share/result" element={<QuizShareResult />} />
-            
+
+            {/* 새 기능 라우트 */}
+            <Route path="/profile/settings" element={<ProfileSettings />} />
+            <Route path="/vocabulary" element={<VocabularyList />} />
+            <Route path="/wrong-answers" element={<WrongAnswerNotebook />} />
+            <Route path="/class/:id/announcements" element={
+              <ProtectedRoute permission={PERMISSIONS.VIEW_CLASS} redirectTo="/auth">
+                <ClassAnnouncements />
+              </ProtectedRoute>
+            } />
+            <Route path="/quiz/wrong-answer" element={
+              <ProtectedRoute permission={PERMISSIONS.CREATE_QUIZ} redirectTo="/dashboard">
+                <WrongAnswerQuizCreate />
+              </ProtectedRoute>
+            } />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

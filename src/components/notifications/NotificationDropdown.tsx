@@ -16,10 +16,11 @@ import { ko } from 'date-fns/locale';
 
 interface Notification {
   id: string;
-  type: 'quiz_assigned' | 'quiz_completed';
+  type: 'quiz_assigned' | 'quiz_completed' | 'announcement';
   title: string;
   message: string;
   quiz_id: string | null;
+  announcement_id: string | null;
   is_read: boolean;
   created_at: string;
 }
@@ -89,6 +90,12 @@ export function NotificationDropdown() {
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.is_read) {
       await markAsRead(notification.id);
+    }
+
+    if (notification.type === 'announcement') {
+      // For announcements, we need to find the class_id from the announcement
+      // For now, just mark as read since we don't have class_id in notification
+      return;
     }
 
     if (notification.quiz_id) {

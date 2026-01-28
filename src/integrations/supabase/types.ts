@@ -1,3 +1,4 @@
+Initialising login role...
 export type Json =
   | string
   | number
@@ -12,8 +13,84 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          class_id: string
+          content: string
+          created_at: string | null
+          id: string
+          is_pinned: boolean | null
+          priority: string | null
+          teacher_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          class_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          is_pinned?: boolean | null
+          priority?: string | null
+          teacher_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          class_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_pinned?: boolean | null
+          priority?: string | null
+          teacher_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "announcements_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       class_members: {
         Row: {
           class_id: string
@@ -90,6 +167,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          announcement_id: string | null
           created_at: string
           from_user_id: string | null
           id: string
@@ -101,6 +179,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          announcement_id?: string | null
           created_at?: string
           from_user_id?: string | null
           id?: string
@@ -112,6 +191,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          announcement_id?: string | null
           created_at?: string
           from_user_id?: string | null
           id?: string
@@ -123,6 +203,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notifications_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notifications_from_user_id_fkey"
             columns: ["from_user_id"]
@@ -149,25 +236,46 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
+          daily_word_count: number | null
           name: string
+          preferred_language:
+            | Database["public"]["Enums"]["translation_language"]
+            | null
           role: Database["public"]["Enums"]["app_role"]
+          study_goal: string | null
+          theme_preference: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          daily_word_count?: number | null
           name: string
+          preferred_language?:
+            | Database["public"]["Enums"]["translation_language"]
+            | null
           role: Database["public"]["Enums"]["app_role"]
+          study_goal?: string | null
+          theme_preference?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          daily_word_count?: number | null
           name?: string
+          preferred_language?:
+            | Database["public"]["Enums"]["translation_language"]
+            | null
           role?: Database["public"]["Enums"]["app_role"]
+          study_goal?: string | null
+          theme_preference?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -462,6 +570,126 @@ export type Database = {
           },
         ]
       }
+      vocabulary_lists: {
+        Row: {
+          created_at: string | null
+          example_sentence: string | null
+          id: string
+          is_favorite: boolean | null
+          mastery_level: number | null
+          meaning: string | null
+          notes: string | null
+          source_quiz_id: string | null
+          student_id: string
+          updated_at: string | null
+          word: string
+        }
+        Insert: {
+          created_at?: string | null
+          example_sentence?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          mastery_level?: number | null
+          meaning?: string | null
+          notes?: string | null
+          source_quiz_id?: string | null
+          student_id: string
+          updated_at?: string | null
+          word: string
+        }
+        Update: {
+          created_at?: string | null
+          example_sentence?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          mastery_level?: number | null
+          meaning?: string | null
+          notes?: string | null
+          source_quiz_id?: string | null
+          student_id?: string
+          updated_at?: string | null
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vocabulary_lists_source_quiz_id_fkey"
+            columns: ["source_quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vocabulary_lists_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      wrong_answer_notebook: {
+        Row: {
+          correct_answer: string
+          created_at: string | null
+          id: string
+          is_mastered: boolean | null
+          last_reviewed_at: string | null
+          problem_id: string
+          quiz_result_id: string
+          review_count: number | null
+          sentence: string
+          student_id: string
+          translation: string | null
+          user_answer: string
+          word: string
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string | null
+          id?: string
+          is_mastered?: boolean | null
+          last_reviewed_at?: string | null
+          problem_id: string
+          quiz_result_id: string
+          review_count?: number | null
+          sentence: string
+          student_id: string
+          translation?: string | null
+          user_answer: string
+          word: string
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string | null
+          id?: string
+          is_mastered?: boolean | null
+          last_reviewed_at?: string | null
+          problem_id?: string
+          quiz_result_id?: string
+          review_count?: number | null
+          sentence?: string
+          student_id?: string
+          translation?: string | null
+          user_answer?: string
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wrong_answer_notebook_quiz_result_id_fkey"
+            columns: ["quiz_result_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wrong_answer_notebook_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -545,7 +773,7 @@ export type Database = {
     Enums: {
       app_role: "teacher" | "student" | "admin"
       difficulty_level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"
-      notification_type: "quiz_assigned" | "quiz_completed"
+      notification_type: "quiz_assigned" | "quiz_completed" | "announcement"
       translation_language:
         | "en"
         | "zh_CN"
@@ -683,11 +911,14 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["teacher", "student", "admin"],
       difficulty_level: ["A1", "A2", "B1", "B2", "C1", "C2"],
-      notification_type: ["quiz_assigned", "quiz_completed"],
+      notification_type: ["quiz_assigned", "quiz_completed", "announcement"],
       translation_language: [
         "en",
         "zh_CN",
@@ -704,3 +935,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.72.7 (currently installed v2.70.5)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

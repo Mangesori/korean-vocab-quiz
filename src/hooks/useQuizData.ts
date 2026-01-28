@@ -46,8 +46,30 @@ export function useQuizData(quizId: string | undefined, userId: string | undefin
       checkAudioStatus();
 
       // Realtime subscription for audio updates
+      // INSERT와 UPDATE 모두 구독 (퀴즈 생성 시 INSERT, 오디오 재생성 시 UPDATE)
+      const handleAudioUpdate = (payload: any) => {
+        const newProblem = payload.new as any;
+        if (newProblem.sentence_audio_url) {
+          setAudioUrls((prev) => ({
+            ...prev,
+            [newProblem.problem_id]: newProblem.sentence_audio_url,
+          }));
+          setHasAudio(true);
+        }
+      };
+
       const channel = supabase
         .channel('quiz-detail-audio-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'quiz_problems',
+            filter: `quiz_id=eq.${quizId}`,
+          },
+          handleAudioUpdate
+        )
         .on(
           'postgres_changes',
           {
@@ -56,16 +78,7 @@ export function useQuizData(quizId: string | undefined, userId: string | undefin
             table: 'quiz_problems',
             filter: `quiz_id=eq.${quizId}`,
           },
-          (payload) => {
-            const newProblem = payload.new as any;
-            if (newProblem.sentence_audio_url) {
-              setAudioUrls((prev) => ({
-                ...prev,
-                [newProblem.problem_id]: newProblem.sentence_audio_url,
-              }));
-              setHasAudio(true);
-            }
-          }
+          handleAudioUpdate
         )
         .subscribe();
 

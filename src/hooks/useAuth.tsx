@@ -45,9 +45,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // TOKEN_REFRESHED 이벤트는 창 포커스 시 발생하므로 무시
+        // 실제 로그인/로그아웃 이벤트만 처리
+        if (event === 'TOKEN_REFRESHED') {
+          return;
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (session?.user) {
           setTimeout(() => {
             fetchUserRole(session.user.id).then(setRole);

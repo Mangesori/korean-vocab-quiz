@@ -6,15 +6,17 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  BookOpen, 
-  Trophy, 
-  Clock, 
+import {
+  BookOpen,
+  Trophy,
+  Clock,
   ChevronRight,
   Users,
   FileText,
   CheckCircle,
-  XCircle
+  XCircle,
+  BookMarked,
+  FileX
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -305,6 +307,38 @@ export default function StudentDashboard() {
             </Dialog>
           </CardContent>
         </Card>
+
+        {/* Quick Links - 단어장 & 오답노트 */}
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <Link to="/vocabulary">
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
+              <CardContent className="flex items-center gap-3 py-4">
+                <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
+                  <BookMarked className="w-5 h-5 text-success" />
+                </div>
+                <div>
+                  <p className="font-medium">나만의 단어장</p>
+                  <p className="text-sm text-muted-foreground">저장한 단어 복습하기</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto" />
+              </CardContent>
+            </Card>
+          </Link>
+          <Link to="/wrong-answers">
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
+              <CardContent className="flex items-center gap-3 py-4">
+                <div className="w-10 h-10 bg-destructive/10 rounded-lg flex items-center justify-center">
+                  <FileX className="w-5 h-5 text-destructive" />
+                </div>
+                <div>
+                  <p className="font-medium">오답 노트</p>
+                  <p className="text-sm text-muted-foreground">틀린 문제 다시 보기</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto" />
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
 
         {/* Content Grid */}
         <div className="grid lg:grid-cols-2 gap-6">

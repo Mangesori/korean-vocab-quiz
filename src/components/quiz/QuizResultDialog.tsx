@@ -75,7 +75,7 @@ export function QuizResultDialog({
               {result.answers.map((answer: any, index: number) => {
                 const problemData = {
                   id: answer.problemId || String(index),
-                  word: "",
+                  word: answer.word || "",
                   answer: answer.correctAnswer,
                   sentence: answer.sentence || "문제 내용 없음",
                   hint: "",
@@ -90,6 +90,7 @@ export function QuizResultDialog({
                     userAnswer={answer.userAnswer}
                     isCorrect={answer.isCorrect}
                     problemNumber={index + 1}
+                    isTeacherView={true}
                   />
                 );
               })}

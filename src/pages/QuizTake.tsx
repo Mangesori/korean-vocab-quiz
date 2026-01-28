@@ -300,6 +300,7 @@ export default function QuizTake() {
             sentence: problem.sentence,
             translation: problem.translation,
             audioUrl: problem.sentence_audio_url,
+            word: problem.word,
           };
         });
 

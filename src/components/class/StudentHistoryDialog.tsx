@@ -43,7 +43,7 @@ export function StudentHistoryDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{studentName} 학생의 활동 기록</DialogTitle>
             <DialogDescription>
@@ -61,25 +61,33 @@ export function StudentHistoryDialog({
                 <TableHeader>
                   <TableRow>
                     <TableHead>퀴즈 제목</TableHead>
-                    <TableHead className="w-[150px]">배정일</TableHead>
+                    <TableHead className="w-[140px]">배정일</TableHead>
+                    <TableHead className="w-[160px]">제출 시간</TableHead>
                     <TableHead className="w-[120px]">상태</TableHead>
-                    <TableHead className="w-[120px]">점수</TableHead>
+                    <TableHead className="w-[80px]">점수</TableHead>
                     <TableHead className="w-[100px] text-center">상세보기</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {activities.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
                         배정된 퀴즈가 없습니다.
                       </TableCell>
                     </TableRow>
                   ) : (
                     activities.map((activity) => (
-                      <TableRow key={activity.quiz_id}>
-                        <TableCell className="font-medium">{activity.title}</TableCell>
+                      <TableRow key={activity.id}>
+                        <TableCell className="font-medium">{activity.quiz_title}</TableCell>
                         <TableCell>
-                          {format(new Date(activity.created_at), "yyyy-MM-dd", { locale: ko })}
+                          {format(new Date(activity.assigned_at), "yyyy-MM-dd", { locale: ko })}
+                        </TableCell>
+                        <TableCell>
+                          {activity.completed_at ? (
+                            format(new Date(activity.completed_at), "MM-dd HH:mm", { locale: ko })
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {activity.status === "completed" ? (
@@ -93,23 +101,23 @@ export function StudentHistoryDialog({
                           )}
                         </TableCell>
                         <TableCell>
-                          {activity.result ? (
+                          {activity.status === "completed" ? (
                             <span className="font-medium">
-                              {activity.result.score} / {activity.result.total_questions}
+                              {activity.score} / {activity.total_questions}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-8 w-8 hover:bg-transparent"
-                            disabled={!activity.result}
-                            onClick={() => activity.result && setSelectedResult(activity.result)}
+                            disabled={activity.status !== "completed"}
+                            onClick={() => activity.status === "completed" && setSelectedResult(activity)}
                           >
-                            <Eye className={`w-4 h-4 ${!activity.result ? "text-muted-foreground" : "text-primary"}`} />
+                            <Eye className={`w-4 h-4 ${activity.status !== "completed" ? "text-muted-foreground" : "text-primary"}`} />
                           </Button>
                         </TableCell>
                       </TableRow>

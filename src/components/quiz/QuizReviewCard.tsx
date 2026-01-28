@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, Volume2, Lightbulb } from "lucide-react";
+import { Volume2, Lightbulb } from "lucide-react";
 
 interface Problem {
   id: string;
@@ -18,6 +18,7 @@ interface QuizReviewCardProps {
   userAnswer?: string;
   isCorrect: boolean;
   problemNumber: number;
+  isTeacherView?: boolean;
 }
 
 export function QuizReviewCard({
@@ -25,6 +26,7 @@ export function QuizReviewCard({
   userAnswer,
   isCorrect,
   problemNumber,
+  isTeacherView = false,
 }: QuizReviewCardProps) {
   const [showTranslation, setShowTranslation] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -69,47 +71,27 @@ export function QuizReviewCard({
   const parts = problem.sentence.split(/\(\s*\)|\(\)/);
 
   return (
-    <Card className="overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
-      <CardContent className="p-6">
-        <div className="flex items-start gap-4">
+    <Card className={`overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border-l-4 ${
+      isCorrect ? "border-l-success" : "border-l-destructive"
+    }`}>
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex items-start gap-1 sm:gap-3">
           {/* Problem Number */}
-          <span className="text-primary font-bold text-lg mt-1 min-w-[32px]">
+          <span className="text-primary font-bold text-lg min-w-[28px] leading-9">
             {problemNumber}.
           </span>
 
-          {/* Icon Indicator */}
-          <div className="mt-1 shrink-0">
-            {isCorrect ? (
-              <div className="p-1 rounded-full bg-success/10 text-success">
-                <CheckCircle className="w-5 h-5" />
-              </div>
-            ) : (
-              <div className="p-1 rounded-full bg-destructive/10 text-destructive">
-                <XCircle className="w-5 h-5" />
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 space-y-3">
-            {/* Sentence Display with Buttons */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="text-lg leading-relaxed text-foreground flex-1">
-                {parts[0]}
-                <span
-                  className={
-                    isCorrect
-                      ? "font-bold text-success mx-1 underline decoration-2 underline-offset-4"
-                      : "font-bold text-success mx-1"
-                  }
-                >
-                  {problem.answer}
+          <div className="flex-1 space-y-2">
+            {/* Header: Word Badge + Buttons */}
+            <div className="flex flex-row items-center justify-between gap-2">
+              {(problem.word || problem.answer) && (
+                <span className="px-3 py-1 bg-primary/10 text-primary font-semibold rounded-full text-md w-fit">
+                  {problem.word || problem.answer}
                 </span>
-                {parts[1]}
-              </div>
+              )}
 
               {/* Action Buttons */}
-              <div className="flex gap-2 shrink-0">
-                {/* Audio Button */}
+              <div className="flex gap-2">
                 {problem.sentence_audio_url && (
                   <Button
                     variant="outline"
@@ -117,35 +99,48 @@ export function QuizReviewCard({
                     onClick={playAudio}
                   >
                     <Volume2
-                      className={`w-4 h-4 mr-1 ${
+                      className={`w-4 h-4 sm:mr-1 ${
                         isPlaying ? "text-primary animate-pulse" : ""
                       }`}
                     />
-                    듣기
+                    <span className="hidden sm:inline">듣기</span>
                   </Button>
                 )}
-
-                {/* Translation Toggle */}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={toggleTranslation}
                 >
                   <Lightbulb
-                    className={`w-4 h-4 mr-1 ${
+                    className={`w-4 h-4 sm:mr-1 ${
                       showTranslation ? "text-warning" : ""
                     }`}
                   />
-                  번역 보기
+                  <span className="hidden sm:inline">번역 보기</span>
                 </Button>
               </div>
+            </div>
+
+            {/* Sentence */}
+            <div className="text-base leading-relaxed text-foreground">
+              {parts[0]}
+              <span
+                className={
+                  isCorrect
+                    ? "font-bold text-success mx-1 underline decoration-2 underline-offset-4"
+                    : "font-bold text-success mx-1"
+                }
+              >
+                {problem.answer}
+              </span>
+              {parts[1]}
             </div>
 
             {/* Incorrect Answer Feedback */}
             {!isCorrect && (
               <div className="text-sm bg-destructive/5 text-destructive px-3 py-2 rounded-md inline-block">
-                <span className="font-medium mr-2">내 답안:</span>
-                <span className="line-through opacity-80">
+                <span className="font-medium mr-2">{isTeacherView ? "학생 답안:" : "내 답안:"}</span>
+                <span className="opacity-80">
                   {userAnswer || "(입력 없음)"}
                 </span>
               </div>
@@ -153,7 +148,7 @@ export function QuizReviewCard({
 
             {/* Translation Display */}
             {showTranslation && (
-              <div className="mt-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg animate-in slide-in-from-top-1 fade-in duration-200">
+              <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg animate-in slide-in-from-top-1 fade-in duration-200">
                 {problem.translation}
               </div>
             )}

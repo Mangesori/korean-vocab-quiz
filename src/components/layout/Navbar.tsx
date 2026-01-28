@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Menu, X, BookOpen, LogOut, User, GraduationCap, Users, Shield } from 'lucide-react';
+import { Bell, Menu, X, BookOpen, LogOut, User, GraduationCap, Users, Shield, Settings } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { Protect } from '@/components/auth/Protect';
 import { PERMISSIONS } from '@/lib/rbac/roles';
@@ -119,6 +119,12 @@ export function Navbar() {
                     <Link to="/dashboard" className="cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
                       대시보드
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile/settings" className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      프로필 설정
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

@@ -6,9 +6,9 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
+import {
   ArrowLeft,
-  Users, 
+  Users,
   Copy,
   Trash2,
   Loader2,
@@ -17,12 +17,13 @@ import {
   Check,
   X,
   Clock,
-  FileText, // Added for quiz icon
-  Calendar, // Added for date icon
-  BarChart2, // Added for results icon
+  FileText,
+  Calendar,
+  BarChart2,
   ChevronDown,
   ChevronUp,
-  ChevronRight // Added ChevronRight
+  ChevronRight,
+  Megaphone
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -322,7 +323,7 @@ export default function ClassDetail() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-3 shrink-0 flex-wrap">
               <div className="flex items-center gap-2 bg-muted/50 px-3 h-10 rounded-lg border">
                 <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">초대 코드:</span>
                 <span className="font-mono font-bold text-primary tracking-wider">{classData.invite_code}</span>
@@ -330,6 +331,9 @@ export default function ClassDetail() {
                   <Copy className="w-3 h-3" />
                 </Button>
               </div>
+              <Button variant="outline" onClick={() => navigate(`/class/${id}/announcements`)}>
+                <Megaphone className="w-4 h-4 mr-2" /> 공지사항
+              </Button>
               <Button variant="destructive" onClick={handleDeleteClass}>
                 <Trash2 className="w-4 h-4 mr-2" /> 클래스 삭제
               </Button>

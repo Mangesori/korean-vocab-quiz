@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, FileText, Bell, ChevronRight, BookOpen, Clock, GraduationCap, Share, Send } from "lucide-react";
+import { Plus, Users, FileText, Bell, ChevronRight, BookOpen, Clock, GraduationCap, Share, Send, FileX } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Dialog } from "@/components/ui/dialog";
@@ -206,9 +206,9 @@ export default function TeacherDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-2 gap-4 mb-8">
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
           <Link to="/quiz/create">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-dashed border-2 border-primary/30 hover:border-primary">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-dashed border-2 border-primary/30 hover:border-primary h-full">
               <CardContent className="flex items-center justify-center py-8">
                 <div className="text-center">
                   <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -221,8 +221,22 @@ export default function TeacherDashboard() {
             </Card>
           </Link>
 
+          <Link to="/quiz/wrong-answer">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-dashed border-2 border-destructive/30 hover:border-destructive h-full">
+              <CardContent className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <FileX className="w-6 h-6 text-destructive" />
+                  </div>
+                  <p className="font-semibold text-foreground">오답 복습 퀴즈</p>
+                  <p className="text-sm text-muted-foreground">학생 오답으로 퀴즈 생성</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
           <Link to="/classes" state={{ openCreateDialog: true }}>
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-dashed border-2 border-accent/30 hover:border-accent">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer border-dashed border-2 border-accent/30 hover:border-accent h-full">
               <CardContent className="flex items-center justify-center py-8">
                 <div className="text-center">
                   <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-3">

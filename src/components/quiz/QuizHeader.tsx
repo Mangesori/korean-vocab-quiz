@@ -2,13 +2,14 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { FileText, Clock, Pencil, Trash2, Send } from "lucide-react";
+import { FileText, Clock, Pencil, Trash2, Send, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { Quiz } from "@/hooks/useQuizData";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ShareQuizDialogContent } from "./ShareQuizDialog";
+import { DuplicateQuizButton } from "./DuplicateQuizButton";
 
 interface QuizHeaderProps {
   quiz: Quiz;
@@ -82,6 +83,7 @@ export function QuizHeader({ quiz, onUpdateTitle, onDelete, onOpenSendDialog }: 
         <Button className="flex-1 sm:flex-none" onClick={onOpenSendDialog}>
           <Send className="w-4 h-4 mr-2" /> <span className="whitespace-nowrap">퀴즈 보내기</span>
         </Button>
+        <DuplicateQuizButton quiz={quiz} variant="outline" size="default" showLabel={false} />
         <Button variant="outline" onClick={onDelete}>
           <Trash2 className="w-4 h-4" />
         </Button>

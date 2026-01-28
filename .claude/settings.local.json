@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(supabase db repair:*)",
+      "Bash(npx supabase db repair:*)",
+      "Bash(npx supabase migration repair --help:*)",
+      "Bash(npx supabase migration repair:*)",
+      "Bash(npx supabase:*)",
+      "Bash(echo:*)",
+      "Bash(powershell -Command \"[Environment]::GetEnvironmentVariable\\(''SUPABASE_URL'', ''User''\\)\")",
+      "Bash(npx:*)",
+      "Bash(npm search:*)",
+      "Bash(npm view:*)",
+      "mcp__supabase__postgrestRequest",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(supabase db push:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}
