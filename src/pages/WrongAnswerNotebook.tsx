@@ -355,7 +355,7 @@ export default function WrongAnswerNotebook() {
 
       {/* 플로팅 바 - 선택 모드일 때 표시 */}
       {isSelectionMode && (
-        <div className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-auto z-50">
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50">
           <div className="bg-primary text-primary-foreground px-4 py-3 rounded-full shadow-lg flex items-center justify-between md:justify-center gap-4">
             <span className="font-medium whitespace-nowrap">
               {selectedIds.size > 0 ? `${selectedIds.size}개 선택됨` : '문제를 선택하세요'}
