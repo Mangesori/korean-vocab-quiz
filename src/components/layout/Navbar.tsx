@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Menu, X, BookOpen, LogOut, User, GraduationCap, Users, Shield, Settings } from 'lucide-react';
+import { Bell, Menu, X, BookOpen, LogOut, User, GraduationCap, Users, Shield, Settings, FileX, BookMarked } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { Protect } from '@/components/auth/Protect';
 import { PERMISSIONS } from '@/lib/rbac/roles';
@@ -193,6 +193,30 @@ export function Navbar() {
                 </Button>
               </Link>
             </Protect>
+
+            {/* 학생 전용 */}
+            <Protect permission={PERMISSIONS.JOIN_CLASS}>
+              <Link to="/wrong-answers" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start">
+                  <FileX className="h-4 w-4 mr-2" />
+                  오답노트
+                </Button>
+              </Link>
+              <Link to="/vocabulary" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start">
+                  <BookMarked className="h-4 w-4 mr-2" />
+                  단어장
+                </Button>
+              </Link>
+            </Protect>
+
+            {/* 프로필 설정 */}
+            <Link to="/profile/settings" onClick={() => setMobileMenuOpen(false)}>
+              <Button variant="ghost" className="w-full justify-start">
+                <Settings className="h-4 w-4 mr-2" />
+                프로필 설정
+              </Button>
+            </Link>
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BookOpen, FileX, BookMarked, User } from 'lucide-react';
+import { Home, BookOpen, FileX, BookMarked, User, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/wrong-answers', icon: FileX, label: '오답노트', roles: ['student'] },
   { path: '/vocabulary', icon: BookMarked, label: '단어장', roles: ['student'] },
   { path: '/quizzes', icon: BookOpen, label: '퀴즈', roles: ['teacher', 'admin'] },
+  { path: '/classes', icon: Users, label: '클래스', roles: ['teacher', 'admin'] },
   { path: '/profile/settings', icon: User, label: '프로필' },
 ];
 
