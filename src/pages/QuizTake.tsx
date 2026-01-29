@@ -71,10 +71,13 @@ export default function QuizTake() {
   }, []);
 
   useEffect(() => {
+    // quiz가 이미 로드되었으면 다시 로드하지 않음 (창 포커스 시 재실행 방지)
+    if (quiz) return;
+
     if ((user || shareToken) && id) {
       fetchQuiz();
     }
-  }, [user, shareToken, id]);
+  }, [user?.id, shareToken, id]);
 
   useEffect(() => {
     if (quiz?.timer_enabled && quiz.timer_seconds && timeLeft === null) {

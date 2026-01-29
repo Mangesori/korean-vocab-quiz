@@ -26,6 +26,7 @@ import QuizExampleResult from "./pages/QuizExampleResult";
 import ProfileSettings from "./pages/ProfileSettings";
 import VocabularyList from "./pages/VocabularyList";
 import WrongAnswerNotebook from "./pages/WrongAnswerNotebook";
+import WrongAnswerPractice from "./pages/WrongAnswerPractice";
 import ClassAnnouncements from "./pages/ClassAnnouncements";
 import WrongAnswerQuizCreate from "./pages/WrongAnswerQuizCreate";
 
@@ -109,6 +110,7 @@ const App = () => (
             <Route path="/profile/settings" element={<ProfileSettings />} />
             <Route path="/vocabulary" element={<VocabularyList />} />
             <Route path="/wrong-answers" element={<WrongAnswerNotebook />} />
+            <Route path="/wrong-answers/practice" element={<WrongAnswerPractice />} />
             <Route path="/class/:id/announcements" element={
               <ProtectedRoute permission={PERMISSIONS.VIEW_CLASS} redirectTo="/auth">
                 <ClassAnnouncements />
