@@ -73,6 +73,20 @@ export function Navbar() {
                   </Button>
                 </Link>
               </Protect>
+
+              {/* 학생 전용 */}
+              <Protect permission={PERMISSIONS.JOIN_CLASS}>
+                <Link to="/wrong-answers">
+                  <Button variant="ghost" size="sm">
+                    오답노트
+                  </Button>
+                </Link>
+                <Link to="/vocabulary">
+                  <Button variant="ghost" size="sm">
+                    단어장
+                  </Button>
+                </Link>
+              </Protect>
             </div>
           )}
         </div>
