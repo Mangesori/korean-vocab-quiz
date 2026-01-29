@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Menu, X, BookOpen, LogOut, User, GraduationCap, Users, Shield, Settings, FileX, BookMarked } from 'lucide-react';
+import { Bell, Menu, X, BookOpen, LogOut, User, GraduationCap, Users, Shield, Settings, FileX, BookMarked, Home, PenSquare } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { Protect } from '@/components/auth/Protect';
 import { PERMISSIONS } from '@/lib/rbac/roles';
@@ -166,6 +166,7 @@ export function Navbar() {
           <div className="flex flex-col gap-2">
             <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
               <Button variant="ghost" className="w-full justify-start">
+                <Home className="h-4 w-4 mr-2" />
                 대시보드
               </Button>
             </Link>
@@ -181,6 +182,7 @@ export function Navbar() {
             <Protect permission={PERMISSIONS.CREATE_QUIZ}>
               <Link to="/quiz/create" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">
+                  <PenSquare className="h-4 w-4 mr-2" />
                   퀴즈 만들기
                 </Button>
               </Link>
@@ -189,6 +191,7 @@ export function Navbar() {
             <Protect permission={PERMISSIONS.VIEW_CLASS}>
               <Link to="/classes" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">
+                  <Users className="h-4 w-4 mr-2" />
                   {can(PERMISSIONS.CREATE_CLASS) ? '클래스 관리' : '클래스 참여'}
                 </Button>
               </Link>
