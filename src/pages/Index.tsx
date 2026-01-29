@@ -13,8 +13,8 @@ export default function Index() {
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5">
         <div className="container py-24 md:py-32">
           <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-3xl md:text-5xl font-bold mb-6 animate-fade-in break-keep">
-              <span className="block mb-2">문장을 통해서 완성하는</span>
+            <h1 className="text-3xl md:text-5xl font-bold mb-2 md:mb-6 animate-fade-in break-keep">
+              <span className="block">문장을 통해서 완성하는</span>
             </h1>
             <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-fade-in break-keep">
               <span className="block gradient-text">달콤한 한국어</span>
