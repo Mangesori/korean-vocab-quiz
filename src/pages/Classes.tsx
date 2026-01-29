@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/lib/rbac/roles';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +34,8 @@ interface Class {
 }
 
 export default function Classes() {
-  const { user, role, loading } = useAuth();
+  const { user, loading } = useAuth();
+  const { can } = usePermissions();
   const location = useLocation();
   const navigate = useNavigate();
   const [classes, setClasses] = useState<Class[]>([]);
@@ -55,9 +58,9 @@ export default function Classes() {
 
   useEffect(() => {
     // Only fetch if user is logged in and is teacher or admin
-    if (user && (role === 'teacher' || role === 'admin')) {
+    if (user && can(PERMISSIONS.CREATE_CLASS)) {
       fetchClasses();
-    } else if (!loading && user && role === 'student') {
+    } else if (!loading && user && can(PERMISSIONS.JOIN_CLASS)) {
         // If student somehow gets here (though ProtectedRoute should prevent it), 
         // stop loading so we can redirect
         setIsLoading(false);

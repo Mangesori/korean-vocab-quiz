@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Navigate, Link, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/lib/rbac/roles';
 import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
@@ -56,7 +58,8 @@ interface ClassInfo {
 
 export default function ClassAnnouncements() {
   const { id: classId } = useParams();
-  const { user, loading: authLoading, role } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { can } = usePermissions();
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newAnnouncement, setNewAnnouncement] = useState({
@@ -95,7 +98,7 @@ export default function ClassAnnouncements() {
     enabled: !!classId,
   });
 
-  const isTeacher = classInfo?.teacher_id === user?.id || role === 'admin';
+  const isTeacher = classInfo?.teacher_id === user?.id || can(PERMISSIONS.MANAGE_USERS);
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof newAnnouncement) => {

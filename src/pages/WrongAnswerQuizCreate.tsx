@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Navigate, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/lib/rbac/roles';
 import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
@@ -46,7 +48,8 @@ interface WrongAnswerData {
 
 export default function WrongAnswerQuizCreate() {
   const navigate = useNavigate();
-  const { user, loading: authLoading, role } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { can } = usePermissions();
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [quizTitle, setQuizTitle] = useState('');
@@ -62,7 +65,7 @@ export default function WrongAnswerQuizCreate() {
       if (error) throw error;
       return data as ClassInfo[];
     },
-    enabled: !!user?.id && (role === 'teacher' || role === 'admin'),
+    enabled: !!user?.id && can(PERMISSIONS.CREATE_QUIZ),
   });
 
   const { data: students, isLoading: studentsLoading } = useQuery({

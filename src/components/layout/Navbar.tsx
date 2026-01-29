@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -17,6 +18,7 @@ import { PERMISSIONS } from '@/lib/rbac/roles';
 
 export function Navbar() {
   const { user, role, signOut } = useAuth();
+  const { can } = usePermissions();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -67,7 +69,7 @@ export function Navbar() {
               <Protect permission={PERMISSIONS.VIEW_CLASS}>
                 <Link to="/classes">
                   <Button variant="ghost" size="sm">
-                    {role === 'student' ? '클래스 참여' : '클래스 관리'}
+                    {can(PERMISSIONS.CREATE_CLASS) ? '클래스 관리' : '클래스 참여'}
                   </Button>
                 </Link>
               </Protect>
@@ -75,7 +77,7 @@ export function Navbar() {
           )}
         </div>
 
-        <div className="flex items-center gap-2 ml-auto -mr-5">
+        <div className="flex items-center gap-2 ml-auto -mr-4">
           {user ? (
             <>
               <NotificationDropdown />
@@ -187,7 +189,7 @@ export function Navbar() {
             <Protect permission={PERMISSIONS.VIEW_CLASS}>
               <Link to="/classes" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">
-                  {role === 'student' ? '클래스 참여' : '클래스 관리'}
+                  {can(PERMISSIONS.CREATE_CLASS) ? '클래스 관리' : '클래스 참여'}
                 </Button>
               </Link>
             </Protect>
