@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -39,61 +40,58 @@ export default function ClassStudents() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
-  
-  const [classData, setClassData] = useState<ClassData | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
   const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<{ id: string; name: string } | null>(null);
 
-  useEffect(() => {
-    if (user && id) {
-      fetchData();
-    }
-  }, [user, id]);
+  const { data, isLoading } = useQuery({
+    queryKey: ['classStudents', id],
+    queryFn: async () => {
+      // Fetch class name
+      const { data: cls, error } = await supabase
+        .from('classes')
+        .select('id, name')
+        .eq('id', id)
+        .single();
 
-  const fetchData = async () => {
-    // Fetch class name
-    const { data: cls, error } = await supabase
-      .from('classes')
-      .select('id, name')
-      .eq('id', id)
-      .single();
+      if (error || !cls) {
+        throw new Error('클래스를 찾을 수 없습니다');
+      }
 
-    if (error || !cls) {
-      toast.error('클래스를 찾을 수 없습니다');
-      navigate('/classes');
-      return;
-    }
+      // Fetch members with profiles
+      const { data: membersData } = await supabase
+        .from('class_members')
+        .select(`
+          id,
+          student_id,
+          joined_at
+        `)
+        .eq('class_id', id);
 
-    setClassData(cls);
+      let membersWithProfiles: Member[] = [];
+      if (membersData) {
+        const memberIds = membersData.map(m => m.student_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, name')
+          .in('user_id', memberIds);
 
-    // Fetch members with profiles
-    const { data: membersData } = await supabase
-      .from('class_members')
-      .select(`
-        id,
-        student_id,
-        joined_at
-      `)
-      .eq('class_id', id);
+        membersWithProfiles = membersData.map(m => ({
+          ...m,
+          profile: profiles?.find(p => p.user_id === m.student_id),
+        }));
+      }
 
-    if (membersData) {
-      const memberIds = membersData.map(m => m.student_id);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, name')
-        .in('user_id', memberIds);
+      return {
+        classData: cls as ClassData,
+        members: membersWithProfiles,
+      };
+    },
+    enabled: !!user && !!id,
+  });
 
-      const membersWithProfiles = membersData.map(m => ({
-        ...m,
-        profile: profiles?.find(p => p.user_id === m.student_id),
-      }));
-
-      setMembers(membersWithProfiles);
-    }
-
-    setIsLoading(false);
-  };
+  const classData = data?.classData ?? null;
+  const members = data?.members ?? [];
 
   const handleRemoveMember = async (memberId: string) => {
     if (!confirm('정말 이 학생을 클래스에서 제외하시겠습니까?')) return;
@@ -106,7 +104,10 @@ export default function ClassStudents() {
 
       if (error) throw error;
 
-      setMembers(members.filter(m => m.id !== memberId));
+      queryClient.setQueryData(['classStudents', id], (prev: typeof data) => prev ? {
+        ...prev,
+        members: prev.members.filter(m => m.id !== memberId)
+      } : prev);
       toast.success('학생이 제외되었습니다');
     } catch (error) {
       toast.error('제외에 실패했습니다');

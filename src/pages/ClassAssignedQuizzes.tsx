@@ -1,6 +1,6 @@
-
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -43,66 +43,58 @@ export default function ClassAssignedQuizzes() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
-  
-  const [className, setClassName] = useState('');
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (user && id) {
-      fetchData();
-    }
-  }, [user, id]);
+  const { data, isLoading } = useQuery({
+    queryKey: ['classAssignedQuizzes', id],
+    queryFn: async () => {
+      // Fetch class name
+      const { data: cls, error: classError } = await supabase
+        .from('classes')
+        .select('name')
+        .eq('id', id)
+        .single();
 
-  const fetchData = async () => {
-    // Fetch class name
-    const { data: cls, error: classError } = await supabase
-      .from('classes')
-      .select('name')
-      .eq('id', id)
-      .single();
+      if (classError || !cls) {
+        throw new Error('클래스를 찾을 수 없습니다');
+      }
 
-    if (classError || !cls) {
-      toast.error('클래스를 찾을 수 없습니다');
-      navigate('/classes');
-      return;
-    }
-
-    setClassName(cls.name);
-
-    // Fetch assignments
-    const { data: assignmentsData, error: assignmentsError } = await supabase
-      .from('quiz_assignments')
-      .select(`
-        id,
-        quiz_id,
-        assigned_at,
-        quizzes (
+      // Fetch assignments
+      const { data: assignmentsData, error: assignmentsError } = await supabase
+        .from('quiz_assignments')
+        .select(`
           id,
-          title,
-          difficulty,
-          words,
-          words_per_set
-        )
-      `)
-      .eq('class_id', id)
-      .order('assigned_at', { ascending: false });
+          quiz_id,
+          assigned_at,
+          quizzes (
+            id,
+            title,
+            difficulty,
+            words,
+            words_per_set
+          )
+        `)
+        .eq('class_id', id)
+        .order('assigned_at', { ascending: false });
 
-    if (assignmentsError) {
-      toast.error('퀴즈 목록을 불러오지 못했습니다');
-      return;
-    }
+      if (assignmentsError) {
+        throw new Error('퀴즈 목록을 불러오지 못했습니다');
+      }
 
-    if (assignmentsData) {
-      // @ts-ignore: Supabase types complexity
-      setAssignments(assignmentsData);
-    }
+      return {
+        className: cls.name,
+        assignments: (assignmentsData || []) as Assignment[],
+      };
+    },
+    enabled: !!user && !!id,
+  });
 
-    setIsLoading(false);
-  };
+  const className = data?.className ?? '';
+  const assignments = data?.assignments ?? [];
 
   const handleDeleteClick = (assignment: Assignment) => {
     setAssignmentToDelete(assignment);
@@ -123,9 +115,12 @@ export default function ClassAssignedQuizzes() {
       if (error) throw error;
 
       toast.success('퀴즈 할당이 삭제되었습니다');
-      
-      // Remove from local state
-      setAssignments(prev => prev.filter(a => a.id !== assignmentToDelete.id));
+
+      // Update cache
+      queryClient.setQueryData(['classAssignedQuizzes', id], (prev: typeof data) => prev ? {
+        ...prev,
+        assignments: prev.assignments.filter(a => a.id !== assignmentToDelete.id)
+      } : prev);
       
       setDeleteDialogOpen(false);
       setAssignmentToDelete(null);

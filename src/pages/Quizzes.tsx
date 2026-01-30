@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Plus, 
-  FileText, 
+import {
+  Plus,
+  FileText,
   Clock,
   Search,
   Loader2,
@@ -44,8 +45,7 @@ interface Quiz {
 export default function Quizzes() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
 
   const [selectedQuizForResult, setSelectedResult] = useState<Quiz | null>(null);
@@ -53,23 +53,18 @@ export default function Quizzes() {
   const [quizToDelete, setQuizToDelete] = useState<Quiz | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (user && can(PERMISSIONS.CREATE_QUIZ)) {
-      fetchQuizzes();
-    }
-  }, [user, can]);
-
-  const fetchQuizzes = async () => {
-    setIsLoading(true);
-    const { data } = await supabase
-      .from('quizzes')
-      .select('id, title, words, words_per_set, difficulty, created_at')
-      .eq('teacher_id', user?.id)
-      .order('created_at', { ascending: false });
-    
-    if (data) setQuizzes(data);
-    setIsLoading(false);
-  };
+  const { data: quizzes = [], isLoading } = useQuery({
+    queryKey: ['quizzes', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('quizzes')
+        .select('id, title, words, words_per_set, difficulty, created_at')
+        .eq('teacher_id', user?.id)
+        .order('created_at', { ascending: false });
+      return (data ?? []) as Quiz[];
+    },
+    enabled: !!user && can(PERMISSIONS.CREATE_QUIZ),
+  });
 
   const handleDeleteClick = (e: React.MouseEvent, quiz: Quiz) => {
     e.preventDefault();
@@ -92,9 +87,11 @@ export default function Quizzes() {
       if (error) throw error;
 
       toast.success('퀴즈가 삭제되었습니다');
-      
-      // Remove from local state
-      setQuizzes(prev => prev.filter(q => q.id !== quizToDelete.id));
+
+      // Update cache
+      queryClient.setQueryData(['quizzes', user?.id], (prev: Quiz[] | undefined) =>
+        prev?.filter(q => q.id !== quizToDelete.id) ?? []
+      );
       
       setDeleteDialogOpen(false);
       setQuizToDelete(null);

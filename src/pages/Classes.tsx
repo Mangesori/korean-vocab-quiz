@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
@@ -38,40 +39,22 @@ export default function Classes() {
   const { can } = usePermissions();
   const location = useLocation();
   const navigate = useNavigate();
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newClass, setNewClass] = useState({ name: '', description: '' });
-  const [searchQuery, setSearchQuery] = useState(''); // Added search state
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    // Check for openCreateDialog state
     if (location.state?.openCreateDialog) {
       setDialogOpen(true);
-      // Clear the state so it doesn't reopen on refresh/back navigation if desired
-      // But clearing state in history requires navigating again, might be overkill.
-      // Just opening it is fine.
       window.history.replaceState({}, document.title);
     }
   }, [location]);
 
-  useEffect(() => {
-    // Only fetch if user is logged in and is teacher or admin
-    if (user && can(PERMISSIONS.CREATE_CLASS)) {
-      fetchClasses();
-    } else if (!loading && user && can(PERMISSIONS.JOIN_CLASS)) {
-        // If student somehow gets here (though ProtectedRoute should prevent it), 
-        // stop loading so we can redirect
-        setIsLoading(false);
-    } else if (!loading && !user) {
-        setIsLoading(false);
-    }
-  }, [user, can, loading]);
-
-  const fetchClasses = async () => {
-    try {
-      setIsLoading(true);
+  const { data: classes = [], isLoading } = useQuery({
+    queryKey: ['classes', user?.id],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('classes')
         .select('*')
@@ -81,16 +64,13 @@ export default function Classes() {
       if (error) throw error;
 
       if (data) {
-        // Get member counts and names for search
         const classesWithDetails = await Promise.all(
           data.map(async (cls) => {
-            // Fetch count
             const { count } = await supabase
               .from('class_members')
               .select('*', { count: 'exact', head: true })
               .eq('class_id', cls.id);
-            
-            // Fetch member names
+
             const { data: members } = await supabase
               .from('class_members')
               .select(`
@@ -103,23 +83,19 @@ export default function Classes() {
 
             const studentNames = members?.map((m: any) => m.profiles?.name).filter(Boolean) || [];
 
-            return { 
-              ...cls, 
+            return {
+              ...cls,
               member_count: count || 0,
               student_names: studentNames
-            };
+            } as Class;
           })
         );
-        
-        setClasses(classesWithDetails);
+        return classesWithDetails;
       }
-    } catch (err) {
-      console.error('Error fetching classes:', err);
-      toast.error('클래스 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return [];
+    },
+    enabled: !!user && can(PERMISSIONS.CREATE_CLASS),
+  });
 
   const handleCreateClass = async () => {
     if (!newClass.name.trim()) {
@@ -147,7 +123,10 @@ export default function Classes() {
       if (error) throw error;
 
       toast.success('클래스가 생성되었습니다!');
-      setClasses([{ ...data, member_count: 0 }, ...classes]);
+      queryClient.setQueryData(['classes', user?.id], (prev: Class[] | undefined) => [
+        { ...data, member_count: 0, student_names: [] },
+        ...(prev ?? [])
+      ]);
       setDialogOpen(false);
       setNewClass({ name: '', description: '' });
     } catch (error) {

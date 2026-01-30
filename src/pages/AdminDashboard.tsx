@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -37,28 +38,13 @@ interface Stats {
 export default function AdminDashboard() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
-  const [users, setUsers] = useState<UserWithRole[]>([]);
-  const [stats, setStats] = useState<Stats>({
-    totalUsers: 0,
-    admins: 0,
-    teachers: 0,
-    students: 0,
-    totalClasses: 0,
-    totalQuizzes: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user && can(PERMISSIONS.MANAGE_USERS)) {
-      fetchData();
-    }
-  }, [user?.id, can]);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['adminDashboard'],
+    queryFn: async () => {
       // Fetch all users with roles and emails using secure function
       const { data: profilesData, error: profilesError } = await supabase
         .rpc('get_user_profiles_with_email');
@@ -76,8 +62,6 @@ export default function AdminDashboard() {
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
-      setUsers(usersWithProfiles);
-
       // Calculate stats
       const admins = usersWithProfiles.filter(u => u.role === 'admin').length;
       const teachers = usersWithProfiles.filter(u => u.role === 'teacher').length;
@@ -92,20 +76,29 @@ export default function AdminDashboard() {
         .from('quizzes')
         .select('*', { count: 'exact', head: true });
 
-      setStats({
-        totalUsers: usersWithProfiles.length,
-        admins,
-        teachers,
-        students,
-        totalClasses: classCount || 0,
-        totalQuizzes: quizCount || 0,
-      });
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('데이터를 불러오는데 실패했습니다');
-    } finally {
-      setIsLoading(false);
-    }
+      return {
+        users: usersWithProfiles,
+        stats: {
+          totalUsers: usersWithProfiles.length,
+          admins,
+          teachers,
+          students,
+          totalClasses: classCount || 0,
+          totalQuizzes: quizCount || 0,
+        }
+      };
+    },
+    enabled: !!user && can(PERMISSIONS.MANAGE_USERS),
+  });
+
+  const users = data?.users ?? [];
+  const stats = data?.stats ?? {
+    totalUsers: 0,
+    admins: 0,
+    teachers: 0,
+    students: 0,
+    totalClasses: 0,
+    totalQuizzes: 0,
   };
 
   const handleRoleChange = async (userId: string, newRole: 'admin' | 'teacher' | 'student') => {
@@ -123,16 +116,18 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      setUsers(prev => prev.map(u => 
-        u.user_id === userId ? { ...u, role: newRole } : u
-      ));
+      // Update cache
+      queryClient.setQueryData(['adminDashboard'], (prev: typeof data) => {
+        if (!prev) return prev;
 
-      // Update stats
-      setStats(prev => {
-        const oldUser = users.find(u => u.user_id === userId);
+        const oldUser = prev.users.find(u => u.user_id === userId);
         if (!oldUser) return prev;
 
-        const newStats = { ...prev };
+        const newUsers = prev.users.map(u =>
+          u.user_id === userId ? { ...u, role: newRole } : u
+        );
+
+        const newStats = { ...prev.stats };
         if (oldUser.role === 'admin') newStats.admins--;
         else if (oldUser.role === 'teacher') newStats.teachers--;
         else newStats.students--;
@@ -141,7 +136,7 @@ export default function AdminDashboard() {
         else if (newRole === 'teacher') newStats.teachers++;
         else newStats.students++;
 
-        return newStats;
+        return { users: newUsers, stats: newStats };
       });
 
       toast.success('역할이 변경되었습니다');
@@ -277,7 +272,7 @@ export default function AdminDashboard() {
                     className="pl-9 w-64"
                   />
                 </div>
-                <Button variant="outline" size="icon" onClick={fetchData} disabled={isLoading}>
+                <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isLoading}>
                   <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                 </Button>
               </div>

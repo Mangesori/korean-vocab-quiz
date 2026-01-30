@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -80,12 +81,9 @@ export default function ClassDetail() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
-  
-  const [classData, setClassData] = useState<ClassData | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]); // Added assignments state
+  const queryClient = useQueryClient();
+
   const [showAllAssignments, setShowAllAssignments] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
@@ -94,81 +92,79 @@ export default function ClassDetail() {
   const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (user && id) {
-      fetchClassData();
-    }
-  }, [user, id]);
+  const { data, isLoading } = useQuery({
+    queryKey: ['classDetail', id],
+    queryFn: async () => {
+      // Fetch class
+      const { data: cls, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-  const fetchClassData = async () => {
-    // Fetch class
-    const { data: cls, error } = await supabase
-      .from('classes')
-      .select('*')
-      .eq('id', id)
-      .single();
+      if (error || !cls) {
+        throw new Error('클래스를 찾을 수 없습니다');
+      }
 
-    if (error || !cls) {
-      toast.error('클래스를 찾을 수 없습니다');
-      navigate('/classes');
-      return;
-    }
-
-    setClassData(cls);
-    setEditName(cls.name);
-
-    // Fetch members with profiles
-    const { data: membersData } = await supabase
-      .from('class_members')
-      .select(`
-        id,
-        student_id,
-        joined_at
-      `)
-      .eq('class_id', id);
-
-    if (membersData) {
-      // Fetch profiles for members
-      const memberIds = membersData.map(m => m.student_id);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, name')
-        .in('user_id', memberIds);
-
-      const membersWithProfiles = membersData.map(m => ({
-        ...m,
-        profile: profiles?.find(p => p.user_id === m.student_id),
-      }));
-
-      setMembers(membersWithProfiles);
-      setMembers(membersWithProfiles);
-    }
-
-    // Fetch assignments
-    const { data: assignmentsData } = await supabase
-      .from('quiz_assignments')
-      .select(`
-        id,
-        quiz_id,
-        assigned_at,
-        quizzes (
+      // Fetch members with profiles
+      const { data: membersData } = await supabase
+        .from('class_members')
+        .select(`
           id,
-          title,
-          difficulty,
-          words,
-          words_per_set
-        )
-      `)
-      .eq('class_id', id)
-      .order('assigned_at', { ascending: false });
+          student_id,
+          joined_at
+        `)
+        .eq('class_id', id);
 
-    if (assignmentsData) {
-      // @ts-ignore: Supabase types complexity
-      setAssignments(assignmentsData);
-    }
+      let membersWithProfiles: Member[] = [];
+      if (membersData) {
+        const memberIds = membersData.map(m => m.student_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, name')
+          .in('user_id', memberIds);
 
-    setIsLoading(false);
-  };
+        membersWithProfiles = membersData.map(m => ({
+          ...m,
+          profile: profiles?.find(p => p.user_id === m.student_id),
+        }));
+      }
+
+      // Fetch assignments
+      const { data: assignmentsData } = await supabase
+        .from('quiz_assignments')
+        .select(`
+          id,
+          quiz_id,
+          assigned_at,
+          quizzes (
+            id,
+            title,
+            difficulty,
+            words,
+            words_per_set
+          )
+        `)
+        .eq('class_id', id)
+        .order('assigned_at', { ascending: false });
+
+      return {
+        classData: cls as ClassData,
+        members: membersWithProfiles,
+        assignments: (assignmentsData || []) as Assignment[],
+      };
+    },
+    enabled: !!user && !!id,
+  });
+
+  const classData = data?.classData ?? null;
+  const members = data?.members ?? [];
+  const assignments = data?.assignments ?? [];
+
+  // Set editName when classData changes
+  if (classData && editName === '' && !isEditing) {
+    setEditName(classData.name);
+  }
 
   const handleDeleteClick = (assignment: Assignment) => {
     setAssignmentToDelete(assignment);
@@ -189,9 +185,12 @@ export default function ClassDetail() {
       if (error) throw error;
 
       toast.success('퀴즈 할당이 삭제되었습니다');
-      
-      // Remove from local state
-      setAssignments(prev => prev.filter(a => a.id !== assignmentToDelete.id));
+
+      // Update cache
+      queryClient.setQueryData(['classDetail', id], (prev: typeof data) => prev ? {
+        ...prev,
+        assignments: prev.assignments.filter(a => a.id !== assignmentToDelete.id)
+      } : prev);
       
       setDeleteDialogOpen(false);
       setAssignmentToDelete(null);
@@ -221,7 +220,10 @@ export default function ClassDetail() {
 
       if (error) throw error;
 
-      setClassData({ ...classData, name: editName.trim() });
+      queryClient.setQueryData(['classDetail', id], (prev: typeof data) => prev ? {
+        ...prev,
+        classData: { ...prev.classData, name: editName.trim() }
+      } : prev);
       setIsEditing(false);
       toast.success('클래스 이름이 변경되었습니다');
     } catch (error) {
@@ -240,7 +242,10 @@ export default function ClassDetail() {
 
       if (error) throw error;
 
-      setMembers(members.filter(m => m.id !== memberId));
+      queryClient.setQueryData(['classDetail', id], (prev: typeof data) => prev ? {
+        ...prev,
+        members: prev.members.filter(m => m.id !== memberId)
+      } : prev);
       toast.success('학생이 제외되었습니다');
     } catch (error) {
       toast.error('제외에 실패했습니다');

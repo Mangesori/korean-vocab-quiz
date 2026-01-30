@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -56,99 +57,95 @@ interface Class {
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [results, setResults] = useState<Result[]>([]);
-  const [classes, setClasses] = useState<any[]>([]);
+  const queryClient = useQueryClient();
   const [inviteCode, setInviteCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [stats, setStats] = useState({
+
+  const { data } = useQuery({
+    queryKey: ['studentDashboard', user?.id],
+    queryFn: async () => {
+      // Fetch class memberships
+      const { data: membershipData } = await supabase
+        .from('class_members')
+        .select(`
+          id,
+          class_id,
+          classes (
+            id,
+            name
+          )
+        `)
+        .eq('student_id', user?.id);
+
+      // Fetch pending assignments (quizzes not yet completed)
+      const { data: assignmentsData } = await supabase
+        .from('quiz_assignments')
+        .select(`
+          id,
+          quiz_id,
+          assigned_at,
+          quizzes (
+            id,
+            title,
+            words,
+            difficulty
+          )
+        `)
+        .or(`student_id.eq.${user?.id},class_id.in.(${membershipData?.map(m => m.class_id).join(',') || 'null'})`)
+        .order('assigned_at', { ascending: false });
+
+      // Fetch completed results
+      const { data: resultsData } = await supabase
+        .from('quiz_results')
+        .select(`
+          id,
+          quiz_id,
+          score,
+          total_questions,
+          completed_at,
+          quizzes (
+            title
+          )
+        `)
+        .eq('student_id', user?.id)
+        .order('completed_at', { ascending: false })
+        .limit(10);
+
+      // Filter out completed quizzes from assignments
+      const completedQuizIds = resultsData?.map(r => r.quiz_id) || [];
+      const pendingAssignments = assignmentsData?.filter(
+        a => !completedQuizIds.includes(a.quiz_id)
+      ) || [];
+
+      // Calculate stats
+      const avgScore = resultsData && resultsData.length > 0
+        ? Math.round(resultsData.reduce((acc, r) => acc + (r.score / r.total_questions) * 100, 0) / resultsData.length)
+        : 0;
+
+      return {
+        classes: membershipData || [],
+        assignments: pendingAssignments as Assignment[],
+        results: (resultsData || []) as Result[],
+        stats: {
+          totalQuizzes: (assignmentsData?.length || 0),
+          completedQuizzes: resultsData?.length || 0,
+          averageScore: avgScore,
+          totalClasses: membershipData?.length || 0
+        }
+      };
+    },
+    enabled: !!user,
+  });
+
+  const classes = data?.classes ?? [];
+  const assignments = data?.assignments ?? [];
+  const results = data?.results ?? [];
+  const stats = data?.stats ?? {
     totalQuizzes: 0,
     completedQuizzes: 0,
     averageScore: 0,
     totalClasses: 0
-  });
-
-  useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user]);
-
-  const fetchData = async () => {
-    // Fetch class memberships
-    const { data: membershipData } = await supabase
-      .from('class_members')
-      .select(`
-        id,
-        class_id,
-        classes (
-          id,
-          name
-        )
-      `)
-      .eq('student_id', user?.id);
-    
-    if (membershipData) {
-      setClasses(membershipData);
-    }
-
-    // Fetch pending assignments (quizzes not yet completed)
-    const { data: assignmentsData } = await supabase
-      .from('quiz_assignments')
-      .select(`
-        id,
-        quiz_id,
-        assigned_at,
-        quizzes (
-          id,
-          title,
-          words,
-          difficulty
-        )
-      `)
-      .or(`student_id.eq.${user?.id},class_id.in.(${membershipData?.map(m => m.class_id).join(',') || 'null'})`)
-      .order('assigned_at', { ascending: false });
-
-    // Fetch completed results
-    const { data: resultsData } = await supabase
-      .from('quiz_results')
-      .select(`
-        id,
-        quiz_id,
-        score,
-        total_questions,
-        completed_at,
-        quizzes (
-          title
-        )
-      `)
-      .eq('student_id', user?.id)
-      .order('completed_at', { ascending: false })
-      .limit(10);
-
-    if (resultsData) {
-      setResults(resultsData as any);
-      
-      // Filter out completed quizzes from assignments
-      const completedQuizIds = resultsData.map(r => r.quiz_id);
-      const pendingAssignments = assignmentsData?.filter(
-        a => !completedQuizIds.includes(a.quiz_id)
-      ) || [];
-      setAssignments(pendingAssignments as any);
-
-      // Calculate stats
-      const avgScore = resultsData.length > 0
-        ? Math.round(resultsData.reduce((acc, r) => acc + (r.score / r.total_questions) * 100, 0) / resultsData.length)
-        : 0;
-
-      setStats({
-        totalQuizzes: (assignmentsData?.length || 0),
-        completedQuizzes: resultsData.length,
-        averageScore: avgScore,
-        totalClasses: membershipData?.length || 0
-      });
-    }
   };
 
   const handleJoinClass = async () => {
@@ -198,7 +195,7 @@ export default function StudentDashboard() {
       toast.success(`${classData.name} 클래스에 가입했습니다!`);
       setInviteCode('');
       setDialogOpen(false);
-      fetchData();
+      queryClient.invalidateQueries({ queryKey: ['studentDashboard', user?.id] });
     }
 
     setIsJoining(false);

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -41,21 +42,11 @@ interface Notification {
 export default function TeacherDashboard() {
   const { user } = useAuth();
   const { classes } = useClasses(user?.id);
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [stats, setStats] = useState({
-    totalClasses: 0,
-    totalStudents: 0,
-    totalQuizzes: 0,
-    pendingResults: 0,
-  });
   const [selectedQuizForResult, setSelectedResult] = useState<Quiz | null>(null);
   const [selectedQuizForShare, setSelectedQuizForShare] = useState<Quiz | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
 
   // Use the sharing hook
-  // Note: We need to cast the local classes/quiz types to match the hook's expected types if they differ slightly,
-  // but since we fetch "*" they should be compatible in runtime.
-  // We'll cast classes to any to avoid strict type issues for now, or ensure the interface matches.
   const {
     isSending,
     sendDialogOpen,
@@ -69,79 +60,69 @@ export default function TeacherDashboard() {
     copyToClipboard
   } = useQuizSharing(selectedQuizForShare as any, user, classes as any);
 
-  useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user]);
+  const { data } = useQuery({
+    queryKey: ['teacherDashboard', user?.id],
+    queryFn: async () => {
+      // Fetch quizzes
+      const { data: quizzesData } = await supabase
+        .from("quizzes")
+        .select("*")
+        .eq("teacher_id", user?.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
 
-  const fetchData = async () => {
+      // Fetch notifications
+      const { data: notificationsData } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user?.id)
+        .eq("is_read", false)
+        .order("created_at", { ascending: false })
+        .limit(5);
 
-
-    // Fetch quizzes
-    const { data: quizzesData } = await supabase
-      .from("quizzes")
-      .select("*")
-      .eq("teacher_id", user?.id)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    if (quizzesData) setQuizzes(quizzesData);
-
-    // Fetch notifications
-    const { data: notificationsData } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", user?.id)
-      .eq("is_read", false)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    if (notificationsData) setNotifications(notificationsData);
-
-    // Fetch stats
-    // Class count is now handled by classes.length from hook
-
-    const { count: quizCount } = await supabase
-      .from("quizzes")
-      .select("*", { count: "exact", head: true })
-      .eq("teacher_id", user?.id);
-
-    // Count total students across all classes
-    const { data: classIds } = await supabase.from("classes").select("id").eq("teacher_id", user?.id);
-
-    let studentCount = 0;
-    if (classIds && classIds.length > 0) {
-      const { count } = await supabase
-        .from("class_members")
+      // Fetch quiz count
+      const { count: quizCount } = await supabase
+        .from("quizzes")
         .select("*", { count: "exact", head: true })
-        .in(
-          "class_id",
-          classIds.map((c) => c.id),
-        );
-      studentCount = count || 0;
-    }
+        .eq("teacher_id", user?.id);
 
-    setStats({
-      totalClasses: 0, // Not used directly in UI anymore, we use classes.length
-      totalStudents: studentCount,
-      totalQuizzes: quizCount || 0,
-      pendingResults: notifications.length,
-    });
+      // Count total students across all classes
+      const { data: classIds } = await supabase.from("classes").select("id").eq("teacher_id", user?.id);
+
+      let studentCount = 0;
+      if (classIds && classIds.length > 0) {
+        const { count } = await supabase
+          .from("class_members")
+          .select("*", { count: "exact", head: true })
+          .in(
+            "class_id",
+            classIds.map((c) => c.id),
+          );
+        studentCount = count || 0;
+      }
+
+      return {
+        quizzes: (quizzesData || []) as Quiz[],
+        notifications: (notificationsData || []) as Notification[],
+        stats: {
+          totalClasses: 0,
+          totalStudents: studentCount,
+          totalQuizzes: quizCount || 0,
+          pendingResults: notificationsData?.length || 0,
+        }
+      };
+    },
+    enabled: !!user,
+  });
+
+  const quizzes = data?.quizzes ?? [];
+  const notifications = data?.notifications ?? [];
+  const stats = data?.stats ?? {
+    totalClasses: 0,
+    totalStudents: 0,
+    totalQuizzes: 0,
+    pendingResults: 0,
   };
-
-  const onSendQuiz = () => {
-    handleSendQuiz("", () => {}); // The dialog handles class selection internally? 
-    // Wait, useQuizSharing's handleSendQuiz takes (selectedClassId, onSuccess).
-    // The ShareQuizDialogContent calls onSendQuiz without arguments?
-    // Let's check ShareQuizDialogContent usage in QuizDetail.
-    // In QuizDetail: onSendQuiz={() => handleSendQuiz(selectedClassId, ...)}
-    // So here I need a local selectedClassId state for the dialog?
-    // The hook DOES NOT manage selectedClassId. The CONSUMER does.
-    // I need to add `selectedClassId` state here too!
-  };
-
-  const [selectedClassId, setSelectedClassId] = useState<string>("");
 
   return (
     <AppLayout>

@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -34,104 +34,60 @@ export type Class = ClassModel;
 
 export function useQuizData(quizId: string | undefined, userId: string | undefined) {
   const navigate = useNavigate();
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const queryClient = useQueryClient();
   const { classes } = useClasses(userId);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasAudio, setHasAudio] = useState<boolean | null>(null);
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
+  const [hasAudio, setHasAudio] = useState<boolean | null>(null);
 
+  // Fetch quiz data
+  const { data: quiz, isLoading } = useQuery({
+    queryKey: ['quiz', quizId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("quizzes").select("*").eq("id", quizId).single();
+
+      if (error) {
+        throw new Error("퀴즈를 불러올 수 없습니다");
+      }
+
+      const quizData = data as any;
+
+      // Sort problems to match the original word list order
+      if (quizData.problems && quizData.words) {
+        const sortedProblems = quizData.problems.sort((a: Problem, b: Problem) => {
+          const indexA = quizData.words.indexOf(a.word);
+          const indexB = quizData.words.indexOf(b.word);
+          return indexA - indexB;
+        });
+        quizData.problems = sortedProblems;
+      }
+
+      return quizData as Quiz;
+    },
+    enabled: !!userId && !!quizId,
+  });
+
+  // Fetch audio status
+  const { data: audioData } = useQuery({
+    queryKey: ['quizAudio', quizId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("quiz_problems")
+        .select("problem_id, sentence_audio_url")
+        .eq("quiz_id", quizId);
+
+      return data || [];
+    },
+    enabled: !!userId && !!quizId,
+  });
+
+  // Update audio state when data changes
   useEffect(() => {
-    if (userId && quizId) {
-      fetchQuiz();
-      checkAudioStatus();
-
-      // Realtime subscription for audio updates
-      // INSERT와 UPDATE 모두 구독 (퀴즈 생성 시 INSERT, 오디오 재생성 시 UPDATE)
-      const handleAudioUpdate = (payload: any) => {
-        const newProblem = payload.new as any;
-        if (newProblem.sentence_audio_url) {
-          setAudioUrls((prev) => ({
-            ...prev,
-            [newProblem.problem_id]: newProblem.sentence_audio_url,
-          }));
-          setHasAudio(true);
-        }
-      };
-
-      const channel = supabase
-        .channel('quiz-detail-audio-updates')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'quiz_problems',
-            filter: `quiz_id=eq.${quizId}`,
-          },
-          handleAudioUpdate
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'quiz_problems',
-            filter: `quiz_id=eq.${quizId}`,
-          },
-          handleAudioUpdate
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [userId, quizId]);
-
-  const fetchQuiz = async () => {
-    if (!quizId) return;
-    
-    const { data, error } = await supabase.from("quizzes").select("*").eq("id", quizId).single();
-
-    if (error) {
-      toast.error("퀴즈를 불러올 수 없습니다");
-      navigate("/dashboard");
-      return;
-    }
-
-    const quizData = data as any;
-    
-    // Sort problems to match the original word list order
-    if (quizData.problems && quizData.words) {
-      const sortedProblems = quizData.problems.sort((a: Problem, b: Problem) => {
-        const indexA = quizData.words.indexOf(a.word);
-        const indexB = quizData.words.indexOf(b.word);
-        return indexA - indexB;
-      });
-      quizData.problems = sortedProblems;
-    }
-    
-    setQuiz(quizData);
-    setIsLoading(false);
-  };
-
-
-
-  const checkAudioStatus = async () => {
-    if (!quizId) return;
-    
-    const { data } = await supabase
-      .from("quiz_problems")
-      .select("problem_id, sentence_audio_url")
-      .eq("quiz_id", quizId);
-    
-    if (data && data.length > 0) {
-      const hasAnyAudio = data.some(p => !!p.sentence_audio_url);
+    if (audioData && audioData.length > 0) {
+      const hasAnyAudio = audioData.some(p => !!p.sentence_audio_url);
       setHasAudio(hasAnyAudio);
-      
-      // 오디오 URL들을 상태에 저장
+
       const urls: Record<string, string> = {};
-      data.forEach(p => {
+      audioData.forEach(p => {
         if (p.sentence_audio_url) {
           urls[p.problem_id] = p.sentence_audio_url;
         }
@@ -140,20 +96,70 @@ export function useQuizData(quizId: string | undefined, userId: string | undefin
     } else {
       setHasAudio(false);
     }
+  }, [audioData]);
+
+  // Realtime subscription for audio updates
+  useEffect(() => {
+    if (!userId || !quizId) return;
+
+    const handleAudioUpdate = (payload: any) => {
+      const newProblem = payload.new as any;
+      if (newProblem.sentence_audio_url) {
+        setAudioUrls((prev) => ({
+          ...prev,
+          [newProblem.problem_id]: newProblem.sentence_audio_url,
+        }));
+        setHasAudio(true);
+      }
+    };
+
+    const channel = supabase
+      .channel('quiz-detail-audio-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'quiz_problems',
+          filter: `quiz_id=eq.${quizId}`,
+        },
+        handleAudioUpdate
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'quiz_problems',
+          filter: `quiz_id=eq.${quizId}`,
+        },
+        handleAudioUpdate
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, quizId]);
+
+  const updateQuizTitle = (newTitle: string) => {
+    queryClient.setQueryData(['quiz', quizId], (prev: Quiz | undefined) =>
+      prev ? { ...prev, title: newTitle } : prev
+    );
   };
 
-  const updateQuizTitle = async (newTitle: string) => {
-    if (!quiz) return;
-    setQuiz({ ...quiz, title: newTitle });
+  const updateQuizProblems = (newProblems: Problem[]) => {
+    queryClient.setQueryData(['quiz', quizId], (prev: Quiz | undefined) =>
+      prev ? { ...prev, problems: newProblems } : prev
+    );
   };
-  
-  const updateQuizProblems = async (newProblems: Problem[]) => {
-    if (!quiz) return;
-    setQuiz({ ...quiz, problems: newProblems });
+
+  const refetchQuiz = () => {
+    queryClient.invalidateQueries({ queryKey: ['quiz', quizId] });
   };
 
   return {
-    quiz,
+    quiz: quiz ?? null,
     classes,
     isLoading,
     hasAudio,
@@ -162,6 +168,6 @@ export function useQuizData(quizId: string | undefined, userId: string | undefin
     setHasAudio,
     updateQuizTitle,
     updateQuizProblems,
-    refetchQuiz: fetchQuiz,
+    refetchQuiz,
   };
 }
