@@ -187,7 +187,7 @@ export default function WrongAnswerQuizCreate() {
     return <Navigate to="/auth" replace />;
   }
 
-  if (role !== 'teacher' && role !== 'admin') {
+  if (!can(PERMISSIONS.CREATE_QUIZ)) {
     return <Navigate to="/dashboard" replace />;
   }
 
