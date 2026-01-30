@@ -101,11 +101,11 @@ export function useStudentHistory(studentId: string, classId: string) {
         }
       });
 
-      // 4. Sort: completed (by completed_at desc) first, then pending (by assigned_at desc)
+      // 4. Sort: pending (by assigned_at desc) first, then completed (by completed_at desc)
       allActivities.sort((a, b) => {
-        // Completed first, pending last
-        if (a.status === "completed" && b.status === "pending") return -1;
-        if (a.status === "pending" && b.status === "completed") return 1;
+        // Pending first, completed last
+        if (a.status === "pending" && b.status === "completed") return -1;
+        if (a.status === "completed" && b.status === "pending") return 1;
 
         // Both completed: sort by completed_at desc
         if (a.status === "completed" && b.status === "completed") {
