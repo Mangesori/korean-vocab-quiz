@@ -67,7 +67,7 @@ export default function Classes() {
     } else if (!loading && !user) {
         setIsLoading(false);
     }
-  }, [user, role, loading]);
+  }, [user, can, loading]);
 
   const fetchClasses = async () => {
     try {
@@ -173,7 +173,7 @@ export default function Classes() {
 
   // Redirect if not authorized
   // Note: ProtectedRoute in App.tsx handles the main protection, but this is a fallback
-  if (!user || (role !== 'teacher' && role !== 'admin')) {
+  if (!user || !can(PERMISSIONS.CREATE_CLASS)) {
     return <Navigate to="/dashboard" replace />;
   }
 
