@@ -15,7 +15,14 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(supabase db push:*)"
+      "Bash(supabase db push:*)",
+      "Bash(npm run build:*)",
+      "Bash(supabase functions list:*)",
+      "Bash(supabase functions logs:*)",
+      "WebFetch(domain:elevenlabs.io)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:json2video.com)",
+      "mcp__supabase__sqlToRest"
     ]
   },
   "enableAllProjectMcpServers": true,

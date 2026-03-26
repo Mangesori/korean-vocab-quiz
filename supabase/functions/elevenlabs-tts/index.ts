@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const VOICE_ID = "YBRudLRm83BV5Mazcr42";
+const VOICE_ID = "pFZP5JQG7iQjIQuC4Bku";
 const MODEL_ID = "eleven_v3";
 
 serve(async (req) => {

@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bell, Menu, X, BookOpen, LogOut, User, GraduationCap, Users, Shield, Settings, FileX, BookMarked, Home, PenSquare } from 'lucide-react';
+import { Bell, Menu, X, BookOpen, List, LogOut, User, GraduationCap, Users, Shield, Settings, FileX, BookMarked, Home, PenSquare } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { Protect } from '@/components/auth/Protect';
 import { PERMISSIONS } from '@/lib/rbac/roles';
@@ -59,6 +59,11 @@ export function Navbar() {
               </Protect>
               
               <Protect permission={PERMISSIONS.CREATE_QUIZ}>
+                <Link to="/quizzes">
+                  <Button variant="ghost" size="sm">
+                    내 퀴즈
+                  </Button>
+                </Link>
                 <Link to="/quiz/create">
                   <Button variant="ghost" size="sm">
                     퀴즈 만들기
@@ -69,7 +74,7 @@ export function Navbar() {
               <Protect permission={PERMISSIONS.VIEW_CLASS}>
                 <Link to="/classes">
                   <Button variant="ghost" size="sm">
-                    {can(PERMISSIONS.CREATE_CLASS) ? '클래스 관리' : '클래스 참여'}
+                    {can(PERMISSIONS.CREATE_CLASS) ? '내 클래스' : '클래스 참여'}
                   </Button>
                 </Link>
               </Protect>
@@ -194,6 +199,12 @@ export function Navbar() {
             </Protect>
 
             <Protect permission={PERMISSIONS.CREATE_QUIZ}>
+              <Link to="/quizzes" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start">
+                  <List className="h-4 w-4 mr-2" />
+                  내 퀴즈
+                </Button>
+              </Link>
               <Link to="/quiz/create" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">
                   <PenSquare className="h-4 w-4 mr-2" />
@@ -206,7 +217,7 @@ export function Navbar() {
               <Link to="/classes" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">
                   <Users className="h-4 w-4 mr-2" />
-                  {can(PERMISSIONS.CREATE_CLASS) ? '클래스 관리' : '클래스 참여'}
+                  {can(PERMISSIONS.CREATE_CLASS) ? '내 클래스' : '클래스 참여'}
                 </Button>
               </Link>
             </Protect>

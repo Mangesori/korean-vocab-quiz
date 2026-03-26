@@ -162,9 +162,17 @@ export function ProblemCard({
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
                 {index + 1}
               </span>
-              <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold">
-                {problem.word}
-              </span>
+              {isEditing ? (
+                <Input
+                  value={problem.word}
+                  onChange={(e) => onUpdateProblem(problem.id, "word", e.target.value)}
+                  className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold text-center w-auto min-w-[80px] max-w-[200px] h-8 text-sm border-primary/30"
+                />
+              ) : (
+                <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold">
+                  {problem.word}
+                </span>
+              )}
             </div>
             
             {/* Play Button - Visible here only on Mobile */}

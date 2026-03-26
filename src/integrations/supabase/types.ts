@@ -1,4 +1,3 @@
-Initialising login role...
 export type Json =
   | string
   | number
@@ -12,31 +11,6 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.1"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
   }
   public: {
     Tables: {
@@ -404,10 +378,16 @@ export type Database = {
           anonymous_name: string | null
           answers: Json
           completed_at: string
+          fill_blank_score: number | null
+          fill_blank_total: number | null
           id: string
           is_anonymous: boolean
           quiz_id: string
+          recording_score: number | null
+          recording_total: number | null
           score: number
+          sentence_making_score: number | null
+          sentence_making_total: number | null
           share_token: string | null
           student_id: string | null
           total_questions: number
@@ -416,10 +396,16 @@ export type Database = {
           anonymous_name?: string | null
           answers?: Json
           completed_at?: string
+          fill_blank_score?: number | null
+          fill_blank_total?: number | null
           id?: string
           is_anonymous?: boolean
           quiz_id: string
+          recording_score?: number | null
+          recording_total?: number | null
           score: number
+          sentence_making_score?: number | null
+          sentence_making_total?: number | null
           share_token?: string | null
           student_id?: string | null
           total_questions: number
@@ -428,10 +414,16 @@ export type Database = {
           anonymous_name?: string | null
           answers?: Json
           completed_at?: string
+          fill_blank_score?: number | null
+          fill_blank_total?: number | null
           id?: string
           is_anonymous?: boolean
           quiz_id?: string
+          recording_score?: number | null
+          recording_total?: number | null
           score?: number
+          sentence_making_score?: number | null
+          sentence_making_total?: number | null
           share_token?: string | null
           student_id?: string | null
           total_questions?: number
@@ -521,6 +513,8 @@ export type Database = {
           difficulty: Database["public"]["Enums"]["difficulty_level"]
           id: string
           problems: Json
+          recording_enabled: boolean
+          sentence_making_enabled: boolean
           teacher_id: string
           timer_enabled: boolean
           timer_seconds: number | null
@@ -536,6 +530,8 @@ export type Database = {
           difficulty?: Database["public"]["Enums"]["difficulty_level"]
           id?: string
           problems?: Json
+          recording_enabled?: boolean
+          sentence_making_enabled?: boolean
           teacher_id: string
           timer_enabled?: boolean
           timer_seconds?: number | null
@@ -551,6 +547,8 @@ export type Database = {
           difficulty?: Database["public"]["Enums"]["difficulty_level"]
           id?: string
           problems?: Json
+          recording_enabled?: boolean
+          sentence_making_enabled?: boolean
           teacher_id?: string
           timer_enabled?: boolean
           timer_seconds?: number | null
@@ -567,6 +565,238 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      recording_answers: {
+        Row: {
+          accuracy_score: number | null
+          attempt_number: number
+          completeness_score: number | null
+          created_at: string
+          fluency_score: number | null
+          id: string
+          is_passed: boolean | null
+          overall_score: number | null
+          problem_id: string
+          pronunciation_score: number | null
+          prosody_score: number | null
+          quiz_id: string
+          recording_duration_seconds: number | null
+          recording_url: string
+          result_id: string | null
+          student_id: string
+          word_level_feedback: Json | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          attempt_number?: number
+          completeness_score?: number | null
+          created_at?: string
+          fluency_score?: number | null
+          id?: string
+          is_passed?: boolean | null
+          overall_score?: number | null
+          problem_id: string
+          pronunciation_score?: number | null
+          prosody_score?: number | null
+          quiz_id: string
+          recording_duration_seconds?: number | null
+          recording_url: string
+          result_id?: string | null
+          student_id: string
+          word_level_feedback?: Json | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          attempt_number?: number
+          completeness_score?: number | null
+          created_at?: string
+          fluency_score?: number | null
+          id?: string
+          is_passed?: boolean | null
+          overall_score?: number | null
+          problem_id?: string
+          pronunciation_score?: number | null
+          prosody_score?: number | null
+          quiz_id?: string
+          recording_duration_seconds?: number | null
+          recording_url?: string
+          result_id?: string | null
+          student_id?: string
+          word_level_feedback?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recording_answers_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recording_answers_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recording_problems: {
+        Row: {
+          created_at: string
+          id: string
+          mode: Database["public"]["Enums"]["recording_mode"]
+          problem_id: string
+          quiz_id: string
+          sentence: string
+          sentence_audio_url: string | null
+          source_problem_id: string | null
+          source_type: Database["public"]["Enums"]["sentence_source"]
+          translation: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mode?: Database["public"]["Enums"]["recording_mode"]
+          problem_id: string
+          quiz_id: string
+          sentence: string
+          sentence_audio_url?: string | null
+          source_problem_id?: string | null
+          source_type?: Database["public"]["Enums"]["sentence_source"]
+          translation?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mode?: Database["public"]["Enums"]["recording_mode"]
+          problem_id?: string
+          quiz_id?: string
+          sentence?: string
+          sentence_audio_url?: string | null
+          source_problem_id?: string | null
+          source_type?: Database["public"]["Enums"]["sentence_source"]
+          translation?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recording_problems_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sentence_making_answers: {
+        Row: {
+          ai_feedback: string | null
+          attempt_number: number
+          created_at: string
+          grammar_score: number | null
+          id: string
+          is_passed: boolean | null
+          model_answer: string | null
+          naturalness_score: number | null
+          problem_id: string
+          quiz_id: string
+          result_id: string | null
+          student_id: string
+          student_sentence: string
+          total_score: number | null
+          word_usage_score: number | null
+        }
+        Insert: {
+          ai_feedback?: string | null
+          attempt_number?: number
+          created_at?: string
+          grammar_score?: number | null
+          id?: string
+          is_passed?: boolean | null
+          model_answer?: string | null
+          naturalness_score?: number | null
+          problem_id: string
+          quiz_id: string
+          result_id?: string | null
+          student_id: string
+          student_sentence: string
+          total_score?: number | null
+          word_usage_score?: number | null
+        }
+        Update: {
+          ai_feedback?: string | null
+          attempt_number?: number
+          created_at?: string
+          grammar_score?: number | null
+          id?: string
+          is_passed?: boolean | null
+          model_answer?: string | null
+          naturalness_score?: number | null
+          problem_id?: string
+          quiz_id?: string
+          result_id?: string | null
+          student_id?: string
+          student_sentence?: string
+          total_score?: number | null
+          word_usage_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sentence_making_answers_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sentence_making_answers_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sentence_making_problems: {
+        Row: {
+          created_at: string
+          grading_criteria: Json | null
+          id: string
+          model_answer: string
+          problem_id: string
+          quiz_id: string
+          word: string
+          word_meaning: string | null
+        }
+        Insert: {
+          created_at?: string
+          grading_criteria?: Json | null
+          id?: string
+          model_answer: string
+          problem_id: string
+          quiz_id: string
+          word: string
+          word_meaning?: string | null
+        }
+        Update: {
+          created_at?: string
+          grading_criteria?: Json | null
+          id?: string
+          model_answer?: string
+          problem_id?: string
+          quiz_id?: string
+          word?: string
+          word_meaning?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sentence_making_problems_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -769,11 +999,25 @@ export type Database = {
         Args: { _quiz_id: string; _student_answers: Json }
         Returns: Json
       }
+      update_quiz_result_scores: {
+        Args: {
+          _fill_blank_score?: number
+          _fill_blank_total?: number
+          _recording_score?: number
+          _recording_total?: number
+          _result_id: string
+          _sentence_making_score?: number
+          _sentence_making_total?: number
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "teacher" | "student" | "admin"
       difficulty_level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"
       notification_type: "quiz_assigned" | "quiz_completed" | "announcement"
+      recording_mode: "read" | "listen"
+      sentence_source: "reuse" | "ai_generated" | "teacher_input"
       translation_language:
         | "en"
         | "zh_CN"
@@ -911,14 +1155,13 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["teacher", "student", "admin"],
       difficulty_level: ["A1", "A2", "B1", "B2", "C1", "C2"],
       notification_type: ["quiz_assigned", "quiz_completed", "announcement"],
+      recording_mode: ["read", "listen"],
+      sentence_source: ["reuse", "ai_generated", "teacher_input"],
       translation_language: [
         "en",
         "zh_CN",
@@ -935,5 +1178,3 @@ export const Constants = {
     },
   },
 } as const
-A new version of Supabase CLI is available: v2.72.7 (currently installed v2.70.5)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

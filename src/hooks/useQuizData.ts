@@ -28,6 +28,8 @@ export interface Quiz {
   created_at: string;
   teacher_id: string;
   api_provider?: "openai" | "gemini" | "gemini-pro";
+  sentence_making_enabled?: boolean;
+  recording_enabled?: boolean;
 }
 
 export type Class = ClassModel;

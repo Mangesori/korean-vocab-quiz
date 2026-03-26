@@ -69,7 +69,7 @@ export default function TeacherDashboard() {
         .select("*")
         .eq("teacher_id", user?.id)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(10);
 
       // Fetch notifications
       const { data: notificationsData } = await supabase
@@ -237,7 +237,7 @@ export default function TeacherDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-lg">최근 퀴즈</CardTitle>
+                <CardTitle className="text-lg">내 퀴즈</CardTitle>
                 <CardDescription>생성한 퀴즈 목록</CardDescription>
               </div>
               <Link to="/quizzes">
@@ -325,7 +325,7 @@ export default function TeacherDashboard() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {classes.map((cls) => (
+                  {classes.slice(0, 10).map((cls) => (
                     <Link key={cls.id} to={`/class/${cls.id}`}>
                       <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
                         <div className="flex items-center gap-3">

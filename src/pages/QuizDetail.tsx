@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom"; // Added useSearchParams
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Edit3, PenLine, Mic } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Dialog } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -24,6 +25,8 @@ import { ProblemList } from "@/components/quiz/ProblemList";
 import { ShareQuizDialogContent } from "@/components/quiz/ShareQuizDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuizResultsList } from "@/components/quiz/QuizResultsList";
+import { SentenceMakingProblemList, SentenceMakingProblem } from "@/components/quiz/SentenceMakingProblemList";
+import { RecordingProblemList, RecordingProblem } from "@/components/quiz/RecordingProblemList";
 
 export default function QuizDetail() {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +41,8 @@ export default function QuizDetail() {
   
   // Tab State
   const [currentTab, setCurrentTab] = useState("problems");
+  const [problemTab, setProblemTab] = useState<"fill_blank" | "sentence_making" | "recording">("fill_blank");
+  const queryClient = useQueryClient();
 
   // Sync tab with URL
   useEffect(() => {
@@ -55,15 +60,48 @@ export default function QuizDetail() {
 
 
   // Hooks
-  const { 
-    quiz, 
-    classes, 
-    isLoading, 
+  const {
+    quiz,
+    classes,
+    isLoading,
     audioUrls,
     setAudioUrls,
     updateQuizTitle,
-    updateQuizProblems
+    updateQuizProblems,
+    refetchQuiz,
   } = useQuizData(id, user?.id);
+
+  // 문장 만들기 문제 조회
+  const { data: sentenceMakingProblems = [], refetch: refetchSentenceMaking } = useQuery({
+    queryKey: ['sentenceMakingProblems', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sentence_making_problems")
+        .select("*")
+        .eq("quiz_id", id)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as SentenceMakingProblem[];
+    },
+    enabled: !!id && !!quiz?.sentence_making_enabled,
+  });
+
+  // 녹음 문제 조회
+  const { data: recordingProblems = [], refetch: refetchRecording } = useQuery({
+    queryKey: ['recordingProblems', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("recording_problems")
+        .select("*")
+        .eq("quiz_id", id)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as RecordingProblem[];
+    },
+    enabled: !!id && !!quiz?.recording_enabled,
+  });
 
   const {
     isGeneratingAudio,
@@ -108,6 +146,8 @@ export default function QuizDetail() {
   );
 
   const [isRegeneratingProblems, setIsRegeneratingProblems] = useState(false);
+  const [isAddingSentenceMaking, setIsAddingSentenceMaking] = useState(false);
+  const [isAddingRecording, setIsAddingRecording] = useState(false);
 
   const handleRegenerateProblem = async (problem: any) => {
     if (!quiz) return;
@@ -220,6 +260,142 @@ export default function QuizDetail() {
       }
   };
 
+  // 문장 만들기 추가 핸들러
+  const handleAddSentenceMaking = async () => {
+    if (!quiz) return;
+
+    setIsAddingSentenceMaking(true);
+    try {
+      // 1. generate-quiz 함수 호출 (skipFillBlank: true로 빈칸 채우기 생성 건너뛰기)
+      const { data, error } = await supabase.functions.invoke("generate-quiz", {
+        body: {
+          words: quiz.words,
+          difficulty: quiz.difficulty,
+          translationLanguage: quiz.translation_language,
+          wordsPerSet: quiz.words_per_set,
+          apiProvider: quiz.api_provider as "openai" | "gemini" | "gemini-pro" | undefined,
+          sentenceMakingEnabled: true,
+          recordingEnabled: false,
+          skipFillBlank: true,
+        },
+      });
+
+      if (error || data?.error) {
+        throw new Error(data?.error || error?.message || "문장 만들기 생성 실패");
+      }
+
+      if (!data.sentenceMakingProblems || data.sentenceMakingProblems.length === 0) {
+        throw new Error("문장 만들기 문제가 생성되지 않았습니다");
+      }
+
+      // 2. sentence_making_problems 테이블에 삽입
+      const smProblemsToInsert = data.sentenceMakingProblems.map((p: any) => ({
+        quiz_id: quiz.id,
+        problem_id: p.problem_id,
+        word: p.word,
+        word_meaning: p.word_meaning || null,
+        model_answer: p.model_answer,
+      }));
+
+      const { error: insertError } = await supabase
+        .from("sentence_making_problems")
+        .insert(smProblemsToInsert);
+
+      if (insertError) {
+        throw new Error("문장 만들기 문제 저장 실패: " + insertError.message);
+      }
+
+      // 3. quizzes 테이블 업데이트
+      const { error: updateError } = await supabase
+        .from("quizzes")
+        .update({ sentence_making_enabled: true })
+        .eq("id", quiz.id);
+
+      if (updateError) {
+        throw new Error("퀴즈 설정 업데이트 실패: " + updateError.message);
+      }
+
+      toast.success("문장 만들기가 추가되었습니다!");
+      refetchQuiz();
+      refetchSentenceMaking();
+      setProblemTab("sentence_making");
+    } catch (error: any) {
+      console.error("Add sentence making error:", error);
+      toast.error(error.message || "문장 만들기 추가에 실패했습니다");
+    } finally {
+      setIsAddingSentenceMaking(false);
+    }
+  };
+
+  // 녹음 추가 핸들러
+  const handleAddRecording = async () => {
+    if (!quiz) return;
+
+    setIsAddingRecording(true);
+    try {
+      // 1. generate-quiz 함수 호출 (skipFillBlank: true로 빈칸 채우기 생성 건너뛰기)
+      const { data, error } = await supabase.functions.invoke("generate-quiz", {
+        body: {
+          words: quiz.words,
+          difficulty: quiz.difficulty,
+          translationLanguage: quiz.translation_language,
+          wordsPerSet: quiz.words_per_set,
+          apiProvider: quiz.api_provider as "openai" | "gemini" | "gemini-pro" | undefined,
+          sentenceMakingEnabled: false,
+          recordingEnabled: true,
+          recordingMode: "read",
+          skipFillBlank: true,
+        },
+      });
+
+      if (error || data?.error) {
+        throw new Error(data?.error || error?.message || "녹음 문제 생성 실패");
+      }
+
+      if (!data.recordingProblems || data.recordingProblems.length === 0) {
+        throw new Error("녹음 문제가 생성되지 않았습니다");
+      }
+
+      // 2. recording_problems 테이블에 삽입
+      const recProblemsToInsert = data.recordingProblems.map((p: any) => ({
+        quiz_id: quiz.id,
+        problem_id: p.problem_id,
+        sentence: p.sentence,
+        mode: p.mode || "read",
+        translation: p.translation || null,
+        source_type: "ai_generated",
+      }));
+
+      const { error: insertError } = await supabase
+        .from("recording_problems")
+        .insert(recProblemsToInsert);
+
+      if (insertError) {
+        throw new Error("녹음 문제 저장 실패: " + insertError.message);
+      }
+
+      // 3. quizzes 테이블 업데이트
+      const { error: updateError } = await supabase
+        .from("quizzes")
+        .update({ recording_enabled: true })
+        .eq("id", quiz.id);
+
+      if (updateError) {
+        throw new Error("퀴즈 설정 업데이트 실패: " + updateError.message);
+      }
+
+      toast.success("녹음이 추가되었습니다!");
+      refetchQuiz();
+      refetchRecording();
+      setProblemTab("recording");
+    } catch (error: any) {
+      console.error("Add recording error:", error);
+      toast.error(error.message || "녹음 추가에 실패했습니다");
+    } finally {
+      setIsAddingRecording(false);
+    }
+  };
+
   // Actions
   const handleUpdateTitle = async (newTitle: string) => {
     if (!quiz) return;
@@ -317,29 +493,91 @@ export default function QuizDetail() {
           <TabsContent value="problems" className="mt-0">
             <QuizWords words={quiz.words} />
 
-            <ProblemList 
-              problems={hasChanges ? editedProblems : quiz.problems}
-              isEditing={isEditing}
-              onUpdateProblem={updateProblem}
-              audioUrls={audioUrls}
-              onPlayAudio={playAudio}
-              onRegenerateAllAudio={handleRegenerateAll}
-              onRegenerateAllProblems={handleRegenerateAllProblems}
-              onRegenerateProblem={handleRegenerateProblem}
-              isRegeneratingProblems={isRegeneratingProblems}
-              onRegenerateSingleAudio={(problem) => regenerateSingleAudio(problem, () => {})}
-              isGeneratingAudio={isGeneratingAudio}
-              audioProgress={audioProgress}
-              regeneratingProblemId={regeneratingProblemId}
-              studentPreview={studentPreview}
-              onToggleStudentPreview={setStudentPreview}
-              setIsEditing={setIsEditing}
-              onCancelEdit={cancelEdit}
-              onSaveChanges={saveChanges}
-              isSaving={isSaving}
-              hasChanges={hasChanges}
-              wordsPerSet={quiz.words_per_set}
-            />
+            {/* 문제 유형 서브 탭 */}
+            {(quiz.sentence_making_enabled || quiz.recording_enabled) && (
+              <div className="flex flex-wrap gap-2 mb-6">
+                <Button
+                  variant={problemTab === "fill_blank" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setProblemTab("fill_blank")}
+                  className="gap-2"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  빈칸 채우기 ({quiz.problems.length})
+                </Button>
+                {quiz.sentence_making_enabled && (
+                  <Button
+                    variant={problemTab === "sentence_making" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setProblemTab("sentence_making")}
+                    className="gap-2"
+                  >
+                    <PenLine className="w-4 h-4" />
+                    문장 만들기 ({sentenceMakingProblems.length})
+                  </Button>
+                )}
+                {quiz.recording_enabled && (
+                  <Button
+                    variant={problemTab === "recording" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setProblemTab("recording")}
+                    className="gap-2"
+                  >
+                    <Mic className="w-4 h-4" />
+                    녹음 ({recordingProblems.length})
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* 빈칸 채우기 문제 목록 */}
+            {problemTab === "fill_blank" && (
+              <ProblemList
+                problems={hasChanges ? editedProblems : quiz.problems}
+                isEditing={isEditing}
+                onUpdateProblem={updateProblem}
+                audioUrls={audioUrls}
+                onPlayAudio={playAudio}
+                onRegenerateAllAudio={handleRegenerateAll}
+                onRegenerateAllProblems={handleRegenerateAllProblems}
+                onRegenerateProblem={handleRegenerateProblem}
+                isRegeneratingProblems={isRegeneratingProblems}
+                onRegenerateSingleAudio={(problem) => regenerateSingleAudio(problem, () => {})}
+                isGeneratingAudio={isGeneratingAudio}
+                audioProgress={audioProgress}
+                regeneratingProblemId={regeneratingProblemId}
+                studentPreview={studentPreview}
+                onToggleStudentPreview={setStudentPreview}
+                setIsEditing={setIsEditing}
+                onCancelEdit={cancelEdit}
+                onSaveChanges={saveChanges}
+                isSaving={isSaving}
+                hasChanges={hasChanges}
+                wordsPerSet={quiz.words_per_set}
+                sentenceMakingEnabled={quiz.sentence_making_enabled}
+                recordingEnabled={quiz.recording_enabled}
+                onAddSentenceMaking={handleAddSentenceMaking}
+                onAddRecording={handleAddRecording}
+                isAddingSentenceMaking={isAddingSentenceMaking}
+                isAddingRecording={isAddingRecording}
+              />
+            )}
+
+            {/* 문장 만들기 문제 목록 */}
+            {problemTab === "sentence_making" && quiz.sentence_making_enabled && (
+              <SentenceMakingProblemList
+                problems={sentenceMakingProblems}
+                onRefresh={refetchSentenceMaking}
+              />
+            )}
+
+            {/* 녹음 문제 목록 */}
+            {problemTab === "recording" && quiz.recording_enabled && (
+              <RecordingProblemList
+                problems={recordingProblems}
+                onRefresh={refetchRecording}
+              />
+            )}
           </TabsContent>
           
           <TabsContent value="results" className="mt-0">

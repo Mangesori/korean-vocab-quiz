@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { ArrowRight, Loader2, BookOpen } from "lucide-react";
+import { ArrowRight, Loader2, BookOpen, PenLine, Mic, Edit3 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Navigate } from "react-router-dom";
@@ -47,8 +47,12 @@ export default function QuizCreate() {
   const [wordsPerSet, setWordsPerSet] = useState(5);
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(60);
-  const [apiProvider, setApiProvider] = useState<"openai" | "gemini" | "gemini-pro">("openai");
+  const [apiProvider, setApiProvider] = useState<"openai" | "gemini" | "gemini-pro" | "claude">("openai");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // 새로운 퀴즈 유형 옵션
+  const [sentenceMakingEnabled, setSentenceMakingEnabled] = useState(false);
+  const [recordingEnabled, setRecordingEnabled] = useState(false);
 
   if (loading) {
     return (
@@ -83,7 +87,9 @@ export default function QuizCreate() {
     try {
       const BATCH_SIZE = 15;
       const allProblems: any[] = [];
-      
+      const allSentenceMakingProblems: any[] = [];
+      const allRecordingProblems: any[] = [];
+
       // 단어를 10개씩 청크로 분할
       const wordChunks: string[][] = [];
       for (let i = 0; i < words.length; i += BATCH_SIZE) {
@@ -94,7 +100,7 @@ export default function QuizCreate() {
       for (let i = 0; i < wordChunks.length; i++) {
         const chunk = wordChunks[i];
         const currentProgress = i * BATCH_SIZE + chunk.length;
-        
+
         // 진행 상황 표시
         toast.loading(`문제 생성 중... (${currentProgress}/${words.length})`, {
           id: 'quiz-generation',
@@ -108,6 +114,10 @@ export default function QuizCreate() {
               translationLanguage,
               wordsPerSet,
               apiProvider,
+              // 새 퀴즈 유형 파라미터
+              sentenceMakingEnabled,
+              recordingEnabled,
+              recordingMode: "read", // 기본값
             },
           });
 
@@ -121,10 +131,20 @@ export default function QuizCreate() {
 
           // 생성된 문제 추가
           allProblems.push(...data.problems);
-          
+
+          // 문장 만들기 문제 추가
+          if (data.sentenceMakingProblems) {
+            allSentenceMakingProblems.push(...data.sentenceMakingProblems);
+          }
+
+          // 녹음 문제 추가
+          if (data.recordingProblems) {
+            allRecordingProblems.push(...data.recordingProblems);
+          }
+
         } catch (batchError: any) {
           console.error(`Batch ${i + 1} generation error:`, batchError);
-          
+
           // 이미 생성된 문제가 있으면 부분 성공으로 처리
           if (allProblems.length > 0) {
             toast.dismiss('quiz-generation');
@@ -159,6 +179,11 @@ export default function QuizCreate() {
           timerSeconds: timerEnabled ? timerSeconds : null,
           apiProvider,
           problems: allProblems,
+          // 새로운 퀴즈 유형 옵션
+          sentenceMakingEnabled,
+          recordingEnabled,
+          sentenceMakingProblems: allSentenceMakingProblems,
+          recordingProblems: allRecordingProblems,
         }),
       );
 
@@ -334,9 +359,65 @@ export default function QuizCreate() {
                 </div>
               )}
 
+              {/* 퀴즈 유형 선택 */}
+              <div className="space-y-3 mt-6 pt-6 border-t border-border">
+                <Label className="text-base font-semibold">퀴즈 유형</Label>
+                <p className="text-sm text-muted-foreground -mt-1">빈칸 채우기는 기본으로 포함됩니다. 추가 유형을 선택하세요.</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div
+                    className="p-4 rounded-xl border-2 border-primary bg-primary/5 shadow-sm text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Edit3 className="w-4 h-4 text-primary" />
+                      <span className="font-bold text-foreground">빈칸 채우기</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">기본 포함</div>
+                    <div className="text-xs text-primary mt-0.5">필수</div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSentenceMakingEnabled(!sentenceMakingEnabled)}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      sentenceMakingEnabled
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border hover:border-border-foreground/20 hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <PenLine className={`w-4 h-4 ${sentenceMakingEnabled ? "text-primary" : "text-muted-foreground"}`} />
+                      <span className="font-bold text-foreground">문장 만들기</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">AI 채점</div>
+                    <div className={`text-xs mt-0.5 ${sentenceMakingEnabled ? "text-primary" : "text-muted-foreground"}`}>
+                      {sentenceMakingEnabled ? "선택됨" : "선택 안 함"}
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRecordingEnabled(!recordingEnabled)}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      recordingEnabled
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border hover:border-border-foreground/20 hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Mic className={`w-4 h-4 ${recordingEnabled ? "text-primary" : "text-muted-foreground"}`} />
+                      <span className="font-bold text-foreground">녹음</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">발음 평가</div>
+                    <div className={`text-xs mt-0.5 ${recordingEnabled ? "text-primary" : "text-muted-foreground"}`}>
+                      {recordingEnabled ? "선택됨" : "선택 안 함"}
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-3 mt-6 pt-6 border-t border-border">
                 <Label className="text-base font-semibold">AI 모델 선택</Label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <button
                     type="button"
                     onClick={() => setApiProvider("openai")}
@@ -348,7 +429,19 @@ export default function QuizCreate() {
                   >
                     <div className="font-bold text-foreground">OpenAI</div>
                     <div className="text-xs text-muted-foreground mt-1">GPT-5.2</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">강력함</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setApiProvider("claude")}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      apiProvider === "claude"
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border hover:border-border-foreground/20 hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="font-bold text-foreground">Claude</div>
+                    <div className="text-xs text-muted-foreground mt-1">4.5 Haiku</div>
                   </button>
 
                   <button
@@ -361,8 +454,7 @@ export default function QuizCreate() {
                     }`}
                   >
                     <div className="font-bold text-foreground">Gemini</div>
-                    <div className="text-xs text-muted-foreground mt-1">3 Flash</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">빠름·저렴</div>
+                    <div className="text-xs text-muted-foreground mt-1">3.1 Flash lite</div>
                   </button>
 
                   <button
@@ -375,8 +467,7 @@ export default function QuizCreate() {
                     }`}
                   >
                     <div className="font-bold text-foreground">Gemini</div>
-                    <div className="text-xs text-muted-foreground mt-1">3 Pro</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">고성능</div>
+                    <div className="text-xs text-muted-foreground mt-1">2.5 Flash</div>
                   </button>
                 </div>
               </div>

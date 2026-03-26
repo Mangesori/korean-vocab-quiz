@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.elevenlabs-tts]
 verify_jwt = false
+
+[functions.grade-sentence]
+verify_jwt = false
+
+[functions.azure-speech-assessment]
+verify_jwt = false

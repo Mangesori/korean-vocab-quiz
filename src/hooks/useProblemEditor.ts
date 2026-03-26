@@ -47,10 +47,13 @@ export function useProblemEditor(
     setIsSaving(true);
 
     try {
+      // Extract updated words list from edited problems
+      const updatedWords = editedProblems.map(p => p.word);
+
       // Cast needed because Supabase types might imply a stricter JSON structure than we check here
       const { error } = await supabase
         .from("quizzes")
-        .update({ problems: editedProblems as any })
+        .update({ problems: editedProblems as any, words: updatedWords })
         .eq("id", quizId);
 
       if (error) throw error;

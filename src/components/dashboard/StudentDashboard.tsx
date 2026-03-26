@@ -369,7 +369,7 @@ export default function StudentDashboard() {
                             </p>
                           </div>
                         </div>
-                        <Button size="sm">풀기</Button>
+                        <Button size="sm" className="bg-[#6366f1] hover:bg-[#6366f1]/90 text-white rounded-xl px-6">풀기</Button>
                       </div>
                     </Link>
                   ))}
@@ -391,13 +391,13 @@ export default function StudentDashboard() {
                   <p>아직 완료한 퀴즈가 없습니다</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="flex flex-col gap-3">
                   {results.map((result) => {
                     const percentage = Math.round((result.score / result.total_questions) * 100);
                     const isGood = percentage >= 80;
                     
                     return (
-                      <div key={result.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                      <div key={result.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors border border-border">
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isGood ? 'bg-success/10' : 'bg-warning/10'}`}>
                             {isGood ? (
@@ -413,8 +413,8 @@ export default function StudentDashboard() {
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
+                        <div className="flex items-center gap-2">
+                          <div className="text-right mr-1">
                             <p className={`font-bold ${isGood ? 'text-success' : 'text-warning'}`}>
                               {percentage}%
                             </p>
@@ -422,8 +422,11 @@ export default function StudentDashboard() {
                               {result.score}/{result.total_questions}
                             </p>
                           </div>
+                          <Link to={`/quiz/${result.quiz_id}/result/${result.id}`}>
+                            <Button size="sm" className="bg-[#6366f1] hover:bg-[#6366f1]/90 text-white rounded-xl px-4">결과 확인</Button>
+                          </Link>
                           <Link to={`/quiz/${result.quiz_id}/take`}>
-                            <Button size="sm" variant="outline">다시 풀기</Button>
+                            <Button size="sm" className="bg-[#14b8a6] hover:bg-[#14b8a6]/90 text-white rounded-xl px-4 border-none">다시 풀기</Button>
                           </Link>
                         </div>
                       </div>

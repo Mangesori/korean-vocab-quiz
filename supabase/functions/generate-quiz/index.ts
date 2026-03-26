@@ -15,7 +15,14 @@ interface QuizRequest {
   translationLanguage: string;
   wordsPerSet: number;
   regenerateSingle?: boolean;
-  apiProvider?: "openai" | "gemini" | "gemini-pro";
+  apiProvider?: "openai" | "gemini" | "gemini-pro" | "claude";
+  // 새 퀴즈 유형
+  sentenceMakingEnabled?: boolean;
+  recordingEnabled?: boolean;
+  recordingMode?: "read" | "listen" | "mixed";
+  recordingModes?: Array<{ wordIndex: number; mode: "read" | "listen" }>;
+  // 빈칸 채우기 생성 건너뛰기 (기존 퀴즈에 문장 만들기/녹음만 추가할 때)
+  skipFillBlank?: boolean;
 }
 
 interface Problem {
@@ -24,6 +31,20 @@ interface Problem {
   answer: string;
   sentence: string;
   hint: string;
+  translation: string;
+}
+
+interface SentenceMakingProblem {
+  problem_id: string;
+  word: string;
+  word_meaning: string;
+  model_answer: string;
+}
+
+interface RecordingProblem {
+  problem_id: string;
+  sentence: string;
+  mode: "read" | "listen";
   translation: string;
 }
 
@@ -148,159 +169,191 @@ const DIFFICULTY_GUIDES: Record<string, string> = {
    - 길이: 16-28단어`
   };
 
+// 문법 카테고리 줄을 랜덤 셔플하여 AI의 나열 순서 편향을 제거
+function shuffleGrammarGuide(guide: string): string {
+  const lines = guide.split('\n');
+  const grammarLines: string[] = [];
+  const otherLines: { index: number; line: string }[] = [];
+
+  // 문법 카테고리 줄과 나머지 줄 분리
+  lines.forEach((line, i) => {
+    const trimmed = line.trim();
+    if (
+      trimmed.startsWith('- ') &&
+      !trimmed.startsWith('- 길이:') &&
+      !trimmed.startsWith('- 어휘:') &&
+      !trimmed.startsWith('- 사용 가능:') &&
+      !trimmed.startsWith('- 문법:')
+    ) {
+      grammarLines.push(line);
+    } else {
+      otherLines.push({ index: i, line });
+    }
+  });
+
+  // Fisher-Yates 셔플
+  for (let i = grammarLines.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [grammarLines[i], grammarLines[j]] = [grammarLines[j], grammarLines[i]];
+  }
+
+  // 재조합: 나머지 줄은 원래 위치에, 문법 줄은 셔플된 순서로 삽입
+  const result: string[] = new Array(lines.length);
+  otherLines.forEach(({ index, line }) => { result[index] = line; });
+  let gi = 0;
+  for (let i = 0; i < result.length; i++) {
+    if (result[i] === undefined) {
+      result[i] = grammarLines[gi++];
+    }
+  }
+
+  return result.join('\n');
+}
+
 const generateDetailedPrompt = (words: string[], difficulty: string, languageName: string) => {
-  const selectedGuide = DIFFICULTY_GUIDES[difficulty] || DIFFICULTY_GUIDES["A1"];
+  const selectedGuide = shuffleGrammarGuide(DIFFICULTY_GUIDES[difficulty] || DIFFICULTY_GUIDES["A1"]);
 
-  return `당신은 한국어 교육 전문가입니다. 다음 단어들을 사용하여 ${difficulty} 수준의 빈칸 채우기 문제를 만들어주세요.
+  return `당신은 한국어 교육 전문가이자 TOPIK 문제 출제 전문가입니다.
+주어진 단어들로 ${difficulty} 수준의 빈칸 채우기 문제를 출제하세요.
 
-단어 목록 (기본형): ${words.join(', ')}
+📋 단어 목록 (기본형): ${words.join(', ')}
+→ 각 단어마다 정확히 1개씩, 총 ${words.length}개의 문제를 입력 순서대로 생성하세요.
 
-**중요: 위 단어 목록의 각 단어마다 정확히 1개씩, 총 ${words.length}개의 문제를 생성해주세요. 모든 단어가 반드시 사용되어야 합니다.**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§1. 핵심 원칙: 자연스러움 최우선
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· 가장 중요한 것은 한국인이 실제 일상에서 말하는 것처럼 자연스러운 문장을 만드는 것입니다.
+· 문법은 자연스러운 문장 안에 녹아들어야 하며, 문법을 보여주기 위해 문장을 억지로 만들지 마세요.
+· "이 상황에서 한국 사람이 정말 이렇게 말할까?"를 항상 자문하세요.
 
-중요 규칙:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§2. 문장 생성 프로세스 (반드시 이 순서를 따르세요)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Step 1 - 상황 구상] 각 단어에 대해 한국인이 일상에서 자연스럽게 사용할 만한 구체적인 상황을 먼저 떠올리세요.
+  · 학교, 직장, 카페, 여행, 요리, 운동, 쇼핑, 건강, 날씨, 친구/가족 관계, 취미 등 다양한 맥락을 활용하세요.
+  · 단어마다 서로 다른 상황을 설정하세요. 비슷한 소재가 반복되면 안 됩니다.
 
-0. **자연스러운 한국어 표현 사용 - 매우 중요!**:
-   - ✅ 자연스러운 조합: "밥을 먹다", "식사하다", "한국어를 배우다", "집에 가다", "귀가하다", "옷을 입다"
-   - ❌ 부자연스러운 조합: "식사를 먹다", "한국 언어를 배우다"
-   - 난이도별 어휘 선택:
-   - 난이도별 어휘 선택:
-      (아래 1번 항목 참조)
+[Step 2 - 문법 선택 및 문장 완성] Step 1에서 떠올린 상황에 가장 자연스럽게 어울리는 문법을 §3 가이드에서 선택하여 문장을 완성하세요.
+  · 문법 카테고리 분산: 문제마다 서로 다른 카테고리(이유, 시간, 추측, 양보, 연결 등)에서 문법을 선택하세요.
+  · 단순 종결 회피: "-아요/어요", "-습니다" 같은 기본 종결 어미만으로 끝내지 마세요. §3의 문법 표현을 하나 이상 활용하세요.
+  · 관형사형 활용: 동사/형용사 어휘의 경우, 관형사형(-는/-ㄴ/-(으)ㄹ)으로 명사를 수식하는 구조도 섞어주세요.
 
-1. **난이도별 어휘 수준 (TOPIK 기준) - 매우 중요!**:
+⚠️ 출력에는 최종 JSON 결과만 포함하세요. Step 1의 메모는 출력하지 마세요.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§3. 난이도별 문법 가이드 (${difficulty}) — 참고 자료
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${selectedGuide}
 
-2. **문법 다양성 및 자연스러움 준수 사항 (매우 중요!)**:
-   - **제1원칙: 문법 활용 필수**: 위 난이도별 문법 목록에 있는 표현을 *반드시* 사용해야 합니다. '문장이 어색해질 것 같다'는 이유로 단순한 기본 문법(서술/종결)으로 도피하지 마세요. 해당 문법이 자연스럽게 쓰일 수 있는 상황을 설정하여 문장을 만드세요.
-   - **다양한 문법 활용 (반복 지양)**: 퀴즈 세트 내에서 동일한 문법 표현이 계속 반복되지 않도록 하세요. 위 목록에 있는 다양한 문법들을 골고루 섞어서 사용하세요. (예: 1번 문제는 '-기 때문에', 2번 문제는 '-다가' 등)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§4. 빈칸·정답 작성 규칙
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-3. **동사/형용사 문법 활용 - 매우 중요!**:
-   동사/형용사는 다양한 문법으로 활용해주세요. 단순히 "-아요/어요"만 사용하지 마세요!
-   
-   - **관형사형 (명사 수식) - 필수!**:
-     * 현재: -는 (동사), -(으)ㄴ (형용사)
-       예: "먹는 음식", "주요한 역할", "큰 집"
-     * 과거: -(으)ㄴ
-       예: "먹은 음식", "본 영화"
-     * 미래: -(으)ㄹ
-       예: "먹을 음식", "갈 곳"
+▶ 명사 어휘:
+  · answer = "명사 + 조사"만. 동사·형용사는 sentence에 남깁니다.
+  · sentence의 ( ) 뒤에 동사가 이어져야 합니다.
+  · 조사를 sentence에 쓰지 마세요 — 조사는 answer에 포함됩니다.
+  · 예: word "미술관" → sentence "내일 친구하고 ( ) 가요.", answer "미술관에", hint "에"
+  · 예: word "지구력" → sentence "( ) 필요해요.", answer "지구력이", hint "이/가"
 
-4. **난이도별 문장 예시 (TOPIK 문법 활용)**:
-   - A1 (1급): "저는 내일 학교에 ( ).", answer: "갈 거예요", hint: "-(으)ㄹ 거예요"
-   - A2 (2급): "학교에 ( ) 밥 먹었어요.", answer: "가기 전에", hint: "-기 전에"
-   - B1 (3급): "숙제를 ( ) 시간이 없었어요.", answer: "하느라고", hint: "-느라고"
-   - B2 (4급): "노력( ) 실력이 늘어요.", answer: "할수록", hint: "-(으)ㄹ수록"
-   - C1 (5급): "정책이 발전에 ( ).", answer: "기여한 바 있습니다", hint: "-(으)ㄴ 바 있다 + 아요/어요"
+▶ 동사/형용사 어휘:
+  · answer = "어휘 활용형 + 문법 패턴" 전체를 포함. 문법을 answer와 sentence에 쪼개지 마세요.
+  · sentence의 ( ) 뒤에 문법 요소가 남아있으면 안 됩니다. (문장 부호는 가능)
+  · 관형사형일 때: ( ) 바로 뒤에 수식 대상 명사가 옵니다.
+  · 예: word "오다" → sentence "하늘을 보니 비가 ( ).", answer "올 것 같아요", hint "-(으)ㄹ 것 같다 + 아요/어요"
+  · 예: word "가다" → sentence "학교에 ( ) 밥 먹었어요.", answer "가기 전에", hint "-기 전에"
+  · 예: word "주요하다" → sentence "경제에 ( ) 역할을 합니다.", answer "주요한", hint "-(으)ㄴ"
 
-5. **word (기본형)는 입력받은 단어 그대로**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§5. hint 작성 규칙
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· hint에는 설명·의미를 쓰지 말고 문법 형태만 간결하게 표기하세요.
+· 명사: 사용된 조사만 표기 (예: "에", "을/를"). 조사 없는 부사형이면 빈 문자열 "".
+· 동사/형용사 단독 활용: "-아요/어요", "-기 전에", "-느라고", "-게 되다" 등.
+· 관형사형: "-(으)ㄴ", "-는", "-(으)ㄹ"
+· 복합 구성: "기본 문법 + 종결 어미" 형식.
+  예: "가기로 했습니다" → "-기로 하다 + 습니다"
+  예: "할 수 있었어요" → "-(으)ㄹ 수 있다 + 았어요/었어요"
 
-6. **answer (정답) - 매우 중요!**:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§6. 번역(translation) 규칙
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· ( )가 아닌 answer가 들어간 완전한 문장을 ${languageName}로 자연스럽게 번역하세요.
+· 정답 단어의 핵심 의미(순수 어휘)만 대괄호 []로 감싸세요. 문법 패턴·보조 동사는 대괄호 밖에 둡니다.
+  예: answer "가고 싶어요" → "I want to [go] home."
+  예: answer "구독하기로 했어요" → "I decided to [subscribe] to this channel."
+  예: answer "연예인인 것 같아요" → "That person seems like a [celebrity]."
+· 모든 문제의 translation에 대괄호가 반드시 하나 있어야 합니다.
 
-   - **★ 명사 어휘일 때 (매우 중요!) ★**:
-     * 정답은 "명사 + 조사"만 포함합니다. 동사는 문장(sentence)에 그대로 남겨두세요!
-     * ✅ 올바른 예: sentence: "내일 친구하고 ( ) 가요.", answer: "미술관에", hint: "에"
-     * ✅ 올바른 예: sentence: "( ) 필요해요.", answer: "지구력이", hint: "이/가"
-     * ❌ 잘못된 예: sentence: "내일 친구하고 ( ).", answer: "미술관에 가요", hint: "에 + 아요/어요" (동사까지 answer에 들어가면 안 됨!)
-     * ❌ 잘못된 예: sentence: "( )이/가 필요해요.", answer: "지구력", hint: "이/가" (조사가 sentence에 있으면 안 됨!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§7. 부자연스러운 패턴 블랙리스트 (절대 금지)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+아래와 같은 문장은 절대로 만들지 마세요:
+✗ 맥락 없는 감정 나열: "행복하기 때문에 웃어요", "슬퍼서 울었어요" → 왜 행복한지, 왜 슬픈지 구체적 상황이 있어야 합니다.
+✗ 교과서식 인위적 문장: "나는 학생입니다. 학교에 갑니다." → 실제 대화에서는 이렇게 말하지 않습니다.
+✗ 주어 없이 문법만 나열: "때문에 좋아요", "그래서 했어요" → 누가, 무엇을, 왜 하는지 맥락이 있어야 합니다.
+✗ 두 가지 이상의 고급 문법 과잉 결합: 한 문장에 고급 문법을 여러 개 억지로 넣지 마세요.
+✗ 부자연스러운 어휘 조합: "식사를 먹다", "한국 언어를 배우다" → "밥을 먹다", "한국어를 배우다"가 자연스럽습니다.
 
-   - **동사/형용사 어휘일 때 - 문법 패턴 포함 필수 (Grammar Integrity)**:
-     * 힌트로 제시된 문법 패턴 전체가 반드시 \`answer\`에 포함되어야 합니다. 문법의 일부를 \`sentence\`에 남겨두지 마세요.
-     * ❌ 잘못된 예: sentence: "비가 ( ) 것 같아요", answer: "올", hint: "-(으)ㄹ 것 같다" (문법이 쪼개짐!)
-     * ✅ 올바른 예: sentence: "하늘을 보니 비가 ( ).", answer: "올 것 같아요", hint: "-(으)ㄹ 것 같다 + 아요/어요" (문법이 answer에 온전히 포함됨)
-     * ✅ 올바른 예: sentence: "저 사람은 옷을 아주 잘 입어서 ( ).", answer: "연예인인 것 같아요", hint: "-(으)ㄴ 것 같다 + 아요/어요"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§8. 자연스러움 최종 점검
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· 완성된 각 문장을 읽고 "한국인 친구에게 이 문장을 보여줘도 어색하지 않은가?"를 점검하세요.
+· 문장 끝에 마침표(.) 또는 물음표(?)를 반드시 붙이세요.
+· ${difficulty} 어휘 수준을 준수하되, 문맥상 자연스러운 표현을 우선하세요.
 
-7. **sentence (문장) 작성 규칙 - 매우 중요!**:
-   - **문법 패턴 분리 금지**: 정답(answer)에 포함된 문법 부분을 문장(sentence)에 중복해서 쓰거나 남겨두지 마세요.
-   - **★ 명사 어휘일 때 ★**: 빈칸 ( ) 뒤에 동사가 와야 합니다! 명사의 정답은 "명사+조사"만 포함하고, 동사는 문장에 그대로 유지.
-     * ✅ 올바른 예: sentence: "내일 친구하고 ( ) 가요.", answer: "미술관에"
-     * ❌ 잘못된 예: sentence: "내일 친구하고 ( ).", answer: "미술관에 가요" (동사까지 answer에 들어가면 안 됨!)
-   - **명사 + 조사**: 빈칸 ( ) 뒤에 조사 절대 쓰지 말기! 조사는 answer에 포함됨
-   - **동사/형용사 어휘일 때**: 빈칸 ( ) 뒤에는 문법 요소가 없어야 합니다. (마침표나 쉼표 등 문장 부호는 가능)
-   - **동사/형용사 - 관형사형일 때**: 빈칸 ( ) 뒤에 아무것도 쓰지 말고 바로 명사
-   - **조사 중복 절대 금지!**
-   - **문장 끝 마침표/물음표 필수**
-   - **${difficulty} 어휘 수준 준수!**
-
-8. **hint 작성 규칙 (통합됨) - 매우 중요!**:
-   - **기본 원칙**: 설명이나 의미를 쓰지 말고, 오직 **'문법 형태'**만 표기하세요.
-   - **명사 + 조사**: answer에 사용된 조사를 표시
-     * 예: answer: "학교에" → hint: "에"
-     * 예: answer: "친구를" → hint: "을/를"
-     * 예: answer: "오늘" (조사 없음/부사) → hint: "" (빈 문자열)
-   - **동사/형용사 (활용형)**: 사용된 어미/문법 패턴만 표시
-     * **일반 활용**: "-아요/어요", "-기 전에", "-느라고", "-게 되다"
-     * **관형사형**: "(으)ㄴ", "-는", "-(으)ㄹ" (절대 sentence에 어미를 남기지 말 것!)
-       * ✅ 예: sentence: "경제에 ( ) 역할을...", answer: "주요한", hint: "(으)ㄴ"
-     * **복합 구성**: 보조 용언 등은 '기본 문법 + 어미' 형태로 표시
-       * 예: "가기로 했습니다" → hint: "-기로 하다 + 습니다"
-       * 예: "좋지 않아서" → hint: "-지 않다 + 아서/어서"
-       * 예: "할 수 있었어요" → hint: "-(으)ㄹ 수 있다 + 았어요/었어요"
-       * 예: "연예인인 것 같아요" → hint: "-(으)ㄴ 것 같다 + 아요/어요"
-
-9. **문제 순서**: 입력받은 단어 목록 순서대로 문제를 생성하세요.
-
-응답 형식 (각 문제에 ${languageName} 번역 포함):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+출력 형식 (JSON만, 설명·코드블록 없이)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {
   "problems": [
     {
       "word": "기본형",
-      "answer": "정답 (활용형)",
-      "sentence": "${difficulty} 수준 어휘로 만든 문장 ( ).",
-      "hint": "문법 형태만 또는 빈 문자열",
-      "translation": "정답이 들어간 완전한 문장의 ${languageName} 번역"
+      "answer": "활용형 정답",
+      "sentence": "( )가 포함된 ${difficulty} 수준 문장.",
+      "hint": "문법 형태",
+      "translation": "${languageName} 번역 with [core meaning]"
     }
   ]
 }
-
-🚨🚨🚨 번역 규칙 - 매우 중요! 🚨🚨🚨:
-- ⚠️ translation에는 ( ) 사용 금지! 정답 단어가 들어간 완전한 문장으로 번역하세요
-- 한국어 sentence의 ( )에 answer를 채운 완전한 문장을 ${languageName}로 번역
-- 🔴 **필수: 정답 단어의 '핵심 의미(Core Meaning)'만 대괄호 []로 감싸주세요!** 🔴
-  * **문법적인 패턴(Grammar Pattern)이나 보조 동사(Auxiliary Verbs)는 대괄호 밖으로 빼고, 순수 어휘(Content Word)만 감싸야 합니다.**
-  * 예시 1: 한국어 answer가 "가고 싶어요" (want to go) → translation: "I want to [go] home." (O), "I [want to go] home." (X)
-  * 예시 2: 한국어 answer가 "먹어야 해요" (have to eat) → translation: "I have to [eat] dinner." (O), "I [have to eat] dinner." (X)
-  * 예시 3: 한국어 answer가 "구독하기로 했어요" (decided to subscribe) → translation: "I decided to [subscribe] to this channel." (O), "I [decided to subscribe]..." (X)
-  * 예시 4: 한국어 answer가 "공부하기 위해서" (in order to study) → translation: "In order to [study], I went to the library." (O)
-  * 예시 5: 한국어 answer가 "연예인인 것 같아요" (seem like a celebrity) → translation: "That person seems like a [celebrity]." (O)
-- 대괄호는 정답에 해당하는 부분만 감싸세요 (중첩 금지)
-- 대괄호를 빠뜨리면 안 됩니다! 모든 문제의 translation에 반드시 대괄호가 있어야 합니다!
-- 자연스러운 ${languageName} 문장으로 번역
-- 학생이 문맥을 이해할 수 있도록 정확하게 번역
-
-🚨 중요: 반드시 JSON 형식으로만 응답하세요!
-- 어떤 설명문, 서론, 결론도 추가하지 마세요
-- \`\`\`json 이나 \`\`\` 마크다운 코드 블록 사용 금지
-- 오직 { "problems": [...] } JSON만 출력하세요
-- 첫 글자는 반드시 { 로 시작해야 합니다`;
+첫 글자는 반드시 { 로 시작하세요. \`\`\`json 마크다운 블록을 사용하지 마세요.`;
 };
 
 // 가벼운 프롬프트 (Single Regeneration용)
 const generateSimplePrompt = (words: string[], difficulty: string, _languageName: string) => {
   // 전체 가이드 대신 해당 레벨의 핵심 문법 리스트만 추출 (간략화)
-  const fullGuide = DIFFICULTY_GUIDES[difficulty] || DIFFICULTY_GUIDES["A1"];
+  const fullGuide = shuffleGrammarGuide(DIFFICULTY_GUIDES[difficulty] || DIFFICULTY_GUIDES["A1"]);
   // 가이드에서 문법 목록 부분만 간단히 사용 (줄바꿈 등으로 인해 전체 텍스트가 들어가지만, 위쪽의 긴 설명들은 제외됨)
 
-  return `역할: 한국어 교육자.
+  return `역할: 한국어 교육 전문가 겸 TOPIK 출제자.
 목표: 단어 "${words[0]}"을(를) 사용하여 ${difficulty} 수준의 빈칸 채우기 문제 1개 생성.
 
-[필수 문법 목록 - ${difficulty} 레벨]
+[핵심 원칙] 자연스러움이 최우선입니다. 한국인이 실제로 말할 법한 문장을 만드세요.
+
+[문장 생성 순서]
+1. 먼저 "${words[0]}"을(를) 일상에서 자연스럽게 사용할 구체적 상황을 떠올리세요 (학교, 직장, 카페, 여행, 건강 등).
+2. 그 상황에 가장 자연스럽게 어울리는 문법을 아래 가이드에서 골라 문장을 완성하세요.
+→ 출력에는 최종 JSON만 포함하세요.
+
+[문법 가이드 - ${difficulty}]
 ${fullGuide}
-* 위 목록 중 하나를 골라 반드시 활용하세요.
-* 문장은 자연스러워야 합니다.
+→ 위 목록에서 하나를 골라 활용하세요. 단순 종결(-아요/어요)만으로 끝내지 마세요.
 
-[작성 규칙]
-1. **명사 어휘일 때**: Answer는 "명사+조사"만! 동사는 Sentence에 남겨두세요.
-   - ✅ 예: word "미술관" -> sentence "내일 친구하고 ( ) 가요.", answer "미술관에", hint "에"
-   - ❌ 틀린 예: sentence "내일 친구하고 ( ).", answer "미술관에 가요" (동사까지 포함하면 안 됨!)
-2. **동사/형용사 어휘일 때**: Answer에 문법 패턴 포함. Sentence 빈칸 뒤에 문법 요소 없음.
-   - 예: "가다" -> answer "가기 때문에", hint "-기 때문에"
-3. Hint: 사용된 문법 형태만 표기 (설명 금지).
-   - 명사: "학교에" -> "에", "친구를" -> "을/를"
-   - 동사/형용사: "먹어서" -> "-아서/어서", "갈 거예요" -> "-(으)ㄹ 거예요"
-   - 보조용언 결합 시: "가고 싶어요" -> "-고 싶다 + 아요/어요"
-4. Translation: 대괄호[]로 정답 단어의 **핵심 의미**만 감싸세요. (문법 등 제외)
-   - 예: answer "가고 싶어요" -> "I want to [go]."
+[빈칸·정답 규칙]
+▶ 명사: answer = "명사+조사"만. 동사는 sentence에 남깁니다. ( ) 뒤에 조사를 쓰지 마세요.
+  예: word "미술관" → sentence "내일 친구하고 ( ) 가요.", answer "미술관에", hint "에"
+▶ 동사/형용사: answer에 문법 패턴 전체 포함. sentence 빈칸 뒤에 문법 요소 없음.
+  예: word "가다" → answer "가기 때문에", hint "-기 때문에"
 
-[출력 형식 - JSON Only]
+[hint] 문법 형태만 간결하게. 설명·의미 금지.
+  명사: "학교에" → "에" / 동사: "먹어서" → "-아서/어서" / 복합: "가고 싶어요" → "-고 싶다 + 아요/어요"
+
+[translation] answer가 들어간 완전한 문장을 번역. 핵심 의미만 대괄호 [].
+  예: answer "가고 싶어요" → "I want to [go]."
+
+[금지 패턴] 맥락 없는 감정 나열, 교과서식 인위적 문장, 부자연스러운 어휘 조합은 절대 금지.
+
+[출력 - JSON Only, 코드블록 없이]
 {
   "problems": [
     {
@@ -313,6 +366,226 @@ ${fullGuide}
   ]
 }`;
 };
+
+// 문장 만들기 퀴즈용 모범 답안 생성 프롬프트
+const generateSentenceMakingPrompt = (words: string[], difficulty: string, languageName: string) => {
+  const selectedGuide = DIFFICULTY_GUIDES[difficulty] || DIFFICULTY_GUIDES["A1"];
+
+  return `당신은 한국어 교육 전문가입니다. 다음 단어들을 사용하여 ${difficulty} 수준의 모범 문장을 만들어주세요.
+
+단어 목록: ${words.join(', ')}
+
+**중요: 위 단어 목록의 각 단어마다 정확히 1개씩, 총 ${words.length}개의 모범 문장을 생성해주세요.**
+
+난이도 가이드:
+${selectedGuide}
+
+규칙:
+1. 각 단어를 사용한 자연스러운 한국어 문장을 만드세요.
+2. 해당 난이도(${difficulty})에 맞는 문법과 어휘를 사용하세요.
+3. 학생이 이 문장을 참고하여 자신만의 문장을 만들 수 있도록 좋은 예시가 되어야 합니다.
+4. word_meaning은 단어의 ${languageName} 뜻을 간단히 적어주세요.
+
+응답 형식 (JSON만):
+{
+  "sentence_making_problems": [
+    {
+      "word": "단어",
+      "word_meaning": "${languageName}로 된 단어 뜻",
+      "model_answer": "단어를 사용한 자연스러운 문장"
+    }
+  ]
+}
+
+🚨 중요: 반드시 JSON 형식으로만 응답하세요! 마크다운 코드 블록 사용 금지.`;
+};
+
+// 녹음 퀴즈용 문장 생성 프롬프트
+const generateRecordingPrompt = (words: string[], difficulty: string, languageName: string, modes: Array<{ wordIndex: number; mode: "read" | "listen" }>) => {
+  const selectedGuide = DIFFICULTY_GUIDES[difficulty] || DIFFICULTY_GUIDES["A1"];
+
+  const modeDescriptions = modes.map((m, idx) =>
+    `${idx + 1}. "${words[m.wordIndex]}" - ${m.mode === 'read' ? '보고 녹음' : '듣고 녹음'}`
+  ).join('\n');
+
+  return `당신은 한국어 교육 전문가입니다. 학생들이 발음 연습을 할 수 있는 문장을 만들어주세요.
+
+단어 목록: ${words.join(', ')}
+녹음 모드:
+${modeDescriptions}
+
+난이도 가이드:
+${selectedGuide}
+
+규칙:
+1. 각 단어를 포함한 ${difficulty} 수준의 자연스러운 문장을 만드세요.
+2. 발음 연습에 적합한 길이 (너무 길지 않게)
+3. 일상적이고 실용적인 문장
+4. 각 문장의 ${languageName} 번역도 제공하세요.
+
+응답 형식 (JSON만):
+{
+  "recording_problems": [
+    {
+      "word": "단어",
+      "sentence": "발음 연습용 문장",
+      "mode": "read 또는 listen",
+      "translation": "${languageName} 번역"
+    }
+  ]
+}
+
+🚨 중요: 반드시 JSON 형식으로만 응답하세요! 마크다운 코드 블록 사용 금지.`;
+};
+
+// AI API 호출 공통 함수
+async function callAI(prompt: string, apiProvider: string): Promise<string> {
+  if (apiProvider === "claude") {
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY is not configured");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 130000);
+
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-4-5-haiku-20250514",
+          max_tokens: 8000,
+          temperature: 0.7,
+          system: "You are a helpful assistant that generates Korean language learning quizzes. You must respond ONLY with valid JSON. Do not include any markdown code blocks or explanations.",
+          messages: [
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Claude API error:", response.status, errorText);
+        throw new Error(`Claude API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.content?.[0]?.text || "";
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  } else if (apiProvider === "gemini" || apiProvider === "gemini-pro") {
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY is not configured");
+    }
+
+    const modelName = apiProvider === "gemini-pro" ? "gemini-2.5-flash" : "gemini-3.1-flash-lite-preview";
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 130000);
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            response_mime_type: "application/json",
+            temperature: 0.7,
+          }
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Gemini API error (${modelName}):`, response.status, errorText);
+        throw new Error(`Gemini API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  } else {
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 130000);
+
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: "You are a helpful assistant that generates Korean language learning content. You must respond ONLY with valid JSON." },
+            { role: "user", content: prompt },
+          ],
+          temperature: 0.7,
+          response_format: { type: "json_object" },
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("OpenAI API error:", response.status, errorText);
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || "";
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  }
+}
+
+// JSON 파싱 헬퍼 함수
+function parseAIResponse(content: string): any {
+  let jsonStr = content.trim();
+  if (jsonStr.startsWith("```")) {
+    jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```$/g, "").trim();
+  }
+
+  if (!jsonStr.startsWith("{")) {
+    console.error("AI response not JSON:", jsonStr.substring(0, 200));
+    throw new Error("AI가 JSON이 아닌 텍스트로 응답했습니다.");
+  }
+
+  try {
+    return JSON.parse(jsonStr);
+  } catch (_parseError) {
+    console.error("JSON parse error:", jsonStr.substring(0, 200));
+    throw new Error("AI 응답을 JSON으로 변환할 수 없습니다.");
+  }
+}
 
 serve(async (req) => {
   console.log("Request received:", req.method, req.url); // Log every request
@@ -370,193 +643,261 @@ serve(async (req) => {
 
     console.log(`User ${user.id} (${profileData.role}) generating quiz`);
 
-    const { words, difficulty, translationLanguage, wordsPerSet: _wordsPerSet, regenerateSingle, apiProvider = "openai" }: QuizRequest = await req.json();
-    
+    const {
+      words,
+      difficulty,
+      translationLanguage,
+      wordsPerSet: _wordsPerSet,
+      regenerateSingle,
+      apiProvider = "openai",
+      sentenceMakingEnabled = false,
+      recordingEnabled = false,
+      recordingMode = "read",
+      recordingModes = [],
+      skipFillBlank = false,
+    }: QuizRequest = await req.json();
+
     const languageName = LANGUAGE_NAMES[translationLanguage] || "영어";
-    
-    // regenerateSingle이 true이면 가벼운 프롬프트 사용
-    const prompt = regenerateSingle 
-      ? generateSimplePrompt(words, difficulty, languageName)
-      : generateDetailedPrompt(words, difficulty, languageName);
 
-    console.log(`Generating quiz using ${apiProvider} for ${words.length} words at ${difficulty} level`);
+    // 빈칸 채우기 문제 배열 초기화
+    let problems: Problem[] = [];
 
-    let content: string;
+    // skipFillBlank가 false일 때만 빈칸 채우기 생성
+    if (!skipFillBlank) {
+      // regenerateSingle이 true이면 가벼운 프롬프트 사용
+      const prompt = regenerateSingle
+        ? generateSimplePrompt(words, difficulty, languageName)
+        : generateDetailedPrompt(words, difficulty, languageName);
 
-    if (apiProvider === "gemini" || apiProvider === "gemini-pro") {
-      const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-      if (!GEMINI_API_KEY) {
-        throw new Error("GEMINI_API_KEY is not configured");
-      }
+      console.log(`Generating quiz using ${apiProvider} for ${words.length} words at ${difficulty} level`);
 
-      const modelName = apiProvider === "gemini-pro" ? "gemini-3-pro-preview" : "gemini-3-flash-preview";
+      let content: string;
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 130000); // 130 second timeout
-
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              response_mime_type: "application/json",
-              temperature: 0.7,
-            }
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Gemini API error (${modelName}):`, response.status, errorText);
-          throw new Error(`Gemini API error: ${response.status}`);
+      if (apiProvider === "gemini" || apiProvider === "gemini-pro") {
+        const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+        if (!GEMINI_API_KEY) {
+          throw new Error("GEMINI_API_KEY is not configured");
         }
 
-        const data = await response.json();
-        content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      } catch (error) {
-        clearTimeout(timeoutId);
-        throw error;
-      }
+        const modelName = apiProvider === "gemini-pro" ? "gemini-3-pro-preview" : "gemini-3-flash-preview";
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 130000);
 
-    } else {
-      const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-      if (!OPENAI_API_KEY) {
-        throw new Error("OPENAI_API_KEY is not configured");
-      }
+        try {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                response_mime_type: "application/json",
+                temperature: 0.7,
+              }
+            }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 130000); // 130 second timeout
-
-      try {
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENAI_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "gpt-5.2",
-            messages: [
-              { 
-                role: "system", 
-                content: "You are a helpful assistant that generates Korean language learning quizzes. You must respond ONLY with valid JSON." 
-              },
-              { role: "user", content: prompt },
-            ],
-            temperature: 0.7,
-            response_format: { type: "json_object" },
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("OpenAI API error:", response.status, errorText);
-          
-          if (response.status === 429) {
-            return new Response(
-              JSON.stringify({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }),
-              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Gemini API error (${modelName}):`, response.status, errorText);
+            throw new Error(`Gemini API error: ${response.status}`);
           }
-          
-          throw new Error(`OpenAI API error: ${response.status}`);
+
+          const data = await response.json();
+          content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
         }
-
-        const data = await response.json();
-        content = data.choices?.[0]?.message?.content;
-      } catch (error) {
-        clearTimeout(timeoutId);
-        throw error;
-      }
-
-
-    }
-
-    if (!content) {
-      throw new Error("No content received from AI");
-    }
-
-    // Parse JSON from response (handle markdown code blocks)
-    let jsonStr = content.trim();
-    if (jsonStr.startsWith("```")) {
-      jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```$/g, "").trim();
-    }
-
-    // Validate JSON starts correctly
-    if (!jsonStr.startsWith("{")) {
-      console.error("AI response not JSON:", jsonStr.substring(0, 200));
-      throw new Error("AI가 JSON이 아닌 텍스트로 응답했습니다. 다시 시도해주세요.");
-    }
-
-    let parsed;
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch (_parseError) {
-      console.error("JSON parse error:", jsonStr.substring(0, 200));
-      throw new Error("AI 응답을 JSON으로 변환할 수 없습니다. 다시 시도해주세요.");
-    }
-
-    if (!parsed.problems || parsed.problems.length === 0) {
-      throw new Error("생성된 문제가 없습니다");
-    }
-
-    // Keep problems in original order (same as input words)
-    const orderedProblems: (Problem | null)[] = [];
-    const availableProblems: Problem[] = [...parsed.problems];
-    
-    for (const word of words) {
-      const matchIndex = availableProblems.findIndex((p: Problem) => p.word.trim() === word.trim());
-      if (matchIndex !== -1) {
-        orderedProblems.push(availableProblems[matchIndex]);
-        availableProblems.splice(matchIndex, 1);
       } else {
-        // If exact match not found, store null to fill later
-        orderedProblems.push(null);
-      }
-    }
+        const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+        if (!OPENAI_API_KEY) {
+          throw new Error("OPENAI_API_KEY is not configured");
+        }
 
-    // Fill any unmatched slots with remaining problems
-    for (let i = 0; i < orderedProblems.length; i++) {
-      if (orderedProblems[i] === null) {
-        if (availableProblems.length > 0) {
-          const shifted = availableProblems.shift();
-          if (shifted) {
-            orderedProblems[i] = shifted;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 130000);
+
+        try {
+          const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${OPENAI_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "gpt-5.2",
+              messages: [
+                {
+                  role: "system",
+                  content: "You are a helpful assistant that generates Korean language learning quizzes. You must respond ONLY with valid JSON."
+                },
+                { role: "user", content: prompt },
+              ],
+              temperature: 0.7,
+              response_format: { type: "json_object" },
+            }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("OpenAI API error:", response.status, errorText);
+
+            if (response.status === 429) {
+              return new Response(
+                JSON.stringify({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }),
+                { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+
+            throw new Error(`OpenAI API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          content = data.choices?.[0]?.message?.content;
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+      }
+
+      if (!content) {
+        throw new Error("No content received from AI");
+      }
+
+      // Parse JSON from response (handle markdown code blocks)
+      let jsonStr = content.trim();
+      if (jsonStr.startsWith("```")) {
+        jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```$/g, "").trim();
+      }
+
+      // Validate JSON starts correctly
+      if (!jsonStr.startsWith("{")) {
+        console.error("AI response not JSON:", jsonStr.substring(0, 200));
+        throw new Error("AI가 JSON이 아닌 텍스트로 응답했습니다. 다시 시도해주세요.");
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(jsonStr);
+      } catch (_parseError) {
+        console.error("JSON parse error:", jsonStr.substring(0, 200));
+        throw new Error("AI 응답을 JSON으로 변환할 수 없습니다. 다시 시도해주세요.");
+      }
+
+      if (!parsed.problems || parsed.problems.length === 0) {
+        throw new Error("생성된 문제가 없습니다");
+      }
+
+      // Keep problems in original order (same as input words)
+      const orderedProblems: (Problem | null)[] = [];
+      const availableProblems: Problem[] = [...parsed.problems];
+
+      for (const word of words) {
+        const matchIndex = availableProblems.findIndex((p: Problem) => p.word.trim() === word.trim());
+        if (matchIndex !== -1) {
+          orderedProblems.push(availableProblems[matchIndex]);
+          availableProblems.splice(matchIndex, 1);
+        } else {
+          orderedProblems.push(null);
+        }
+      }
+
+      // Fill any unmatched slots with remaining problems
+      for (let i = 0; i < orderedProblems.length; i++) {
+        if (orderedProblems[i] === null) {
+          if (availableProblems.length > 0) {
+            const shifted = availableProblems.shift();
+            if (shifted) {
+              orderedProblems[i] = shifted;
+            }
           }
         }
       }
+
+      // Filter out any remaining nulls
+      const validProblems = orderedProblems.filter((p): p is Problem => p !== null);
+
+      problems = validProblems.map((p: Problem, index: number) => ({
+        id: `problem-${Date.now()}-${index}`,
+        word: p.word,
+        answer: p.answer,
+        sentence: p.sentence,
+        hint: p.hint || "",
+        translation: p.translation,
+      }));
+
+      console.log(`Successfully generated ${problems.length} fill-blank problems`);
+    } else {
+      console.log(`Skipping fill-blank generation (skipFillBlank=true)`);
     }
-    
-    // Filter out any remaining nulls (in case AI generated fewer problems than requested)
-    const validProblems = orderedProblems.filter((p): p is Problem => p !== null);
-    
-    // If we still have available problems (AI generated more than requested?), append them?
-    // The prompt asks for exact count. If we have extras, we might as well include them if they are good, 
-    // or ignore them to match strict count. 
-    // Let's just use what we have matched + filled.
 
-    const problems: Problem[] = validProblems.map((p: Problem, index: number) => ({
-      id: `problem-${Date.now()}-${index}`,
-      word: p.word,
-      answer: p.answer,
-      sentence: p.sentence,
-      hint: p.hint || "",
-      translation: p.translation,
-    }));
+    // 응답 객체 초기화
+    const responseData: {
+      problems: Problem[];
+      sentenceMakingProblems?: SentenceMakingProblem[];
+      recordingProblems?: RecordingProblem[];
+    } = { problems };
 
-    console.log(`Successfully generated ${problems.length} problems`);
+    // 문장 만들기 퀴즈 생성 (AI 호출 불필요 - 단어 목록만 반환)
+    if (sentenceMakingEnabled && !regenerateSingle) {
+      console.log(`Creating sentence making problems for ${words.length} words`);
+      // 단어 목록으로 문제 생성 (AI 채점은 학생이 제출할 때 진행)
+      const smProblems: SentenceMakingProblem[] = words.map((word, index) => ({
+        problem_id: `sm-${Date.now()}-${index}`,
+        word: word,
+        word_meaning: "", // 학생에게 표시 안 함
+        model_answer: "", // 더 이상 사용 안 함 - AI가 실시간 채점
+      }));
+      responseData.sentenceMakingProblems = smProblems;
+      console.log(`Created ${smProblems.length} sentence making problems`);
+    }
+
+    // 녹음 퀴즈 생성 - QuizPreview에서 빈칸 채우기 문장을 기반으로 생성
+    if (recordingEnabled && !regenerateSingle) {
+      // 빈 배열 반환 - QuizPreview에서 빈칸 채우기 문장을 기반으로 녹음 문장 생성
+      responseData.recordingProblems = [];
+      console.log("Recording problems will be generated in QuizPreview from fill-blank sentences");
+    }
+
+    // 이전 AI 기반 녹음 문제 생성 로직 (주석 처리)
+    // if (recordingEnabled && !regenerateSingle) {
+    //   console.log(`Generating recording problems for ${words.length} words`);
+    //   try {
+    //     const finalModes = recordingModes.length > 0
+    //       ? recordingModes
+    //       : words.map((_, idx) => ({ wordIndex: idx, mode: recordingMode as "read" | "listen" }));
+    //
+    //     const recPrompt = generateRecordingPrompt(words, difficulty, languageName, finalModes);
+    //     const recContent = await callAI(recPrompt, apiProvider);
+    //     const recParsed = parseAIResponse(recContent);
+    //
+    //     if (recParsed.recording_problems && recParsed.recording_problems.length > 0) {
+    //       const recProblems: RecordingProblem[] = recParsed.recording_problems.map(
+    //         (p: { word: string; sentence: string; mode: string; translation: string }, index: number) => ({
+    //           problem_id: `rec-${Date.now()}-${index}`,
+    //           sentence: p.sentence,
+    //           mode: (p.mode === "listen" ? "listen" : "read") as "read" | "listen",
+    //           translation: p.translation || "",
+    //         })
+    //       );
+    //       responseData.recordingProblems = recProblems;
+    //       console.log(`Successfully generated ${recProblems.length} recording problems`);
+    //     }
+    //   } catch (recError) {
+    //     console.error("Error generating recording problems:", recError);
+    //     // 녹음 생성 실패해도 기본 퀴즈는 반환
+    //   }
+    // }
 
     return new Response(
-      JSON.stringify({ problems }),
+      JSON.stringify(responseData),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
