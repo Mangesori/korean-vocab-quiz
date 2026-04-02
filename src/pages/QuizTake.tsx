@@ -333,25 +333,105 @@ export default function QuizTake() {
         
         localStorage.setItem('anonymous_quiz_result', JSON.stringify(resultData));
         
+        // Calculate sub-scores for sentence_making and recording
+        let smScore = 0, smTotal = 0;
+        let recScore = 0, recTotal = 0;
+
+        if (quiz.sentence_making_enabled && Object.keys(sentenceMakingResults).length > 0) {
+          smTotal = sentenceMakingProblems.length;
+          smScore = sentenceMakingProblems.filter((p: any) =>
+            (sentenceMakingResults[p.id] as any[])?.some((a: any) => a.isPassed)
+          ).length;
+        }
+
+        if (quiz.recording_enabled && stageResults.recording) {
+          recTotal = recordingProblems.length;
+          recScore = recordingProblems.filter((p: any) => {
+            const problemAttempts = (stageResults.recording[p.id] || []) as any[];
+            return problemAttempts.some((a: any) => a.isPassed);
+          }).length;
+        }
+
         // Save to Database
         if (shareToken) {
-           const { error: insertError } = await supabase
+          const { data: insertedResult, error: insertError } = await supabase
             .from("quiz_results")
             .insert({
               quiz_id: quiz.id,
               student_id: user ? user.id : null,
-              score: correctCount,
-              total_questions: quiz.problems.length,
+              score: correctCount + smScore + recScore,
+              total_questions: quiz.problems.length + smTotal + recTotal,
               answers: detailedAnswers,
               is_anonymous: !user,
               anonymous_name: user ? "" : (anonymousName || "Anonymous"),
               share_token: shareToken,
               completed_at: new Date().toISOString(),
-            });
+              fill_blank_score: correctCount,
+              fill_blank_total: quiz.problems.length,
+              sentence_making_score: smTotal > 0 ? smScore : null,
+              sentence_making_total: smTotal > 0 ? smTotal : null,
+              recording_score: recTotal > 0 ? recScore : null,
+              recording_total: recTotal > 0 ? recTotal : null,
+            })
+            .select('id')
+            .single();
 
           if (insertError) {
             console.error("Failed to save result:", insertError);
             toast.error("결과 저장에 실패했지만, 로컬 결과는 확인할 수 있습니다.");
+          }
+
+          // Save sentence_making_answers
+          if (insertedResult && quiz.sentence_making_enabled && Object.keys(sentenceMakingResults).length > 0) {
+            const smAnswers: any[] = [];
+            for (const [problemId, attempts] of Object.entries(sentenceMakingResults) as [string, any[]][]) {
+              for (const attempt of attempts) {
+                smAnswers.push({
+                  quiz_id: quiz.id,
+                  result_id: insertedResult.id,
+                  problem_id: problemId,
+                  student_id: user ? user.id : null,
+                  attempt_number: attempt.attemptNumber,
+                  student_sentence: attempt.sentence,
+                  word_usage_score: attempt.wordUsageScore || 0,
+                  grammar_score: attempt.grammarScore || 0,
+                  naturalness_score: attempt.naturalnessScore || 0,
+                  total_score: attempt.totalScore,
+                  ai_feedback: attempt.feedback,
+                  model_answer: attempt.modelAnswer,
+                  is_passed: attempt.isPassed,
+                });
+              }
+            }
+            const { error: smError } = await (supabase as any).from("sentence_making_answers").insert(smAnswers);
+            if (smError) console.error("Failed to save sentence making answers:", smError);
+          }
+
+          // Save recording_answers
+          if (insertedResult && quiz.recording_enabled && stageResults.recording) {
+            const recAnswers: any[] = [];
+            for (const [problemId, attempts] of Object.entries(stageResults.recording) as [string, any[]][]) {
+              for (const attempt of attempts) {
+                recAnswers.push({
+                  quiz_id: quiz.id,
+                  result_id: insertedResult.id,
+                  problem_id: problemId,
+                  student_id: user ? user.id : null,
+                  attempt_number: attempt.attemptNumber,
+                  recording_url: attempt.recordingUrl,
+                  pronunciation_score: attempt.pronunciationScore,
+                  accuracy_score: attempt.accuracyScore,
+                  fluency_score: attempt.fluencyScore,
+                  completeness_score: attempt.completenessScore,
+                  prosody_score: attempt.prosodyScore,
+                  overall_score: attempt.overallScore,
+                  word_level_feedback: attempt.wordLevelFeedback,
+                  is_passed: attempt.isPassed,
+                });
+              }
+            }
+            const { error: recError } = await (supabase as any).from("recording_answers").insert(recAnswers);
+            if (recError) console.error("Failed to save recording answers:", recError);
           }
 
           // Increment completion count for the share link
@@ -360,7 +440,7 @@ export default function QuizTake() {
             .select("completion_count")
             .eq("share_token", shareToken)
             .single();
-          
+
           if (shareData) {
             await supabase
               .from("quiz_shares")

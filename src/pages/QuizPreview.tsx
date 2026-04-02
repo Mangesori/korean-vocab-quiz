@@ -515,7 +515,7 @@ export default function QuizPreview() {
           sentence: p.sentence,
           mode: p.mode,
           translation: p.translation || null,
-          source_type: 'reuse', // 빈칸 채우기 문장 재사용
+          source_type: 'reuse' as const, // 빈칸 채우기 문장 재사용
         }));
 
         const { error: recError } = await supabase.from("recording_problems").insert(recProblemsToInsert);
@@ -657,7 +657,7 @@ export default function QuizPreview() {
 
               {!isLastStage ? (
                 <Button onClick={handleNextStage} size="lg">
-                  다음: {nextStage === "sentence_making" ? "문장 만들기" : "녹음"}
+                  다음: {nextStage === "sentence_making" ? "문장 만들기" : "말하기 연습"}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               ) : (
@@ -688,7 +688,7 @@ export default function QuizPreview() {
                   <span className="text-sm font-medium whitespace-nowrap">
                     {stage === "fill_blank" && "빈칸 채우기"}
                     {stage === "sentence_making" && "문장 만들기"}
-                    {stage === "recording" && "녹음"}
+                    {stage === "recording" && "말하기 연습"}
                   </span>
                 </div>
                 {index < enabledStages.length - 1 && (
@@ -966,13 +966,6 @@ export default function QuizPreview() {
             ) : (
               /* 교사 편집 화면: 편집 가능한 카드 그리드 */
               <div className="space-y-4">
-                <div className="flex justify-end">
-                  <Button onClick={addSentenceMakingProblem} size="sm">
-                    <Plus className="w-4 h-4 mr-2" />
-                    단어 추가
-                  </Button>
-                </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {draft.sentenceMakingProblems.map((problem, index) => (
                     <Card key={problem.problem_id} className="hover:shadow-md transition-shadow">
@@ -1012,6 +1005,14 @@ export default function QuizPreview() {
                     </Card>
                   ))}
                 </div>
+                <Button
+                  variant="outline"
+                  className="w-full h-12 border-dashed flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors mt-4"
+                  onClick={addSentenceMakingProblem}
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  단어 추가하기
+                </Button>
               </div>
             )}
           </div>
@@ -1021,9 +1022,9 @@ export default function QuizPreview() {
         {previewStage === "recording" && draft.recordingProblems && draft.recordingProblems.length > 0 && (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2">녹음 문제 목록</h2>
+              <h2 className="text-2xl font-bold mb-2">말하기 연습 문제 목록</h2>
               <p className="text-muted-foreground">
-                학생들은 각 문장을 녹음해야 합니다. (저장 후 QuizDetail에서 상세 편집 가능)
+                학생들은 각 문장을 보고 듣고 말해야 합니다. (저장 후 QuizDetail에서 상세 편집 가능)
               </p>
             </div>
 
@@ -1053,13 +1054,6 @@ export default function QuizPreview() {
             ) : (
               /* 교사 편집 화면: 편집 가능한 카드 레이아웃 */
               <div className="space-y-4">
-                <div className="flex justify-end">
-                  <Button onClick={addRecordingProblem} size="sm">
-                    <Plus className="w-4 h-4 mr-2" />
-                    문제 추가
-                  </Button>
-                </div>
-
                 {draft.recordingProblems.map((problem, index) => (
                   <Card key={problem.problem_id} className="overflow-hidden hover:shadow-md transition-shadow">
                     <CardHeader className="py-3 px-4 bg-muted/30">
@@ -1083,13 +1077,13 @@ export default function QuizPreview() {
                               <SelectItem value="read">
                                 <div className="flex items-center gap-2">
                                   <Eye className="w-4 h-4" />
-                                  보고 읽기
+                                  보고 말하기
                                 </div>
                               </SelectItem>
                               <SelectItem value="listen">
                                 <div className="flex items-center gap-2">
                                   <EyeOff className="w-4 h-4" />
-                                  듣고 따라하기
+                                  듣고 말하기
                                 </div>
                               </SelectItem>
                             </SelectContent>
@@ -1126,7 +1120,7 @@ export default function QuizPreview() {
                         <Textarea
                           value={problem.sentence}
                           onChange={(e) => updateRecordingProblem(problem.problem_id, "sentence", e.target.value)}
-                          placeholder="녹음할 문장 입력"
+                          placeholder="말하기 연습할 문장 입력"
                           className="mt-1 min-h-[80px]"
                         />
                       </div>
@@ -1144,6 +1138,14 @@ export default function QuizPreview() {
                     </CardContent>
                   </Card>
                 ))}
+                <Button
+                  variant="outline"
+                  className="w-full h-12 border-dashed flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors mt-4"
+                  onClick={addRecordingProblem}
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  문제 추가하기
+                </Button>
               </div>
             )}
           </div>
@@ -1163,7 +1165,7 @@ export default function QuizPreview() {
 
           {!isLastStage ? (
             <Button onClick={handleNextStage} size="lg">
-              다음: {nextStage === "sentence_making" ? "문장 만들기" : "녹음"}
+              다음: {nextStage === "sentence_making" ? "문장 만들기" : "말하기 연습"}
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (

@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit2, Save, X, Loader2, Trash2, Volume2, Eye, EyeOff } from "lucide-react";
+import { Edit2, Save, Loader2, Trash2, Volume2, Eye, EyeOff, Plus } from "lucide-react";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -29,46 +30,74 @@ export function RecordingProblemList({
   problems,
   onRefresh,
 }: RecordingProblemListProps) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState<Partial<RecordingProblem>>({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedProblems, setEditedProblems] = useState<RecordingProblem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { id: quizId } = useParams<{ id: string }>();
 
-  const handleEdit = (problem: RecordingProblem) => {
-    setEditingId(problem.id);
-    setEditData({
-      sentence: problem.sentence,
-      mode: problem.mode,
-      translation: problem.translation || "",
-    });
+  useEffect(() => {
+    if (!isEditing) {
+      setEditedProblems(problems);
+    }
+  }, [problems, isEditing]);
+
+  const handleUpdateProblem = (id: string, field: keyof RecordingProblem, value: string) => {
+    setEditedProblems((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
+    );
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditData({});
+  const handleAddProblem = () => {
+    const newId = `temp-${crypto.randomUUID()}`;
+    const newProblem: RecordingProblem = {
+      id: newId,
+      quiz_id: quizId || '',
+      problem_id: `rec-${crypto.randomUUID().slice(0, 8)}`,
+      sentence: '',
+      mode: 'read',
+      sentence_audio_url: null,
+      translation: '',
+      source_type: 'teacher_input',
+      created_at: new Date().toISOString()
+    };
+    setEditedProblems(prev => [...prev, newProblem]);
+    if (!isEditing) setIsEditing(true);
   };
 
-  const handleSave = async (problemId: string) => {
+  const handleSaveAll = async () => {
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from("recording_problems")
-        .update({
-          sentence: editData.sentence,
-          mode: editData.mode,
-          translation: editData.translation || null,
+      await Promise.all(
+        editedProblems.map((problem) => {
+          if (problem.id.startsWith('temp-')) {
+            return supabase.from("recording_problems").insert({
+              quiz_id: problem.quiz_id,
+              problem_id: problem.problem_id,
+              sentence: problem.sentence,
+              mode: problem.mode,
+              translation: problem.translation || null,
+              source_type: (problem.source_type || 'teacher_input') as "reuse" | "ai_generated" | "teacher_input"
+            });
+          } else {
+            return supabase
+              .from("recording_problems")
+              .update({
+                sentence: problem.sentence,
+                mode: problem.mode,
+                translation: problem.translation || null,
+              })
+              .eq("id", problem.id);
+          }
         })
-        .eq("id", problemId);
+      );
 
-      if (error) throw error;
-
-      toast.success("문제가 저장되었습니다");
-      setEditingId(null);
-      setEditData({});
+      toast.success("전체 문제가 저장되었습니다");
+      setIsEditing(false);
       onRefresh();
     } catch (error: any) {
       console.error("Save error:", error);
-      toast.error(error.message || "저장에 실패했습니다");
+      toast.error(error.message || "전체 저장에 실패했습니다");
     } finally {
       setIsSaving(false);
     }
@@ -96,25 +125,56 @@ export function RecordingProblemList({
     }
   };
 
-  if (problems.length === 0) {
+  if (problems.length === 0 && editedProblems.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        녹음 문제가 없습니다.
+        말하기 연습 문제가 없습니다.
+        <div className="mt-4">
+          <Button variant="outline" onClick={handleAddProblem}>
+            <Plus className="w-4 h-4 mr-2" />
+            문제 추가하기
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-lg font-semibold">녹음 문제</h2>
-        <span className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground font-medium">
-          {problems.length}개
-        </span>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">말하기 연습 문제</h2>
+          <span className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground font-medium">
+            {problems.length}개
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button
+            variant={isEditing ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setIsEditing(!isEditing)}
+            className="w-full sm:w-auto"
+          >
+            <Edit2 className="w-4 h-4 mr-2" />
+            <span>{isEditing ? "수정 취소" : "수정하기"}</span>
+          </Button>
+          
+          <Button
+            onClick={handleSaveAll}
+            disabled={isSaving || !isEditing || editedProblems.length === 0}
+            size="sm"
+            className="w-full sm:w-auto"
+            variant="default"
+          >
+            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            <span>저장하기</span>
+          </Button>
+        </div>
       </div>
 
       {problems.map((problem, index) => {
-        const isEditing = editingId === problem.id;
+        const editedData = editedProblems.find((p) => p.id === problem.id) || problem;
 
         return (
           <Card key={problem.id} className="overflow-hidden">
@@ -124,55 +184,50 @@ export function RecordingProblemList({
                   <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
                     {index + 1}
                   </span>
-                  <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground text-sm font-medium flex items-center gap-1">
-                    {problem.mode === "read" ? (
-                      <>
-                        <Eye className="w-3.5 h-3.5" />
-                        보고 읽기
-                      </>
-                    ) : (
-                      <>
-                        <EyeOff className="w-3.5 h-3.5" />
-                        듣고 말하기
-                      </>
-                    )}
-                  </span>
+                  {isEditing ? (
+                    <Select
+                      value={editedData.mode}
+                      onValueChange={(value: "read" | "listen") =>
+                        handleUpdateProblem(problem.id, "mode", value)
+                      }
+                    >
+                      <SelectTrigger className="w-[140px] sm:w-[160px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="read">
+                          <div className="flex items-center gap-2">
+                            <Eye className="w-4 h-4" />
+                            보고 말하기
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="listen">
+                          <div className="flex items-center gap-2">
+                            <EyeOff className="w-4 h-4" />
+                            듣고 말하기
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground text-sm font-medium flex items-center gap-1">
+                      {editedData.mode === "read" ? (
+                        <>
+                          <Eye className="w-3.5 h-3.5" />
+                          보고 말하기
+                        </>
+                      ) : (
+                        <>
+                          <EyeOff className="w-3.5 h-3.5" />
+                          듣고 말하기
+                        </>
+                      )}
+                    </span>
+                  )}
                 </div>
                 <div className="flex gap-2">
-                  {isEditing ? (
+                  {!isEditing && (
                     <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCancelEdit}
-                        disabled={isSaving}
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        취소
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleSave(problem.id)}
-                        disabled={isSaving}
-                      >
-                        {isSaving ? (
-                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        ) : (
-                          <Save className="w-4 h-4 mr-1" />
-                        )}
-                        저장
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(problem)}
-                      >
-                        <Edit2 className="w-4 h-4 mr-1" />
-                        수정
-                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -199,41 +254,19 @@ export function RecordingProblemList({
                 </Label>
                 {isEditing ? (
                   <Textarea
-                    value={editData.sentence || ""}
+                    value={editedData.sentence || ""}
                     onChange={(e) =>
-                      setEditData({ ...editData, sentence: e.target.value })
+                      handleUpdateProblem(problem.id, "sentence", e.target.value)
                     }
-                    placeholder="녹음할 문장을 입력하세요"
+                    placeholder="말하기 연습할 문장을 입력하세요"
                     className="bg-muted/30 min-h-[80px]"
                   />
                 ) : (
                   <p className="px-3 py-2 rounded-md bg-muted/30 text-lg">
-                    {problem.sentence}
+                    {editedData.sentence}
                   </p>
                 )}
               </div>
-
-              {isEditing && (
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground text-xs uppercase tracking-wide">
-                    모드
-                  </Label>
-                  <Select
-                    value={editData.mode}
-                    onValueChange={(value: "read" | "listen") =>
-                      setEditData({ ...editData, mode: value })
-                    }
-                  >
-                    <SelectTrigger className="bg-muted/30">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="read">보고 읽기</SelectItem>
-                      <SelectItem value="listen">듣고 말하기</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
 
               <div className="space-y-2">
                 <Label className="text-muted-foreground text-xs uppercase tracking-wide">
@@ -241,16 +274,16 @@ export function RecordingProblemList({
                 </Label>
                 {isEditing ? (
                   <Textarea
-                    value={editData.translation || ""}
+                    value={editedData.translation || ""}
                     onChange={(e) =>
-                      setEditData({ ...editData, translation: e.target.value })
+                      handleUpdateProblem(problem.id, "translation", e.target.value)
                     }
                     placeholder="번역을 입력하세요"
                     className="bg-muted/30 min-h-[60px]"
                   />
                 ) : (
                   <p className="px-3 py-2 rounded-md bg-muted/30 text-sm text-muted-foreground">
-                    {problem.translation || "(없음)"}
+                    {editedData.translation || "(없음)"}
                   </p>
                 )}
               </div>
@@ -277,6 +310,15 @@ export function RecordingProblemList({
           </Card>
         );
       })}
+
+      <Button
+        variant="outline"
+        className="w-full h-12 border-dashed flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors mt-4"
+        onClick={handleAddProblem}
+      >
+        <Plus className="w-5 h-5 mr-2" />
+        문제 추가하기
+      </Button>
     </div>
   );
 }

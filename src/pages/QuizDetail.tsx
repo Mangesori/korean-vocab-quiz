@@ -349,11 +349,11 @@ export default function QuizDetail() {
       });
 
       if (error || data?.error) {
-        throw new Error(data?.error || error?.message || "녹음 문제 생성 실패");
+        throw new Error(data?.error || error?.message || "말하기 연습 문제 생성 실패");
       }
 
       if (!data.recordingProblems || data.recordingProblems.length === 0) {
-        throw new Error("녹음 문제가 생성되지 않았습니다");
+        throw new Error("말하기 연습 문제가 생성되지 않았습니다");
       }
 
       // 2. recording_problems 테이블에 삽입
@@ -371,7 +371,7 @@ export default function QuizDetail() {
         .insert(recProblemsToInsert);
 
       if (insertError) {
-        throw new Error("녹음 문제 저장 실패: " + insertError.message);
+        throw new Error("말하기 연습 문제 저장 실패: " + insertError.message);
       }
 
       // 3. quizzes 테이블 업데이트
@@ -384,13 +384,13 @@ export default function QuizDetail() {
         throw new Error("퀴즈 설정 업데이트 실패: " + updateError.message);
       }
 
-      toast.success("녹음이 추가되었습니다!");
+      toast.success("말하기 연습이 추가되었습니다!");
       refetchQuiz();
       refetchRecording();
       setProblemTab("recording");
     } catch (error: any) {
       console.error("Add recording error:", error);
-      toast.error(error.message || "녹음 추가에 실패했습니다");
+      toast.error(error.message || "말하기 연습 추가에 실패했습니다");
     } finally {
       setIsAddingRecording(false);
     }
@@ -524,7 +524,7 @@ export default function QuizDetail() {
                     className="gap-2"
                   >
                     <Mic className="w-4 h-4" />
-                    녹음 ({recordingProblems.length})
+                    말하기 연습 ({recordingProblems.length})
                   </Button>
                 )}
               </div>
@@ -571,7 +571,7 @@ export default function QuizDetail() {
               />
             )}
 
-            {/* 녹음 문제 목록 */}
+            {/* 말하기 연습 문제 목록 */}
             {problemTab === "recording" && quiz.recording_enabled && (
               <RecordingProblemList
                 problems={recordingProblems}

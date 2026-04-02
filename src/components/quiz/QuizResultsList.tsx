@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -20,9 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, User, UserCircle, Loader2, Eye } from "lucide-react";
-import { QuizReviewCard } from "@/components/quiz/QuizReviewCard";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { User, Loader2, Eye } from "lucide-react";
 import { QuizResultDialog } from "@/components/quiz/QuizResultDialog";
 
 interface QuizResultsListProps {
@@ -173,12 +170,13 @@ export function QuizResultsList({ quizId }: QuizResultsListProps) {
       </div>
 
       {/* Result Detail Dialog */}
-      <QuizResultDialog 
+      <QuizResultDialog
         isOpen={!!selectedResult}
         onClose={() => setSelectedResult(null)}
         result={selectedResult}
         studentName={selectedResult ? (selectedResult.is_anonymous ? selectedResult.anonymous_name || "익명" : selectedResult.student_profile?.name || "알 수 없음") : ""}
         isAnonymous={selectedResult?.is_anonymous}
+        quizId={quizId}
       />
     </div>
   );

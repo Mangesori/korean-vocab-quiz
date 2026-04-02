@@ -449,7 +449,7 @@ function RecordingStage() {
       mode: "listen",
       sentence: "저는 매일 아침 9시에 학교에 가요.",
       translation: "I go to school at 9am every morning.",
-      state: "recording", // 녹음 진행 중 예시
+      state: "recording", // 말하기 연습 진행 중 예시
     },
     {
       num: "2/3",
@@ -457,7 +457,7 @@ function RecordingStage() {
       mode: "read",
       sentence: "배고파요. 그런데 음식이 없어요.",
       translation: "I'm hungry. But there is no food.",
-      state: "completed", // 녹음 완료 예시
+      state: "completed", // 말하기 연습 완료 예시
     }
   ];
 
@@ -497,7 +497,7 @@ function RecordingStage() {
                 
                 {p.mode === "listen" && (
                   <div className="flex flex-col items-center justify-center space-y-4">
-                    <p className="text-xs sm:text-sm text-muted-foreground font-medium">음성을 듣고 따라 녹음하세요</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-medium">음성을 듣고 따라 말하기 연습하세요</p>
                     <Button variant="outline" className="flex items-center justify-center rounded-xl px-6 h-11 bg-white hover:bg-slate-50 transition-colors shadow-sm text-sm">
                       <Volume2 className="w-4 h-4 mr-2" />
                       <span className="font-semibold">듣기</span>
@@ -517,7 +517,7 @@ function RecordingStage() {
                 <Button size="lg" className="rounded-full w-24 h-24 shadow-md bg-primary hover:bg-primary/90">
                   <Mic className="w-10 h-10 text-primary-foreground" />
                 </Button>
-                <p className="text-sm text-muted-foreground font-medium animate-pulse mt-2">마이크 버튼을 눌러 녹음을 시작하세요</p>
+                <p className="text-sm text-muted-foreground font-medium animate-pulse mt-2">마이크 버튼을 눌러 말하기 연습을 시작하세요</p>
               </div>
             ) : (
               /* Result (after recording) */

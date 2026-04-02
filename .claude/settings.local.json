@@ -22,7 +22,11 @@
       "WebFetch(domain:elevenlabs.io)",
       "WebFetch(domain:gist.github.com)",
       "WebFetch(domain:json2video.com)",
-      "mcp__supabase__sqlToRest"
+      "mcp__supabase__sqlToRest",
+      "Bash(~/.claude/skills/gstack/bin/gstack-config set:*)",
+      "Bash(~/.claude/skills/gstack/bin/gstack-learnings-search:*)",
+      "Bash(start:*)",
+      "Bash(start https://paulgraham.com/schlep.html)"
     ]
   },
   "enableAllProjectMcpServers": true,

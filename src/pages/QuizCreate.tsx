@@ -405,7 +405,7 @@ export default function QuizCreate() {
                   >
                     <div className="flex items-center gap-2">
                       <Mic className={`w-4 h-4 ${recordingEnabled ? "text-primary" : "text-muted-foreground"}`} />
-                      <span className="font-bold text-foreground">녹음</span>
+                      <span className="font-bold text-foreground">말하기 연습</span>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">발음 평가</div>
                     <div className={`text-xs mt-0.5 ${recordingEnabled ? "text-primary" : "text-muted-foreground"}`}>
@@ -446,19 +446,6 @@ export default function QuizCreate() {
 
                   <button
                     type="button"
-                    onClick={() => setApiProvider("gemini")}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      apiProvider === "gemini"
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border hover:border-border-foreground/20 hover:bg-muted/30"
-                    }`}
-                  >
-                    <div className="font-bold text-foreground">Gemini</div>
-                    <div className="text-xs text-muted-foreground mt-1">3.1 Flash lite</div>
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={() => setApiProvider("gemini-pro")}
                     className={`p-4 rounded-xl border-2 text-left transition-all ${
                       apiProvider === "gemini-pro"
@@ -468,6 +455,19 @@ export default function QuizCreate() {
                   >
                     <div className="font-bold text-foreground">Gemini</div>
                     <div className="text-xs text-muted-foreground mt-1">2.5 Flash</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setApiProvider("gemini")}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      apiProvider === "gemini"
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border hover:border-border-foreground/20 hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="font-bold text-foreground">Gemini</div>
+                    <div className="text-xs text-muted-foreground mt-1">3.1 Flash lite</div>
                   </button>
                 </div>
               </div>

@@ -220,14 +220,14 @@ export function ProblemList({
               ) : (
                 <Mic className="w-4 h-4 mr-2" />
               )}
-              녹음 추가
+              말하기 연습 추가
             </Button>
           )}
 
           {onAddRecording && recordingEnabled && (
             <div className="flex items-center gap-1 px-3 py-1.5 bg-success/10 text-success rounded-md text-sm">
               <Check className="w-4 h-4" />
-              녹음 활성화됨
+              말하기 연습 활성화됨
             </div>
           )}
         </div>

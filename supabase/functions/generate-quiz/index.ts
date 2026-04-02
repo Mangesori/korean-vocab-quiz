@@ -233,12 +233,19 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
   · 학교, 직장, 카페, 여행, 요리, 운동, 쇼핑, 건강, 날씨, 친구/가족 관계, 취미 등 다양한 맥락을 활용하세요.
   · 단어마다 서로 다른 상황을 설정하세요. 비슷한 소재가 반복되면 안 됩니다.
 
-[Step 2 - 문법 선택 및 문장 완성] Step 1에서 떠올린 상황에 가장 자연스럽게 어울리는 문법을 §3 가이드에서 선택하여 문장을 완성하세요.
-  · 문법 카테고리 분산: 문제마다 서로 다른 카테고리(이유, 시간, 추측, 양보, 연결 등)에서 문법을 선택하세요.
-  · 단순 종결 회피: "-아요/어요", "-습니다" 같은 기본 종결 어미만으로 끝내지 마세요. §3의 문법 표현을 하나 이상 활용하세요.
+[Step 2 - 후보 생성 및 선택] 각 단어마다 다음 과정을 머릿속에서 수행하세요 (출력 금지).
+  ① 해당 단어를 사용한 후보 문장 3개를 떠올리세요. 문법 패턴을 서로 다르게 적용하세요.
+  ② 각 후보를 다음 기준으로 평가하세요:
+     - "한국인이 실제로 이렇게 말할까?" (자연스러움)
+     - 문법이 억지로 끼워 넣어진 느낌이 없는가?
+     - 어색한 어휘 조합이 없는가?
+  ③ 세 후보 중 가장 자연스러운 문장 1개만 최종 선택하세요.
+
+[Step 3 - 문법 카테고리 분산] Step 2에서 선택한 문장의 문법 패턴을 확인하여, 문제 전체에 걸쳐 다양한 카테고리(이유, 시간, 추측, 양보, 연결 등)가 골고루 사용되도록 조정하세요.
+  · 단순 종결 회피: "-아요/어요", "-습니다" 같은 기본 종결 어미만으로 끝내지 마세요.
   · 관형사형 활용: 동사/형용사 어휘의 경우, 관형사형(-는/-ㄴ/-(으)ㄹ)으로 명사를 수식하는 구조도 섞어주세요.
 
-⚠️ 출력에는 최종 JSON 결과만 포함하세요. Step 1의 메모는 출력하지 마세요.
+⚠️ 출력에는 최종 JSON 결과만 포함하세요. Step 1~3의 사고 과정은 출력하지 마세요.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §3. 난이도별 문법 가이드 (${difficulty}) — 참고 자료
@@ -367,225 +374,7 @@ ${fullGuide}
 }`;
 };
 
-// 문장 만들기 퀴즈용 모범 답안 생성 프롬프트
-const generateSentenceMakingPrompt = (words: string[], difficulty: string, languageName: string) => {
-  const selectedGuide = DIFFICULTY_GUIDES[difficulty] || DIFFICULTY_GUIDES["A1"];
 
-  return `당신은 한국어 교육 전문가입니다. 다음 단어들을 사용하여 ${difficulty} 수준의 모범 문장을 만들어주세요.
-
-단어 목록: ${words.join(', ')}
-
-**중요: 위 단어 목록의 각 단어마다 정확히 1개씩, 총 ${words.length}개의 모범 문장을 생성해주세요.**
-
-난이도 가이드:
-${selectedGuide}
-
-규칙:
-1. 각 단어를 사용한 자연스러운 한국어 문장을 만드세요.
-2. 해당 난이도(${difficulty})에 맞는 문법과 어휘를 사용하세요.
-3. 학생이 이 문장을 참고하여 자신만의 문장을 만들 수 있도록 좋은 예시가 되어야 합니다.
-4. word_meaning은 단어의 ${languageName} 뜻을 간단히 적어주세요.
-
-응답 형식 (JSON만):
-{
-  "sentence_making_problems": [
-    {
-      "word": "단어",
-      "word_meaning": "${languageName}로 된 단어 뜻",
-      "model_answer": "단어를 사용한 자연스러운 문장"
-    }
-  ]
-}
-
-🚨 중요: 반드시 JSON 형식으로만 응답하세요! 마크다운 코드 블록 사용 금지.`;
-};
-
-// 녹음 퀴즈용 문장 생성 프롬프트
-const generateRecordingPrompt = (words: string[], difficulty: string, languageName: string, modes: Array<{ wordIndex: number; mode: "read" | "listen" }>) => {
-  const selectedGuide = DIFFICULTY_GUIDES[difficulty] || DIFFICULTY_GUIDES["A1"];
-
-  const modeDescriptions = modes.map((m, idx) =>
-    `${idx + 1}. "${words[m.wordIndex]}" - ${m.mode === 'read' ? '보고 녹음' : '듣고 녹음'}`
-  ).join('\n');
-
-  return `당신은 한국어 교육 전문가입니다. 학생들이 발음 연습을 할 수 있는 문장을 만들어주세요.
-
-단어 목록: ${words.join(', ')}
-녹음 모드:
-${modeDescriptions}
-
-난이도 가이드:
-${selectedGuide}
-
-규칙:
-1. 각 단어를 포함한 ${difficulty} 수준의 자연스러운 문장을 만드세요.
-2. 발음 연습에 적합한 길이 (너무 길지 않게)
-3. 일상적이고 실용적인 문장
-4. 각 문장의 ${languageName} 번역도 제공하세요.
-
-응답 형식 (JSON만):
-{
-  "recording_problems": [
-    {
-      "word": "단어",
-      "sentence": "발음 연습용 문장",
-      "mode": "read 또는 listen",
-      "translation": "${languageName} 번역"
-    }
-  ]
-}
-
-🚨 중요: 반드시 JSON 형식으로만 응답하세요! 마크다운 코드 블록 사용 금지.`;
-};
-
-// AI API 호출 공통 함수
-async function callAI(prompt: string, apiProvider: string): Promise<string> {
-  if (apiProvider === "claude") {
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
-      throw new Error("ANTHROPIC_API_KEY is not configured");
-    }
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 130000);
-
-    try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "x-api-key": ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-4-5-haiku-20250514",
-          max_tokens: 8000,
-          temperature: 0.7,
-          system: "You are a helpful assistant that generates Korean language learning quizzes. You must respond ONLY with valid JSON. Do not include any markdown code blocks or explanations.",
-          messages: [
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Claude API error:", response.status, errorText);
-        throw new Error(`Claude API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.content?.[0]?.text || "";
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
-    }
-  } else if (apiProvider === "gemini" || apiProvider === "gemini-pro") {
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not configured");
-    }
-
-    const modelName = apiProvider === "gemini-pro" ? "gemini-2.5-flash" : "gemini-3.1-flash-lite-preview";
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 130000);
-
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            response_mime_type: "application/json",
-            temperature: 0.7,
-          }
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Gemini API error (${modelName}):`, response.status, errorText);
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
-    }
-  } else {
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
-    }
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 130000);
-
-    try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: "You are a helpful assistant that generates Korean language learning content. You must respond ONLY with valid JSON." },
-            { role: "user", content: prompt },
-          ],
-          temperature: 0.7,
-          response_format: { type: "json_object" },
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("OpenAI API error:", response.status, errorText);
-        throw new Error(`OpenAI API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.choices?.[0]?.message?.content || "";
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
-    }
-  }
-}
-
-// JSON 파싱 헬퍼 함수
-function parseAIResponse(content: string): any {
-  let jsonStr = content.trim();
-  if (jsonStr.startsWith("```")) {
-    jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```$/g, "").trim();
-  }
-
-  if (!jsonStr.startsWith("{")) {
-    console.error("AI response not JSON:", jsonStr.substring(0, 200));
-    throw new Error("AI가 JSON이 아닌 텍스트로 응답했습니다.");
-  }
-
-  try {
-    return JSON.parse(jsonStr);
-  } catch (_parseError) {
-    console.error("JSON parse error:", jsonStr.substring(0, 200));
-    throw new Error("AI 응답을 JSON으로 변환할 수 없습니다.");
-  }
-}
 
 serve(async (req) => {
   console.log("Request received:", req.method, req.url); // Log every request
@@ -652,8 +441,8 @@ serve(async (req) => {
       apiProvider = "openai",
       sentenceMakingEnabled = false,
       recordingEnabled = false,
-      recordingMode = "read",
-      recordingModes = [],
+      recordingMode: _recordingMode = "read",
+      recordingModes: _recordingModes = [],
       skipFillBlank = false,
     }: QuizRequest = await req.json();
 

@@ -1,0 +1,246 @@
+--- src/components/quiz/RecordingProblemList.tsx
++++ src/components/quiz/RecordingProblemList.tsx
+@@ -1,4 +1,4 @@
+-import { useState } from "react";
++import { useState, useEffect } from "react";
+ import { Card, CardContent, CardHeader } from "@/components/ui/card";
+ import { Button } from "@/components/ui/button";
+ import { Textarea } from "@/components/ui/textarea";
+@@ -28,52 +28,49 @@
+   problems,
+   onRefresh,
+ }: RecordingProblemListProps) {
+-  const [editingId, setEditingId] = useState<string | null>(null);
+-  const [editData, setEditData] = useState<Partial<RecordingProblem>>({});
++  const [isEditing, setIsEditing] = useState(false);
++  const [editedProblems, setEditedProblems] = useState<RecordingProblem[]>([]);
+   const [isSaving, setIsSaving] = useState(false);
+   const [deletingId, setDeletingId] = useState<string | null>(null);
+ 
+-  const handleEdit = (problem: RecordingProblem) => {
+-    setEditingId(problem.id);
+-    setEditData({
+-      sentence: problem.sentence,
+-      mode: problem.mode,
+-      translation: problem.translation || "",
+-    });
+-  };
++  useEffect(() => {
++    setEditedProblems(problems);
++  }, [problems, isEditing]);
+ 
+-  const handleCancelEdit = () => {
+-    setEditingId(null);
+-    setEditData({});
++  const handleUpdateProblem = (id: string, field: keyof RecordingProblem, value: string) => {
++    setEditedProblems((prev) =>
++      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
++    );
+   };
+ 
+-  const handleSave = async (problemId: string) => {
++  const handleSaveAll = async () => {
+     setIsSaving(true);
+     try {
+-      const { error } = await supabase
+-        .from("recording_problems")
+-        .update({
+-          sentence: editData.sentence,
+-          mode: editData.mode,
+-          translation: editData.translation || null,
+-        })
+-        .eq("id", problemId);
++      // Update all problems sequentially or via Promise.all
++      await Promise.all(
++        editedProblems.map((problem) =>
++          supabase
++            .from("recording_problems")
++            .update({
++              sentence: problem.sentence,
++              mode: problem.mode,
++              translation: problem.translation || null,
++            })
++            .eq("id", problem.id)
++        )
++      );
+ 
+-      if (error) throw error;
+-
+-      toast.success("문제가 저장되었습니다");
+-      setEditingId(null);
+-      setEditData({});
++      toast.success("전체 문제가 저장되었습니다");
++      setIsEditing(false);
+       onRefresh();
+     } catch (error: any) {
+       console.error("Save error:", error);
+-      toast.error(error.message || "저장에 실패했습니다");
++      toast.error(error.message || "전체 저장에 실패했습니다");
+     } finally {
+       setIsSaving(false);
+     }
+   };
+ 
+   const handleDelete = async (problemId: string) => {
+@@ -107,24 +104,49 @@
+ 
+   return (
+     <div className="space-y-4">
+-      <div className="flex items-center gap-2 mb-4">
+-        <h2 className="text-lg font-semibold">녹음 문제</h2>
+-        <span className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground font-medium">
+-          {problems.length}개
+-        </span>
++      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
++        <div className="flex items-center gap-2">
++          <h2 className="text-lg font-semibold">말하기 연습 문제</h2>
++          <span className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground font-medium">
++            {problems.length}개
++          </span>
++        </div>
++        
++        <div className="flex items-center gap-2 w-full sm:w-auto">
++          <Button
++            variant={isEditing ? "secondary" : "outline"}
++            size="sm"
++            onClick={() => setIsEditing(!isEditing)}
++            className="w-full sm:w-auto"
++          >
++            <Edit2 className="w-4 h-4 mr-2" />
++            <span>{isEditing ? "수정 취소" : "전체 수정하기"}</span>
++          </Button>
++          
++          <Button
++            onClick={handleSaveAll}
++            disabled={isSaving || !isEditing}
++            size="sm"
++            className="w-full sm:w-auto"
++            variant="default"
++          >
++            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
++            <span>전체 저장하기</span>
++          </Button>
++        </div>
+       </div>
+ 
+       {problems.map((problem, index) => {
+-        const isEditing = editingId === problem.id;
++        const editedData = editedProblems.find((p) => p.id === problem.id) || problem;
+ 
+         return (
+           <Card key={problem.id} className="overflow-hidden">
+             <CardHeader className="py-3 px-4 bg-muted/30">
+               <div className="flex items-center justify-between">
+                 <div className="flex items-center gap-3">
+                   <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                     {index + 1}
+                   </span>
+                   <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground text-sm font-medium flex items-center gap-1">
+-                    {problem.mode === "read" ? (
++                    {editedData.mode === "read" ? (
+                       <>
+                         <Eye className="w-3.5 h-3.5" />
+-                        보고 읽기
++                        보고 말하기
+                       </>
+                     ) : (
+                       <>
+@@ -141,31 +163,8 @@
+                 </div>
+                 <div className="flex gap-2">
+-                  {isEditing ? (
+-                    <>
+-                      <Button
+-                        variant="outline"
+-                        size="sm"
+-                        onClick={handleCancelEdit}
+-                        disabled={isSaving}
+-                      >
+-                        <X className="w-4 h-4 mr-1" />
+-                        취소
+-                      </Button>
+-                      <Button
+-                        size="sm"
+-                        onClick={() => handleSave(problem.id)}
+-                        disabled={isSaving}
+-                      >
+-                        {isSaving ? (
+-                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+-                        ) : (
+-                          <Save className="w-4 h-4 mr-1" />
+-                        )}
+-                        저장
+-                       </Button>
+-                    </>
+-                  ) : (
++                  {!isEditing && (
+                     <>
+-                      <Button
+-                        variant="outline"
+-                        size="sm"
+-                        onClick={() => handleEdit(problem)}
+-                      >
+-                        <Edit2 className="w-4 h-4 mr-1" />
+-                        수정
+-                       </Button>
+                       <Button
+                         variant="outline"
+@@ -199,10 +198,10 @@
+                 </Label>
+                 {isEditing ? (
+                   <Textarea
+-                    value={editData.sentence || ""}
++                    value={editedData.sentence || ""}
+                     onChange={(e) =>
+-                      setEditData({ ...editData, sentence: e.target.value })
++                      handleUpdateProblem(problem.id, "sentence", e.target.value)
+                     }
+                     placeholder="녹음할 문장을 입력하세요"
+                     className="bg-muted/30 min-h-[80px]"
+@@ -210,7 +209,7 @@
+                 ) : (
+                   <p className="px-3 py-2 rounded-md bg-muted/30 text-lg">
+-                    {problem.sentence}
++                    {editedData.sentence}
+                   </p>
+                 )}
+               </div>
+@@ -220,15 +219,15 @@
+                   </Label>
+                   <Select
+-                    value={editData.mode}
++                    value={editedData.mode}
+                     onValueChange={(value: "read" | "listen") =>
+-                      setEditData({ ...editData, mode: value })
++                      handleUpdateProblem(problem.id, "mode", value)
+                     }
+                   >
+                     <SelectTrigger className="bg-muted/30">
+                       <SelectValue />
+                     </SelectTrigger>
+                     <SelectContent>
+-                      <SelectItem value="read">보고 읽기</SelectItem>
++                      <SelectItem value="read">보고 말하기</SelectItem>
+                       <SelectItem value="listen">듣고 말하기</SelectItem>
+                     </SelectContent>
+                   </Select>
+@@ -241,10 +240,10 @@
+                 </Label>
+                 {isEditing ? (
+                   <Textarea
+-                    value={editData.translation || ""}
++                    value={editedData.translation || ""}
+                     onChange={(e) =>
+-                      setEditData({ ...editData, translation: e.target.value })
++                      handleUpdateProblem(problem.id, "translation", e.target.value)
+                     }
+                     placeholder="번역을 입력하세요"
+                     className="bg-muted/30 min-h-[60px]"
+@@ -252,7 +251,7 @@
+                 ) : (
+                   <p className="px-3 py-2 rounded-md bg-muted/30 text-sm text-muted-foreground">
+-                    {problem.translation || "(없음)"}
++                    {editedData.translation || "(없음)"}
+                   </p>
+                 )}
+               </div>
