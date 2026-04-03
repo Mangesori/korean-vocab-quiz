@@ -281,6 +281,7 @@ export default function QuizTake() {
     // Shared Link users (Anonymous OR Logged-in): direct submission
     if (shareToken) {
       setIsSubmitting(true);
+      let dbSaveSuccess = true;
 
       try {
         // Load full quiz data with answers for scoring
@@ -379,6 +380,7 @@ export default function QuizTake() {
           if (insertError) {
             console.error("Failed to save result:", insertError);
             toast.error("결과 저장에 실패했지만, 로컬 결과는 확인할 수 있습니다.");
+            dbSaveSuccess = false;
           }
 
           // Save sentence_making_answers
@@ -459,7 +461,7 @@ export default function QuizTake() {
       }
 
       // Notification logic - use RPC to bypass RLS for anonymous users
-      if (shareToken) {
+      if (shareToken && dbSaveSuccess) {
         try {
           // Call the security definer function to send notification
           const { error: notifyError } = await supabase.rpc("notify_quiz_completion", {
