@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Eye, EyeOff, RefreshCw, Loader2, Save, Edit2, PenLine, Mic, Check } from "lucide-react";
+import { Eye, EyeOff, RefreshCw, Loader2, Save, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -29,13 +29,6 @@ interface ProblemListProps {
   isSaving: boolean;
   hasChanges: boolean;
   wordsPerSet?: number;
-  // 새 퀴즈 유형 추가
-  sentenceMakingEnabled?: boolean;
-  recordingEnabled?: boolean;
-  onAddSentenceMaking?: () => void;
-  onAddRecording?: () => void;
-  isAddingSentenceMaking?: boolean;
-  isAddingRecording?: boolean;
 }
 
 export function ProblemList({
@@ -60,12 +53,6 @@ export function ProblemList({
   isSaving,
   hasChanges,
   wordsPerSet = 5,
-  sentenceMakingEnabled,
-  recordingEnabled,
-  onAddSentenceMaking,
-  onAddRecording,
-  isAddingSentenceMaking,
-  isAddingRecording,
 }: ProblemListProps) {
   const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
 
@@ -104,7 +91,7 @@ export function ProblemList({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start sm:gap-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">단어 목록</h2>
+            <h2 className="text-lg font-semibold">문제 목록</h2>
             <span className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground font-medium">
               {problems.length}개
             </span>
@@ -178,60 +165,6 @@ export function ProblemList({
         </div>
       </div>
 
-      {/* 퀴즈 유형 추가 섹션 */}
-      {(onAddSentenceMaking || onAddRecording) && (
-        <div className="flex flex-wrap items-center gap-3 p-4 bg-muted/30 rounded-lg border border-border">
-          <span className="text-sm font-medium text-muted-foreground">퀴즈 유형 추가:</span>
-
-          {onAddSentenceMaking && !sentenceMakingEnabled && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onAddSentenceMaking}
-              disabled={isAddingSentenceMaking}
-              className="bg-background"
-            >
-              {isAddingSentenceMaking ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <PenLine className="w-4 h-4 mr-2" />
-              )}
-              문장 만들기 추가
-            </Button>
-          )}
-
-          {onAddSentenceMaking && sentenceMakingEnabled && (
-            <div className="flex items-center gap-1 px-3 py-1.5 bg-success/10 text-success rounded-md text-sm">
-              <Check className="w-4 h-4" />
-              문장 만들기 활성화됨
-            </div>
-          )}
-
-          {onAddRecording && !recordingEnabled && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onAddRecording}
-              disabled={isAddingRecording}
-              className="bg-background"
-            >
-              {isAddingRecording ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Mic className="w-4 h-4 mr-2" />
-              )}
-              말하기 연습 추가
-            </Button>
-          )}
-
-          {onAddRecording && recordingEnabled && (
-            <div className="flex items-center gap-1 px-3 py-1.5 bg-success/10 text-success rounded-md text-sm">
-              <Check className="w-4 h-4" />
-              말하기 연습 활성화됨
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="space-y-6">
         {problemSets.map((set, setIndex) => (

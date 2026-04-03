@@ -338,7 +338,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete }
 
     const lowScoreWords = new Set(
       wordFeedback
-        .filter((w) => w.accuracyScore < 60)
+        .filter((w) => w.accuracyScore < 50)
         .map((w) => w.word)
     );
 

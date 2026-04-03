@@ -143,7 +143,7 @@ export function RecordingProblemList({
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">말하기 연습 문제</h2>
+          <h2 className="text-lg font-semibold">문제 목록</h2>
           <span className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground font-medium">
             {problems.length}개
           </span>

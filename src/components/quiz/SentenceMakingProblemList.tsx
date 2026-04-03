@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Edit2, Save, Loader2, Trash2, Plus } from "lucide-react";
 import { useParams } from "react-router-dom";
@@ -138,7 +137,7 @@ export function SentenceMakingProblemList({
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">문장 만들기 문제</h2>
+          <h2 className="text-lg font-semibold">문제 목록</h2>
           <span className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground font-medium">
             {problems.length}개
           </span>
@@ -226,38 +225,21 @@ export function SentenceMakingProblemList({
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs uppercase tracking-wide">
-                  모범 답안
-                </Label>
-                {isEditing ? (
-                  <Textarea
-                    value={editedData.model_answer || ""}
-                    onChange={(e) =>
-                      handleUpdateProblem(problem.id, "model_answer", e.target.value)
-                    }
-                    placeholder="모범 답안을 입력하세요"
-                    className="bg-muted/30 min-h-[80px]"
-                  />
-                ) : (
-                  <p className="px-3 py-2 rounded-md bg-muted/30">
-                    {editedData.model_answer}
-                  </p>
-                )}
-              </div>
             </CardContent>
           </Card>
         );
       })}
 
-      <Button
-        variant="outline"
-        className="w-full h-12 border-dashed flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors mt-4"
-        onClick={handleAddProblem}
-      >
-        <Plus className="w-5 h-5 mr-2" />
-        단어 추가하기
-      </Button>
+      <div className="flex justify-center mt-4">
+        <Button
+          variant="outline"
+          className="h-10 px-6 border-dashed text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary transition-colors"
+          onClick={handleAddProblem}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          단어 추가하기
+        </Button>
+      </div>
     </div>
   );
 }

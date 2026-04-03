@@ -4,9 +4,19 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, Edit3, PenLine, Mic } from "lucide-react";
+import { Loader2, ArrowLeft, TextCursorInput, PenLine, Mic } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Dialog } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -42,6 +52,7 @@ export default function QuizDetail() {
   // Tab State
   const [currentTab, setCurrentTab] = useState("problems");
   const [problemTab, setProblemTab] = useState<"fill_blank" | "sentence_making" | "recording">("fill_blank");
+  const [confirmDialog, setConfirmDialog] = useState<"sentence_making" | "recording" | null>(null);
   const queryClient = useQueryClient();
 
   // Sync tab with URL
@@ -146,8 +157,6 @@ export default function QuizDetail() {
   );
 
   const [isRegeneratingProblems, setIsRegeneratingProblems] = useState(false);
-  const [isAddingSentenceMaking, setIsAddingSentenceMaking] = useState(false);
-  const [isAddingRecording, setIsAddingRecording] = useState(false);
 
   const handleRegenerateProblem = async (problem: any) => {
     if (!quiz) return;
@@ -264,7 +273,6 @@ export default function QuizDetail() {
   const handleAddSentenceMaking = async () => {
     if (!quiz) return;
 
-    setIsAddingSentenceMaking(true);
     try {
       // 1. generate-quiz 함수 호출 (skipFillBlank: true로 빈칸 채우기 생성 건너뛰기)
       const { data, error } = await supabase.functions.invoke("generate-quiz", {
@@ -322,8 +330,6 @@ export default function QuizDetail() {
     } catch (error: any) {
       console.error("Add sentence making error:", error);
       toast.error(error.message || "문장 만들기 추가에 실패했습니다");
-    } finally {
-      setIsAddingSentenceMaking(false);
     }
   };
 
@@ -331,7 +337,6 @@ export default function QuizDetail() {
   const handleAddRecording = async () => {
     if (!quiz) return;
 
-    setIsAddingRecording(true);
     try {
       // 1. generate-quiz 함수 호출 (skipFillBlank: true로 빈칸 채우기 생성 건너뛰기)
       const { data, error } = await supabase.functions.invoke("generate-quiz", {
@@ -391,8 +396,6 @@ export default function QuizDetail() {
     } catch (error: any) {
       console.error("Add recording error:", error);
       toast.error(error.message || "말하기 연습 추가에 실패했습니다");
-    } finally {
-      setIsAddingRecording(false);
     }
   };
 
@@ -484,6 +487,33 @@ export default function QuizDetail() {
           />
         </Dialog>
 
+        <AlertDialog open={confirmDialog !== null} onOpenChange={(open) => { if (!open) setConfirmDialog(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {confirmDialog === "sentence_making" ? "문장 만들기 문제를 추가하시겠습니까?" : "말하기 연습 문제를 추가하시겠습니까?"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {confirmDialog === "sentence_making"
+                  ? "각 단어로 문장을 직접 만들어 보는 문제가 추가됩니다."
+                  : "빈칸 채우기와 같은 문장으로 문제가 생성됩니다. 생성 후에는 개별 수정이 가능합니다."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>취소</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (confirmDialog === "sentence_making") handleAddSentenceMaking();
+                  else handleAddRecording();
+                  setConfirmDialog(null);
+                }}
+              >
+                추가하기
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8">
             <TabsTrigger value="problems">문제 목록</TabsTrigger>
@@ -494,41 +524,47 @@ export default function QuizDetail() {
             <QuizWords words={quiz.words} />
 
             {/* 문제 유형 서브 탭 */}
-            {(quiz.sentence_making_enabled || quiz.recording_enabled) && (
-              <div className="flex flex-wrap gap-2 mb-6">
-                <Button
-                  variant={problemTab === "fill_blank" ? "default" : "outline"}
-                  size="sm"
+            <div className="flex justify-center mb-6">
+              <div className="inline-flex items-center bg-muted p-1 rounded-lg gap-1">
+                <button
                   onClick={() => setProblemTab("fill_blank")}
-                  className="gap-2"
+                  className={`inline-flex items-center gap-2 px-5 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    problemTab === "fill_blank"
+                      ? "bg-white shadow-sm text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  <Edit3 className="w-4 h-4" />
+                  <TextCursorInput className="w-4 h-4" />
                   빈칸 채우기 ({quiz.problems.length})
-                </Button>
-                {quiz.sentence_making_enabled && (
-                  <Button
-                    variant={problemTab === "sentence_making" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setProblemTab("sentence_making")}
-                    className="gap-2"
-                  >
-                    <PenLine className="w-4 h-4" />
-                    문장 만들기 ({sentenceMakingProblems.length})
-                  </Button>
-                )}
-                {quiz.recording_enabled && (
-                  <Button
-                    variant={problemTab === "recording" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setProblemTab("recording")}
-                    className="gap-2"
-                  >
-                    <Mic className="w-4 h-4" />
-                    말하기 연습 ({recordingProblems.length})
-                  </Button>
-                )}
+                </button>
+                <button
+                  onClick={() => quiz.sentence_making_enabled ? setProblemTab("sentence_making") : setConfirmDialog("sentence_making")}
+                  className={`inline-flex items-center gap-2 px-5 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    quiz.sentence_making_enabled
+                      ? problemTab === "sentence_making"
+                        ? "bg-white shadow-sm text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground/50 border border-dashed border-muted-foreground/30 hover:text-muted-foreground"
+                  }`}
+                >
+                  <PenLine className="w-4 h-4" />
+                  문장 만들기 {quiz.sentence_making_enabled && `(${sentenceMakingProblems.length})`}
+                </button>
+                <button
+                  onClick={() => quiz.recording_enabled ? setProblemTab("recording") : setConfirmDialog("recording")}
+                  className={`inline-flex items-center gap-2 px-5 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    quiz.recording_enabled
+                      ? problemTab === "recording"
+                        ? "bg-white shadow-sm text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground/50 border border-dashed border-muted-foreground/30 hover:text-muted-foreground"
+                  }`}
+                >
+                  <Mic className="w-4 h-4" />
+                  말하기 연습 {quiz.recording_enabled && `(${recordingProblems.length})`}
+                </button>
               </div>
-            )}
+            </div>
 
             {/* 빈칸 채우기 문제 목록 */}
             {problemTab === "fill_blank" && (
@@ -554,12 +590,6 @@ export default function QuizDetail() {
                 isSaving={isSaving}
                 hasChanges={hasChanges}
                 wordsPerSet={quiz.words_per_set}
-                sentenceMakingEnabled={quiz.sentence_making_enabled}
-                recordingEnabled={quiz.recording_enabled}
-                onAddSentenceMaking={handleAddSentenceMaking}
-                onAddRecording={handleAddRecording}
-                isAddingSentenceMaking={isAddingSentenceMaking}
-                isAddingRecording={isAddingRecording}
               />
             )}
 
