@@ -12,6 +12,7 @@ import {
   CheckCircle,
   RefreshCw,
   Lightbulb,
+  ChevronLeft,
   ChevronRight
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,6 +45,7 @@ interface SpeakingStageProps {
   problems: SpeakingProblem[];
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (results: Record<string, SpeakingAttempt[]>) => void;
+  onBack?: () => void;
 }
 
 // WebM을 WAV로 변환하는 함수
@@ -129,13 +131,12 @@ function writeString(view: DataView, offset: number, str: string) {
   }
 }
 
-export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete }: SpeakingStageProps) {
+export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, onBack }: SpeakingStageProps) {
   const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [attempts, setAttempts] = useState<Record<string, SpeakingAttempt[]>>({});
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -145,6 +146,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete }
 
   const [wantsRetry, setWantsRetry] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [playingSpeed, setPlayingSpeed] = useState<0.7 | 1 | null>(null);
 
   const currentProblem = problems[currentIndex];
   const currentAttempts = attempts[currentProblem?.id] || [];
@@ -294,18 +296,19 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete }
     }
   };
 
-  const playAudio = async (url: string) => {
+  const playAudio = async (url: string, speed?: 0.7 | 1) => {
     if (audioRef.current) {
       audioRef.current.pause();
     }
 
     const audio = new Audio(url);
+    audio.playbackRate = speed ?? 1;
     audioRef.current = audio;
 
-    audio.onplay = () => setIsPlayingAudio(true);
-    audio.onended = () => setIsPlayingAudio(false);
+    audio.onplay = () => setPlayingSpeed(speed ?? 1);
+    audio.onended = () => setPlayingSpeed(null);
     audio.onerror = () => {
-      setIsPlayingAudio(false);
+      setPlayingSpeed(null);
       toast.error("음성 재생에 실패했습니다.");
     };
 
@@ -338,8 +341,8 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete }
 
     const lowScoreWords = new Set(
       wordFeedback
-        .filter((w) => w.accuracyScore < 50)
-        .map((w) => w.word)
+        .filter((w) => w.accuracyScore < 60)
+        .map((w) => w.word.replace(/[.,!?。，！？]/g, ""))
     );
 
     if (lowScoreWords.size === 0) {
@@ -369,7 +372,8 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete }
   }
 
   return (
-    <Card className="w-full max-w-5xl mx-auto border shadow-sm rounded-2xl overflow-hidden bg-white mb-4 sm:mb-8 mt-2 lg:mt-6">
+    <>
+    <Card className="w-full max-w-5xl mx-auto border shadow-sm rounded-2xl overflow-hidden bg-white mb-4 sm:mb-6 mt-2 lg:mt-6">
 
       <CardContent className="p-4 sm:p-8 pt-4 sm:pt-0 space-y-4 sm:space-y-6">
         {/* 문장 표시 */}
@@ -395,22 +399,42 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete }
               ) : (
                 <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-6">
                   <p className="text-sm sm:text-base lg:text-lg text-muted-foreground font-medium mb-2">음성을 듣고 따라 녹음하세요</p>
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      currentProblem.sentenceAudioUrl &&
-                      playAudio(currentProblem.sentenceAudioUrl)
-                    }
-                    disabled={isPlayingAudio || !currentProblem.sentenceAudioUrl}
-                    className="flex items-center justify-center rounded-xl px-6 h-11 bg-white hover:bg-slate-50 transition-colors shadow-sm text-sm"
-                  >
-                    {isPlayingAudio ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Volume2 className="w-4 h-4 mr-2" />
-                    )}
-                    <span className="font-semibold">{isPlayingAudio ? "재생 중..." : "듣기"}</span>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        currentProblem.sentenceAudioUrl &&
+                        playAudio(currentProblem.sentenceAudioUrl, 1)
+                      }
+                      disabled={playingSpeed !== null || !currentProblem.sentenceAudioUrl}
+                      className="flex items-center justify-center rounded-xl px-3 sm:px-5 h-9 sm:h-11 bg-white hover:bg-slate-50 transition-colors shadow-sm text-xs sm:text-sm"
+                    >
+                      {playingSpeed === 1 ? (
+                        <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 animate-spin" />
+                      ) : (
+                        <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                      )}
+                      <span className="font-semibold sm:hidden">보통</span>
+                      <span className="font-semibold hidden sm:inline">보통 속도로 듣기</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        currentProblem.sentenceAudioUrl &&
+                        playAudio(currentProblem.sentenceAudioUrl, 0.7)
+                      }
+                      disabled={playingSpeed !== null || !currentProblem.sentenceAudioUrl}
+                      className="flex items-center justify-center rounded-xl px-3 sm:px-5 h-9 sm:h-11 bg-white hover:bg-slate-50 transition-colors shadow-sm text-xs sm:text-sm"
+                    >
+                      {playingSpeed === 0.7 ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <span className="mr-2 text-xl relative -top-0.5">🐢</span>
+                      )}
+                      <span className="font-semibold sm:hidden">천천히</span>
+                      <span className="font-semibold hidden sm:inline">천천히 듣기</span>
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -484,7 +508,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete }
               </div>
 
               {/* 문장에서 60점 미만 단어만 빨간색으로 표시 */}
-              <p className="text-lg text-center py-2">
+              <p className="text-base sm:text-lg text-center py-2">
                 {renderSentenceWithFeedback(currentProblem.sentence, lastAttempt.wordLevelFeedback)}
               </p>
             </div>
@@ -496,15 +520,15 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete }
                 variant="outline"
                 onClick={handleRetry}
                 disabled={currentAttempts.length >= 3}
-                className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                 다시 시도하기
               </Button>
 
               <Button
                 onClick={handleNext}
-                className="h-12 px-6 rounded-xl bg-[#6366F1] text-white font-semibold hover:bg-[#4F46E5] shadow-md transition-colors"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-[#6366F1] text-white text-xs sm:text-sm font-semibold hover:bg-[#4F46E5] shadow-md transition-colors"
               >
                 {currentIndex < problems.length - 1 ? (
                   <>
@@ -521,5 +545,18 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete }
           )}
         </CardContent>
       </Card>
-    );
-  }
+      {currentIndex === 0 && onBack && !lastAttempt && !isRecording && !isProcessing && (
+        <div className="w-full max-w-5xl mx-auto">
+          <Button
+            variant="outline"
+            onClick={onBack}
+            className="h-12 px-4 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm text-sm"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1.5" />
+            문장 만들기 결과
+          </Button>
+        </div>
+      )}
+    </>
+  );
+}

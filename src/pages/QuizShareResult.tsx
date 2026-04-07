@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,9 +55,43 @@ interface QuizResult {
   speakingResults?: Record<string, any[]>;
 }
 
+function renderSentenceWithDiff(studentSentence: string, modelAnswer: string | null | undefined, isPerfect: boolean) {
+  if (isPerfect || !modelAnswer) {
+    return <span className={isPerfect ? "text-success" : "text-slate-700"}>{studentSentence}</span>;
+  }
+  const studentWords = studentSentence.trim().split(/\s+/);
+  const modelWords = modelAnswer.trim().split(/\s+/);
+  return (
+    <>
+      {studentWords.map((word, idx) => {
+        const isCorrect = modelWords.includes(word);
+        if (!isCorrect) {
+          return <span key={idx} className="text-destructive font-bold mr-1.5 border-b-2 border-destructive/30 pb-0.5">{word}</span>;
+        }
+        return <span key={idx} className="mr-1.5 text-slate-700">{word}</span>;
+      })}
+    </>
+  );
+}
+
+function renderModelAnswerWithDiff(modelAnswer: string, studentSentence: string) {
+  const modelWords = modelAnswer.trim().split(/\s+/);
+  const studentWords = studentSentence.trim().split(/\s+/);
+  return (
+    <>
+      {modelWords.map((word, idx) => {
+        const isOriginal = studentWords.includes(word);
+        if (!isOriginal) {
+          return <span key={idx} className="text-[#6366F1] font-bold mr-1.5 border-b-2 border-[#6366F1]/30 pb-0.5">{word}</span>;
+        }
+        return <span key={idx} className="mr-1.5 text-slate-700">{word}</span>;
+      })}
+    </>
+  );
+}
+
 export default function QuizShareResult() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [result, setResult] = useState<QuizResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -310,67 +344,60 @@ export default function QuizShareResult() {
                       const attempts = smResults[problem.id] || [];
                       const lastAttempt = attempts[attempts.length - 1];
                       const isPassed = lastAttempt?.isPassed || false;
-                      const hasModelAnswer = lastAttempt && lastAttempt.totalScore < 100 && problem.model_answer;
                       const isPerfect = lastAttempt?.totalScore === 100;
 
                       return (
-                        <Card key={problem.id} className="border-0 shadow-sm bg-white overflow-hidden rounded-2xl">
-                          <CardContent className="p-0">
-                            <div className="p-4 sm:p-5 flex items-center justify-between border-b border-slate-50">
-                              <div className="flex items-center gap-3">
-                                <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold text-white shadow-sm ${
-                                  isPerfect ? "bg-success shadow-success/20" : "bg-[#6366F1] shadow-[#6366F1]/20"
+                        <Card key={problem.id} className="overflow-hidden border bg-white rounded-2xl shadow-sm">
+                          <CardContent className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center gap-2">
+                                <span className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${
+                                  isPerfect ? "bg-success" : "bg-[#6366F1]"
                                 }`}>
                                   {idx + 1}
-                                </div>
-                                <Badge variant="secondary" className="font-semibold text-base px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">
+                                </span>
+                                <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-slate-50 border-slate-200 text-slate-700">
                                   {problem.word}
                                 </Badge>
                               </div>
-                              <div className="flex items-center gap-2 pr-2">
+                              <div className="flex items-center gap-2">
                                 {isPassed ? (
-                                  <CheckCircle className="w-6 h-6 text-success drop-shadow-sm" />
+                                  <CheckCircle className="w-5 h-5 text-success" />
                                 ) : (
-                                  <XCircle className="w-6 h-6 text-warning drop-shadow-sm" />
+                                  <XCircle className="w-5 h-5 text-warning" />
                                 )}
                               </div>
                             </div>
-                            
-                            <div className="p-4 sm:p-5 sm:pt-6 bg-slate-50/50">
-                              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                                <div className="flex-1 space-y-2.5">
-                                  <div className="flex items-start sm:items-center gap-3">
-                                    <span className={`shrink-0 text-xs font-bold py-1 w-[4.5rem] text-center rounded-lg mt-0.5 sm:mt-0 ${
-                                      isPerfect ? "bg-success/10 text-success" : "bg-slate-100 text-slate-500"
-                                    }`}>
-                                      내 답변
-                                    </span>
-                                    <h3 className={`text-[1.05rem] font-bold leading-normal pt-0.5 sm:pt-0 ${
-                                      isPerfect ? "text-success" : "text-foreground"
-                                    }`}>
-                                      {lastAttempt?.sentence || "(입력 없음)"}
-                                    </h3>
-                                  </div>
-                                  
-                                  {(!isPerfect && problem.model_answer) && (
-                                    <div className="flex items-start sm:items-center gap-3 mt-2 sm:mt-3">
-                                      <span className="shrink-0 text-xs font-bold py-1 w-[4.5rem] text-center rounded-lg bg-[#6366F1]/10 text-[#6366F1] mt-0.5 sm:mt-0">
-                                        추천 문장
-                                      </span>
-                                      <h3 className="text-[1.05rem] font-bold text-slate-700 leading-normal pt-0.5 sm:pt-0">
-                                        {problem.model_answer}
-                                      </h3>
-                                    </div>
-                                  )}
-                                  
-                                  {lastAttempt?.feedback && (
-                                    <div className="mt-4 bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
-                                      <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{lastAttempt.feedback.replace(/Model Answer:\s*.*/i, '').trim()}</p>
-                                    </div>
-                                  )}
-                                </div>
+
+                            <div className="mb-6 space-y-3">
+                              <div className="flex items-start gap-3">
+                                <span className={`shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 ${
+                                  isPerfect ? "bg-success/10 text-success" : "bg-slate-100 text-slate-500"
+                                }`}>
+                                  내 답변
+                                </span>
+                                <h3 className="text-lg font-bold leading-relaxed">
+                                  {renderSentenceWithDiff(lastAttempt?.sentence || "(입력 없음)", lastAttempt?.modelAnswer, isPerfect)}
+                                </h3>
                               </div>
+
+                              {(!isPerfect && lastAttempt?.modelAnswer) && (
+                                <div className="flex items-start gap-3">
+                                  <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-[#6366F1]/10 text-[#6366F1]">
+                                    추천 문장
+                                  </span>
+                                  <h3 className="text-lg leading-relaxed">
+                                    {renderModelAnswerWithDiff(lastAttempt.modelAnswer, lastAttempt?.sentence || "")}
+                                  </h3>
+                                </div>
+                              )}
                             </div>
+
+                            {lastAttempt?.feedback && (
+                              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{lastAttempt.feedback.replace(/Model Answer:\s*.*/i, '').trim()}</p>
+                              </div>
+                            )}
                           </CardContent>
                         </Card>
                       );

@@ -626,7 +626,11 @@ export default function QuizTake() {
 
   // 다음 스테이지 결정 (fill_blank 완료 후 -> fill_blank_result 또는 completed)
   const getStageAfterFillBlankResult = (): QuizStage => {
-    if (quiz.sentence_making_enabled) return "sentence_making";
+    if (quiz.sentence_making_enabled) {
+      // 문장 만들기가 이미 완료된 경우 결과 페이지로 바로 이동
+      if (Object.keys(sentenceMakingResults).length > 0) return "sentence_making_result";
+      return "sentence_making";
+    }
     if (quiz.recording_enabled) return "recording";
     return "completed";
   };
@@ -751,9 +755,9 @@ export default function QuizTake() {
     if (currentStage === "fill_blank_result" && fillBlankAnswers.length > 0) {
       const nextStage = getStageAfterFillBlankResult();
       const nextLabel =
-        nextStage === "sentence_making"
-          ? "다음 단계로"
-          : nextStage === "recording"
+        nextStage === "sentence_making_result"
+          ? "문장 만들기 결과로"
+          : nextStage === "sentence_making" || nextStage === "recording"
           ? "다음 단계로"
           : "결과 제출";
 
@@ -791,6 +795,7 @@ export default function QuizTake() {
             difficulty={quiz.difficulty}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleSentenceMakingComplete}
+            onBack={fillBlankAnswers.length > 0 ? () => setCurrentStage("fill_blank_result") : undefined}
           />
         </div>
       );
@@ -814,6 +819,7 @@ export default function QuizTake() {
             results={sentenceMakingResults}
             onNext={handleSentenceMakingResultNext}
             nextLabel={nextLabel}
+            onBack={fillBlankAnswers.length > 0 ? () => setCurrentStage("fill_blank_result") : undefined}
           />
         </div>
       );
@@ -827,6 +833,7 @@ export default function QuizTake() {
             problems={recordingProblems}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleRecordingComplete}
+            onBack={Object.keys(sentenceMakingResults).length > 0 ? () => setCurrentStage("sentence_making_result") : undefined}
           />
         </div>
       );

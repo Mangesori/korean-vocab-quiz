@@ -79,7 +79,7 @@ export function QuizReviewCard({
             <span className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${isCorrect ? "bg-success" : "bg-destructive"}`}>
               {problemNumber}
             </span>
-            <Badge variant="outline" className="font-semibold text-base px-3 py-1">
+            <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-slate-50 border-slate-200 text-slate-700">
               {problem.word || problem.answer}
             </Badge>
           </div>

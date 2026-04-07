@@ -33,6 +33,7 @@ interface SentenceMakingStageProps {
   translationLanguage?: string;
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (results: Record<string, SentenceAttempt[]>) => void;
+  onBack?: () => void;
 }
 
 type Phase = "input" | "grading" | "results";
@@ -44,6 +45,7 @@ export function SentenceMakingStage({
   translationLanguage,
   onProgressUpdate,
   onComplete,
+  onBack,
 }: SentenceMakingStageProps) {
   const [phase, setPhase] = useState<Phase>("input");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -256,14 +258,24 @@ export function SentenceMakingStage({
 
         {/* 이전/다음/채점 버튼 */}
         <div className="flex justify-between items-center mt-6">
-          <Button
-            variant="outline"
-            onClick={handlePrev}
-            disabled={currentIndex === 0}
-            className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
-          >
-            <ChevronLeft className="w-4 h-4 mr-2" /> 이전
-          </Button>
+          {currentIndex === 0 && onBack ? (
+            <Button
+              variant="outline"
+              onClick={onBack}
+              className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" /> 빈칸 채우기 결과
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={handlePrev}
+              disabled={currentIndex === 0}
+              className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" /> 이전
+            </Button>
+          )}
 
           {currentIndex < problems.length - 1 ? (
             <Button

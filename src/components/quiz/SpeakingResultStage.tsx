@@ -89,7 +89,7 @@ export function SpeakingResultStage({
     }
 
     const lowScoreWords = new Set(
-      wordFeedback.filter((w) => w.accuracyScore < 60).map((w) => w.word.replace(/[.,!?。，！？]/g, ""))
+      wordFeedback.filter((w) => w.accuracyScore < 50).map((w) => w.word.replace(/[.,!?。，！？]/g, ""))
     );
 
     if (lowScoreWords.size === 0) {
@@ -116,7 +116,7 @@ export function SpeakingResultStage({
 
   const generateFeedback = (attempt: SpeakingAttempt) => {
     const lowScoreWords = attempt.wordLevelFeedback
-      ?.filter((w) => w.accuracyScore < 60)
+      ?.filter((w) => w.accuracyScore < 50)
       .map((w) => w.word.replace(/[.,!?。，！？]/g, ""));
 
     if (lowScoreWords && lowScoreWords.length > 0) {
@@ -250,8 +250,8 @@ export function SpeakingResultStage({
                   </div>
                 </div>
 
-                <div className="mt-6 border-t border-slate-100 pt-5 space-y-4 px-1 sm:px-3">
-                  <div className="text-lg">
+                <div className="mt-6 border-t border-slate-100 pt-5 space-y-4 sm:px-3">
+                  <div className="text-lg pl-3">
                     {renderSentenceWithFeedback(problem.sentence, best.wordLevelFeedback, best.isPassed)}
                   </div>
                   

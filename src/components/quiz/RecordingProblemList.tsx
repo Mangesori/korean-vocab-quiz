@@ -34,6 +34,7 @@ export function RecordingProblemList({
   const [editedProblems, setEditedProblems] = useState<RecordingProblem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [audioUrlMap, setAudioUrlMap] = useState<Record<string, string>>({});
   const { id: quizId } = useParams<{ id: string }>();
 
   useEffect(() => {
@@ -42,9 +43,43 @@ export function RecordingProblemList({
     }
   }, [problems, isEditing]);
 
+  useEffect(() => {
+    const fetchAudioUrls = async () => {
+      const problemIds = problems.map((p) => p.problem_id).filter(Boolean);
+      if (problemIds.length === 0) return;
+      const { data } = await supabase
+        .from("quiz_problems")
+        .select("problem_id, sentence_audio_url")
+        .eq("quiz_id", quizId)
+        .in("problem_id", problemIds);
+      if (data) {
+        const map: Record<string, string> = {};
+        for (const qp of data) {
+          if (qp.sentence_audio_url) map[qp.problem_id] = qp.sentence_audio_url;
+        }
+        setAudioUrlMap(map);
+      }
+    };
+    fetchAudioUrls();
+  }, [problems]);
+
   const handleUpdateProblem = (id: string, field: keyof RecordingProblem, value: string) => {
     setEditedProblems((prev) =>
       prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
+    );
+  };
+
+  const handleModeChange = (id: string, mode: "read" | "listen") => {
+    setEditedProblems((prev) =>
+      prev.map((p) => {
+        if (p.id !== id) return p;
+        const updated = { ...p, mode };
+        if (mode === "listen" && !p.sentence_audio_url) {
+          const url = audioUrlMap[p.problem_id];
+          if (url) updated.sentence_audio_url = url;
+        }
+        return updated;
+      })
     );
   };
 
@@ -68,14 +103,54 @@ export function RecordingProblemList({
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {
+      // 듣고 말하기인데 오디오 URL이 없는 문제 목록
+      const needAudio = editedProblems.filter(
+        (p) => p.mode === "listen" && !p.sentence_audio_url
+      );
+
+      // 원본 문제의 오디오 URL 조회 (quiz_problems에서 problem_id로)
+      const audioUrlMap: Record<string, string> = {};
+      if (needAudio.length > 0) {
+        const originalProblemIds = editedProblems
+          .filter((p) => !p.id.startsWith("temp-"))
+          .map((p) => p.problem_id);
+        const tempProblemIds = editedProblems
+          .filter((p) => p.id.startsWith("temp-"))
+          .map((p) => p.problem_id);
+        const allProblemIds = [...new Set([...originalProblemIds, ...tempProblemIds])];
+
+        if (allProblemIds.length > 0) {
+          const { data: quizProblems } = await supabase
+            .from("quiz_problems")
+            .select("problem_id, sentence_audio_url")
+            .eq("quiz_id", quizId)
+            .in("problem_id", allProblemIds);
+
+          if (quizProblems) {
+            for (const qp of quizProblems) {
+              if (qp.sentence_audio_url) {
+                audioUrlMap[qp.problem_id] = qp.sentence_audio_url;
+              }
+            }
+          }
+        }
+      }
+
       await Promise.all(
         editedProblems.map((problem) => {
+          // 듣고 말하기인데 오디오 없으면 quiz_problems에서 가져온 URL 사용
+          const sentenceAudioUrl =
+            problem.mode === "listen" && !problem.sentence_audio_url
+              ? (audioUrlMap[problem.problem_id] || null)
+              : problem.sentence_audio_url;
+
           if (problem.id.startsWith('temp-')) {
             return supabase.from("recording_problems").insert({
               quiz_id: problem.quiz_id,
               problem_id: problem.problem_id,
               sentence: problem.sentence,
               mode: problem.mode,
+              sentence_audio_url: sentenceAudioUrl,
               translation: problem.translation || null,
               source_type: (problem.source_type || 'teacher_input') as "reuse" | "ai_generated" | "teacher_input"
             });
@@ -85,6 +160,7 @@ export function RecordingProblemList({
               .update({
                 sentence: problem.sentence,
                 mode: problem.mode,
+                sentence_audio_url: sentenceAudioUrl,
                 translation: problem.translation || null,
               })
               .eq("id", problem.id);
@@ -188,7 +264,7 @@ export function RecordingProblemList({
                     <Select
                       value={editedData.mode}
                       onValueChange={(value: "read" | "listen") =>
-                        handleUpdateProblem(problem.id, "mode", value)
+                        handleModeChange(problem.id, value)
                       }
                     >
                       <SelectTrigger className="w-[140px] sm:w-[160px]">
@@ -249,9 +325,22 @@ export function RecordingProblemList({
 
             <CardContent className="pt-4 pb-5 space-y-4">
               <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs uppercase tracking-wide">
-                  문장
-                </Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-muted-foreground text-xs uppercase tracking-wide">
+                    문장
+                  </Label>
+                  {(editedData.sentence_audio_url || audioUrlMap[problem.problem_id]) && (
+                    <button
+                      onClick={() => {
+                        const url = editedData.sentence_audio_url || audioUrlMap[problem.problem_id];
+                        if (url) new Audio(url).play();
+                      }}
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
                 {isEditing ? (
                   <Textarea
                     value={editedData.sentence || ""}
@@ -287,25 +376,6 @@ export function RecordingProblemList({
                   </p>
                 )}
               </div>
-
-              {problem.sentence_audio_url && (
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground text-xs uppercase tracking-wide">
-                    음성
-                  </Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const audio = new Audio(problem.sentence_audio_url!);
-                      audio.play();
-                    }}
-                  >
-                    <Volume2 className="w-4 h-4 mr-2" />
-                    듣기
-                  </Button>
-                </div>
-              )}
             </CardContent>
           </Card>
         );

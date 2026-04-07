@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, ChevronRight } from "lucide-react";
+import { CheckCircle, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SentenceAttempt {
   attemptNumber: number;
@@ -64,6 +64,7 @@ interface SentenceMakingResultStageProps {
   results: Record<string, SentenceAttempt[]>;
   onNext: () => void;
   nextLabel: string;
+  onBack?: () => void;
 }
 
 export function SentenceMakingResultStage({
@@ -71,6 +72,7 @@ export function SentenceMakingResultStage({
   results,
   onNext,
   nextLabel,
+  onBack,
 }: SentenceMakingResultStageProps) {
   const totalScore = problems.reduce((sum, p) => {
     const attempt = results[p.id]?.[0];
@@ -158,10 +160,22 @@ export function SentenceMakingResultStage({
       </div>
 
       {/* 다음 단계 버튼 */}
-      <div className="flex justify-center mt-8 pt-4">
+      <div className="flex justify-between items-center mt-8 pt-4">
+        {onBack ? (
+          <Button
+            variant="outline"
+            onClick={onBack}
+            className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            빈칸 채우기 결과
+          </Button>
+        ) : (
+          <div />
+        )}
         <Button
           onClick={onNext}
-          className="w-full sm:w-auto min-w-[200px] h-12 text-base shadow-md font-semibold bg-[#6366F1] hover:bg-[#4F46E5] transition-colors rounded-xl"
+          className="h-12 px-6 text-base shadow-md font-semibold bg-[#6366F1] hover:bg-[#4F46E5] transition-colors rounded-xl"
         >
           {nextLabel}
           <ChevronRight className="w-5 h-5 ml-2" />

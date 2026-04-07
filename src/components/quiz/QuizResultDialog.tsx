@@ -327,7 +327,7 @@ function RecordingView({
                 </div>
               </div>
 
-              <div className="mt-4 border-t border-slate-100 pt-4 text-lg">
+              <div className="mt-4 border-t border-slate-100 pt-4 text-lg pl-3">
                 {renderSentenceWithFeedback(problem.sentence, best.word_level_feedback, best.is_passed)}
               </div>
             </CardContent>
@@ -439,7 +439,6 @@ export function QuizResultDialog({
               </TabsList>
               {hasFillBlank && (
                 <TabsContent value="fill_blank">
-                  <h3 className="font-medium text-lg mb-4">문제별 상세</h3>
                   {fillBlankContent}
                 </TabsContent>
               )}
@@ -462,7 +461,6 @@ export function QuizResultDialog({
             </Tabs>
           ) : (
             <div className="space-y-4">
-              <h3 className="font-medium text-lg">문제별 상세</h3>
               {hasFillBlank && fillBlankContent}
               {hasSentenceMaking && detail && (
                 <SentenceMakingView
