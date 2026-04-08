@@ -135,7 +135,7 @@ export default function QuizPreview() {
       const sentenceWithoutBlanks = problem.sentence.replace(/\(\s*\)|\(\)/g, problem.answer);
 
       return {
-        problem_id: `rec-${Date.now()}-${index}`,
+        problem_id: problem.id,
         sentence: sentenceWithoutBlanks,
         mode: "read" as const,
         translation: problem.translation,
@@ -383,59 +383,7 @@ export default function QuizPreview() {
     }
   };
 
-  // 녹음 문제용 TTS 생성 함수
-  const generateAndUploadRecordingAudio = async (
-    text: string,
-    quizId: string,
-    problemId: string
-  ): Promise<string | null> => {
-    try {
-      // 문장 끝 정리
-      const cleanText = text.replace(/([.?!])\s*\.+\s*$/, "$1").replace(/\.\s*\.$/, ".");
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ text: cleanText }),
-        }
-      );
-
-      if (!response.ok) {
-        console.error(`TTS generation failed for recording problem: ${response.status}`);
-        return null;
-      }
-
-      const audioBlob = await response.blob();
-      const fileName = `${quizId}/recording_${problemId}.mp3`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('quiz-audio')
-        .upload(fileName, audioBlob, {
-          contentType: 'audio/mpeg',
-          upsert: true,
-        });
-
-      if (uploadError) {
-        console.error(`Audio upload failed for recording problem:`, uploadError);
-        return null;
-      }
-
-      const { data: urlData } = supabase.storage
-        .from('quiz-audio')
-        .getPublicUrl(fileName);
-
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error(`TTS error for recording problem:`, error);
-      return null;
-    }
-  };
 
   const saveQuiz = async () => {
     setIsSaving(true);
@@ -564,32 +512,30 @@ export default function QuizPreview() {
             console.log("Audio generation completed for fill-blank problems:", data.id);
           }
 
-          // 2. 녹음 문제 TTS 생성
+          // 2. 녹음 문제 오디오 URL 설정 (빈칸 채우기 오디오 재사용)
           if (draft.recordingEnabled && draft.recordingProblems && draft.recordingProblems.length > 0) {
+            // problem_id가 동일하므로 fill-blank에서 생성된 URL 그대로 사용
+            const fillBlankAudioMap = new Map(
+              problemsWithAudio
+                .filter(p => p.sentence_audio_url)
+                .map(p => [p.problem_id, p.sentence_audio_url])
+            );
+
             for (const recProblem of draft.recordingProblems) {
-              // 'listen' 모드일 때만 오디오 생성
-              if (recProblem.mode === "listen" && recProblem.sentence) {
-                const audioUrl = await generateAndUploadRecordingAudio(
-                  recProblem.sentence,
-                  data.id,
-                  recProblem.problem_id
-                );
+              const audioUrl = fillBlankAudioMap.get(recProblem.problem_id);
+              if (audioUrl) {
+                const { error: updateError } = await supabase
+                  .from("recording_problems" as any)
+                  .update({ sentence_audio_url: audioUrl })
+                  .eq("quiz_id", data.id)
+                  .eq("problem_id", recProblem.problem_id);
 
-                if (audioUrl) {
-                  // recording_problems 테이블에 오디오 URL 업데이트
-                  const { error: updateError } = await supabase
-                    .from("recording_problems" as any)
-                    .update({ sentence_audio_url: audioUrl })
-                    .eq("quiz_id", data.id)
-                    .eq("problem_id", recProblem.problem_id);
-
-                  if (updateError) {
-                    console.error("Failed to update recording audio URL:", updateError);
-                  }
+                if (updateError) {
+                  console.error("Failed to update recording audio URL:", updateError);
                 }
               }
             }
-            console.log("Audio generation completed for recording problems:", data.id);
+            console.log("Recording audio URLs set from fill-blank audio:", data.id);
           }
         } catch (audioError) {
           console.error("Audio generation error:", audioError);

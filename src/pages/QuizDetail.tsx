@@ -361,12 +361,26 @@ export default function QuizDetail() {
         throw new Error("말하기 연습 문제가 생성되지 않았습니다");
       }
 
-      // 2. recording_problems 테이블에 삽입
+      // 2. quiz_problems에서 기존 오디오 URL 조회
+      const problemIds = data.recordingProblems.map((p: any) => p.problem_id);
+      const { data: quizProblemsData } = await supabase
+        .from("quiz_problems")
+        .select("problem_id, sentence_audio_url")
+        .eq("quiz_id", quiz.id)
+        .in("problem_id", problemIds);
+
+      const audioMap: Record<string, string> = {};
+      for (const qp of quizProblemsData || []) {
+        if (qp.sentence_audio_url) audioMap[qp.problem_id] = qp.sentence_audio_url;
+      }
+
+      // 3. recording_problems 테이블에 삽입
       const recProblemsToInsert = data.recordingProblems.map((p: any) => ({
         quiz_id: quiz.id,
         problem_id: p.problem_id,
         sentence: p.sentence,
         mode: p.mode || "read",
+        sentence_audio_url: audioMap[p.problem_id] || null,
         translation: p.translation || null,
         source_type: "ai_generated",
       }));

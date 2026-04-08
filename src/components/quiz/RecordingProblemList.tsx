@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit2, Save, Loader2, Trash2, Volume2, Eye, EyeOff, Plus } from "lucide-react";
+import { Edit2, Save, Loader2, Trash2, Volume2, Eye, EyeOff, Plus, RefreshCw } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ export function RecordingProblemList({
   const [editedProblems, setEditedProblems] = useState<RecordingProblem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [audioUrlMap, setAudioUrlMap] = useState<Record<string, string>>({});
   const { id: quizId } = useParams<{ id: string }>();
 
@@ -103,54 +104,15 @@ export function RecordingProblemList({
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {
-      // 듣고 말하기인데 오디오 URL이 없는 문제 목록
-      const needAudio = editedProblems.filter(
-        (p) => p.mode === "listen" && !p.sentence_audio_url
-      );
-
-      // 원본 문제의 오디오 URL 조회 (quiz_problems에서 problem_id로)
-      const audioUrlMap: Record<string, string> = {};
-      if (needAudio.length > 0) {
-        const originalProblemIds = editedProblems
-          .filter((p) => !p.id.startsWith("temp-"))
-          .map((p) => p.problem_id);
-        const tempProblemIds = editedProblems
-          .filter((p) => p.id.startsWith("temp-"))
-          .map((p) => p.problem_id);
-        const allProblemIds = [...new Set([...originalProblemIds, ...tempProblemIds])];
-
-        if (allProblemIds.length > 0) {
-          const { data: quizProblems } = await supabase
-            .from("quiz_problems")
-            .select("problem_id, sentence_audio_url")
-            .eq("quiz_id", quizId)
-            .in("problem_id", allProblemIds);
-
-          if (quizProblems) {
-            for (const qp of quizProblems) {
-              if (qp.sentence_audio_url) {
-                audioUrlMap[qp.problem_id] = qp.sentence_audio_url;
-              }
-            }
-          }
-        }
-      }
-
       await Promise.all(
         editedProblems.map((problem) => {
-          // 듣고 말하기인데 오디오 없으면 quiz_problems에서 가져온 URL 사용
-          const sentenceAudioUrl =
-            problem.mode === "listen" && !problem.sentence_audio_url
-              ? (audioUrlMap[problem.problem_id] || null)
-              : problem.sentence_audio_url;
-
           if (problem.id.startsWith('temp-')) {
             return supabase.from("recording_problems").insert({
               quiz_id: problem.quiz_id,
               problem_id: problem.problem_id,
               sentence: problem.sentence,
               mode: problem.mode,
-              sentence_audio_url: sentenceAudioUrl,
+              sentence_audio_url: problem.sentence_audio_url || null,
               translation: problem.translation || null,
               source_type: (problem.source_type || 'teacher_input') as "reuse" | "ai_generated" | "teacher_input"
             });
@@ -160,7 +122,7 @@ export function RecordingProblemList({
               .update({
                 sentence: problem.sentence,
                 mode: problem.mode,
-                sentence_audio_url: sentenceAudioUrl,
+                sentence_audio_url: problem.sentence_audio_url || null,
                 translation: problem.translation || null,
               })
               .eq("id", problem.id);
@@ -176,6 +138,59 @@ export function RecordingProblemList({
       toast.error(error.message || "전체 저장에 실패했습니다");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleRegenerateAudio = async (problem: RecordingProblem) => {
+    if (!quizId) return;
+    setRegeneratingId(problem.id);
+    try {
+      const cleanText = problem.sentence
+        .replace(/([.?!])\s*\.+\s*$/, "$1")
+        .replace(/\.\s*\.$/, ".");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ text: cleanText }),
+        }
+      );
+
+      if (!response.ok) throw new Error(`TTS failed: ${response.status}`);
+
+      const audioBlob = await response.blob();
+      const fileName = `${quizId}/recording_${problem.problem_id}_${Date.now()}.mp3`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('quiz-audio')
+        .upload(fileName, audioBlob, { contentType: 'audio/mpeg', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('quiz-audio')
+        .getPublicUrl(fileName);
+
+      const { error: updateError } = await supabase
+        .from("recording_problems")
+        .update({ sentence_audio_url: urlData.publicUrl })
+        .eq("id", problem.id);
+
+      if (updateError) throw updateError;
+
+      toast.success("음성이 생성되었습니다");
+      onRefresh();
+    } catch (error: any) {
+      console.error("Audio regeneration error:", error);
+      toast.error(error.message || "음성 생성에 실패했습니다");
+    } finally {
+      setRegeneratingId(null);
     }
   };
 
@@ -305,10 +320,24 @@ export function RecordingProblemList({
                   {!isEditing && (
                     <>
                       <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleRegenerateAudio(problem)}
+                        disabled={regeneratingId === problem.id || deletingId === problem.id}
+                        className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                      >
+                        {regeneratingId === problem.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4 mr-1" />
+                        )}
+                        <span className="hidden sm:inline">음성 재생성</span>
+                      </Button>
+                      <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleDelete(problem.id)}
-                        disabled={deletingId === problem.id}
+                        disabled={deletingId === problem.id || regeneratingId === problem.id}
                         className="text-destructive hover:text-destructive"
                       >
                         {deletingId === problem.id ? (
