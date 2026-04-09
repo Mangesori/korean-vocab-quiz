@@ -198,16 +198,22 @@ export function RecordingProblemList({
     if (!confirm("이 문제를 삭제하시겠습니까?")) return;
 
     setDeletingId(problemId);
-    try {
-      const { error } = await supabase
-        .from("recording_problems")
-        .delete()
-        .eq("id", problemId);
+    // editedProblems에서 즉시 제거
+    setEditedProblems(prev => prev.filter(p => p.id !== problemId));
 
-      if (error) throw error;
+    try {
+      // 미저장 항목(temp-)은 DB 삭제 불필요
+      if (!problemId.startsWith("temp-")) {
+        const { error } = await supabase
+          .from("recording_problems")
+          .delete()
+          .eq("id", problemId);
+
+        if (error) throw error;
+        onRefresh();
+      }
 
       toast.success("문제가 삭제되었습니다");
-      onRefresh();
     } catch (error: any) {
       console.error("Delete error:", error);
       toast.error(error.message || "삭제에 실패했습니다");
@@ -220,8 +226,12 @@ export function RecordingProblemList({
     return (
       <div className="text-center py-12 text-muted-foreground">
         말하기 연습 문제가 없습니다.
-        <div className="mt-4">
-          <Button variant="outline" onClick={handleAddProblem}>
+        <div className="flex justify-center mt-4">
+          <Button
+            variant="ghost"
+            className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
+            onClick={handleAddProblem}
+          >
             <Plus className="w-4 h-4 mr-2" />
             문제 추가하기
           </Button>
@@ -264,8 +274,8 @@ export function RecordingProblemList({
         </div>
       </div>
 
-      {problems.map((problem, index) => {
-        const editedData = editedProblems.find((p) => p.id === problem.id) || problem;
+      {editedProblems.map((problem, index) => {
+        const editedData = problem;
 
         return (
           <Card key={problem.id} className="overflow-hidden">
@@ -316,9 +326,22 @@ export function RecordingProblemList({
                     </span>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   {!isEditing && (
                     <>
+                      {(problem.sentence_audio_url || audioUrlMap[problem.problem_id]) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const url = problem.sentence_audio_url || audioUrlMap[problem.problem_id];
+                            if (url) new Audio(url).play();
+                          }}
+                          className="text-muted-foreground hover:!bg-accent/30 hover:text-foreground"
+                        >
+                          <Volume2 className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="default"
                         size="sm"
@@ -333,43 +356,30 @@ export function RecordingProblemList({
                         )}
                         <span className="hidden sm:inline">음성 재생성</span>
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(problem.id)}
-                        disabled={deletingId === problem.id || regeneratingId === problem.id}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        {deletingId === problem.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </Button>
                     </>
                   )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDelete(problem.id)}
+                    disabled={deletingId === problem.id || regeneratingId === problem.id}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    {deletingId === problem.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </Button>
                 </div>
               </div>
             </CardHeader>
 
             <CardContent className="pt-4 pb-5 space-y-4">
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Label className="text-muted-foreground text-xs uppercase tracking-wide">
-                    문장
-                  </Label>
-                  {(editedData.sentence_audio_url || audioUrlMap[problem.problem_id]) && (
-                    <button
-                      onClick={() => {
-                        const url = editedData.sentence_audio_url || audioUrlMap[problem.problem_id];
-                        if (url) new Audio(url).play();
-                      }}
-                      className="text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      <Volume2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
+                <Label className="text-muted-foreground text-xs uppercase tracking-wide">
+                  문장
+                </Label>
                 {isEditing ? (
                   <Textarea
                     value={editedData.sentence || ""}
@@ -410,14 +420,25 @@ export function RecordingProblemList({
         );
       })}
 
-      <Button
-        variant="outline"
-        className="w-full h-12 border-dashed flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors mt-4"
-        onClick={handleAddProblem}
-      >
-        <Plus className="w-5 h-5 mr-2" />
-        문제 추가하기
-      </Button>
+      <div className="flex justify-center mt-4">
+        <Button
+          variant="ghost"
+          className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
+          onClick={handleAddProblem}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          문제 추가
+        </Button>
+      </div>
+
+      {isEditing && (
+        <div className="mt-4 flex justify-center">
+          <Button onClick={handleSaveAll} disabled={isSaving || editedProblems.length === 0} size="lg">
+            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            저장하기
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

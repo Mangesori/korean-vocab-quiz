@@ -13,7 +13,8 @@ import {
   Clock,
   Search,
   Loader2,
-  Trash2
+  Trash2,
+  Send
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -31,6 +32,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Dialog } from '@/components/ui/dialog';
+import { ShareQuizDialogContent } from '@/components/quiz/ShareQuizDialog';
+import { useQuizSharing } from '@/hooks/useQuizSharing';
+import { useClasses } from '@/hooks/useClasses';
 import { toast } from 'sonner';
 
 interface Quiz {
@@ -48,10 +53,26 @@ export default function Quizzes() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
 
+  const { classes } = useClasses(user?.id);
   const [selectedQuizForResult, setSelectedResult] = useState<Quiz | null>(null);
+  const [selectedQuizForShare, setSelectedQuizForShare] = useState<Quiz | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quizToDelete, setQuizToDelete] = useState<Quiz | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const {
+    isSending,
+    sendDialogOpen,
+    setSendDialogOpen,
+    shareUrl,
+    allowAnonymous,
+    setAllowAnonymous,
+    isGeneratingLink,
+    handleSendQuiz,
+    generateShareLink,
+    copyToClipboard
+  } = useQuizSharing(selectedQuizForShare as any, user, classes as any);
 
   const { data: quizzes = [], isLoading } = useQuery({
     queryKey: ['quizzes', user?.id],
@@ -208,8 +229,22 @@ export default function Quizzes() {
                         {format(new Date(quiz.created_at), 'yyyy년 M월 d일', { locale: ko })}
                       </div>
                       <div className="flex gap-1">
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs bg-accent hover:bg-accent/90 text-accent-foreground"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedQuizForShare(quiz);
+                            setSendDialogOpen(true);
+                            setSelectedClassId("");
+                          }}
+                        >
+                          <Send className="w-3 h-3 mr-1" />
+                          공유
+                        </Button>
+                        <Button
+                          size="sm"
                           className="h-8 text-xs"
                           onClick={(e) => {
                             e.preventDefault();
@@ -222,10 +257,10 @@ export default function Quizzes() {
                         <Button
                           variant="destructive"
                           size="sm"
-                          className="h-8 text-xs"
+                          className="h-8 w-8 p-0"
                           onClick={(e) => handleDeleteClick(e, quiz)}
                         >
-                          삭제
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     </div>
@@ -236,6 +271,21 @@ export default function Quizzes() {
           </div>
         )}
       </div>
+      <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
+        <ShareQuizDialogContent
+          classes={classes as any}
+          selectedClassId={selectedClassId}
+          onSelectClass={setSelectedClassId}
+          onSendQuiz={() => handleSendQuiz(selectedClassId, () => setSelectedClassId(""))}
+          isSending={isSending}
+          shareUrl={shareUrl}
+          allowAnonymous={allowAnonymous}
+          onSetAllowAnonymous={setAllowAnonymous}
+          onGenerateLink={generateShareLink}
+          isGeneratingLink={isGeneratingLink}
+          onCopyLink={copyToClipboard}
+        />
+      </Dialog>
       <QuizResultsDialog 
         quizId={selectedQuizForResult?.id || null}
         quizTitle={selectedQuizForResult?.title || ""}

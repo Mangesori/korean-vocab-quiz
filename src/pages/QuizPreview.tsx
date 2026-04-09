@@ -198,6 +198,22 @@ export default function QuizPreview() {
     });
   };
 
+  const addFillBlankProblem = () => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const newProblem: Problem = {
+        id: `fill-${Date.now()}`,
+        word: "",
+        answer: "",
+        sentence: "( )",
+        hint: "",
+        translation: "",
+      };
+      const updated = [...prev.problems, newProblem];
+      return { ...prev, problems: updated, words: [...prev.words, ""] };
+    });
+  };
+
   // 문장 만들기 문제 편집 함수들
   const updateSentenceMakingProblem = (problemId: string, field: keyof SentenceMakingProblem, value: string) => {
     setDraft((prev) => {
@@ -879,6 +895,18 @@ export default function QuizPreview() {
             )}
           </div>
             ))}
+          {!studentPreview && (
+            <div className="flex justify-center mt-4">
+              <Button
+                variant="ghost"
+                className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
+                onClick={addFillBlankProblem}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                문제 추가
+              </Button>
+            </div>
+          )}
           </>
         )}
 
@@ -951,14 +979,16 @@ export default function QuizPreview() {
                     </Card>
                   ))}
                 </div>
-                <Button
-                  variant="outline"
-                  className="w-full h-12 border-dashed flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors mt-4"
-                  onClick={addSentenceMakingProblem}
-                >
-                  <Plus className="w-5 h-5 mr-2" />
-                  단어 추가하기
-                </Button>
+                <div className="flex justify-center mt-4">
+                  <Button
+                    variant="ghost"
+                    className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
+                    onClick={addSentenceMakingProblem}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    단어 추가하기
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -1084,14 +1114,16 @@ export default function QuizPreview() {
                     </CardContent>
                   </Card>
                 ))}
-                <Button
-                  variant="outline"
-                  className="w-full h-12 border-dashed flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors mt-4"
-                  onClick={addRecordingProblem}
-                >
-                  <Plus className="w-5 h-5 mr-2" />
-                  문제 추가하기
-                </Button>
+                <div className="flex justify-center mt-4">
+                  <Button
+                    variant="ghost"
+                    className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
+                    onClick={addRecordingProblem}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    문제 추가하기
+                  </Button>
+                </div>
               </div>
             )}
           </div>

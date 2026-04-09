@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Eye, EyeOff, RefreshCw, Loader2, Save, Edit2 } from "lucide-react";
+import { Eye, EyeOff, RefreshCw, Loader2, Save, Edit2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,9 @@ interface ProblemListProps {
   isSaving: boolean;
   hasChanges: boolean;
   wordsPerSet?: number;
+  onDeleteProblem?: (problem: Problem) => void;
+  deletingProblemId?: string | null;
+  onAddProblem?: () => void;
 }
 
 export function ProblemList({
@@ -53,6 +56,9 @@ export function ProblemList({
   isSaving,
   hasChanges,
   wordsPerSet = 5,
+  onDeleteProblem,
+  deletingProblemId,
+  onAddProblem,
 }: ProblemListProps) {
   const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
 
@@ -212,6 +218,8 @@ export function ProblemList({
                             onToggleTranslation={toggleTranslation}
                             studentPreview={studentPreview}
                             renderStudentSentence={renderStudentSentence}
+                            onDeleteProblem={onDeleteProblem ? () => onDeleteProblem(problem) : undefined}
+                            isDeletingProblem={deletingProblemId === problem.id}
                           />
                         );
                       })}
@@ -238,6 +246,8 @@ export function ProblemList({
                       onToggleTranslation={toggleTranslation}
                       studentPreview={studentPreview}
                       renderStudentSentence={renderStudentSentence}
+                      onDeleteProblem={onDeleteProblem ? () => onDeleteProblem(problem) : undefined}
+                      isDeletingProblem={deletingProblemId === problem.id}
                     />
                   );
                 })}
@@ -246,6 +256,19 @@ export function ProblemList({
           </div>
         ))}
       </div>
+
+      {onAddProblem && (
+        <div className="flex justify-center mt-4">
+          <Button
+            variant="ghost"
+            className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
+            onClick={onAddProblem}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            문제 추가
+          </Button>
+        </div>
+      )}
 
       {isEditing && (
         <div className="mt-8 flex justify-center">

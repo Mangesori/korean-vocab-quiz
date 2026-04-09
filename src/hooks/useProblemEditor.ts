@@ -47,16 +47,41 @@ export function useProblemEditor(
     setIsSaving(true);
 
     try {
-      // Extract updated words list from edited problems
       const updatedWords = editedProblems.map(p => p.word);
 
-      // Cast needed because Supabase types might imply a stricter JSON structure than we check here
       const { error } = await supabase
         .from("quizzes")
         .update({ problems: editedProblems as any, words: updatedWords })
         .eq("id", quizId);
 
       if (error) throw error;
+
+      // 새로 추가된 문제 (initialProblems에 없는 것) → quiz_problems, quiz_answers 동기화
+      const initialIds = new Set(initialProblems.map(p => p.id));
+      const newProblems = editedProblems.filter(p => !initialIds.has(p.id));
+
+      if (newProblems.length > 0) {
+        await Promise.all([
+          supabase.from("quiz_problems").insert(
+            newProblems.map(p => ({
+              quiz_id: quizId,
+              problem_id: p.id,
+              word: p.word,
+              sentence: p.sentence,
+              hint: p.hint,
+              translation: p.translation,
+            }))
+          ),
+          supabase.from("quiz_answers").insert(
+            newProblems.map(p => ({
+              quiz_id: quizId,
+              problem_id: p.id,
+              correct_answer: p.answer,
+              word: p.word,
+            }))
+          ),
+        ]);
+      }
 
       onSaveSuccess(editedProblems);
       setIsEditing(false);

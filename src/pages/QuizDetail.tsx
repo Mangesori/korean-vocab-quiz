@@ -157,6 +157,59 @@ export default function QuizDetail() {
   );
 
   const [isRegeneratingProblems, setIsRegeneratingProblems] = useState(false);
+  const [deletingProblemId, setDeletingProblemId] = useState<string | null>(null);
+
+  const handleAddFillBlankProblem = () => {
+    const newProblem = {
+      id: crypto.randomUUID(),
+      word: "",
+      answer: "",
+      sentence: "( )",
+      hint: "",
+      translation: "",
+    };
+    setEditedProblems(prev => [...prev, newProblem]);
+    setIsEditing(true);
+  };
+
+  const handleDeleteProblem = async (problem: any) => {
+    if (!quiz) return;
+    if (!confirm(`"${problem.word || "새 문제"}" 문제를 삭제하시겠습니까?`)) return;
+
+    setDeletingProblemId(problem.id);
+    try {
+      // 로컬 editedProblems에서 즉시 제거
+      setEditedProblems(prev => prev.filter((p: any) => p.id !== problem.id));
+
+      // 저장된 문제만 DB 삭제
+      const isSaved = (quiz.problems || []).some((p: any) => p.id === problem.id);
+      if (isSaved) {
+        await Promise.all([
+          supabase.from("quiz_problems").delete().eq("quiz_id", quiz.id).eq("problem_id", problem.id),
+          supabase.from("quiz_answers").delete().eq("quiz_id", quiz.id).eq("problem_id", problem.id),
+        ]);
+
+        const updatedProblems = (quiz.problems || []).filter((p: any) => p.id !== problem.id);
+        const updatedWords = updatedProblems.map((p: any) => p.word);
+
+        const { error } = await supabase
+          .from("quizzes")
+          .update({ problems: updatedProblems as any, words: updatedWords })
+          .eq("id", quiz.id);
+
+        if (error) throw error;
+
+        updateQuizProblems(updatedProblems);
+      }
+
+      toast.success("문제가 삭제되었습니다");
+    } catch (error: any) {
+      console.error("Delete problem error:", error);
+      toast.error(error.message || "삭제에 실패했습니다");
+    } finally {
+      setDeletingProblemId(null);
+    }
+  };
 
   const handleRegenerateProblem = async (problem: any) => {
     if (!quiz) return;
@@ -338,52 +391,24 @@ export default function QuizDetail() {
     if (!quiz) return;
 
     try {
-      // 1. generate-quiz 함수 호출 (skipFillBlank: true로 빈칸 채우기 생성 건너뛰기)
-      const { data, error } = await supabase.functions.invoke("generate-quiz", {
-        body: {
-          words: quiz.words,
-          difficulty: quiz.difficulty,
-          translationLanguage: quiz.translation_language,
-          wordsPerSet: quiz.words_per_set,
-          apiProvider: quiz.api_provider as "openai" | "gemini" | "gemini-pro" | undefined,
-          sentenceMakingEnabled: false,
-          recordingEnabled: true,
-          recordingMode: "read",
-          skipFillBlank: true,
-        },
+      if (!quiz.problems || quiz.problems.length === 0) {
+        throw new Error("빈칸 채우기 문제가 없습니다. 먼저 빈칸 채우기 퀴즈를 생성해주세요.");
+      }
+
+      // quiz.problems 순서대로 recording problems 생성 (QuizPreview와 동일한 로직)
+      // quiz.problems에 answer와 sentence가 이미 있으므로 추가 DB 쿼리 불필요
+      const recProblemsToInsert = quiz.problems.map((p) => {
+        const sentenceWithoutBlanks = p.sentence.replace(/\(\s*\)|\(\)/g, p.answer);
+        return {
+          quiz_id: quiz.id,
+          problem_id: p.id,
+          sentence: sentenceWithoutBlanks,
+          mode: "read" as const,
+          sentence_audio_url: audioUrls[p.id] || null,
+          translation: p.translation || null,
+          source_type: "reuse" as const,
+        };
       });
-
-      if (error || data?.error) {
-        throw new Error(data?.error || error?.message || "말하기 연습 문제 생성 실패");
-      }
-
-      if (!data.recordingProblems || data.recordingProblems.length === 0) {
-        throw new Error("말하기 연습 문제가 생성되지 않았습니다");
-      }
-
-      // 2. quiz_problems에서 기존 오디오 URL 조회
-      const problemIds = data.recordingProblems.map((p: any) => p.problem_id);
-      const { data: quizProblemsData } = await supabase
-        .from("quiz_problems")
-        .select("problem_id, sentence_audio_url")
-        .eq("quiz_id", quiz.id)
-        .in("problem_id", problemIds);
-
-      const audioMap: Record<string, string> = {};
-      for (const qp of quizProblemsData || []) {
-        if (qp.sentence_audio_url) audioMap[qp.problem_id] = qp.sentence_audio_url;
-      }
-
-      // 3. recording_problems 테이블에 삽입
-      const recProblemsToInsert = data.recordingProblems.map((p: any) => ({
-        quiz_id: quiz.id,
-        problem_id: p.problem_id,
-        sentence: p.sentence,
-        mode: p.mode || "read",
-        sentence_audio_url: audioMap[p.problem_id] || null,
-        translation: p.translation || null,
-        source_type: "ai_generated",
-      }));
 
       const { error: insertError } = await supabase
         .from("recording_problems")
@@ -592,6 +617,9 @@ export default function QuizDetail() {
                 onRegenerateAllProblems={handleRegenerateAllProblems}
                 onRegenerateProblem={handleRegenerateProblem}
                 isRegeneratingProblems={isRegeneratingProblems}
+                onDeleteProblem={handleDeleteProblem}
+                deletingProblemId={deletingProblemId}
+                onAddProblem={handleAddFillBlankProblem}
                 onRegenerateSingleAudio={(problem) => regenerateSingleAudio(problem, () => {})}
                 isGeneratingAudio={isGeneratingAudio}
                 audioProgress={audioProgress}
@@ -618,7 +646,10 @@ export default function QuizDetail() {
             {/* 말하기 연습 문제 목록 */}
             {problemTab === "recording" && quiz.recording_enabled && (
               <RecordingProblemList
-                problems={recordingProblems}
+                problems={[...recordingProblems].sort((a, b) => {
+                  const order = quiz.problems.map((p: any) => p.id);
+                  return order.indexOf(a.problem_id) - order.indexOf(b.problem_id);
+                })}
                 onRefresh={refetchRecording}
               />
             )}

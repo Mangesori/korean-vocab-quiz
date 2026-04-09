@@ -1,5 +1,5 @@
 
-import { Volume2, RefreshCw, Loader2, Link2, Eye, EyeOff, Lightbulb } from "lucide-react";
+import { Volume2, RefreshCw, Loader2, Link2, Eye, EyeOff, Lightbulb, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +22,8 @@ interface ProblemCardProps {
   onToggleTranslation: (id: string) => void;
   studentPreview: boolean;
   renderStudentSentence: (sentence: string, hint: string) => React.ReactNode;
+  onDeleteProblem?: () => void;
+  isDeletingProblem?: boolean;
 }
 
 export function ProblemCard({
@@ -37,7 +39,9 @@ export function ProblemCard({
   showTranslation,
   onToggleTranslation,
   studentPreview,
-  renderStudentSentence
+  renderStudentSentence,
+  onDeleteProblem,
+  isDeletingProblem,
 }: ProblemCardProps) {
 
   // Student Preview Mode
@@ -197,7 +201,7 @@ export function ProblemCard({
               size="sm"
               onClick={() => audioUrl && onPlayAudio(audioUrl)}
               disabled={!audioUrl}
-              className="text-muted-foreground hover:text-foreground hidden sm:inline-flex"
+              className="text-muted-foreground hover:!bg-accent/30 hover:text-foreground hidden sm:inline-flex"
             >
               <Volume2 className="w-4 h-4" />
             </Button>
@@ -232,6 +236,17 @@ export function ProblemCard({
               <span className="hidden sm:inline">문제 재생성</span>
               <span className="sm:hidden">문제 재생성</span>
             </Button>
+            {onDeleteProblem && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDeleteProblem}
+                disabled={isDeletingProblem}
+                className="text-destructive hover:text-destructive"
+              >
+                {isDeletingProblem ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>

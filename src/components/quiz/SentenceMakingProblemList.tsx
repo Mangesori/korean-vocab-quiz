@@ -101,16 +101,22 @@ export function SentenceMakingProblemList({
     if (!confirm("이 문제를 삭제하시겠습니까?")) return;
 
     setDeletingId(problemId);
-    try {
-      const { error } = await supabase
-        .from("sentence_making_problems")
-        .delete()
-        .eq("id", problemId);
+    // editedProblems에서 즉시 제거
+    setEditedProblems(prev => prev.filter(p => p.id !== problemId));
 
-      if (error) throw error;
+    try {
+      // 미저장 항목(temp-)은 DB 삭제 불필요
+      if (!problemId.startsWith("temp-")) {
+        const { error } = await supabase
+          .from("sentence_making_problems")
+          .delete()
+          .eq("id", problemId);
+
+        if (error) throw error;
+        onRefresh();
+      }
 
       toast.success("문제가 삭제되었습니다");
-      onRefresh();
     } catch (error: any) {
       console.error("Delete error:", error);
       toast.error(error.message || "삭제에 실패했습니다");
@@ -123,8 +129,12 @@ export function SentenceMakingProblemList({
     return (
       <div className="text-center py-12 text-muted-foreground">
         문장 만들기 문제가 없습니다.
-        <div className="mt-4">
-          <Button variant="outline" onClick={handleAddProblem}>
+        <div className="flex justify-center mt-4">
+          <Button
+            variant="ghost"
+            className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
+            onClick={handleAddProblem}
+          >
             <Plus className="w-4 h-4 mr-2" />
             단어 추가하기
           </Button>
@@ -167,8 +177,8 @@ export function SentenceMakingProblemList({
         </div>
       </div>
 
-      {problems.map((problem, index) => {
-        const editedData = editedProblems.find((p) => p.id === problem.id) || problem;
+      {editedProblems.map((problem, index) => {
+        const editedData = problem;
 
         return (
           <Card key={problem.id} className="overflow-hidden">
@@ -183,23 +193,19 @@ export function SentenceMakingProblemList({
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  {!isEditing && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(problem.id)}
-                        disabled={deletingId === problem.id}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        {deletingId === problem.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDelete(problem.id)}
+                    disabled={deletingId === problem.id}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    {deletingId === problem.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -232,14 +238,23 @@ export function SentenceMakingProblemList({
 
       <div className="flex justify-center mt-4">
         <Button
-          variant="outline"
-          className="h-10 px-6 border-dashed text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary transition-colors"
+          variant="ghost"
+          className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
           onClick={handleAddProblem}
         >
           <Plus className="w-4 h-4 mr-2" />
-          단어 추가하기
+          문제 추가
         </Button>
       </div>
+
+      {isEditing && (
+        <div className="mt-4 flex justify-center">
+          <Button onClick={handleSaveAll} disabled={isSaving || editedProblems.length === 0} size="lg">
+            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            저장하기
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
