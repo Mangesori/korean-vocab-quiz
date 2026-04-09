@@ -238,13 +238,13 @@ export function ProblemCard({
             </Button>
             {onDeleteProblem && (
               <Button
-                variant="outline"
-                size="sm"
+                variant="ghost"
+                size="icon"
                 onClick={onDeleteProblem}
                 disabled={isDeletingProblem}
-                className="text-destructive hover:text-destructive"
+                className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
-                {isDeletingProblem ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {isDeletingProblem ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               </Button>
             )}
           </div>

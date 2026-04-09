@@ -84,8 +84,8 @@ export function QuizHeader({ quiz, onUpdateTitle, onDelete, onOpenSendDialog }: 
           <Send className="w-4 h-4 mr-2" /> <span className="whitespace-nowrap">퀴즈 보내기</span>
         </Button>
         <DuplicateQuizButton quiz={quiz} variant="outline" size="default" showLabel={false} />
-        <Button variant="outline" onClick={onDelete}>
-          <Trash2 className="w-4 h-4" />
+        <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onDelete}>
+          <Trash2 className="h-4 w-4" />
         </Button>
       </div>
     </div>

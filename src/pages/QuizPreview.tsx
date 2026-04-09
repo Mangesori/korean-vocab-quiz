@@ -948,11 +948,11 @@ export default function QuizPreview() {
                           <span className="text-sm text-muted-foreground">#{index + 1}</span>
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             onClick={() => deleteSentenceMakingProblem(problem.problem_id)}
-                            className="h-8 w-8 p-0"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </CardHeader>
@@ -1079,11 +1079,11 @@ export default function QuizPreview() {
                           </Button>
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             onClick={() => deleteRecordingProblem(problem.problem_id)}
-                            className="h-8 w-8 p-0"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>

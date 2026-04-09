@@ -255,12 +255,12 @@ export default function Quizzes() {
                           결과 확인
                         </Button>
                         <Button
-                          variant="destructive"
-                          size="sm"
-                          className="h-8 w-8 p-0"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                           onClick={(e) => handleDeleteClick(e, quiz)}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>

@@ -194,11 +194,11 @@ export function SentenceMakingProblemList({
                 </div>
                 <div className="flex gap-2">
                   <Button
-                    variant="outline"
-                    size="sm"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleDelete(problem.id)}
                     disabled={deletingId === problem.id}
-                    className="text-destructive hover:text-destructive"
+                    className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   >
                     {deletingId === problem.id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />

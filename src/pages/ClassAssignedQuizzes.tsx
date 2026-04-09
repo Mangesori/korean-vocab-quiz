@@ -232,10 +232,10 @@ export default function ClassAssignedQuizzes() {
                           결과 확인
                         </Button>
 
-                        <Button variant="destructive" size="sm" 
-                          className="h-8 text-xs"
+                        <Button variant="ghost" size="icon"
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                           onClick={() => handleDeleteClick(assignment)}>
-                          삭제
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
