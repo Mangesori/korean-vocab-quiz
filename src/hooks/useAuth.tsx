@@ -161,8 +161,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await supabase.auth.signOut();
     } catch {
-      // 403 (token expired) 등 서버 에러가 와도 로컬 세션은 정리
+      // 서버 에러(403 등)가 나도 로컬 세션 강제 정리
+      await supabase.auth.signOut({ scope: 'local' });
     }
+    setUser(null);
+    setSession(null);
     setRole(null);
   };
 
