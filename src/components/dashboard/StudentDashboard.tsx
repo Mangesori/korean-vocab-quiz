@@ -363,9 +363,9 @@ export default function StudentDashboard() {
                             <FileText className="w-5 h-5 text-primary" />
                           </div>
                           <div>
-                            <p className="font-medium text-foreground">{assignment.quizzes.title}</p>
+                            <p className="font-medium text-foreground">{assignment.quizzes?.title}</p>
                             <p className="text-xs text-muted-foreground">
-                              {assignment.quizzes.words.length}개 단어 · {assignment.quizzes.difficulty}
+                              {assignment.quizzes?.words?.length ?? 0}개 단어 · {assignment.quizzes?.difficulty}
                             </p>
                           </div>
                         </div>
@@ -392,7 +392,7 @@ export default function StudentDashboard() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {results.map((result) => {
+                  {results.filter((result) => result.quizzes).map((result) => {
                     const percentage = Math.round((result.score / result.total_questions) * 100);
                     const isGood = percentage >= 80;
                     
@@ -407,7 +407,7 @@ export default function StudentDashboard() {
                             )}
                           </div>
                           <div>
-                            <p className="font-medium text-foreground">{result.quizzes.title}</p>
+                            <p className="font-medium text-foreground">{result.quizzes?.title}</p>
                             <p className="text-xs text-muted-foreground">
                               {format(new Date(result.completed_at), 'M월 d일', { locale: ko })}
                             </p>
