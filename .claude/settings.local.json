@@ -29,7 +29,9 @@
       "Bash(start https://paulgraham.com/schlep.html)",
       "Bash(xargs grep:*)",
       "Bash(ls -la \"/c/Users/vapor/Clone/Korean Vocab Quiz/.env\"*)",
-      "Bash(supabase secrets:*)"
+      "Bash(supabase secrets:*)",
+      "Bash(supabase functions:*)",
+      "Bash(where supabase:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

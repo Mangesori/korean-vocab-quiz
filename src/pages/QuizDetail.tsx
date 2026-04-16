@@ -479,7 +479,7 @@ export default function QuizDetail() {
   const handleRegenerateAll = () => {
     if (quiz) {
       regenerateAllAudio(quiz.problems, (pid, url) => {
-        // Optimistic / Manual update if needed, though useQuizData subscription should handle it
+        setAudioUrls(prev => ({ ...prev, [pid]: url }));
       });
     }
   };
@@ -638,7 +638,9 @@ export default function QuizDetail() {
                 onDeleteProblem={handleDeleteProblem}
                 deletingProblemId={deletingProblemId}
                 onAddProblem={handleAddFillBlankProblem}
-                onRegenerateSingleAudio={(problem) => regenerateSingleAudio(problem, () => {})}
+                onRegenerateSingleAudio={(problem) => regenerateSingleAudio(problem, (pid, url) => {
+                  setAudioUrls(prev => ({ ...prev, [pid]: url }));
+                })}
                 isGeneratingAudio={isGeneratingAudio}
                 audioProgress={audioProgress}
                 regeneratingProblemId={regeneratingProblemId}
