@@ -793,6 +793,7 @@ export default function QuizTake() {
             quizId={quiz.id}
             problems={sentenceMakingProblems}
             difficulty={quiz.difficulty}
+            translationLanguage={quiz.translation_language}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleSentenceMakingComplete}
             onBack={fillBlankAnswers.length > 0 ? () => setCurrentStage("fill_blank_result") : undefined}

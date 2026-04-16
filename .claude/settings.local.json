@@ -27,7 +27,9 @@
       "Bash(~/.claude/skills/gstack/bin/gstack-learnings-search:*)",
       "Bash(start:*)",
       "Bash(start https://paulgraham.com/schlep.html)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(ls -la \"/c/Users/vapor/Clone/Korean Vocab Quiz/.env\"*)",
+      "Bash(supabase secrets:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

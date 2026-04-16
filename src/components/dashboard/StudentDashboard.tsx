@@ -113,10 +113,13 @@ export default function StudentDashboard() {
         .limit(10);
 
       // Filter out completed quizzes from assignments
-      const completedQuizIds = resultsData?.map(r => r.quiz_id) || [];
-      const pendingAssignments = assignmentsData?.filter(
-        a => !completedQuizIds.includes(a.quiz_id)
-      ) || [];
+      // 재할당을 지원하기 위해 단순 quiz_id 비교 대신, 할당 시각 이후에 완료한 결과가 있는지 확인
+      const pendingAssignments = assignmentsData?.filter(assignment => {
+        return !resultsData?.some(
+          r => r.quiz_id === assignment.quiz_id &&
+               new Date(r.completed_at) > new Date(assignment.assigned_at)
+        );
+      }) || [];
 
       // Calculate stats
       const avgScore = resultsData && resultsData.length > 0

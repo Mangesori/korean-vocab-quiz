@@ -127,6 +127,9 @@ export default function QuizDetail() {
     isSending,
     sendDialogOpen,
     setSendDialogOpen,
+    reassignDialogOpen,
+    handleConfirmReassign,
+    handleCancelReassign,
     shareUrl,
     allowAnonymous,
     setAllowAnonymous,
@@ -525,6 +528,21 @@ export default function QuizDetail() {
             onCopyLink={copyToClipboard}
           />
         </Dialog>
+
+        <AlertDialog open={reassignDialogOpen} onOpenChange={(open) => { if (!open) handleCancelReassign(); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>이미 완료된 퀴즈입니다</AlertDialogTitle>
+              <AlertDialogDescription>
+                학생들이 이미 완료한 퀴즈입니다. 재할당하면 학생들이 다시 풀 수 있으며, 기존 풀이 기록은 보존됩니다.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleCancelReassign}>취소</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmReassign}>재할당</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <AlertDialog open={confirmDialog !== null} onOpenChange={(open) => { if (!open) setConfirmDialog(null); }}>
           <AlertDialogContent>
