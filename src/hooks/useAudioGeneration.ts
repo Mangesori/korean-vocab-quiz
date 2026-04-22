@@ -86,13 +86,24 @@ export function useAudioGeneration(quizId: string | undefined) {
 
         if (audioUrl) {
           onAudioGenerated(problem.id, audioUrl);
-          
-          // quiz_problems 테이블 업데이트
+
+          // quiz_problems 테이블 업데이트 (행이 없으면 삽입)
           await supabase
             .from("quiz_problems")
-            .update({ sentence_audio_url: audioUrl })
-            .eq("quiz_id", quizId)
-            .eq("problem_id", problem.id);
+            .upsert({
+              quiz_id: quizId,
+              problem_id: problem.id,
+              word: problem.word,
+              sentence: problem.sentence,
+              hint: problem.hint,
+              translation: problem.translation,
+              sentence_audio_url: audioUrl,
+            }, { onConflict: 'quiz_id,problem_id' });
+        }
+
+        // ElevenLabs rate limit 방지: 마지막 문제 제외하고 1초 대기
+        if (i < problems.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
 
@@ -119,12 +130,19 @@ export function useAudioGeneration(quizId: string | undefined) {
       );
 
       if (audioUrl) {
+        // quiz_problems 테이블 업데이트 (행이 없으면 삽입)
         await supabase
           .from("quiz_problems")
-          .update({ sentence_audio_url: audioUrl })
-          .eq("quiz_id", quizId)
-          .eq("problem_id", problem.id);
-        
+          .upsert({
+            quiz_id: quizId,
+            problem_id: problem.id,
+            word: problem.word,
+            sentence: problem.sentence,
+            hint: problem.hint,
+            translation: problem.translation,
+            sentence_audio_url: audioUrl,
+          }, { onConflict: 'quiz_id,problem_id' });
+
         onAudioGenerated(problem.id, audioUrl);
         toast.success(`"${problem.word}" 문제의 음성이 재생성되었습니다`);
       }

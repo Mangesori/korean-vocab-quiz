@@ -103,7 +103,7 @@ export default function QuizTake() {
   // 전역 단계(Stepper) 구성을 위한 배열 계산
   const globalStages = useMemo(() => {
     if (!quiz) return [];
-    const stages = [{ id: "fill_blank", label: "단어 학습" }];
+    const stages = [{ id: "fill_blank", label: "빈칸 채우기" }];
     if (quiz.sentence_making_enabled) stages.push({ id: "sentence_making", label: "문장 만들기" });
     if (quiz.recording_enabled) stages.push({ id: "recording", label: "말하기 연습" });
     return stages;
