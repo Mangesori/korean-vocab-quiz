@@ -28,3 +28,4 @@ dist-ssr
 
 # gstack (내부 .git 서브 레포지토리 제외)
 .agents/skills/gstack/.git
+.gstack/

@@ -4,11 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Save, RefreshCw, Loader2, ArrowLeft, Eye, EyeOff, Lightbulb, Volume2, ArrowRight, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { Save, RefreshCw, Loader2, ArrowLeft, Eye, EyeOff, Lightbulb, Volume2, ArrowRight, ChevronRight, ChevronLeft, Plus, Trash2, Mic } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
@@ -112,6 +113,19 @@ export default function QuizPreview() {
   type PreviewStage = "fill_blank" | "sentence_making" | "recording";
   const [previewStage, setPreviewStage] = useState<PreviewStage>("fill_blank");
 
+  // 학생 미리보기 내 문제 탐색 상태
+  const [sentenceMakingPreviewIndex, setSentenceMakingPreviewIndex] = useState(0);
+  const [sentenceMakingShowHint, setSentenceMakingShowHint] = useState(false);
+  const [recordingPreviewIndex, setRecordingPreviewIndex] = useState(0);
+  const [recordingShowHint, setRecordingShowHint] = useState(false);
+
+  useEffect(() => {
+    setSentenceMakingPreviewIndex(0);
+    setSentenceMakingShowHint(false);
+    setRecordingPreviewIndex(0);
+    setRecordingShowHint(false);
+  }, [previewStage, studentPreview]);
+
   // 활성화된 단계를 동적으로 계산
   const enabledStages = useMemo(() => {
     const stages: PreviewStage[] = ["fill_blank"];
@@ -167,6 +181,7 @@ export default function QuizPreview() {
     const stored = sessionStorage.getItem("quizDraft");
     if (stored) {
       setDraft(JSON.parse(stored));
+      window.scrollTo(0, 0);
     } else {
       navigate("/quiz/create");
     }
@@ -924,22 +939,66 @@ export default function QuizPreview() {
             </div>
 
             {studentPreview ? (
-              /* 학생 미리보기: 학생이 보는 것처럼 그리드 레이아웃 */
-              <Card className="shadow-lg">
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {draft.sentenceMakingProblems.map((problem, index) => (
-                      <div
-                        key={problem.problem_id}
-                        className="p-4 rounded-lg border-2 border-primary/20 bg-muted/30 text-center"
-                      >
-                        <div className="text-sm text-muted-foreground mb-1">#{index + 1}</div>
-                        <div className="text-lg font-bold">{problem.word}</div>
+              /* 학생 미리보기: 실제 학생 UI와 동일한 레이아웃, 입력만 비활성 */
+              (() => {
+                const problem = draft.sentenceMakingProblems[sentenceMakingPreviewIndex];
+                const total = draft.sentenceMakingProblems.length;
+                return (
+                  <Card className="w-full max-w-5xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl overflow-hidden bg-transparent sm:bg-white mb-4 sm:mb-8">
+                    <CardContent className="p-0 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
+                      <div className="p-5 sm:p-10 bg-transparent sm:bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px]">
+                        <div className="flex w-full items-center justify-end mb-2 sm:mb-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSentenceMakingShowHint(!sentenceMakingShowHint)}
+                            className="bg-white text-xs h-8 px-3 rounded-xl shadow-sm text-slate-600"
+                          >
+                            <Lightbulb className={`w-3.5 h-3.5 mr-1.5 ${sentenceMakingShowHint ? "text-warning" : ""}`} />
+                            힌트
+                          </Button>
+                        </div>
+                        <div className="flex-1 flex flex-col items-center justify-center w-full">
+                          <p className="text-sm sm:text-base lg:text-lg text-muted-foreground font-medium mb-3 sm:mb-5 text-center">
+                            이 단어를 사용하여 문장을 만드세요
+                          </p>
+                          <Badge variant="outline" className="text-lg sm:text-xl lg:text-2xl px-6 py-2 sm:py-3 font-bold bg-white shadow-sm border-slate-200 rounded-2xl text-slate-800">
+                            {problem.word}
+                          </Badge>
+                          <p className={`text-sm sm:text-base text-muted-foreground mt-4 sm:mt-6 text-center transition-opacity duration-200 ${sentenceMakingShowHint && problem.word_meaning ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+                            {problem.word_meaning || ""}
+                          </p>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                      <div className="px-1">
+                        <Textarea
+                          disabled
+                          placeholder={`"${problem.word}"을(를) 사용하여 문장을 작성하세요...`}
+                          className="min-h-[100px] text-md rounded-xl border-slate-200 opacity-60"
+                        />
+                      </div>
+                      <div className="flex justify-between items-center mt-6">
+                        <Button
+                          variant="outline"
+                          onClick={() => setSentenceMakingPreviewIndex(prev => Math.max(0, prev - 1))}
+                          disabled={sentenceMakingPreviewIndex === 0}
+                          className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                        >
+                          <ChevronLeft className="w-4 h-4 mr-2" /> 이전
+                        </Button>
+                        <span className="text-sm text-muted-foreground">{sentenceMakingPreviewIndex + 1} / {total}</span>
+                        <Button
+                          onClick={() => setSentenceMakingPreviewIndex(prev => Math.min(total - 1, prev + 1))}
+                          disabled={sentenceMakingPreviewIndex === total - 1}
+                          className="h-12 px-6 rounded-xl bg-[#6366F1] text-white font-semibold hover:bg-[#4F46E5] shadow-md transition-colors"
+                        >
+                          다음 문제 <ChevronRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()
             ) : (
               /* 교사 편집 화면: 편집 가능한 카드 그리드 */
               <div className="space-y-4">
@@ -1008,28 +1067,96 @@ export default function QuizPreview() {
             </div>
 
             {studentPreview ? (
-              /* 학생 미리보기: 간소화된 뷰 */
-              <Card className="shadow-lg">
-                <CardContent className="p-6 space-y-4">
-                  {draft.recordingProblems.map((problem, index) => (
-                    <div key={problem.problem_id} className="p-4 rounded-lg border bg-muted/30">
-                      <div className="flex items-start gap-3">
-                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold shrink-0">
-                          {index + 1}
-                        </span>
-                        <div className="flex-1">
-                          <p className="text-lg leading-relaxed">{problem.sentence}</p>
-                          {problem.translation && (
-                            <p className="text-sm text-muted-foreground mt-2">
-                              {problem.translation}
-                            </p>
+              /* 학생 미리보기: 실제 학생 UI와 동일한 레이아웃, 녹음만 비활성 */
+              (() => {
+                const problem = draft.recordingProblems[recordingPreviewIndex];
+                const total = draft.recordingProblems.length;
+                return (
+                  <Card className="w-full max-w-5xl mx-auto border shadow-sm rounded-2xl overflow-hidden bg-white mb-4 sm:mb-6">
+                    <CardContent className="p-4 sm:p-8 space-y-4 sm:space-y-6">
+                      <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px]">
+                        <div className="flex w-full items-center justify-between mb-6 sm:mb-8">
+                          <div className="text-xs sm:text-sm font-semibold text-[#8B5CF6] bg-[#8B5CF6]/10 px-3 py-1.5 rounded-full inline-flex items-center">
+                            {problem.mode === "listen" ? "듣고 말하기" : "보고 말하기"}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setRecordingShowHint(!recordingShowHint)}
+                            className="bg-white text-xs h-8 px-3 rounded-xl shadow-sm text-slate-600"
+                          >
+                            <Lightbulb className={`w-3.5 h-3.5 mr-1.5 ${recordingShowHint ? "text-warning" : ""}`} />
+                            힌트
+                          </Button>
+                        </div>
+                        <div className="flex-1 flex flex-col items-center justify-center w-full">
+                          {problem.mode === "read" ? (
+                            <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 text-foreground leading-relaxed text-center drop-shadow-sm">
+                              {problem.sentence}
+                            </h3>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-6">
+                              <p className="text-sm sm:text-base lg:text-lg text-muted-foreground font-medium mb-2">음성을 듣고 따라 녹음하세요</p>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  disabled
+                                  className="flex items-center justify-center rounded-xl px-3 sm:px-5 h-9 sm:h-11 bg-white shadow-sm text-xs sm:text-sm opacity-50"
+                                >
+                                  <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                                  <span className="font-semibold hidden sm:inline">보통 속도로 듣기</span>
+                                  <span className="font-semibold sm:hidden">보통</span>
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  disabled
+                                  className="flex items-center justify-center rounded-xl px-3 sm:px-5 h-9 sm:h-11 bg-white shadow-sm text-xs sm:text-sm opacity-50"
+                                >
+                                  <span className="mr-2 text-xl relative -top-0.5">🐢</span>
+                                  <span className="font-semibold hidden sm:inline">천천히 듣기</span>
+                                  <span className="font-semibold sm:hidden">천천히</span>
+                                </Button>
+                              </div>
+                              <p className="text-xs text-muted-foreground">(저장 후 음성이 생성됩니다)</p>
+                            </div>
                           )}
+                          <p className={`text-sm sm:text-base text-muted-foreground mt-4 sm:mt-6 text-center transition-opacity duration-200 ${recordingShowHint && problem.translation ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+                            {problem.translation || ""}
+                          </p>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+                      <div className="flex flex-col items-center gap-2">
+                        <Button
+                          size="lg"
+                          disabled
+                          className="rounded-full w-20 h-20 opacity-40"
+                        >
+                          <Mic className="w-8 h-8" />
+                        </Button>
+                        <p className="text-xs text-muted-foreground">학생 퀴즈 화면에서 녹음 가능</p>
+                      </div>
+                      <div className="flex justify-between items-center mt-6">
+                        <Button
+                          variant="outline"
+                          onClick={() => setRecordingPreviewIndex(prev => Math.max(0, prev - 1))}
+                          disabled={recordingPreviewIndex === 0}
+                          className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                        >
+                          <ChevronLeft className="w-4 h-4 mr-2" /> 이전
+                        </Button>
+                        <span className="text-sm text-muted-foreground">{recordingPreviewIndex + 1} / {total}</span>
+                        <Button
+                          onClick={() => setRecordingPreviewIndex(prev => Math.min(total - 1, prev + 1))}
+                          disabled={recordingPreviewIndex === total - 1}
+                          className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-[#6366F1] text-white font-semibold hover:bg-[#4F46E5] shadow-md transition-colors"
+                        >
+                          다음 문제 <ChevronRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()
             ) : (
               /* 교사 편집 화면: 편집 가능한 카드 레이아웃 */
               <div className="space-y-4">

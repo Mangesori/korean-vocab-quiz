@@ -3,7 +3,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Edit2, Save, Loader2, Trash2, Plus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Edit2, Save, Loader2, Trash2, Plus, ChevronLeft, ChevronRight, Lightbulb, Eye } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,16 +24,22 @@ export interface SentenceMakingProblem {
 interface SentenceMakingProblemListProps {
   problems: SentenceMakingProblem[];
   onRefresh: () => void;
+  studentPreview?: boolean;
+  onToggleStudentPreview?: (v: boolean) => void;
 }
 
 export function SentenceMakingProblemList({
   problems,
   onRefresh,
+  studentPreview,
+  onToggleStudentPreview,
 }: SentenceMakingProblemListProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedProblems, setEditedProblems] = useState<SentenceMakingProblem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const [showHint, setShowHint] = useState(false);
   const { id: quizId } = useParams<{ id: string }>();
 
   useEffect(() => {
@@ -38,6 +47,11 @@ export function SentenceMakingProblemList({
       setEditedProblems(problems);
     }
   }, [problems, isEditing]);
+
+  useEffect(() => {
+    setPreviewIndex(0);
+    setShowHint(false);
+  }, [studentPreview]);
 
   const handleUpdateProblem = (id: string, field: keyof SentenceMakingProblem, value: string) => {
     setEditedProblems((prev) =>
@@ -101,11 +115,9 @@ export function SentenceMakingProblemList({
     if (!confirm("이 문제를 삭제하시겠습니까?")) return;
 
     setDeletingId(problemId);
-    // editedProblems에서 즉시 제거
     setEditedProblems(prev => prev.filter(p => p.id !== problemId));
 
     try {
-      // 미저장 항목(temp-)은 DB 삭제 불필요
       if (!problemId.startsWith("temp-")) {
         const { error } = await supabase
           .from("sentence_making_problems")
@@ -125,26 +137,41 @@ export function SentenceMakingProblemList({
     }
   };
 
+  const toggleRow = onToggleStudentPreview && (
+    <div className="flex items-center gap-2 shrink-0">
+      <span className="text-sm text-muted-foreground flex items-center gap-1">
+        <Eye className="w-4 h-4" /> 학생 화면
+      </span>
+      <Switch checked={!!studentPreview} onCheckedChange={onToggleStudentPreview} />
+    </div>
+  );
+
   if (problems.length === 0 && editedProblems.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        문장 만들기 문제가 없습니다.
-        <div className="flex justify-center mt-4">
-          <Button
-            variant="ghost"
-            className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
-            onClick={handleAddProblem}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            단어 추가하기
-          </Button>
+      <div className="space-y-4">
+        {toggleRow && <div className="flex justify-end">{toggleRow}</div>}
+        <div className="text-center py-12 text-muted-foreground">
+          문장 만들기 문제가 없습니다.
+          <div className="flex justify-center mt-4">
+            <Button
+              variant="ghost"
+              className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
+              onClick={handleAddProblem}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              단어 추가하기
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
+  const displayProblems = studentPreview ? problems : editedProblems;
+
   return (
     <div className="space-y-4">
+      {/* 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold">문제 목록</h2>
@@ -152,108 +179,172 @@ export function SentenceMakingProblemList({
             {problems.length}개
           </span>
         </div>
-        
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button
-            variant={isEditing ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => setIsEditing(!isEditing)}
-            className="w-full sm:w-auto"
-          >
-            <Edit2 className="w-4 h-4 mr-2" />
-            <span>{isEditing ? "수정 취소" : "수정하기"}</span>
-          </Button>
-          
-          <Button
-            onClick={handleSaveAll}
-            disabled={isSaving || !isEditing || editedProblems.length === 0}
-            size="sm"
-            className="w-full sm:w-auto"
-            variant="default"
-          >
-            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-            <span>저장하기</span>
-          </Button>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {toggleRow}
+          {!studentPreview && (
+            <>
+              <Button
+                variant={isEditing ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setIsEditing(!isEditing)}
+                className="w-full sm:w-auto"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                <span>{isEditing ? "수정 취소" : "수정하기"}</span>
+              </Button>
+              <Button
+                onClick={handleSaveAll}
+                disabled={isSaving || !isEditing || editedProblems.length === 0}
+                size="sm"
+                className="w-full sm:w-auto"
+                variant="default"
+              >
+                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                <span>저장하기</span>
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      {editedProblems.map((problem, index) => {
-        const editedData = problem;
-
-        return (
-          <Card key={problem.id} className="overflow-hidden">
-            <CardHeader className="py-3 px-4 bg-muted/30">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                    {index + 1}
-                  </span>
-                  <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold">
-                    {problem.word}
-                  </span>
+      {/* 학생 화면 미리보기 */}
+      {studentPreview && displayProblems.length > 0 ? (
+        (() => {
+          const problem = displayProblems[previewIndex];
+          const total = displayProblems.length;
+          return (
+            <Card className="w-full border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl overflow-hidden bg-transparent sm:bg-white">
+              <CardContent className="p-0 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
+                <div className="p-5 sm:p-10 bg-transparent sm:bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px]">
+                  <div className="flex w-full items-center justify-end mb-2 sm:mb-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowHint(!showHint)}
+                      className="bg-white text-xs h-8 px-3 rounded-xl shadow-sm text-slate-600"
+                    >
+                      <Lightbulb className={`w-3.5 h-3.5 mr-1.5 ${showHint ? "text-warning" : ""}`} />
+                      힌트
+                    </Button>
+                  </div>
+                  <div className="flex-1 flex flex-col items-center justify-center w-full">
+                    <p className="text-sm sm:text-base lg:text-lg text-muted-foreground font-medium mb-3 sm:mb-5 text-center">
+                      이 단어를 사용하여 문장을 만드세요
+                    </p>
+                    <Badge variant="outline" className="text-lg sm:text-xl lg:text-2xl px-6 py-2 sm:py-3 font-bold bg-white shadow-sm border-slate-200 rounded-2xl text-slate-800">
+                      {problem.word}
+                    </Badge>
+                    <p className={`text-sm sm:text-base text-muted-foreground mt-4 sm:mt-6 text-center transition-opacity duration-200 ${showHint && problem.word_meaning ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+                      {problem.word_meaning || ""}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="px-1">
+                  <Textarea
+                    disabled
+                    placeholder={`"${problem.word}"을(를) 사용하여 문장을 작성하세요...`}
+                    className="min-h-[100px] text-md rounded-xl border-slate-200 opacity-60"
+                  />
+                </div>
+                <div className="flex justify-between items-center mt-6">
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(problem.id)}
-                    disabled={deletingId === problem.id}
-                    className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    variant="outline"
+                    onClick={() => { setPreviewIndex(prev => Math.max(0, prev - 1)); setShowHint(false); }}
+                    disabled={previewIndex === 0}
+                    className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
                   >
-                    {deletingId === problem.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
+                    <ChevronLeft className="w-4 h-4 mr-2" /> 이전
+                  </Button>
+                  <span className="text-sm text-muted-foreground">{previewIndex + 1} / {total}</span>
+                  <Button
+                    onClick={() => { setPreviewIndex(prev => Math.min(total - 1, prev + 1)); setShowHint(false); }}
+                    disabled={previewIndex === total - 1}
+                    className="h-12 px-6 rounded-xl bg-[#6366F1] text-white font-semibold hover:bg-[#4F46E5] shadow-md transition-colors"
+                  >
+                    다음 문제 <ChevronRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
-              </div>
-            </CardHeader>
+              </CardContent>
+            </Card>
+          );
+        })()
+      ) : !studentPreview && (
+        <>
+          {editedProblems.map((problem, index) => (
+            <Card key={problem.id} className="overflow-hidden">
+              <CardHeader className="py-3 px-4 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                      {index + 1}
+                    </span>
+                    <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold">
+                      {problem.word}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(problem.id)}
+                      disabled={deletingId === problem.id}
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      {deletingId === problem.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
 
-            <CardContent className="pt-4 pb-5 space-y-4">
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs uppercase tracking-wide">
-                  단어 뜻
-                </Label>
-                {isEditing ? (
-                  <Input
-                    value={editedData.word_meaning || ""}
-                    onChange={(e) =>
-                      handleUpdateProblem(problem.id, "word_meaning", e.target.value)
-                    }
-                    placeholder="단어의 뜻을 입력하세요"
-                    className="bg-muted/30"
-                  />
-                ) : (
-                  <p className="px-3 py-2 rounded-md bg-muted/30 text-sm">
-                    {editedData.word_meaning || "(없음)"}
-                  </p>
-                )}
-              </div>
+              <CardContent className="pt-4 pb-5 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground text-xs uppercase tracking-wide">
+                    단어 뜻
+                  </Label>
+                  {isEditing ? (
+                    <Input
+                      value={problem.word_meaning || ""}
+                      onChange={(e) =>
+                        handleUpdateProblem(problem.id, "word_meaning", e.target.value)
+                      }
+                      placeholder="단어의 뜻을 입력하세요"
+                      className="bg-muted/30"
+                    />
+                  ) : (
+                    <p className="px-3 py-2 rounded-md bg-muted/30 text-sm">
+                      {problem.word_meaning || "(없음)"}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
 
-            </CardContent>
-          </Card>
-        );
-      })}
+          <div className="flex justify-center mt-4">
+            <Button
+              variant="ghost"
+              className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
+              onClick={handleAddProblem}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              문제 추가
+            </Button>
+          </div>
 
-      <div className="flex justify-center mt-4">
-        <Button
-          variant="ghost"
-          className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
-          onClick={handleAddProblem}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          문제 추가
-        </Button>
-      </div>
-
-      {isEditing && (
-        <div className="mt-4 flex justify-center">
-          <Button onClick={handleSaveAll} disabled={isSaving || editedProblems.length === 0} size="lg">
-            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-            저장하기
-          </Button>
-        </div>
+          {isEditing && (
+            <div className="mt-4 flex justify-center">
+              <Button onClick={handleSaveAll} disabled={isSaving || editedProblems.length === 0} size="lg">
+                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                저장하기
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

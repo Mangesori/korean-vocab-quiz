@@ -93,6 +93,8 @@ export default function QuizTake() {
   const [recordingProblems, setRecordingProblems] = useState<RecordingProblemData[]>([]);
   const [fillBlankAnswers, setFillBlankAnswers] = useState<any[]>([]);
   const [sentenceMakingResults, setSentenceMakingResults] = useState<Record<string, any>>({});
+  const [quizResultId, setQuizResultId] = useState<string | null>(null);
+  const [savedFillBlankScore, setSavedFillBlankScore] = useState<{ score: number; total: number } | null>(null);
   
   const [stageProgress, setStageProgress] = useState({ current: 0, total: 0, label: "" });
 
@@ -485,42 +487,51 @@ export default function QuizTake() {
     setIsSubmitting(true);
 
     try {
-      // 서버에서 점수 계산 - 정답 조작 방지
-      const studentAnswers: Record<string, string> = {};
-      quiz.problems.forEach((problem) => {
-        studentAnswers[problem.id] = userAnswers[problem.id] || "";
-      });
+      let resultId: string;
+      let fbScore: number;
+      let fbTotal: number;
 
-      const { data, error } = await supabase.rpc("submit_quiz_answers", {
-        _quiz_id: quiz.id,
-        _student_answers: studentAnswers,
-      });
+      if (quizResultId && savedFillBlankScore) {
+        // 빈칸 완료 시 중간 저장된 결과 재사용
+        resultId = quizResultId;
+        fbScore = savedFillBlankScore.score;
+        fbTotal = savedFillBlankScore.total;
+      } else {
+        // 서버에서 점수 계산 - 정답 조작 방지
+        const studentAnswers: Record<string, string> = {};
+        quiz.problems.forEach((problem) => {
+          studentAnswers[problem.id] = userAnswers[problem.id] || "";
+        });
 
-      if (error) {
-        console.error("Submit error:", error);
-        throw new Error(error.message);
+        const { data, error } = await supabase.rpc("submit_quiz_answers", {
+          _quiz_id: quiz.id,
+          _student_answers: studentAnswers,
+        });
+
+        if (error) {
+          console.error("Submit error:", error);
+          throw new Error(error.message);
+        }
+
+        const result = data as { success: boolean; result_id: string; score: number; total: number };
+        if (!result.success) throw new Error("Submission failed");
+
+        resultId = result.result_id;
+        fbScore = result.score;
+        fbTotal = result.total;
       }
 
-      const result = data as { success: boolean; result_id: string; score: number; total: number };
-
-      if (!result.success) {
-        throw new Error("Submission failed");
-      }
-
-      // 유형별 점수 계산 및 데이터 저장
-      const fillBlankScore = result.score;
-      const fillBlankTotal = result.total;
       let smScore = 0, smTotal = 0;
       let recScore = 0, recTotal = 0;
 
-      // 문장 만들기 답안 저장
-      if (quiz.sentence_making_enabled && Object.keys(sentenceMakingResults).length > 0) {
+      // 문장 만들기 답안 저장 (중간 저장이 없었던 경우에만)
+      if (!quizResultId && quiz.sentence_making_enabled && Object.keys(sentenceMakingResults).length > 0) {
         const smAnswers: any[] = [];
         for (const [problemId, attempts] of Object.entries(sentenceMakingResults) as [string, any[]][]) {
           for (const attempt of attempts) {
             smAnswers.push({
               quiz_id: quiz.id,
-              result_id: result.result_id,
+              result_id: resultId,
               problem_id: problemId,
               student_id: user!.id,
               attempt_number: attempt.attemptNumber,
@@ -537,21 +548,23 @@ export default function QuizTake() {
         }
         const { error: smError } = await (supabase as any).from("sentence_making_answers").insert(smAnswers);
         if (smError) console.error("Failed to save sentence making answers:", smError);
+      }
 
+      if (quiz.sentence_making_enabled && Object.keys(sentenceMakingResults).length > 0) {
         smTotal = sentenceMakingProblems.length;
         smScore = sentenceMakingProblems.filter((p: any) =>
           (sentenceMakingResults[p.id] as any[])?.some((a: any) => a.isPassed)
         ).length;
       }
 
-      // 녹음 답안 저장
-      if (quiz.recording_enabled && stageResults.recording) {
+      // 녹음 답안 저장 (중간 저장이 없었던 경우에만)
+      if (!quizResultId && quiz.recording_enabled && stageResults.recording) {
         const recAnswers: any[] = [];
         for (const [problemId, attempts] of Object.entries(stageResults.recording) as [string, any[]][]) {
           for (const attempt of attempts) {
             recAnswers.push({
               quiz_id: quiz.id,
-              result_id: result.result_id,
+              result_id: resultId,
               problem_id: problemId,
               student_id: user!.id,
               attempt_number: attempt.attemptNumber,
@@ -569,7 +582,9 @@ export default function QuizTake() {
         }
         const { error: recError } = await (supabase as any).from("recording_answers").insert(recAnswers);
         if (recError) console.error("Failed to save recording answers:", recError);
+      }
 
+      if (quiz.recording_enabled && stageResults.recording) {
         recTotal = recordingProblems.length;
         recScore = recordingProblems.filter((p: any) => {
           const problemAttempts = (stageResults.recording[p.id] || []) as any[];
@@ -579,9 +594,9 @@ export default function QuizTake() {
 
       // quiz_results 유형별 점수 업데이트 (SECURITY DEFINER RPC 사용)
       const { error: updateError } = await supabase.rpc("update_quiz_result_scores" as any, {
-        _result_id: result.result_id,
-        _fill_blank_score: fillBlankScore,
-        _fill_blank_total: fillBlankTotal,
+        _result_id: resultId,
+        _fill_blank_score: fbScore,
+        _fill_blank_total: fbTotal,
         _sentence_making_score: smScore,
         _sentence_making_total: smTotal,
         _recording_score: recScore,
@@ -589,14 +604,13 @@ export default function QuizTake() {
       });
       if (updateError) console.error("Failed to update quiz_results scores:", updateError);
 
-      // Navigate to results
-      navigate(`/quiz/${quiz.id}/result/${result.result_id}`);
+      navigate(`/quiz/${quiz.id}/result/${resultId}`);
     } catch (error) {
       console.error("Submit error:", error);
       toast.error("제출에 실패했습니다");
       setIsSubmitting(false);
     }
-  }, [quiz, user, userAnswers, navigate, isSubmitting, isAnonymous, shareToken, anonymousName, sentenceMakingResults, stageResults, sentenceMakingProblems, recordingProblems]);
+  }, [quiz, user, userAnswers, navigate, isSubmitting, isAnonymous, shareToken, anonymousName, sentenceMakingResults, stageResults, sentenceMakingProblems, recordingProblems, quizResultId, savedFillBlankScore]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -701,6 +715,23 @@ export default function QuizTake() {
         };
       });
 
+      // 인증된 사용자 + 추가 스테이지: 빈칸 결과 중간 저장
+      if (!isAnonymous && user && (quiz.sentence_making_enabled || quiz.recording_enabled)) {
+        const studentAnswers: Record<string, string> = {};
+        quiz.problems.forEach((problem) => {
+          studentAnswers[problem.id] = userAnswers[problem.id] || "";
+        });
+        const { data: submitData, error: submitError } = await supabase.rpc("submit_quiz_answers", {
+          _quiz_id: quiz.id,
+          _student_answers: studentAnswers,
+        });
+        if (!submitError && (submitData as any)?.success) {
+          const res = submitData as { success: boolean; result_id: string; score: number; total: number };
+          setQuizResultId(res.result_id);
+          setSavedFillBlankScore({ score: res.score, total: res.total });
+        }
+      }
+
       setFillBlankAnswers(detailedAnswers);
       setStageResults((prev) => ({ ...prev, fill_blank: userAnswers }));
       setCurrentStage("fill_blank_result");
@@ -721,9 +752,37 @@ export default function QuizTake() {
   };
 
   // 문장 만들기 완료 핸들러 → 결과 페이지로
-  const handleSentenceMakingComplete = (results: Record<string, any>) => {
+  const handleSentenceMakingComplete = async (results: Record<string, any>) => {
     setStageResults((prev) => ({ ...prev, sentence_making: results }));
     setSentenceMakingResults(results);
+
+    if (!isAnonymous && user && quizResultId) {
+      const smAnswers: any[] = [];
+      for (const [problemId, attempts] of Object.entries(results) as [string, any[]][]) {
+        for (const attempt of attempts) {
+          smAnswers.push({
+            quiz_id: quiz!.id,
+            result_id: quizResultId,
+            problem_id: problemId,
+            student_id: user.id,
+            attempt_number: attempt.attemptNumber,
+            student_sentence: attempt.sentence,
+            word_usage_score: attempt.wordUsageScore || 0,
+            grammar_score: attempt.grammarScore || 0,
+            naturalness_score: attempt.naturalnessScore || 0,
+            total_score: attempt.totalScore,
+            ai_feedback: attempt.feedback,
+            model_answer: attempt.modelAnswer,
+            is_passed: attempt.isPassed,
+          });
+        }
+      }
+      if (smAnswers.length > 0) {
+        const { error: smError } = await (supabase as any).from("sentence_making_answers").insert(smAnswers);
+        if (smError) console.error("Failed to save sentence making answers:", smError);
+      }
+    }
+
     setCurrentStage("sentence_making_result");
   };
 
@@ -738,8 +797,37 @@ export default function QuizTake() {
   };
 
   // 녹음 완료 핸들러 → 전체 결과 페이지로
-  const handleRecordingComplete = (results: Record<string, any>) => {
+  const handleRecordingComplete = async (results: Record<string, any>) => {
     setStageResults((prev) => ({ ...prev, recording: results }));
+
+    if (!isAnonymous && user && quizResultId) {
+      const recAnswers: any[] = [];
+      for (const [problemId, attempts] of Object.entries(results) as [string, any[]][]) {
+        for (const attempt of attempts) {
+          recAnswers.push({
+            quiz_id: quiz!.id,
+            result_id: quizResultId,
+            problem_id: problemId,
+            student_id: user.id,
+            attempt_number: attempt.attemptNumber,
+            recording_url: attempt.recordingUrl,
+            pronunciation_score: attempt.pronunciationScore,
+            accuracy_score: attempt.accuracyScore,
+            fluency_score: attempt.fluencyScore,
+            completeness_score: attempt.completenessScore,
+            prosody_score: attempt.prosodyScore,
+            overall_score: attempt.overallScore,
+            word_level_feedback: attempt.wordLevelFeedback,
+            is_passed: attempt.isPassed,
+          });
+        }
+      }
+      if (recAnswers.length > 0) {
+        const { error: recError } = await (supabase as any).from("recording_answers").insert(recAnswers);
+        if (recError) console.error("Failed to save recording answers:", recError);
+      }
+    }
+
     setCurrentStage("recording_result");
   };
 

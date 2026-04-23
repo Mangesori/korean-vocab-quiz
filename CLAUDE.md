@@ -15,3 +15,17 @@ Key routing rules:
 - Design system, brand → invoke design-consultation
 - Visual audit, design polish → invoke design-review
 - Architecture review → invoke plan-eng-review
+
+## Design System
+
+Always read DESIGN.md before making any visual or UI decisions.
+All font choices, colors, spacing, and aesthetic direction are defined there.
+Do not deviate without explicit user approval.
+
+Key rules:
+- Primary color: #1E6B47 (대나무 그린) — NOT blue, NOT purple, NOT the old indigo #6366F1
+- Korean text: Pretendard (load via CDN). Paperozi for display/landing only.
+- English headers: DM Serif Display. UI text: Geist / Geist Mono.
+- Background: #F8F5F0 (warm off-white) — not pure white
+- Student quiz screens: one problem at a time, no game UI during quiz
+- In QA mode, flag any code that doesn't match DESIGN.md.

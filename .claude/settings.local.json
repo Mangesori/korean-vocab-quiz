@@ -31,7 +31,8 @@
       "Bash(ls -la \"/c/Users/vapor/Clone/Korean Vocab Quiz/.env\"*)",
       "Bash(supabase secrets:*)",
       "Bash(supabase functions:*)",
-      "Bash(where supabase:*)"
+      "Bash(where supabase:*)",
+      "Bash(git log *)"
     ]
   },
   "enableAllProjectMcpServers": true,
