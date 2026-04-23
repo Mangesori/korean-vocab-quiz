@@ -20,8 +20,16 @@ export default function Auth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!loginForm.email) {
+      toast.error('이메일을 입력해주세요.');
+      return;
+    }
+    if (!loginForm.password) {
+      toast.error('비밀번호를 입력해주세요.');
+      return;
+    }
     setIsLoading(true);
-    
+
     const { error } = await signIn(loginForm.email, loginForm.password);
     
     if (error) {
@@ -35,8 +43,24 @@ export default function Auth() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!signupForm.name) {
+      toast.error('이름을 입력해주세요.');
+      return;
+    }
+    if (!signupForm.email) {
+      toast.error('이메일을 입력해주세요.');
+      return;
+    }
+    if (!signupForm.password) {
+      toast.error('비밀번호를 입력해주세요.');
+      return;
+    }
+    if (signupForm.password.length < 6) {
+      toast.error('비밀번호는 6자 이상이어야 합니다.');
+      return;
+    }
     setIsLoading(true);
-    
+
     // Pass undefined for the role to defer selection to AuthCallback
     const { error } = await signUp(signupForm.email, signupForm.password, signupForm.name);
     
@@ -69,7 +93,7 @@ export default function Auth() {
           <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
             <GraduationCap className="w-6 h-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold">한국어 퀴즈</CardTitle>
+          <CardTitle className="text-2xl font-bold">Dalkom Korean</CardTitle>
           <CardDescription>선생님과 학생을 위한 어휘 학습 플랫폼</CardDescription>
         </CardHeader>
         
@@ -93,7 +117,6 @@ export default function Auth() {
                       className="pl-10"
                       value={loginForm.email}
                       onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                      required
                     />
                   </div>
                 </div>
@@ -109,7 +132,6 @@ export default function Auth() {
                       className="pl-10"
                       value={loginForm.password}
                       onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                      required
                     />
                   </div>
                 </div>
@@ -158,7 +180,6 @@ export default function Auth() {
                       className="pl-10"
                       value={signupForm.name}
                       onChange={(e) => setSignupForm({ ...signupForm, name: e.target.value })}
-                      required
                     />
                   </div>
                 </div>
@@ -174,7 +195,6 @@ export default function Auth() {
                       className="pl-10"
                       value={signupForm.email}
                       onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
-                      required
                     />
                   </div>
                 </div>
@@ -190,8 +210,6 @@ export default function Auth() {
                       className="pl-10"
                       value={signupForm.password}
                       onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
-                      required
-                      minLength={6}
                     />
                   </div>
                 </div>
