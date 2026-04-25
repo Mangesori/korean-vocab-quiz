@@ -15,13 +15,10 @@ interface QuizRequest {
   translationLanguage: string;
   wordsPerSet: number;
   regenerateSingle?: boolean;
-  apiProvider?: "openai" | "gemini" | "gemini-pro" | "claude";
-  // 새 퀴즈 유형
   sentenceMakingEnabled?: boolean;
   recordingEnabled?: boolean;
   recordingMode?: "read" | "listen" | "mixed";
   recordingModes?: Array<{ wordIndex: number; mode: "read" | "listen" }>;
-  // 빈칸 채우기 생성 건너뛰기 (기존 퀴즈에 문장 만들기/녹음만 추가할 때)
   skipFillBlank?: boolean;
 }
 
@@ -438,7 +435,6 @@ serve(async (req) => {
       translationLanguage,
       wordsPerSet: _wordsPerSet,
       regenerateSingle,
-      apiProvider = "openai",
       sentenceMakingEnabled = false,
       recordingEnabled = false,
       recordingMode: _recordingMode = "read",
@@ -458,102 +454,55 @@ serve(async (req) => {
         ? generateSimplePrompt(words, difficulty, languageName)
         : generateDetailedPrompt(words, difficulty, languageName);
 
-      console.log(`Generating quiz using ${apiProvider} for ${words.length} words at ${difficulty} level`);
+      console.log(`Generating quiz using Claude for ${words.length} words at ${difficulty} level`);
+
+      const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+      if (!ANTHROPIC_API_KEY) {
+        throw new Error("ANTHROPIC_API_KEY is not configured");
+      }
 
       let content: string;
 
-      if (apiProvider === "gemini" || apiProvider === "gemini-pro") {
-        const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-        if (!GEMINI_API_KEY) {
-          throw new Error("GEMINI_API_KEY is not configured");
-        }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 130000);
 
-        const modelName = apiProvider === "gemini-pro" ? "gemini-3-pro-preview" : "gemini-3-flash-preview";
+      try {
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 8192,
+            temperature: 0.7,
+            messages: [{ role: "user", content: prompt }],
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 130000);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Claude API error:", response.status, errorText);
 
-        try {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                response_mime_type: "application/json",
-                temperature: 0.7,
-              }
-            }),
-            signal: controller.signal,
-          });
-          clearTimeout(timeoutId);
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Gemini API error (${modelName}):`, response.status, errorText);
-            throw new Error(`Gemini API error: ${response.status}`);
+          if (response.status === 429) {
+            return new Response(
+              JSON.stringify({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }),
+              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
           }
 
-          const data = await response.json();
-          content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        } catch (error) {
-          clearTimeout(timeoutId);
-          throw error;
-        }
-      } else {
-        const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-        if (!OPENAI_API_KEY) {
-          throw new Error("OPENAI_API_KEY is not configured");
+          throw new Error(`Claude API error: ${response.status}`);
         }
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 130000);
-
-        try {
-          const response = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${OPENAI_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "gpt-5.2",
-              messages: [
-                {
-                  role: "system",
-                  content: "You are a helpful assistant that generates Korean language learning quizzes. You must respond ONLY with valid JSON."
-                },
-                { role: "user", content: prompt },
-              ],
-              temperature: 0.7,
-              response_format: { type: "json_object" },
-            }),
-            signal: controller.signal,
-          });
-          clearTimeout(timeoutId);
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error("OpenAI API error:", response.status, errorText);
-
-            if (response.status === 429) {
-              return new Response(
-                JSON.stringify({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }),
-                { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-              );
-            }
-
-            throw new Error(`OpenAI API error: ${response.status}`);
-          }
-
-          const data = await response.json();
-          content = data.choices?.[0]?.message?.content;
-        } catch (error) {
-          clearTimeout(timeoutId);
-          throw error;
-        }
+        const data = await response.json();
+        content = data.content?.[0]?.text;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
       }
 
       if (!content) {

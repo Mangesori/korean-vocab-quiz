@@ -47,7 +47,6 @@ export default function QuizCreate() {
   const [wordsPerSet, setWordsPerSet] = useState(5);
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(60);
-  const [apiProvider, setApiProvider] = useState<"openai" | "gemini" | "gemini-pro" | "claude">("openai");
   const [isGenerating, setIsGenerating] = useState(false);
 
   // 새로운 퀴즈 유형 옵션
@@ -113,11 +112,9 @@ export default function QuizCreate() {
               difficulty,
               translationLanguage,
               wordsPerSet,
-              apiProvider,
-              // 새 퀴즈 유형 파라미터
               sentenceMakingEnabled,
               recordingEnabled,
-              recordingMode: "read", // 기본값
+              recordingMode: "read",
             },
           });
 
@@ -171,15 +168,13 @@ export default function QuizCreate() {
         "quizDraft",
         JSON.stringify({
           title,
-          words: words.slice(0, allProblems.length), // 실제 생성된 문제 수만큼만
+          words: words.slice(0, allProblems.length),
           difficulty,
           translationLanguage,
           wordsPerSet,
           timerEnabled,
           timerSeconds: timerEnabled ? timerSeconds : null,
-          apiProvider,
           problems: allProblems,
-          // 새로운 퀴즈 유형 옵션
           sentenceMakingEnabled,
           recordingEnabled,
           sentenceMakingProblems: allSentenceMakingProblems,
@@ -411,63 +406,6 @@ export default function QuizCreate() {
                     <div className={`text-xs mt-0.5 ${recordingEnabled ? "text-primary" : "text-muted-foreground"}`}>
                       {recordingEnabled ? "선택됨" : "선택 안 함"}
                     </div>
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-3 mt-6 pt-6 border-t border-border">
-                <Label className="text-base font-semibold">AI 모델 선택</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setApiProvider("openai")}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      apiProvider === "openai"
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border hover:border-border-foreground/20 hover:bg-muted/30"
-                    }`}
-                  >
-                    <div className="font-bold text-foreground">OpenAI</div>
-                    <div className="text-xs text-muted-foreground mt-1">GPT-5.2</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setApiProvider("claude")}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      apiProvider === "claude"
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border hover:border-border-foreground/20 hover:bg-muted/30"
-                    }`}
-                  >
-                    <div className="font-bold text-foreground">Claude</div>
-                    <div className="text-xs text-muted-foreground mt-1">4.5 Haiku</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setApiProvider("gemini-pro")}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      apiProvider === "gemini-pro"
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border hover:border-border-foreground/20 hover:bg-muted/30"
-                    }`}
-                  >
-                    <div className="font-bold text-foreground">Gemini</div>
-                    <div className="text-xs text-muted-foreground mt-1">2.5 Flash</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setApiProvider("gemini")}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      apiProvider === "gemini"
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border hover:border-border-foreground/20 hover:bg-muted/30"
-                    }`}
-                  >
-                    <div className="font-bold text-foreground">Gemini</div>
-                    <div className="text-xs text-muted-foreground mt-1">3.1 Flash lite</div>
                   </button>
                 </div>
               </div>
