@@ -427,6 +427,24 @@ serve(async (req) => {
       );
     }
 
+    if (profileData.role === 'teacher') {
+      const MONTHLY_LIMIT = 10;
+      const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+
+      const { count, error: countError } = await supabase
+        .from('quizzes')
+        .select('*', { count: 'exact', head: true })
+        .eq('teacher_id', user.id)
+        .gte('created_at', startOfMonth);
+
+      if (!countError && count !== null && count >= MONTHLY_LIMIT) {
+        return new Response(
+          JSON.stringify({ error: `이번 달 퀴즈 생성 한도(${MONTHLY_LIMIT}개)에 도달했습니다.` }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     console.log(`User ${user.id} (${profileData.role}) generating quiz`);
 
     const {
