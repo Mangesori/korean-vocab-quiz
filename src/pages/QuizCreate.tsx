@@ -17,6 +17,7 @@ import { Navigate } from "react-router-dom";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/lib/rbac/roles";
+import type { Problem, SentenceMakingProblem, RecordingProblem } from "@/types/quiz";
 
 const DIFFICULTY_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 
@@ -85,9 +86,9 @@ export default function QuizCreate() {
 
     try {
       const BATCH_SIZE = 15;
-      const allProblems: any[] = [];
-      const allSentenceMakingProblems: any[] = [];
-      const allRecordingProblems: any[] = [];
+      const allProblems: Problem[] = [];
+      const allSentenceMakingProblems: SentenceMakingProblem[] = [];
+      const allRecordingProblems: RecordingProblem[] = [];
 
       // 단어를 10개씩 청크로 분할
       const wordChunks: string[][] = [];
