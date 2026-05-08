@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -11,8 +13,6 @@ interface QuizResultsDialogProps {
   quizTitle: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  sentenceMakingEnabled?: boolean;
-  recordingEnabled?: boolean;
 }
 
 export function QuizResultsDialog({
@@ -20,9 +20,20 @@ export function QuizResultsDialog({
   quizTitle,
   open,
   onOpenChange,
-  sentenceMakingEnabled,
-  recordingEnabled,
 }: QuizResultsDialogProps) {
+  const { data: quizSettings } = useQuery({
+    queryKey: ['quiz-settings', quizId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('quizzes')
+        .select('sentence_making_enabled, recording_enabled')
+        .eq('id', quizId!)
+        .single();
+      return data;
+    },
+    enabled: !!quizId,
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
@@ -33,8 +44,8 @@ export function QuizResultsDialog({
         {quizId && (
           <QuizResultsList
             quizId={quizId}
-            sentenceMakingEnabled={sentenceMakingEnabled}
-            recordingEnabled={recordingEnabled}
+            sentenceMakingEnabled={quizSettings?.sentence_making_enabled ?? false}
+            recordingEnabled={quizSettings?.recording_enabled ?? false}
           />
         )}
       </DialogContent>

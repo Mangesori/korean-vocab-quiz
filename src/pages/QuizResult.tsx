@@ -97,11 +97,13 @@ interface Result {
 }
 
 function renderSentenceWithDiff(studentSentence: string, modelAnswer: string | null | undefined, isPerfect: boolean) {
-  if (isPerfect || !modelAnswer) {
-    return <span className={isPerfect ? "text-success" : "text-slate-700"}>{studentSentence}</span>;
+  const noCorrection = isPerfect || !modelAnswer || modelAnswer.trim() === studentSentence.trim();
+
+  if (noCorrection) {
+    return <span className="text-success">{studentSentence}</span>;
   }
   const studentWords = studentSentence.trim().split(/\s+/);
-  const modelWords = modelAnswer.trim().split(/\s+/);
+  const modelWords = modelAnswer!.trim().split(/\s+/);
   return (
     <>
       {studentWords.map((word, idx) => {

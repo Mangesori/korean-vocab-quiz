@@ -7,7 +7,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, FileText, Bell, ChevronRight, BookOpen, Clock, GraduationCap, Share, Send, FileX } from "lucide-react";
+import { Plus, Users, FileText, Bell, ChevronRight, BookOpen, Clock, GraduationCap, Share, Send, FileX, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Dialog } from "@/components/ui/dialog";
@@ -268,51 +269,56 @@ export default function TeacherDashboard() {
                   <p>아직 생성된 퀴즈가 없습니다</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {quizzes.map((quiz) => (
-                    <div key={quiz.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <Link to={`/quiz/${quiz.id}`} className="flex-1 flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 shrink-0 bg-primary/10 rounded-lg flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-foreground truncate">{quiz.title}</p>
-                            <LevelBadge level={quiz.difficulty} className="shrink-0" />
+                    <Link key={quiz.id} to={`/quiz/${quiz.id}`}>
+                      <Card className="hover:shadow-md transition-all hover:border-primary/50 cursor-pointer h-full">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                              <FileText className="w-5 h-5 text-primary" />
+                            </div>
+                            <LevelBadge level={quiz.difficulty} />
                           </div>
-                          <p className="text-xs text-muted-foreground">
+                          <h3 className="font-semibold text-foreground mb-1 line-clamp-1">{quiz.title}</h3>
+                          <p className="text-sm text-muted-foreground mb-3">
                             {quiz.words.length}개 단어 · {Math.ceil(quiz.words.length / quiz.words_per_set)}세트
                           </p>
-                        </div>
-                      </Link>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                          onClick={(e) => {
-                             e.preventDefault();
-                             setSelectedQuizForShare(quiz as any);
-                             setSendDialogOpen(true);
-                             setSelectedClassId("");
-                          }}
-                        >
-                          <Send className="w-4 h-4 sm:mr-1" />
-                          <span className="hidden sm:inline">공유</span>
-                        </Button>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setSelectedResult(quiz);
-                          }}
-                        >
-                          결과 확인
-                        </Button>
-                      </div>
-                    </div>
+                          <div className="flex items-center justify-between mt-3">
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {format(new Date(quiz.created_at), 'yyyy년 M월 d일', { locale: ko })}
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                className="h-7 text-xs bg-accent hover:bg-accent/90 text-accent-foreground"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setSelectedQuizForShare(quiz as any);
+                                  setSendDialogOpen(true);
+                                  setSelectedClassId("");
+                                }}
+                              >
+                                <Send className="w-3 h-3 mr-1" />공유
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="h-7 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setSelectedResult(quiz);
+                                }}
+                              >
+                                결과 확인
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
                   ))}
                 </div>
               )}
@@ -339,21 +345,41 @@ export default function TeacherDashboard() {
                   <p>아직 생성된 클래스가 없습니다</p>
                 </div>
               ) : (
-                <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {classes.slice(0, 10).map((cls) => (
                     <Link key={cls.id} to={`/class/${cls.id}`}>
-                      <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
-                            <Users className="w-5 h-5 text-accent" />
+                      <Card className="hover:shadow-md transition-all hover:border-accent/50 cursor-pointer h-full">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
+                              <Users className="w-5 h-5 text-accent" />
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium text-foreground">{cls.name}</p>
-                            <p className="text-xs text-muted-foreground">초대 코드: {cls.invite_code}</p>
+                          <h3 className="font-semibold text-foreground mb-1 line-clamp-1">{cls.name}</h3>
+                          <p className="text-sm mb-3">
+                            <span className="text-muted-foreground">초대 코드: </span>
+                            <span className="font-mono font-bold text-primary">{cls.invite_code}</span>
+                          </p>
+                          <div className="flex items-center justify-between mt-3">
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {format(new Date(cls.created_at), 'yyyy년 M월 d일', { locale: ko })}
+                            </div>
+                            <Button
+                              size="sm"
+                              className="h-7 text-xs bg-accent hover:bg-accent/90 text-accent-foreground"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(cls.invite_code);
+                                toast.success('초대 코드가 복사되었습니다');
+                              }}
+                            >
+                              <Copy className="w-3 h-3 mr-1" />코드 복사
+                            </Button>
                           </div>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                      </div>
+                        </CardContent>
+                      </Card>
                     </Link>
                   ))}
                 </div>
@@ -365,8 +391,6 @@ export default function TeacherDashboard() {
       <QuizResultsDialog
         quizId={selectedQuizForResult?.id || null}
         quizTitle={selectedQuizForResult?.title || ""}
-        sentenceMakingEnabled={selectedQuizForResult?.sentence_making_enabled}
-        recordingEnabled={selectedQuizForResult?.recording_enabled}
         open={!!selectedQuizForResult}
         onOpenChange={(open) => !open && setSelectedResult(null)}
       />

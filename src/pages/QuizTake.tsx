@@ -910,6 +910,13 @@ export default function QuizTake() {
       const recScore = recordingProblems.filter((p: any) =>
         (results[p.id] as any[])?.some((a: any) => a.isPassed)
       ).length;
+
+      await supabase.rpc("update_quiz_result_recording_score" as any, {
+        _result_id: quizResultId,
+        _score: recScore,
+        _total: recTotal,
+      });
+
       const fbScoreR = savedFillBlankScore?.score ?? 0;
       const fbTotalR = savedFillBlankScore?.total ?? 0;
       const smScoreR = savedSentenceMakingScore?.score ?? 0;
