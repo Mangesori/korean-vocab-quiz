@@ -23,6 +23,7 @@ interface BatchGradeRequest {
 }
 
 interface GradeResponse {
+  errors: string[];
   wordUsageScore: number;
   grammarScore: number;
   naturalnessScore: number;
@@ -87,12 +88,13 @@ const generateSingleGradingPrompt = (
 
 **응답 형식 (JSON만 출력):**
 {
+  "errors": ["오류1 설명 (한국어)", "오류2 설명"],  // 발견된 오류 목록. 오류 없으면 반드시 빈 배열 []
   "wordUsageScore": 숫자,
   "grammarScore": 숫자,
   "naturalnessScore": 숫자,
   "totalScore": 세 점수의 가중 평균 (단어사용 40%, 문법 35%, 자연스러움 25%),
   "feedback": "구체적인 피드백을 ${translationLanguage}로 작성. 잘한 점과 개선할 점을 2-3문장으로 설명.",
-  "modelAnswer": "학생이 제출한 문장을 바탕으로 틀린 부분만 수정한 교정 문장 (한국어만, 영어 번역 없이). 학생 문장의 구조와 의미를 최대한 유지하면서 문법, 조사, 활용형 등의 오류만 수정. totalScore가 100점이면 학생 문장을 그대로 반환.",
+  "modelAnswer": "errors에 나열된 오류만 수정한 한국어 문장. errors가 빈 배열이면 학생 문장을 그대로 반환.",
   "isPassed": totalScore >= 70
 }
 
@@ -101,7 +103,9 @@ const generateSingleGradingPrompt = (
 - 마크다운 코드 블록 사용 금지
 - 첫 글자는 반드시 { 로 시작해야 합니다
 - 피드백("feedback" 내용)은 반드시 ${translationLanguage}로 번역해서 작성하세요
-- modelAnswer는 반드시 학생 문장("${studentSentence}")을 기반으로 수정한 한국어 문장이어야 합니다. 영어 번역, "Example:", "Model Answer:" 같은 접두어를 절대 포함하지 마세요.`;
+- modelAnswer는 errors에 나열된 오류만 수정하세요. errors에 없는 요소(시제, 어휘 선택 등)는 절대 변경하지 마세요.
+- modelAnswer는 반드시 학생 문장("${studentSentence}")을 기반으로 한 한국어 문장이어야 합니다. 영어 번역, "Example:", "Model Answer:" 같은 접두어를 절대 포함하지 마세요.
+- 단어가 문법 용어(명사, 동사, 형용사, 부사 등)인 경우, 그 용어를 올바르게 사용한 문장(예: "가방은 명사예요", "어렵다는 형용사예요")은 문법적으로도 의미적으로도 완벽히 올바른 문장으로 채점하세요. 문법 용어를 메타언어적으로 사용하는 것은 자연스럽습니다.`;
 };
 
 const generateBatchGradingPrompt = (
@@ -132,12 +136,13 @@ ${problemsList}
 **응답 형식 (JSON 배열만 출력):**
 [
   {
+    "errors": ["오류1 설명 (한국어)", "오류2 설명"],  // 발견된 오류 목록. 오류 없으면 반드시 빈 배열 []
     "wordUsageScore": 숫자,
     "grammarScore": 숫자,
     "naturalnessScore": 숫자,
     "totalScore": 가중 평균 (단어사용 40%, 문법 35%, 자연스러움 25%),
     "feedback": "구체적인 피드백을 ${translationLanguage}로 2-3문장 작성. 잘한 점과 개선할 점을 설명.",
-    "modelAnswer": "학생 문장을 바탕으로 틀린 부분만 수정한 교정 문장 (한국어만, 영어 번역 없이). 100점이면 학생 문장 그대로 반환. 오직 수정된 한국어 문장 텍스트만 반환.",
+    "modelAnswer": "errors에 나열된 오류만 수정한 한국어 문장. errors가 빈 배열이면 학생 문장 그대로 반환.",
     "isPassed": totalScore >= 70
   },
   ...
@@ -149,7 +154,9 @@ ${problemsList}
 - 마크다운 코드 블록 사용 금지
 - 첫 글자는 반드시 [ 로 시작해야 합니다
 - 피드백은 격려하는 톤으로 작성하세요
-- modelAnswer는 반드시 해당 학생 문장을 기반으로 수정한 한국어 문장이어야 합니다. 영어 번역, "Example:", "Model Answer:" 같은 접두어를 절대 포함하지 마세요.
+- modelAnswer는 errors에 나열된 오류만 수정하세요. errors에 없는 요소(시제, 어휘 선택 등)는 절대 변경하지 마세요.
+- modelAnswer는 반드시 해당 학생 문장을 기반으로 한 한국어 문장이어야 합니다. 영어 번역, "Example:", "Model Answer:" 같은 접두어를 절대 포함하지 마세요.
+- 단어가 문법 용어(명사, 동사, 형용사, 부사 등)인 경우, 그 용어를 올바르게 사용한 문장(예: "가방은 명사예요", "어렵다는 형용사예요")은 문법적으로도 의미적으로도 완벽히 올바른 문장으로 채점하세요. 문법 용어를 메타언어적으로 사용하는 것은 자연스럽습니다.
 🚨 안내: 피드백 설명은 반드시 ${translationLanguage} 언어로 제공하세요.`;
 };
 
@@ -184,7 +191,7 @@ async function callClaude(prompt: string, systemInstruction: string): Promise<st
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: "claude-sonnet-4-6",
         max_tokens: 4096,
         system: systemInstruction,
         messages: [{ role: "user", content: prompt }],

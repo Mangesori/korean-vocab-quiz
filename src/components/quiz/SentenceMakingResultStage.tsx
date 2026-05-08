@@ -136,7 +136,7 @@ export function SentenceMakingResultStage({
                     </h3>
                   </div>
                   
-                  {(!isPerfect && attempt.modelAnswer) && (
+                  {(!isPerfect && attempt.modelAnswer && attempt.modelAnswer.trim() !== attempt.sentence.trim()) && (
                     <div className="flex items-start gap-3">
                       <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-[#6366F1]/10 text-[#6366F1]">
                         추천 문장

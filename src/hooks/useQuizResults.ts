@@ -10,6 +10,12 @@ export interface QuizResult {
   completed_at: string;
   is_anonymous: boolean;
   anonymous_name: string | null;
+  fill_blank_score: number | null;
+  fill_blank_total: number | null;
+  sentence_making_score: number | null;
+  sentence_making_total: number | null;
+  recording_score: number | null;
+  recording_total: number | null;
   student_profile?: {
     name: string;
     email?: string;
@@ -94,11 +100,17 @@ export function useQuizResults(quizId: string) {
           table: "quiz_results",
           filter: `quiz_id=eq.${quizId}`,
         },
-        (payload) => {
-          // When a new result comes in, refresh the list to get full data (including profiles)
-          // Or optimistically add it. For now, fetching is safer for profile data.
-          fetchResults();
-        }
+        () => { fetchResults(); }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "quiz_results",
+          filter: `quiz_id=eq.${quizId}`,
+        },
+        () => { fetchResults(); }
       )
       .subscribe();
   };

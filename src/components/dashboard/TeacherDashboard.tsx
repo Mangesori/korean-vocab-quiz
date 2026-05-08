@@ -39,6 +39,8 @@ interface Quiz {
   words_per_set: number;
   difficulty: string;
   created_at: string;
+  sentence_making_enabled?: boolean;
+  recording_enabled?: boolean;
 }
 
 interface Notification {
@@ -269,25 +271,25 @@ export default function TeacherDashboard() {
                 <div className="space-y-3">
                   {quizzes.map((quiz) => (
                     <div key={quiz.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <Link to={`/quiz/${quiz.id}`} className="flex-1 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Link to={`/quiz/${quiz.id}`} className="flex-1 flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 shrink-0 bg-primary/10 rounded-lg flex items-center justify-center">
                           <FileText className="w-5 h-5 text-primary" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                             <p className="font-medium text-foreground">{quiz.title}</p>
-                             <LevelBadge level={quiz.difficulty} />
+                            <p className="font-medium text-foreground truncate">{quiz.title}</p>
+                            <LevelBadge level={quiz.difficulty} className="shrink-0" />
                           </div>
                           <p className="text-xs text-muted-foreground">
                             {quiz.words.length}개 단어 · {Math.ceil(quiz.words.length / quiz.words_per_set)}세트
                           </p>
                         </div>
                       </Link>
-                      <div className="flex items-center">
+                      <div className="flex items-center gap-2 shrink-0">
                         <Button
                           variant="default"
                           size="sm"
-                          className="mr-2 bg-accent hover:bg-accent/90 text-accent-foreground w-full sm:w-auto"
+                          className="bg-accent hover:bg-accent/90 text-accent-foreground"
                           onClick={(e) => {
                              e.preventDefault();
                              setSelectedQuizForShare(quiz as any);
@@ -295,13 +297,13 @@ export default function TeacherDashboard() {
                              setSelectedClassId("");
                           }}
                         >
-                          <Send className="w-4 h-4 mr-1" />
-                          공유
+                          <Send className="w-4 h-4 sm:mr-1" />
+                          <span className="hidden sm:inline">공유</span>
                         </Button>
-                        <Button 
-                          variant="default" 
-                          size="sm" 
-                          className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground"
                           onClick={(e) => {
                             e.preventDefault();
                             setSelectedResult(quiz);
@@ -360,9 +362,11 @@ export default function TeacherDashboard() {
           </Card>
         </div>
       </div>
-      <QuizResultsDialog 
+      <QuizResultsDialog
         quizId={selectedQuizForResult?.id || null}
         quizTitle={selectedQuizForResult?.title || ""}
+        sentenceMakingEnabled={selectedQuizForResult?.sentence_making_enabled}
+        recordingEnabled={selectedQuizForResult?.recording_enabled}
         open={!!selectedQuizForResult}
         onOpenChange={(open) => !open && setSelectedResult(null)}
       />

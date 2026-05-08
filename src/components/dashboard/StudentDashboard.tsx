@@ -89,7 +89,9 @@ export default function StudentDashboard() {
             id,
             title,
             words,
-            difficulty
+            difficulty,
+            sentence_making_enabled,
+            recording_enabled
           )
         `)
         .or(`student_id.eq.${user?.id},class_id.in.(${membershipData?.map(m => m.class_id).join(',') || 'null'})`)
@@ -104,6 +106,9 @@ export default function StudentDashboard() {
           score,
           total_questions,
           completed_at,
+          fill_blank_score,
+          sentence_making_score,
+          recording_score,
           quizzes (
             title
           )
@@ -113,13 +118,29 @@ export default function StudentDashboard() {
         .limit(10);
 
       // Filter out completed quizzes from assignments
-      // 재할당을 지원하기 위해 단순 quiz_id 비교 대신, 할당 시각 이후에 완료한 결과가 있는지 확인
+      // 부분 완료(빈칸만 푼 경우)는 완료로 보지 않음 — 모든 활성화된 단계가 끝나야 완료
       const pendingAssignments = assignmentsData?.filter(assignment => {
-        return !resultsData?.some(
-          r => r.quiz_id === assignment.quiz_id &&
-               new Date(r.completed_at) > new Date(assignment.assigned_at)
-        );
+        return !resultsData?.some(r => {
+          if (r.quiz_id !== assignment.quiz_id) return false;
+          if (new Date(r.completed_at) <= new Date(assignment.assigned_at)) return false;
+          const q = assignment.quizzes as any;
+          const smDone = !q?.sentence_making_enabled || r.sentence_making_score !== null;
+          const recDone = !q?.recording_enabled || r.recording_score !== null;
+          return smDone && recDone;
+        });
       }) || [];
+
+      // 부분 완료 여부 맵 (quiz_id → true)
+      // pendingAssignments에 남아있는 퀴즈 중 결과 레코드가 있으면 부분 완료
+      // (fill_blank_score가 NULL이어도 submit_quiz_answers로 레코드가 생성됨)
+      const partialProgressMap: Record<string, boolean> = {};
+      pendingAssignments.forEach(a => {
+        const hasPartial = resultsData?.some(r =>
+          r.quiz_id === a.quiz_id &&
+          new Date(r.completed_at) > new Date(a.assigned_at)
+        );
+        if (hasPartial) partialProgressMap[a.quiz_id] = true;
+      });
 
       // Calculate stats
       const avgScore = resultsData && resultsData.length > 0
@@ -130,6 +151,7 @@ export default function StudentDashboard() {
         classes: membershipData || [],
         assignments: pendingAssignments as Assignment[],
         results: (resultsData || []) as Result[],
+        partialProgressMap,
         stats: {
           totalQuizzes: (assignmentsData?.length || 0),
           completedQuizzes: resultsData?.length || 0,
@@ -144,6 +166,7 @@ export default function StudentDashboard() {
   const classes = data?.classes ?? [];
   const assignments = data?.assignments ?? [];
   const results = data?.results ?? [];
+  const partialProgressMap = data?.partialProgressMap ?? {};
   const stats = data?.stats ?? {
     totalQuizzes: 0,
     completedQuizzes: 0,
@@ -372,7 +395,9 @@ export default function StudentDashboard() {
                             </p>
                           </div>
                         </div>
-                        <Button size="sm" className="bg-[#6366f1] hover:bg-[#6366f1]/90 text-white rounded-xl px-6">풀기</Button>
+                        <Button size="sm" className="bg-[#6366f1] hover:bg-[#6366f1]/90 text-white rounded-xl px-6">
+                          {partialProgressMap[assignment.quiz_id] ? '이어서 풀기' : '풀기'}
+                        </Button>
                       </div>
                     </Link>
                   ))}

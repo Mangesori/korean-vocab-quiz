@@ -336,7 +336,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
 
   const renderSentenceWithFeedback = (sentence: string, wordFeedback: { word: string; accuracyScore: number; errorType?: string }[]) => {
     if (!wordFeedback || wordFeedback.length === 0) {
-      return <span>{sentence}</span>;
+      return <span className="text-success font-bold">{sentence}</span>;
     }
 
     const lowScoreWords = new Set(
@@ -346,22 +346,22 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
     );
 
     if (lowScoreWords.size === 0) {
-      return <span>{sentence}</span>;
+      return <span className="text-success font-bold">{sentence}</span>;
     }
 
     const words = sentence.split(/(\s+)/);
     return (
-      <span>
+      <span className="font-bold">
         {words.map((word, idx) => {
           const cleanWord = word.replace(/[.,!?。，！？]/g, "");
           if (lowScoreWords.has(cleanWord)) {
             return (
-              <span key={idx} className="text-destructive font-bold">
+              <span key={idx} className="text-destructive">
                 {word}
               </span>
             );
           }
-          return <span key={idx}>{word}</span>;
+          return <span key={idx} className="text-success">{word}</span>;
         })}
       </span>
     );

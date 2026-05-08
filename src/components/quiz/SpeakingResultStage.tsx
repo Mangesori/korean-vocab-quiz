@@ -89,7 +89,7 @@ export function SpeakingResultStage({
     }
 
     const lowScoreWords = new Set(
-      wordFeedback.filter((w) => w.accuracyScore < 50).map((w) => w.word.replace(/[.,!?。，！？]/g, ""))
+      wordFeedback.filter((w) => w.accuracyScore < 60).map((w) => w.word.replace(/[.,!?。，！？]/g, ""))
     );
 
     if (lowScoreWords.size === 0) {
@@ -116,7 +116,7 @@ export function SpeakingResultStage({
 
   const generateFeedback = (attempt: SpeakingAttempt) => {
     const lowScoreWords = attempt.wordLevelFeedback
-      ?.filter((w) => w.accuracyScore < 50)
+      ?.filter((w) => w.accuracyScore < 60)
       .map((w) => w.word.replace(/[.,!?。，！？]/g, ""));
 
     if (lowScoreWords && lowScoreWords.length > 0) {

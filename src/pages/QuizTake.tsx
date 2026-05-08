@@ -95,6 +95,8 @@ export default function QuizTake() {
   const [sentenceMakingResults, setSentenceMakingResults] = useState<Record<string, any>>({});
   const [quizResultId, setQuizResultId] = useState<string | null>(null);
   const [savedFillBlankScore, setSavedFillBlankScore] = useState<{ score: number; total: number } | null>(null);
+  const [savedSentenceMakingScore, setSavedSentenceMakingScore] = useState<{ score: number; total: number } | null>(null);
+  const [isRedo, setIsRedo] = useState(false);
   
   const [stageProgress, setStageProgress] = useState({ current: 0, total: 0, label: "" });
 
@@ -153,6 +155,65 @@ export default function QuizTake() {
 
     return () => clearInterval(timer);
   }, [timeLeft]);
+
+  // 이전 진행 상태 확인 — 로그인 학생이 같은 퀴즈에 재진입할 때 완료된 단계 건너뜀
+  useEffect(() => {
+    if (!quiz || !user || isAnonymous) return;
+
+    const checkProgress = async () => {
+      const { data: existing } = await supabase
+        .from("quiz_results")
+        .select("id, score, total_questions, sentence_making_score, sentence_making_total, recording_score")
+        .eq("quiz_id", quiz.id)
+        .eq("student_id", user.id)
+        .order("completed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!existing) return;
+
+      const smDone = !quiz.sentence_making_enabled || existing.sentence_making_score !== null;
+      const recDone = !quiz.recording_enabled || existing.recording_score !== null;
+
+      if (smDone && recDone) return;
+
+      setQuizResultId(existing.id);
+      setSavedFillBlankScore({
+        score: existing.score,
+        total: existing.total_questions ?? 0,
+      });
+
+      if (!smDone) {
+        setCurrentStage("sentence_making");
+        toast.info("빈칸 채우기를 이미 완료했습니다. 문장 만들기부터 시작합니다.");
+      } else {
+        // 말하기 재개 시 문장 만들기 점수도 복원
+        if (existing.sentence_making_score !== null) {
+          setSavedSentenceMakingScore({
+            score: existing.sentence_making_score,
+            total: existing.sentence_making_total ?? 0,
+          });
+        }
+        setCurrentStage("recording");
+        toast.info("문장 만들기까지 완료했습니다. 말하기 연습부터 시작합니다.");
+      }
+    };
+
+    checkProgress();
+  }, [quiz?.id, user?.id]);
+
+  // 선생님 알림 덮어쓰기 — SECURITY DEFINER RPC로 RLS 우회
+  // stage: '문장 만들기' | '말하기 연습'
+  const updateProgressNotification = async (stage: string, message: string) => {
+    if (!user || isAnonymous || !quiz) return;
+    await supabase.rpc("update_quiz_progress_notification" as any, {
+      _quiz_id: quiz.id,
+      _student_id: user.id,
+      _stage: stage,
+      _message: message,
+      _is_redo: isRedo,
+    });
+  };
 
   const fetchQuiz = async () => {
     try {
@@ -726,9 +787,10 @@ export default function QuizTake() {
           _student_answers: studentAnswers,
         });
         if (!submitError && (submitData as any)?.success) {
-          const res = submitData as { success: boolean; result_id: string; score: number; total: number };
+          const res = submitData as { success: boolean; result_id: string; score: number; total: number; is_redo: boolean };
           setQuizResultId(res.result_id);
           setSavedFillBlankScore({ score: res.score, total: res.total });
+          setIsRedo(res.is_redo ?? false);
         }
       }
 
@@ -781,6 +843,24 @@ export default function QuizTake() {
         const { error: smError } = await (supabase as any).from("sentence_making_answers").insert(smAnswers);
         if (smError) console.error("Failed to save sentence making answers:", smError);
       }
+
+      // 이어서 풀기 재개 감지를 위해 sentence_making_score 즉시 저장
+      const smScore = Object.values(results).reduce((acc: number, attempts: any[]) => {
+        const best = attempts.reduce((b: any, a: any) => (!b || a.totalScore > b.totalScore) ? a : b, null);
+        return acc + (best?.isPassed ? 1 : 0);
+      }, 0);
+      const smTotal = Object.keys(results).length;
+      setSavedSentenceMakingScore({ score: smScore, total: smTotal });
+      await supabase.rpc("update_quiz_result_sentence_score" as any, {
+        _result_id: quizResultId,
+        _score: smScore,
+        _total: smTotal,
+      });
+
+      const fbScore = savedFillBlankScore?.score ?? 0;
+      const fbTotal = savedFillBlankScore?.total ?? 0;
+      const smMsg = `${quiz!.title} — 빈칸 채우기: ${fbScore}/${fbTotal}, 문장 만들기: ${smScore}/${smTotal}`;
+      await updateProgressNotification('문장 만들기', smMsg);
     }
 
     setCurrentStage("sentence_making_result");
@@ -826,6 +906,18 @@ export default function QuizTake() {
         const { error: recError } = await (supabase as any).from("recording_answers").insert(recAnswers);
         if (recError) console.error("Failed to save recording answers:", recError);
       }
+      const recTotal = recordingProblems.length;
+      const recScore = recordingProblems.filter((p: any) =>
+        (results[p.id] as any[])?.some((a: any) => a.isPassed)
+      ).length;
+      const fbScoreR = savedFillBlankScore?.score ?? 0;
+      const fbTotalR = savedFillBlankScore?.total ?? 0;
+      const smScoreR = savedSentenceMakingScore?.score ?? 0;
+      const smTotalR = savedSentenceMakingScore?.total ?? 0;
+      const recParts = [`빈칸 채우기: ${fbScoreR}/${fbTotalR}`];
+      if (quiz!.sentence_making_enabled && smTotalR > 0) recParts.push(`문장 만들기: ${smScoreR}/${smTotalR}`);
+      recParts.push(`말하기: ${recScore}/${recTotal}`);
+      await updateProgressNotification('말하기 연습', `${quiz!.title} — ${recParts.join(', ')}`);
     }
 
     setCurrentStage("recording_result");

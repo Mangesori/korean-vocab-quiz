@@ -676,7 +676,11 @@ export default function QuizDetail() {
           </TabsContent>
           
           <TabsContent value="results" className="mt-0">
-            <QuizResultsList quizId={quiz.id} />
+            <QuizResultsList
+              quizId={quiz.id}
+              sentenceMakingEnabled={quiz.sentence_making_enabled}
+              recordingEnabled={quiz.recording_enabled}
+            />
           </TabsContent>
         </Tabs>
       </div>

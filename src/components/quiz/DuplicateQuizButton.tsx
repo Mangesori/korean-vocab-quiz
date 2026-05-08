@@ -29,6 +29,8 @@ interface Quiz {
   translation_language: string;
   problems: any;
   api_provider?: string;
+  recording_enabled?: boolean;
+  sentence_making_enabled?: boolean;
 }
 
 interface DuplicateQuizButtonProps {
@@ -66,6 +68,8 @@ export function DuplicateQuizButton({
           translation_language: quiz.translation_language,
           problems: quiz.problems,
           api_provider: quiz.api_provider,
+          recording_enabled: quiz.recording_enabled ?? false,
+          sentence_making_enabled: quiz.sentence_making_enabled ?? false,
         })
         .select()
         .single();
@@ -120,6 +124,58 @@ export function DuplicateQuizButton({
           .insert(newProblems);
 
         if (insertProblemsError) throw insertProblemsError;
+      }
+
+      // 4. Copy sentence_making_problems
+      const { data: sentenceProblems, error: sentenceProblemsError } = await supabase
+        .from('sentence_making_problems')
+        .select('*')
+        .eq('quiz_id', quiz.id);
+
+      if (sentenceProblemsError) throw sentenceProblemsError;
+
+      if (sentenceProblems && sentenceProblems.length > 0) {
+        const newSentenceProblems = sentenceProblems.map((p) => ({
+          quiz_id: newQuiz.id,
+          problem_id: p.problem_id,
+          word: p.word,
+          model_answer: p.model_answer,
+          word_meaning: p.word_meaning,
+          grading_criteria: p.grading_criteria,
+        }));
+
+        const { error: insertSentenceError } = await supabase
+          .from('sentence_making_problems')
+          .insert(newSentenceProblems);
+
+        if (insertSentenceError) throw insertSentenceError;
+      }
+
+      // 5. Copy recording_problems
+      const { data: recordingProblems, error: recordingProblemsError } = await supabase
+        .from('recording_problems')
+        .select('*')
+        .eq('quiz_id', quiz.id);
+
+      if (recordingProblemsError) throw recordingProblemsError;
+
+      if (recordingProblems && recordingProblems.length > 0) {
+        const newRecordingProblems = recordingProblems.map((p) => ({
+          quiz_id: newQuiz.id,
+          problem_id: p.problem_id,
+          sentence: p.sentence,
+          mode: p.mode,
+          source_type: p.source_type,
+          source_problem_id: p.source_problem_id,
+          sentence_audio_url: p.sentence_audio_url,
+          translation: p.translation,
+        }));
+
+        const { error: insertRecordingError } = await supabase
+          .from('recording_problems')
+          .insert(newRecordingProblems);
+
+        if (insertRecordingError) throw insertRecordingError;
       }
 
       return newQuiz;

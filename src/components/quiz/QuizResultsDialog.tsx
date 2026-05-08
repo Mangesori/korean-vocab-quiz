@@ -11,6 +11,8 @@ interface QuizResultsDialogProps {
   quizTitle: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  sentenceMakingEnabled?: boolean;
+  recordingEnabled?: boolean;
 }
 
 export function QuizResultsDialog({
@@ -18,6 +20,8 @@ export function QuizResultsDialog({
   quizTitle,
   open,
   onOpenChange,
+  sentenceMakingEnabled,
+  recordingEnabled,
 }: QuizResultsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -25,8 +29,14 @@ export function QuizResultsDialog({
         <DialogHeader>
           <DialogTitle>{quizTitle} - 결과 목록</DialogTitle>
         </DialogHeader>
-        
-        {quizId && <QuizResultsList quizId={quizId} />}
+
+        {quizId && (
+          <QuizResultsList
+            quizId={quizId}
+            sentenceMakingEnabled={sentenceMakingEnabled}
+            recordingEnabled={recordingEnabled}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

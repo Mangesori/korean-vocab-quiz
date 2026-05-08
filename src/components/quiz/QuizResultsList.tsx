@@ -24,9 +24,11 @@ import { QuizResultDialog } from "@/components/quiz/QuizResultDialog";
 
 interface QuizResultsListProps {
   quizId: string;
+  sentenceMakingEnabled?: boolean;
+  recordingEnabled?: boolean;
 }
 
-export function QuizResultsList({ quizId }: QuizResultsListProps) {
+export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnabled }: QuizResultsListProps) {
   const { results, isLoading } = useQuizResults(quizId);
   const [filterType, setFilterType] = useState<"all" | "anonymous" | "student">("all");
   const [sortOrder, setSortOrder] = useState<"latest" | "score_high" | "score_low">("latest");
@@ -67,6 +69,111 @@ export function QuizResultsList({ quizId }: QuizResultsListProps) {
     return <Badge className="bg-red-500 hover:bg-red-600">{score}/{total}</Badge>;
   };
 
+  const isMultiStage = sentenceMakingEnabled || recordingEnabled;
+
+  const renderScoreCell = (result: typeof filteredResults[0]) => {
+    if (!isMultiStage) {
+      return getScoreBadge(result.score, result.total_questions);
+    }
+    return (
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        <div className="flex items-center gap-1 text-xs">
+          <span className="text-muted-foreground">빈칸 채우기</span>
+          {result.fill_blank_score !== null && result.fill_blank_total
+            ? getScoreBadge(result.fill_blank_score, result.fill_blank_total)
+            : <span className="text-muted-foreground">-</span>}
+        </div>
+        {sentenceMakingEnabled && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground">문장 만들기</span>
+            {result.sentence_making_score !== null && result.sentence_making_total
+              ? getScoreBadge(result.sentence_making_score, result.sentence_making_total)
+              : <Badge variant="secondary">대기 중</Badge>}
+          </div>
+        )}
+        {recordingEnabled && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground">말하기 연습</span>
+            {result.recording_score !== null && result.recording_total
+              ? getScoreBadge(result.recording_score, result.recording_total)
+              : <Badge variant="secondary">대기 중</Badge>}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderNameCell = (result: typeof filteredResults[0]) => (
+    <div className="flex items-center gap-2">
+      {result.is_anonymous ? (
+        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+          <User className="h-4 w-4 text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <span className="text-xs font-bold text-primary">
+            {(result.student_profile?.name || "?")[0]}
+          </span>
+        </div>
+      )}
+      <div>
+        <div className="font-medium">
+          {result.is_anonymous ? result.anonymous_name || "익명" : result.student_profile?.name || "알 수 없음"}
+        </div>
+        {result.is_anonymous && (
+          <span className="text-xs text-muted-foreground">익명 사용자</span>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderMobileScoreCell = (result: typeof filteredResults[0]) => {
+    if (!isMultiStage) {
+      return getScoreBadge(result.score, result.total_questions);
+    }
+    return (
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        <div className="flex items-center gap-1 text-xs">
+          <span className="text-muted-foreground">빈칸</span>
+          {result.fill_blank_score !== null && result.fill_blank_total
+            ? getScoreBadge(result.fill_blank_score, result.fill_blank_total)
+            : <span className="text-muted-foreground">-</span>}
+        </div>
+        {sentenceMakingEnabled && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground">문장</span>
+            {result.sentence_making_score !== null && result.sentence_making_total
+              ? getScoreBadge(result.sentence_making_score, result.sentence_making_total)
+              : <Badge variant="secondary">대기 중</Badge>}
+          </div>
+        )}
+        {recordingEnabled && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground">말하기</span>
+            {result.recording_score !== null && result.recording_total
+              ? getScoreBadge(result.recording_score, result.recording_total)
+              : <Badge variant="secondary">대기 중</Badge>}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderMobileCard = (result: typeof filteredResults[0]) => (
+    <div key={result.id} className="flex flex-col gap-2 p-4 border rounded-lg bg-card">
+      <div className="flex items-center justify-between">
+        {renderNameCell(result)}
+        <Button variant="ghost" size="icon" onClick={() => setSelectedResult(result)}>
+          <Eye className="h-4 w-4" />
+        </Button>
+      </div>
+      <div>{renderMobileScoreCell(result)}</div>
+      <div className="text-xs text-muted-foreground">
+        {format(new Date(result.completed_at), "yyyy-MM-dd HH:mm", { locale: ko })}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
@@ -79,9 +186,9 @@ export function QuizResultsList({ quizId }: QuizResultsListProps) {
           )}
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <Select value={filterType} onValueChange={(v: any) => setFilterType(v)}>
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="flex-1 sm:w-[120px]">
               <SelectValue placeholder="필터" />
             </SelectTrigger>
             <SelectContent>
@@ -92,7 +199,7 @@ export function QuizResultsList({ quizId }: QuizResultsListProps) {
           </Select>
           
           <Select value={sortOrder} onValueChange={(v: any) => setSortOrder(v)}>
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="flex-1 sm:w-[120px]">
               <SelectValue placeholder="정렬" />
             </SelectTrigger>
             <SelectContent>
@@ -104,13 +211,22 @@ export function QuizResultsList({ quizId }: QuizResultsListProps) {
         </div>
       </div>
 
-      <div className="rounded-md border">
+      {/* Mobile card list */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        {filteredResults.length === 0 ? (
+          <p className="text-center py-8 text-muted-foreground text-sm">제출된 결과가 없습니다</p>
+        ) : (
+          filteredResults.map(renderMobileCard)
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden sm:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>이름</TableHead>
-              <TableHead>점수</TableHead>
-              <TableHead>정답률</TableHead>
+              <TableHead className="w-[500px]">점수</TableHead>
               <TableHead>제출 시간</TableHead>
               <TableHead className="text-right">상세보기</TableHead>
             </TableRow>
@@ -118,7 +234,7 @@ export function QuizResultsList({ quizId }: QuizResultsListProps) {
           <TableBody>
             {filteredResults.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                   제출된 결과가 없습니다
                 </TableCell>
               </TableRow>
@@ -126,33 +242,10 @@ export function QuizResultsList({ quizId }: QuizResultsListProps) {
               filteredResults.map((result) => (
                 <TableRow key={result.id}>
                   <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {result.is_anonymous ? (
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-xs font-bold text-primary">
-                            {(result.student_profile?.name || "?")[0]}
-                          </span>
-                        </div>
-                      )}
-                      <div>
-                        <div className="font-medium">
-                          {result.is_anonymous ? result.anonymous_name || "익명" : result.student_profile?.name || "알 수 없음"}
-                        </div>
-                        {result.is_anonymous && (
-                          <span className="text-xs text-muted-foreground">익명 사용자</span>
-                        )}
-                      </div>
-                    </div>
+                    {renderNameCell(result)}
                   </TableCell>
                   <TableCell>
-                    {getScoreBadge(result.score, result.total_questions)}
-                  </TableCell>
-                  <TableCell>
-                    {Math.round((result.score / result.total_questions) * 100)}%
+                    {renderScoreCell(result)}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {format(new Date(result.completed_at), "yyyy-MM-dd HH:mm", { locale: ko })}

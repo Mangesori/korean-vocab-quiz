@@ -9,7 +9,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { UserCircle, CheckCircle, XCircle, Volume2, Lightbulb, Loader2 } from "lucide-react";
+import { UserCircle, CheckCircle, XCircle, Volume2, Lightbulb, Loader2, TextCursorInput, PenLine, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRef, useState } from "react";
 import { QuizReviewCard } from "@/components/quiz/QuizReviewCard";
@@ -432,10 +432,25 @@ export function QuizResultDialog({
             </div>
           ) : showTabs ? (
             <Tabs defaultValue={defaultTab}>
-              <TabsList className="mb-4">
-                {hasFillBlank && <TabsTrigger value="fill_blank">빈칸 채우기</TabsTrigger>}
-                {hasSentenceMaking && <TabsTrigger value="sentence_making">문장 만들기</TabsTrigger>}
-                {hasRecording && <TabsTrigger value="recording">말하기 연습</TabsTrigger>}
+              <TabsList className="w-full justify-center mb-4">
+                {hasFillBlank && (
+                  <TabsTrigger value="fill_blank" className="flex items-center gap-1.5">
+                    <TextCursorInput className="hidden sm:block w-4 h-4" />
+                    빈칸 채우기
+                  </TabsTrigger>
+                )}
+                {hasSentenceMaking && (
+                  <TabsTrigger value="sentence_making" className="flex items-center gap-1.5">
+                    <PenLine className="hidden sm:block w-4 h-4" />
+                    문장 만들기
+                  </TabsTrigger>
+                )}
+                {hasRecording && (
+                  <TabsTrigger value="recording" className="flex items-center gap-1.5">
+                    <Mic className="hidden sm:block w-4 h-4" />
+                    말하기 연습
+                  </TabsTrigger>
+                )}
               </TabsList>
               {hasFillBlank && (
                 <TabsContent value="fill_blank">
