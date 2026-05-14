@@ -361,14 +361,15 @@ export default function QuizTake() {
         }
 
         const fullProblems = (fullQuiz.problems as any[]) || [];
-        
+        const normalizeAnswer = (s: string) => s.toLowerCase().trim().replace(/[.。!?！？,，\s]+$/, "");
+
         // Calculate score
         let correctCount = 0;
         const detailedAnswers = quiz.problems.map(problem => {
           const userAnswer = (userAnswers[problem.id] || "").trim();
           const fullProblem = fullProblems.find((p: any) => p.id === problem.id);
           const correctAnswer = fullProblem?.answer || "";
-          const isCorrect = userAnswer === correctAnswer;
+          const isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
           
           if (isCorrect) correctCount++;
           
@@ -567,6 +568,7 @@ export default function QuizTake() {
         const { data, error } = await supabase.rpc("submit_quiz_answers", {
           _quiz_id: quiz.id,
           _student_answers: studentAnswers,
+          _problem_order: quiz.problems.map((p) => p.id),
         });
 
         if (error) {
@@ -757,11 +759,12 @@ export default function QuizTake() {
       }
 
       const fullProblems = (fullQuiz.problems as any[]) || [];
+      const normalizeAnswer = (s: string) => s.toLowerCase().trim().replace(/[.。!?！？,，\s]+$/, "");
       const detailedAnswers = quiz.problems.map((problem) => {
         const userAnswer = (userAnswers[problem.id] || "").trim();
         const fullProblem = fullProblems.find((p: any) => p.id === problem.id);
         const correctAnswer = fullProblem?.answer || "";
-        const isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
+        const isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
 
         return {
           problemId: problem.id,
@@ -785,6 +788,7 @@ export default function QuizTake() {
         const { data: submitData, error: submitError } = await supabase.rpc("submit_quiz_answers", {
           _quiz_id: quiz.id,
           _student_answers: studentAnswers,
+          _problem_order: quiz.problems.map((p) => p.id),
         });
         if (!submitError && (submitData as any)?.success) {
           const res = submitData as { success: boolean; result_id: string; score: number; total: number; is_redo: boolean };

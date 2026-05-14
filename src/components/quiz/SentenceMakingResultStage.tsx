@@ -13,10 +13,8 @@ interface SentenceAttempt {
 }
 
 // 학생 답변과 모범 답안을 비교하여 틀린 단어를 빨간색으로 표시
-function renderSentenceWithDiff(studentSentence: string, modelAnswer: string | null | undefined, isPerfect: boolean) {
-  const noCorrection = isPerfect || !modelAnswer || modelAnswer.trim() === studentSentence.trim();
-
-  if (noCorrection) {
+function renderSentenceWithDiff(studentSentence: string, modelAnswer: string | null | undefined, isGood: boolean) {
+  if (isGood || !modelAnswer) {
     return <span className="text-success">{studentSentence}</span>;
   }
 
@@ -100,15 +98,16 @@ export function SentenceMakingResultStage({
           if (!attempt) return null;
 
           const isPerfect = attempt.totalScore === 100;
+          const isGood = isPerfect || attempt.isPassed;
 
           return (
             <Card key={problem.id} className="overflow-hidden border bg-white rounded-2xl shadow-sm">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <span 
+                    <span
                       className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${
-                        isPerfect ? "bg-success" : "bg-[#6366F1]"
+                        isGood ? "bg-success" : "bg-[#6366F1]"
                       }`}
                     >
                       {idx + 1}
@@ -129,16 +128,16 @@ export function SentenceMakingResultStage({
                 <div className="mb-6 space-y-3">
                   <div className="flex items-start gap-3">
                     <span className={`shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 ${
-                       isPerfect ? "bg-success/10 text-success" : "bg-slate-100 text-slate-500"
+                       isGood ? "bg-success/10 text-success" : "bg-slate-100 text-slate-500"
                     }`}>
                       내 답변
                     </span>
                     <h3 className="text-lg font-bold leading-relaxed">
-                      {renderSentenceWithDiff(attempt.sentence, attempt.modelAnswer, isPerfect)}
+                      {renderSentenceWithDiff(attempt.sentence, attempt.modelAnswer, isGood)}
                     </h3>
                   </div>
-                  
-                  {(!isPerfect && attempt.modelAnswer && attempt.modelAnswer.trim() !== attempt.sentence.trim()) && (
+
+                  {(!isGood && attempt.modelAnswer && attempt.modelAnswer.trim() !== attempt.sentence.trim()) && (
                     <div className="flex items-start gap-3">
                       <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-[#6366F1]/10 text-[#6366F1]">
                         추천 문장

@@ -54,6 +54,7 @@ export interface QuizResultDetail {
   sentenceMakingAnswers: SentenceMakingAnswerDetail[];
   recordingProblems: RecordingProblemDetail[];
   recordingAnswers: RecordingAnswerDetail[];
+  fillBlankWordMap: Record<string, string>;
 }
 
 export function useQuizResultDetail(resultId: string | null, quizId: string | null) {
@@ -69,15 +70,20 @@ export function useQuizResultDetail(resultId: string | null, quizId: string | nu
     if (!resultId || !quizId) return;
     setIsLoading(true);
 
-    // 퀴즈 플래그 조회
+    // 퀴즈 플래그 + problems(word fallback용) 조회
     const { data: quizData } = await supabase
       .from("quizzes")
-      .select("sentence_making_enabled, recording_enabled")
+      .select("sentence_making_enabled, recording_enabled, problems")
       .eq("id", quizId)
       .single();
 
     const sentenceMakingEnabled = quizData?.sentence_making_enabled ?? false;
     const recordingEnabled = quizData?.recording_enabled ?? false;
+
+    const fillBlankWordMap: Record<string, string> = {};
+    for (const p of ((quizData?.problems as any[]) || [])) {
+      if (p.id && p.word) fillBlankWordMap[p.id] = p.word;
+    }
 
     let sentenceMakingProblems: SentenceMakingProblemDetail[] = [];
     let sentenceMakingAnswers: SentenceMakingAnswerDetail[] = [];
@@ -132,6 +138,7 @@ export function useQuizResultDetail(resultId: string | null, quizId: string | nu
       sentenceMakingAnswers,
       recordingProblems,
       recordingAnswers,
+      fillBlankWordMap,
     });
     setIsLoading(false);
   };

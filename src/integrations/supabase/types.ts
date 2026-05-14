@@ -996,7 +996,7 @@ export type Database = {
         Returns: undefined
       }
       submit_quiz_answers: {
-        Args: { _quiz_id: string; _student_answers: Json }
+        Args: { _quiz_id: string; _student_answers: Json; _problem_order?: string[] }
         Returns: Json
       }
       update_quiz_result_scores: {

@@ -111,13 +111,14 @@ function SentenceMakingView({
         const attempt = answersByProblem[problem.id];
         if (!attempt) return null;
         const isPerfect = attempt.total_score === 100;
+        const isGood = isPerfect || attempt.is_passed;
 
         return (
           <Card key={problem.id} className="overflow-hidden border bg-white rounded-2xl shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <span className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${isPerfect ? "bg-success" : "bg-[#6366F1]"}`}>
+                  <span className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${isGood ? "bg-success" : "bg-[#6366F1]"}`}>
                     {idx + 1}
                   </span>
                   <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-slate-50 border-slate-200 text-slate-700">
@@ -136,15 +137,15 @@ function SentenceMakingView({
 
               <div className="mb-6 space-y-3">
                 <div className="flex items-start gap-3">
-                  <span className={`shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 ${isPerfect ? "bg-success/10 text-success" : "bg-slate-100 text-slate-500"}`}>
+                  <span className={`shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 ${isGood ? "bg-success/10 text-success" : "bg-slate-100 text-slate-500"}`}>
                     학생 답변
                   </span>
                   <h3 className="text-lg font-bold leading-relaxed">
-                    {renderSentenceWithDiff(attempt.student_sentence, attempt.model_answer, isPerfect)}
+                    {renderSentenceWithDiff(attempt.student_sentence, attempt.model_answer, isGood)}
                   </h3>
                 </div>
 
-                {!isPerfect && attempt.model_answer && (
+                {!isGood && attempt.model_answer && (
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-[#6366F1]/10 text-[#6366F1]">
                       추천 문장
@@ -367,7 +368,7 @@ export function QuizResultDialog({
       {result.answers.map((answer: any, index: number) => {
         const problemData = {
           id: answer.problemId || String(index),
-          word: answer.word || "",
+          word: answer.word || detail?.fillBlankWordMap?.[answer.problemId] || "",
           answer: answer.correctAnswer,
           sentence: answer.sentence || "문제 내용 없음",
           hint: "",
@@ -432,26 +433,28 @@ export function QuizResultDialog({
             </div>
           ) : showTabs ? (
             <Tabs defaultValue={defaultTab}>
-              <TabsList className="w-full justify-center mb-4">
-                {hasFillBlank && (
-                  <TabsTrigger value="fill_blank" className="flex items-center gap-1.5">
-                    <TextCursorInput className="hidden sm:block w-4 h-4" />
-                    빈칸 채우기
-                  </TabsTrigger>
-                )}
-                {hasSentenceMaking && (
-                  <TabsTrigger value="sentence_making" className="flex items-center gap-1.5">
-                    <PenLine className="hidden sm:block w-4 h-4" />
-                    문장 만들기
-                  </TabsTrigger>
-                )}
-                {hasRecording && (
-                  <TabsTrigger value="recording" className="flex items-center gap-1.5">
-                    <Mic className="hidden sm:block w-4 h-4" />
-                    말하기 연습
-                  </TabsTrigger>
-                )}
-              </TabsList>
+              <div className="flex justify-center mb-4">
+                <TabsList>
+                  {hasFillBlank && (
+                    <TabsTrigger value="fill_blank" className="flex items-center gap-1.5">
+                      <TextCursorInput className="hidden sm:block w-4 h-4" />
+                      빈칸 채우기 ({result.answers.length})
+                    </TabsTrigger>
+                  )}
+                  {hasSentenceMaking && (
+                    <TabsTrigger value="sentence_making" className="flex items-center gap-1.5">
+                      <PenLine className="hidden sm:block w-4 h-4" />
+                      문장 만들기{detail?.sentenceMakingProblems.length ? ` (${detail.sentenceMakingProblems.length})` : ""}
+                    </TabsTrigger>
+                  )}
+                  {hasRecording && (
+                    <TabsTrigger value="recording" className="flex items-center gap-1.5">
+                      <Mic className="hidden sm:block w-4 h-4" />
+                      말하기 연습{detail?.recordingProblems.length ? ` (${detail.recordingProblems.length})` : ""}
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+              </div>
               {hasFillBlank && (
                 <TabsContent value="fill_blank">
                   {fillBlankContent}
