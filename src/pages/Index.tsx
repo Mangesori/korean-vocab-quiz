@@ -14,14 +14,14 @@ export default function Index() {
         <div className="container py-24 md:py-32">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-3xl md:text-5xl font-bold mb-2 md:mb-6 animate-fade-in break-keep">
-              <span className="block">문장을 통해서 완성하는</span>
+              <span className="block">선생님과 학생을 이어주는</span>
             </h1>
             <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-fade-in break-keep">
-              <span className="block gradient-text">달콤한 한국어</span>
+              <span className="block gradient-text">나무</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 animate-fade-in animation-delay-150 break-keep">
-              단어장만 외우는 지루한 공부는 이제 그만.<br className="hidden md:block" />
-              생생한 문장 속에서 단어의 진짜 쓰임을 익히고, 퀴즈로 즐겁게 확인해보세요.
+              단어 목록만 넣으면 AI가 퀴즈를 만들어드려요.<br className="hidden md:block" />
+              선생님의 정성이 학생에게 닿습니다.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in animation-delay-300">
               {user ? (
@@ -53,7 +53,7 @@ export default function Index() {
       <section className="py-20 bg-muted/30">
         <div className="container">
           <h2 className="text-3xl font-bold text-center mb-3">
-            <span className="text-primary">달콤한국어</span>, 
+            <span className="text-primary">나무</span>,
           </h2>
           <h2 className="text-3xl font-bold text-center mb-12">
             <span> 무엇이 다를까요?</span>
@@ -63,18 +63,18 @@ export default function Index() {
               <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
                 <Sparkles className="h-6 w-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">문장으로 배우는 진짜 한국어</h3>
+              <h3 className="text-xl font-semibold mb-3">AI가 만드는 맞춤 문제</h3>
               <p className="text-muted-foreground break-keep">
-                단어의 뜻은 문장 안에서 살아납니다. 다양한 예문으로 어휘의 뉘앙스까지 익히세요.
+                단어 목록만 있으면 충분해요. AI가 수준에 맞는 문제를 자동으로 생성합니다.
               </p>
             </div>
             <div className="bg-card rounded-2xl p-8 shadow-sm card-hover">
               <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center mb-6">
                 <BookOpen className="h-6 w-6 text-accent" />
               </div>
-              <h3 className="text-xl font-semibold mb-3">나를 위한 맞춤형 문장</h3>
+              <h3 className="text-xl font-semibold mb-3">선생님과 학생의 연결</h3>
               <p className="text-muted-foreground break-keep">
-                나의 수준과 관심사에 딱 맞는 문장들을 매일 새롭게 만날 수 있습니다.
+                클래스를 만들고 퀴즈를 전송하세요. 학생의 성장을 실시간으로 확인할 수 있어요.
               </p>
             </div>
             <div className="bg-card rounded-2xl p-8 shadow-sm card-hover">
@@ -130,10 +130,10 @@ export default function Index() {
       <section className="py-20 bg-primary text-primary-foreground">
         <div className="container text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            지금 바로 문장으로 시작하세요
+            지금 나무를 시작하세요
           </h2>
           <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto break-keep">
-            무료로 가입하고 문장으로 배우는 진짜 한국어를 경험해보세요.
+            무료로 가입하고 선생님과 학생을 이어보세요.
           </p>
           <Link to={user ? "/dashboard" : "/auth?mode=signup"}>
             <Button size="lg" variant="secondary">
