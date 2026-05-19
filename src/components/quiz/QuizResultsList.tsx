@@ -2,6 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useQuizResults, QuizResult } from "@/hooks/useQuizResults";
+import { useSubmissionTimes } from "@/hooks/useSubmissionTimes";
 import {
   Table,
   TableBody,
@@ -19,8 +20,80 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import { User, Loader2, Eye } from "lucide-react";
 import { QuizResultDialog } from "@/components/quiz/QuizResultDialog";
+
+interface SubmissionTimeCellProps {
+  result: QuizResult;
+  sentenceMakingEnabled: boolean;
+  recordingEnabled: boolean;
+}
+
+function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }: SubmissionTimeCellProps) {
+  const isMultiStage = sentenceMakingEnabled || recordingEnabled;
+  const { times, isLoading, fetchTimes } = useSubmissionTimes(
+    result.id,
+    sentenceMakingEnabled,
+    recordingEnabled
+  );
+
+  const formattedDate = format(new Date(result.completed_at), "yyyy-MM-dd HH:mm", { locale: ko });
+
+  if (!isMultiStage) {
+    return <span>{formattedDate}</span>;
+  }
+
+  return (
+    <Popover onOpenChange={(open) => { if (open) fetchTimes(result.completed_at); }}>
+      <PopoverTrigger asChild>
+        <button className="text-sm underline decoration-dotted underline-offset-2 cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
+          {formattedDate}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56" align="start">
+        {isLoading ? (
+          <div className="flex justify-center py-2">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : times ? (
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">빈칸 채우기</span>
+              <span className="font-medium tabular-nums">
+                {format(new Date(times.fillBlank), "M월 d일 HH:mm", { locale: ko })}
+              </span>
+            </div>
+            {sentenceMakingEnabled && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">문장 만들기</span>
+                <span className="font-medium tabular-nums">
+                  {times.sentenceMaking
+                    ? format(new Date(times.sentenceMaking), "M월 d일 HH:mm", { locale: ko })
+                    : "대기 중"}
+                </span>
+              </div>
+            )}
+            {recordingEnabled && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">말하기 연습</span>
+                <span className="font-medium tabular-nums">
+                  {times.recording
+                    ? format(new Date(times.recording), "M월 d일 HH:mm", { locale: ko })
+                    : "대기 중"}
+                </span>
+              </div>
+            )}
+          </div>
+        ) : null}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 interface QuizResultsListProps {
   quizId: string;
@@ -183,7 +256,11 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
       </div>
       <div>{renderMobileScoreCell(result)}</div>
       <div className="text-xs text-muted-foreground">
-        {format(new Date(result.completed_at), "yyyy-MM-dd HH:mm", { locale: ko })}
+        <SubmissionTimeCell
+          result={result}
+          sentenceMakingEnabled={sentenceMakingEnabled ?? false}
+          recordingEnabled={recordingEnabled ?? false}
+        />
       </div>
     </div>
   );
@@ -262,7 +339,11 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
                     {renderScoreCell(result)}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {format(new Date(result.completed_at), "yyyy-MM-dd HH:mm", { locale: ko })}
+                    <SubmissionTimeCell
+                      result={result}
+                      sentenceMakingEnabled={sentenceMakingEnabled ?? false}
+                      recordingEnabled={recordingEnabled ?? false}
+                    />
                   </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => setSelectedResult(result)}>
