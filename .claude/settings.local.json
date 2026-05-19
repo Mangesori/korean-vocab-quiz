@@ -32,7 +32,10 @@
       "Bash(supabase secrets:*)",
       "Bash(supabase functions:*)",
       "Bash(where supabase:*)",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "Bash(gh repo *)",
+      "Bash(git fetch *)",
+      "Bash(python3 -c ' *)"
     ]
   },
   "enableAllProjectMcpServers": true,

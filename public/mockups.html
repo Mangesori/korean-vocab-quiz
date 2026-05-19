@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>달콤한 한국어 — UI 목업</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-mono/style.css">
+<style>
+:root {
+  --primary:       #1E6B47;
+  --primary-dark:  #155237;
+  --primary-light: #E8F5EE;
+  --surface:       #F8F5F0;
+  --card:          #FFFFFF;
+  --border:        #E2DDD8;
+  --text:          #1A1714;
+  --text-muted:    #6B6460;
+  --text-hint:     #9E9894;
+  --success:       #2D7D52;
+  --warning:       #D97706;
+  --error:         #C13B2E;
+  --info:          #1D4ED8;
+  --r-sm: 4px; --r-md: 8px; --r-lg: 12px; --r-full: 9999px;
+  --font-kr:      "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  --font-display: "DM Serif Display", serif;
+  --font-ui:      "Geist", system-ui, sans-serif;
+  --font-mono:    "Geist Mono", monospace;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.07);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.09);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-kr);background:var(--surface);color:var(--text);min-height:100vh;display:flex;font-size:14px;line-height:1.5}
+
+/* ── Shell ── */
+.shell{display:flex;width:100%;min-height:100vh}
+.sidebar{width:232px;min-width:232px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100}
+.content{margin-left:232px;flex:1;overflow:auto}
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+
+/* ── Sidebar ── */
+.sb-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
+.sb-brand{font-family:var(--font-display);font-size:17px;color:var(--primary)}
+.sb-sub{font-size:10px;color:var(--text-hint);margin-top:1px;font-family:var(--font-ui)}
+.sb-section{padding:12px 12px 0}
+.sb-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-hint);padding:8px 8px 4px;font-family:var(--font-ui)}
+.sb-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r-md);cursor:pointer;font-size:13px;color:var(--text-muted);transition:all 80ms;border:none;background:none;width:100%;text-align:left;font-family:var(--font-kr)}
+.sb-item:hover{background:var(--surface);color:var(--text)}
+.sb-item.active{background:var(--primary-light);color:var(--primary);font-weight:600}
+.sb-item svg{opacity:.65;flex-shrink:0}
+.sb-footer{margin-top:auto;padding:12px;border-top:1px solid var(--border)}
+.sb-user{display:flex;align-items:center;gap:9px;padding:8px;border-radius:var(--r-md);cursor:pointer}
+.sb-user:hover{background:var(--surface)}
+.sb-user-name{font-size:13px;font-weight:600;line-height:1.2}
+.sb-user-role{font-size:11px;color:var(--text-muted)}
+
+/* ── Common ── */
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-title{font-size:15px;font-weight:600}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;border-radius:var(--r-full);background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
+.page{padding:28px;max-width:1100px}
+.page.narrow{max-width:600px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:22px;box-shadow:var(--shadow-sm)}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px;box-shadow:var(--shadow-sm)}
+.stat-label{font-size:11px;color:var(--text-muted);margin-bottom:6px;font-family:var(--font-ui)}
+.stat-value{font-size:26px;font-weight:700;font-family:var(--font-mono);color:var(--text);line-height:1}
+.stat-delta{font-size:11px;color:var(--success);margin-top:5px;font-family:var(--font-ui)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--r-md);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 80ms;font-family:var(--font-kr);line-height:1.4;white-space:nowrap}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--surface);color:var(--text)}
+.btn-danger{background:transparent;color:var(--error);border:1px solid var(--border)}
+.btn-danger:hover{background:#FEF2F2;border-color:var(--error)}
+.btn-lg{padding:11px 22px;font-size:14px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-hint);padding:9px 14px;border-bottom:1px solid var(--border);font-family:var(--font-ui)}
+td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surface)}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--r-full);font-size:10px;font-weight:700;font-family:var(--font-ui)}
+.bg-green{background:var(--primary-light);color:var(--primary)}
+.bg-gray{background:var(--surface);color:var(--text-muted)}
+.bg-red{background:#FEE2E2;color:var(--error)}
+.bg-blue{background:#DBEAFE;color:var(--info)}
+.bg-yellow{background:#FEF3C7;color:var(--warning)}
+.cefr-a1{background:#DCFCE7;color:#15803D}
+.cefr-a2{background:#CFFAFE;color:#0E7490}
+.cefr-b1{background:#DBEAFE;color:#1D4ED8}
+.cefr-b2{background:#EDE9FE;color:#6D28D9}
+.input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r-md);font-size:14px;font-family:var(--font-kr);background:var(--card);color:var(--text);outline:none;transition:border-color 150ms,box-shadow 150ms}
+.input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.input::placeholder{color:var(--text-hint)}
+.label{display:block;font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:5px;font-family:var(--font-ui)}
+.textarea{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:var(--r-md);font-size:14px;font-family:var(--font-kr);background:var(--card);color:var(--text);outline:none;resize:vertical;min-height:110px;line-height:1.65;transition:border-color 150ms,box-shadow 150ms}
+.textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.progress{height:4px;background:var(--border);border-radius:var(--r-full);overflow:hidden}
+.progress-fill{height:100%;background:var(--primary);border-radius:var(--r-full)}
+.row{display:flex;align-items:center;gap:10px}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.section-title{font-size:15px;font-weight:700;margin-bottom:14px}
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+
+/* ── Screen 2 Teacher ── */
+.hero-input{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:28px;box-shadow:var(--shadow-md);margin-bottom:20px}
+.hero-headline{font-family:var(--font-display);font-size:22px;color:var(--text);margin-bottom:18px;display:block}
+.pill-toggle{display:flex;align-items:center;gap:5px;padding:5px 13px;border-radius:var(--r-full);font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--text-muted);transition:all 80ms;font-family:var(--font-kr)}
+.pill-toggle.on{background:var(--primary-light);border-color:var(--primary);color:var(--primary)}
+.class-item{padding:13px 15px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--card);display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.class-item:last-child{margin-bottom:0}
+.class-name{font-size:13px;font-weight:600}
+.class-meta{font-size:11px;color:var(--text-muted);margin-top:2px}
+
+/* ── Screen 3 Student ── */
+.quiz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px;cursor:pointer;transition:all 150ms}
+.quiz-card:hover{border-color:var(--primary);box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.quiz-type-tag{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-hint);margin-bottom:7px;font-family:var(--font-ui)}
+.score-big{font-size:40px;font-weight:700;font-family:var(--font-mono);color:var(--primary);line-height:1}
+
+/* ── Screen 4 Fill ── */
+.word-bank{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px;margin-bottom:20px}
+.wb-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-hint);margin-bottom:10px;font-family:var(--font-ui)}
+.word-pills{display:flex;flex-wrap:wrap;gap:7px}
+.wpill{padding:4px 13px;border-radius:var(--r-full);font-size:13px;font-weight:600;background:var(--primary-light);color:var(--primary);cursor:pointer;transition:all 80ms;border:1.5px solid transparent}
+.wpill:hover{border-color:var(--primary)}
+.wpill.used{background:var(--surface);color:var(--text-hint);text-decoration:line-through;opacity:.55}
+.q-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--card);font-size:15px;margin-bottom:7px}
+.q-row:last-child{margin-bottom:0}
+.q-row.active{background:var(--primary-light);border-color:var(--primary)}
+.q-num{font-size:10px;font-family:var(--font-mono);color:var(--text-hint);min-width:18px}
+.q-text{flex:1;line-height:1.8}
+.blank{display:inline-block;min-width:90px;border:none;border-bottom:2px solid var(--primary);background:transparent;font-size:15px;font-family:var(--font-kr);color:var(--primary);font-weight:600;text-align:center;outline:none;padding:1px 6px}
+.set-nav{display:flex;justify-content:space-between;align-items:center;margin-top:22px}
+
+/* ── Screen 5 Sentence ── */
+.word-highlight{display:inline-flex;align-items:center;gap:8px;background:var(--primary-light);border:1.5px solid var(--primary);border-radius:var(--r-lg);padding:14px 22px;font-size:26px;font-weight:700;color:var(--primary);margin-bottom:6px}
+.result-box{margin-top:18px;background:var(--primary-light);border:1px solid var(--primary);border-radius:var(--r-lg);padding:18px}
+.result-score{font-size:38px;font-weight:700;font-family:var(--font-mono);color:var(--primary);margin-bottom:10px;line-height:1}
+.result-tags{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.rtag{display:flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--r-full);font-size:11px;font-weight:600;background:var(--card);border:1px solid var(--border);font-family:var(--font-ui)}
+.result-text{font-size:13px;color:var(--text-muted);line-height:1.65}
+
+/* ── Screen 6 Speaking ── */
+.speak-center{display:flex;flex-direction:column;align-items:center;padding:40px 28px;min-height:calc(100vh - 54px)}
+.speak-word-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:36px;text-align:center;width:100%;max-width:460px;margin-bottom:28px;box-shadow:var(--shadow-md)}
+.target-word{font-size:34px;font-weight:700;color:var(--text);margin-bottom:6px}
+.target-meaning{font-size:13px;color:var(--text-muted)}
+.record-wrap{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:28px}
+.record-btn{width:68px;height:68px;border-radius:var(--r-full);background:var(--error);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 80ms;box-shadow:0 0 0 0 rgba(193,59,46,.4)}
+.record-btn.recording{animation:pulse 1.2s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(193,59,46,.4)}70%{box-shadow:0 0 0 20px rgba(193,59,46,0)}100%{box-shadow:0 0 0 0 rgba(193,59,46,0)}}
+.record-label{font-size:12px;color:var(--text-muted);font-family:var(--font-ui)}
+.waveform{display:flex;align-items:center;justify-content:center;gap:3px;height:36px;margin-bottom:20px}
+.wbar{width:3px;border-radius:var(--r-full);background:var(--primary);animation:wave 1s ease-in-out infinite}
+@keyframes wave{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+.score-result{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px;width:100%;max-width:460px;box-shadow:var(--shadow-md)}
+.score-main{text-align:center;margin-bottom:18px}
+.score-main-val{font-size:52px;font-weight:700;font-family:var(--font-mono);color:var(--primary);line-height:1}
+.score-main-label{font-size:11px;color:var(--text-muted);font-family:var(--font-ui);margin-top:3px}
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.score-item{background:var(--surface);border-radius:var(--r-md);padding:11px;text-align:center}
+.score-item-val{font-size:20px;font-weight:700;font-family:var(--font-mono);line-height:1}
+.score-item-lbl{font-size:10px;color:var(--text-muted);margin-top:3px;font-family:var(--font-ui)}
+.wb-pills{display:flex;flex-wrap:wrap;gap:5px}
+.ws-word{padding:3px 10px;border-radius:var(--r-full);font-size:13px;font-weight:600}
+.ws-green{background:#DCFCE7;color:#15803D}
+.ws-yellow{background:#FEF9C3;color:#854D0E}
+.ws-red{background:#FEE2E2;color:var(--error)}
+.admin-chip{background:#FEE2E2;color:var(--error);padding:2px 7px;border-radius:var(--r-full);font-size:9px;font-weight:700;text-transform:uppercase;font-family:var(--font-ui);letter-spacing:.06em}
+
+/* ── Device Toggle Bar ── */
+.device-bar{position:fixed;top:0;left:0;right:0;z-index:300;background:#1A1714;color:#fff;height:38px;display:flex;align-items:center;justify-content:center;gap:20px;font-size:12px;font-family:var(--font-ui)}
+.device-bar-label{color:rgba(255,255,255,.45);font-size:11px;font-family:var(--font-ui)}
+.device-tabs{display:flex;gap:4px}
+.device-tab{padding:4px 13px;border-radius:var(--r-full);font-size:11px;font-weight:600;border:none;cursor:pointer;background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);transition:all 80ms;font-family:var(--font-ui)}
+.device-tab.active{background:var(--primary);color:#fff}
+.device-tab:hover:not(.active){background:rgba(255,255,255,.18)}
+body{padding-top:38px}
+.shell{min-height:calc(100vh - 38px)}
+.sidebar{top:38px;height:calc(100vh - 38px)}
+
+/* ── App Navbar (실제 앱 스타일, 모바일/태블릿에서만 표시) ── */
+.app-navbar{display:none;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:38px;z-index:50}
+.app-nav-inner{display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 20px}
+.app-nav-left{display:flex;align-items:center;gap:20px}
+.app-logo{display:flex;align-items:center;gap:3px;cursor:pointer;text-decoration:none}
+.app-logo-d{font-family:var(--font-display);font-size:26px;font-weight:900;background:linear-gradient(160deg,#F472B6,var(--primary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.app-logo-text{font-size:15px;font-weight:700;color:var(--text)}
+.app-nav-links{display:flex;gap:2px}
+.app-nav-link{padding:6px 10px;border-radius:var(--r-md);font-size:13px;color:var(--text-muted);cursor:pointer;border:none;background:none;transition:all 80ms;font-family:var(--font-kr)}
+.app-nav-link:hover{background:var(--surface);color:var(--text)}
+.app-nav-link.active{font-weight:600;color:var(--text)}
+.app-nav-right{display:flex;align-items:center;gap:6px}
+.app-bell{width:34px;height:34px;border-radius:var(--r-full);border:none;background:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;justify-content:center}
+.app-hamburger{width:34px;height:34px;border-radius:var(--r-md);border:none;background:none;cursor:pointer;color:var(--text-muted);display:none;align-items:center;justify-content:center}
+.app-mobile-menu{display:none;flex-direction:column;gap:2px;padding:10px;border-top:1px solid var(--border);background:var(--card)}
+.app-mobile-menu.open{display:flex}
+.app-mobile-link{padding:10px 12px;border-radius:var(--r-md);font-size:13px;font-weight:500;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:10px;border:none;background:none;width:100%;text-align:left;font-family:var(--font-kr)}
+.app-mobile-link:hover{background:var(--surface)}
+.app-mobile-link svg{color:var(--text-muted);flex-shrink:0}
+
+/* ── Bottom Nav (모바일 전용) ── */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--card);border-top:1px solid var(--border);height:60px;align-items:stretch}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--text-muted);border:none;background:none;font-family:var(--font-kr);transition:color 80ms;padding:8px 0}
+.bnav-item.active{color:var(--primary)}
+.bnav-item:hover{color:var(--text)}
+.bnav-item span{font-size:10px;font-weight:600;font-family:var(--font-ui)}
+
+/* ── App Sidebar (실제 앱 사이드바, 데스크탑 전용 및 모바일 Off-canvas) ── */
+.app-layout {display:flex;min-height:calc(100vh - 38px - 61px);background:var(--background)}
+.app-sidebar {width:220px;border-right:1px solid var(--border);background:var(--surface);padding:24px 12px;display:flex;flex-direction:column;flex-shrink:0;z-index:200;transition:transform 0.3s ease}
+.app-main {flex:1;min-width:0}
+.app-sb-section {font-size:11px;font-weight:700;color:var(--text-hint);margin:20px 0 8px 12px;font-family:var(--font-ui)}
+.app-sb-item {display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:var(--r-md);font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all 100ms;font-family:var(--font-kr)}
+.app-sb-item:hover {background:rgba(0,0,0,0.04);color:var(--text)}
+.app-sb-item.active {background:var(--primary-light);color:var(--primary);font-weight:600}
+.sidebar-overlay {display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:190;opacity:0;transition:opacity 0.3s ease}
+.sidebar-overlay.active {display:block;opacity:1}
+.app-hamburger {display:none;width:34px;height:34px;border-radius:var(--r-md);border:none;background:none;cursor:pointer;color:var(--text-muted);align-items:center;justify-content:center}
+
+/* ── Mobile Mode (375px 기준) ── */
+body.mode-mobile .bottom-nav{display:flex}
+body.mode-mobile .screen{padding-bottom:60px}
+body.mode-mobile .app-sidebar{position:fixed;top:0;bottom:0;right:0;left:auto;height:100vh;transform:translateX(100%);box-shadow:var(--shadow-md)}
+body.mode-mobile .app-sidebar.mobile-open{transform:translateX(0)}
+body.mode-mobile .app-hamburger{display:flex}
+body.mode-mobile .page{padding:14px;max-width:375px;margin-left:auto;margin-right:auto}
+body.mode-mobile .stat-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+body.mode-mobile .stat-value{font-size:22px}
+body.mode-mobile .admin-main-grid{grid-template-columns:1fr!important}
+body.mode-mobile .teacher-quick-grid{grid-template-columns:1fr!important;gap:8px!important}
+body.mode-mobile .teacher-lower-grid{grid-template-columns:1fr!important}
+body.mode-mobile .student-welcome-grid{grid-template-columns:1fr!important}
+body.mode-mobile .quiz-grid{grid-template-columns:1fr!important}
+body.mode-mobile .quiz-inner-grid{grid-template-columns:1fr!important}
+body.mode-mobile .content{max-width:calc(375px + 232px)}
+
+/* ── Tablet Mode (768px 기준) ── */
+body.mode-tablet .app-sidebar{position:fixed;top:0;bottom:0;right:0;left:auto;height:100vh;transform:translateX(100%);box-shadow:var(--shadow-md)}
+body.mode-tablet .app-sidebar.mobile-open{transform:translateX(0)}
+body.mode-tablet .app-hamburger{display:flex}
+body.mode-tablet .page{padding:20px;max-width:768px;margin-left:auto;margin-right:auto}
+body.mode-tablet .stat-grid{grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+body.mode-tablet .admin-main-grid{grid-template-columns:1fr!important}
+body.mode-tablet .teacher-quick-grid{grid-template-columns:1fr 1fr!important}
+body.mode-tablet .teacher-lower-grid{grid-template-columns:1fr!important}
+body.mode-tablet .quiz-grid{grid-template-columns:1fr 1fr!important}
+body.mode-tablet .quiz-inner-grid{grid-template-columns:1fr 1fr!important}
+body.mode-tablet .content{max-width:calc(768px + 232px)}
+</style>
+</head>
+<body>
+
+<!-- ── Device Toggle Bar ── -->
+<div class="device-bar">
+  <span class="device-bar-label">목업 뷰어</span>
+  <div class="device-tabs">
+    <button class="device-tab active" onclick="setDevice('desktop',this)">🖥 데스크탑</button>
+    <button class="device-tab" onclick="setDevice('tablet',this)">💻 태블릿</button>
+    <button class="device-tab" onclick="setDevice('mobile',this)">📱 모바일</button>
+  </div>
+</div>
+
+
+
+<!-- ── 하단 탭바 (모바일 전용) ── -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bnav-item active">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>홈</span>
+  </button>
+  <button class="bnav-item" id="bnavQuiz">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <span>퀴즈</span>
+  </button>
+  <button class="bnav-item" id="bnavClass">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <span>클래스</span>
+  </button>
+  <button class="bnav-item">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+    <span>프로필</span>
+  </button>
+</nav>
+
+<div class="shell">
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-brand">달콤한 한국어</div>
+    <div class="sb-sub">UI Prototype · 2026</div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-label">대시보드</div>
+    <button class="sb-item active" onclick="show('admin',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".5"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".5"/></svg>
+      관리자 대시보드
+    </button>
+    <button class="sb-item" onclick="show('teacher',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" fill="currentColor" opacity=".7"/><path d="M2 13c0-2.21 2.686-4 6-4s6 1.79 6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      선생님 대시보드
+    </button>
+    <button class="sb-item" onclick="show('student',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1L2 4.5V5.5L8 9L14 5.5V4.5L8 1Z" fill="currentColor" opacity=".6"/><path d="M2 7V11.5L8 15L14 11.5V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      학생 대시보드
+    </button>
+    <button class="sb-item" onclick="show('class-detail',this)" style="padding-left:28px">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/></svg>
+      클래스 상세 화면
+    </button>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-label">퀴즈 화면</div>
+    <button class="sb-item" onclick="show('fill',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="2" rx="1" fill="currentColor" opacity=".5"/><rect x="1" y="7" width="8" height="2" rx="1" fill="currentColor"/><rect x="1" y="11" width="14" height="2" rx="1" fill="currentColor" opacity=".5"/></svg>
+      빈칸 채우기
+    </button>
+    <button class="sb-item" onclick="show('sentence',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M3 8h7M3 12h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      문장 만들기
+    </button>
+    <button class="sb-item" onclick="show('speaking',this)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="5.5" y="1" width="5" height="8" rx="2.5" fill="currentColor" opacity=".7"/><path d="M2 8c0 3.314 2.686 5 6 5s6-1.686 6-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="13" x2="8" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      말하기 연습
+    </button>
+  </div>
+
+  <div class="sb-footer">
+    <div class="sb-user" id="sbUser">
+      <div class="avatar" id="sbAvatar">관</div>
+      <div>
+        <div class="sb-user-name" id="sbName">관리자</div>
+        <div class="sb-user-role" id="sbRole">Admin</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main content -->
+<main class="content">
+
+<!-- ╔══════════════════════════════╗
+     ║  1. 관리자 대시보드           ║
+     ╚══════════════════════════════╝ -->
+<div id="s-admin" class="screen active">
+  <div class="topbar" style="border-bottom:1px solid var(--border)">
+    <div class="row">
+      <div class="app-logo" style="margin-right:20px;text-decoration:none;cursor:default">
+        <span class="app-logo-d">D</span>
+        <span class="app-logo-text">Dalkom Korean</span>
+      </div>
+      <span class="admin-chip">ADMIN</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" style="font-size:12px;">리포트 내보내기</button>
+      <div class="avatar" style="background:#FEE2E2;color:var(--error);">관</div>
+      <button class="app-hamburger" onclick="toggleSidebar()" style="margin-left:8px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="app-layout">
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="app-sidebar">
+      <div class="app-sb-section">관리자 메뉴</div>
+      <button class="app-sb-item active">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".5"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".5"/></svg>
+        관리자 대시보드
+      </button>
+      <button class="app-sb-item">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" fill="currentColor" opacity=".7"/><path d="M2 13c0-2.21 2.686-4 6-4s6 1.79 6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        선생님 관리
+      </button>
+      <button class="app-sb-item">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="2" rx="1" fill="currentColor" opacity=".5"/><rect x="1" y="7" width="8" height="2" rx="1" fill="currentColor"/><rect x="1" y="11" width="14" height="2" rx="1" fill="currentColor" opacity=".5"/></svg>
+        시스템 리포트
+      </button>
+      <button class="app-sb-item" style="margin-top:auto">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><circle cx="12" cy="12" r="3"/></svg>
+        설정
+      </button>
+    </div>
+    <div class="app-main">
+      <div class="page">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">전체 선생님</div><div class="stat-value">28</div><div class="stat-delta">↑ 3명 이번 달</div></div>
+      <div class="stat-card"><div class="stat-label">전체 학생</div><div class="stat-value">412</div><div class="stat-delta">↑ 47명 이번 달</div></div>
+      <div class="stat-card"><div class="stat-label">생성된 퀴즈</div><div class="stat-value">1,084</div><div class="stat-delta">↑ 138개 이번 달</div></div>
+      <div class="stat-card"><div class="stat-label">이번 달 응시</div><div class="stat-value">3,291</div><div class="stat-delta">↑ 21% 전월 대비</div></div>
+    </div>
+    <div class="admin-main-grid" style="display:grid;grid-template-columns:2fr 1fr;gap:22px">
+      <!-- Users table -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border)" class="row-between">
+          <span style="font-size:14px;font-weight:700">최근 가입 사용자</span>
+          <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px">전체 보기</button>
+        </div>
+        <table>
+          <thead><tr><th>이름</th><th>역할</th><th>가입일</th><th>상태</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div style="font-weight:600">김민준</div><div style="font-size:11px;color:var(--text-muted)">minjun@school.kr</div></td>
+              <td><span class="badge bg-blue">선생님</span></td>
+              <td style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">2026-05-14</td>
+              <td><span class="badge bg-green">활성</span></td>
+              <td><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px">관리</button></td>
+            </tr>
+            <tr>
+              <td><div style="font-weight:600">이서연</div><div style="font-size:11px;color:var(--text-muted)">seoyeon@gmail.com</div></td>
+              <td><span class="badge bg-gray">학생</span></td>
+              <td style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">2026-05-13</td>
+              <td><span class="badge bg-green">활성</span></td>
+              <td><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px">관리</button></td>
+            </tr>
+            <tr>
+              <td><div style="font-weight:600">박지호</div><div style="font-size:11px;color:var(--text-muted)">jiho@school.kr</div></td>
+              <td><span class="badge bg-blue">선생님</span></td>
+              <td style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">2026-05-12</td>
+              <td><span class="badge bg-yellow">검토 중</span></td>
+              <td><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px">관리</button></td>
+            </tr>
+            <tr>
+              <td><div style="font-weight:600">최예린</div><div style="font-size:11px;color:var(--text-muted)">yerin@naver.com</div></td>
+              <td><span class="badge bg-gray">학생</span></td>
+              <td style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">2026-05-11</td>
+              <td><span class="badge bg-red">정지</span></td>
+              <td><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px">관리</button></td>
+            </tr>
+            <tr>
+              <td><div style="font-weight:600">정태양</div><div style="font-size:11px;color:var(--text-muted)">taeyang@school.kr</div></td>
+              <td><span class="badge bg-blue">선생님</span></td>
+              <td style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">2026-05-10</td>
+              <td><span class="badge bg-green">활성</span></td>
+              <td><button class="btn btn-ghost" style="font-size:11px;padding:3px 9px">관리</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Right col -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card">
+          <div style="font-size:14px;font-weight:700;margin-bottom:14px">시스템 현황</div>
+          <div style="display:flex;flex-direction:column;gap:11px">
+            <div>
+              <div class="row-between" style="margin-bottom:5px"><span style="font-size:12px;color:var(--text-muted)">API 응답 시간</span><span style="font-size:11px;font-family:var(--font-mono);color:var(--success)">142ms</span></div>
+              <div class="progress"><div class="progress-fill" style="width:90%;background:var(--success)"></div></div>
+            </div>
+            <div>
+              <div class="row-between" style="margin-bottom:5px"><span style="font-size:12px;color:var(--text-muted)">STT 서비스</span><span style="font-size:11px;font-family:var(--font-mono);color:var(--success)">정상</span></div>
+              <div class="progress"><div class="progress-fill" style="width:100%;background:var(--success)"></div></div>
+            </div>
+            <div>
+              <div class="row-between" style="margin-bottom:5px"><span style="font-size:12px;color:var(--text-muted)">AI 채점 서비스</span><span style="font-size:11px;font-family:var(--font-mono);color:var(--warning)">지연</span></div>
+              <div class="progress"><div class="progress-fill" style="width:58%;background:var(--warning)"></div></div>
+            </div>
+            <div>
+              <div class="row-between" style="margin-bottom:5px"><span style="font-size:12px;color:var(--text-muted)">DB 사용량</span><span style="font-size:11px;font-family:var(--font-mono)">68%</span></div>
+              <div class="progress"><div class="progress-fill" style="width:68%"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-size:14px;font-weight:700;margin-bottom:12px">퀵 액션</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <button class="btn btn-ghost" style="justify-content:flex-start;width:100%;font-size:12px">+ 선생님 계정 추가</button>
+            <button class="btn btn-ghost" style="justify-content:flex-start;width:100%;font-size:12px">↓ 사용 통계 내보내기</button>
+            <button class="btn btn-danger" style="justify-content:flex-start;width:100%;font-size:12px">⚠ 비활성 계정 정리</button>
+          </div>
+        </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║  2. 선생님 대시보드           ║
+     ╚══════════════════════════════╝ -->
+<div id="s-teacher" class="screen">
+  <div class="topbar" style="border-bottom:1px solid var(--border)">
+    <div class="row">
+      <div class="app-logo" style="margin-right:20px;text-decoration:none;cursor:default">
+        <span class="app-logo-d">D</span>
+        <span class="app-logo-text">Dalkom Korean</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="avatar" style="background:var(--primary);color:#fff">김</div>
+      <button class="app-hamburger" onclick="toggleSidebar()" style="margin-left:8px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="app-layout">
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="app-sidebar">
+      <div class="app-sb-section">선생님 메뉴</div>
+      <button class="app-sb-item active">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" fill="currentColor" opacity=".7"/><path d="M2 13c0-2.21 2.686-4 6-4s6 1.79 6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        선생님 대시보드
+      </button>
+      <button class="app-sb-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        클래스 관리
+      </button>
+      <button class="app-sb-item">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M3 8h7M3 12h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        콘텐츠 생성
+      </button>
+    </div>
+    <div class="app-main">
+      <div class="page">
+    <!-- Stat grid -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">전체 클래스</div>
+        <div class="stat-value">3</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">전체 학생</div>
+        <div class="stat-value">51</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">생성된 퀴즈</div>
+        <div class="stat-value">12</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">새 알림</div>
+        <div class="stat-value" style="color:var(--warning)">2</div>
+        <div class="stat-delta" style="color:var(--warning)">미확인 결과</div>
+      </div>
+    </div>
+    <!-- Quick actions -->
+    <div class="teacher-quick-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px">
+      <button style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer;font-family:var(--font-kr);transition:border-color 80ms;text-align:left" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="width:30px;height:30px;border-radius:var(--r-md);background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">새 퀴즈 만들기</div>
+          <div style="font-size:11px;color:var(--text-muted)">AI로 문제 자동 생성</div>
+        </div>
+      </button>
+      <button style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer;font-family:var(--font-kr);transition:border-color 80ms;text-align:left" onmouseover="this.style.borderColor='var(--error)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="width:30px;height:30px;border-radius:var(--r-md);background:rgba(193,59,46,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--error)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">오답 복습 퀴즈</div>
+          <div style="font-size:11px;color:var(--text-muted)">학생 오답으로 생성</div>
+        </div>
+      </button>
+      <button style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer;font-family:var(--font-kr);transition:border-color 80ms;text-align:left" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="width:30px;height:30px;border-radius:var(--r-md);background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">새 클래스 만들기</div>
+          <div style="font-size:11px;color:var(--text-muted)">학생 초대 코드 발급</div>
+        </div>
+      </button>
+    </div>
+    <!-- Lower grid -->
+    <div class="teacher-lower-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+
+      <!-- 내 퀴즈 (LEFT) -->
+      <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border)" class="row-between">
+          <div>
+            <span style="font-size:14px;font-weight:700">내 퀴즈</span>
+            <span style="font-size:11px;color:var(--text-muted);display:block;margin-top:1px">생성한 퀴즈 목록</span>
+          </div>
+          <button class="btn btn-ghost" style="font-size:11px;padding:3px 9px">전체 보기 ›</button>
+        </div>
+        <div class="quiz-inner-grid" style="padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;align-content:start">
+          <!-- Quiz card 1 -->
+          <div style="padding:14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--card);cursor:pointer;transition:border-color 150ms;display:flex;flex-direction:column" onmouseover="this.style.borderColor='rgba(30,107,71,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="row-between" style="margin-bottom:10px">
+              <div style="width:36px;height:36px;background:var(--primary-light);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--primary)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <span class="badge cefr-a1">A1</span>
+            </div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">5.7 제니스 - 1B-4과</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">15개 단어 · 3세트</div>
+            <div class="row-between" style="margin-top:auto">
+              <span style="font-size:10px;color:var(--text-hint);font-family:var(--font-ui);display:flex;align-items:center;gap:3px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>2026년 5월 7일</span>
+              <div class="row" style="gap:4px">
+                <button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;height:24px">공유</button>
+                <button class="btn btn-primary" style="font-size:10px;padding:2px 7px;height:24px">결과</button>
+              </div>
+            </div>
+          </div>
+          <!-- Quiz card 2 -->
+          <div style="padding:14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--card);cursor:pointer;transition:border-color 150ms;display:flex;flex-direction:column" onmouseover="this.style.borderColor='rgba(30,107,71,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="row-between" style="margin-bottom:10px">
+              <div style="width:36px;height:36px;background:var(--primary-light);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--primary)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <span class="badge cefr-a1">A1</span>
+            </div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">5.13 류이수</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">15개 단어 · 3세트</div>
+            <div class="row-between" style="margin-top:auto">
+              <span style="font-size:10px;color:var(--text-hint);font-family:var(--font-ui);display:flex;align-items:center;gap:3px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>2026년 5월 13일</span>
+              <div class="row" style="gap:4px">
+                <button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;height:24px">공유</button>
+                <button class="btn btn-primary" style="font-size:10px;padding:2px 7px;height:24px">결과</button>
+              </div>
+            </div>
+          </div>
+          <!-- Quiz card 3 -->
+          <div style="padding:14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--card);cursor:pointer;transition:border-color 150ms;display:flex;flex-direction:column" onmouseover="this.style.borderColor='rgba(30,107,71,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="row-between" style="margin-bottom:10px">
+              <div style="width:36px;height:36px;background:var(--primary-light);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--primary)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <span class="badge cefr-b1">B1</span>
+            </div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">5.13 칼림 - 다툼</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">15개 단어 · 3세트</div>
+            <div class="row-between" style="margin-top:auto">
+              <span style="font-size:10px;color:var(--text-hint);font-family:var(--font-ui);display:flex;align-items:center;gap:3px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>2026년 5월 13일</span>
+              <div class="row" style="gap:4px">
+                <button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;height:24px">공유</button>
+                <button class="btn btn-primary" style="font-size:10px;padding:2px 7px;height:24px">결과</button>
+              </div>
+            </div>
+          </div>
+          <!-- Quiz card 4 -->
+          <div style="padding:14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--card);cursor:pointer;transition:border-color 150ms;display:flex;flex-direction:column" onmouseover="this.style.borderColor='rgba(30,107,71,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="row-between" style="margin-bottom:10px">
+              <div style="width:36px;height:36px;background:var(--primary-light);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--primary)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <span class="badge cefr-a1">A1</span>
+            </div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">5.12 지안 - 1B-4과</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">15개 단어 · 3세트</div>
+            <div class="row-between" style="margin-top:auto">
+              <span style="font-size:10px;color:var(--text-hint);font-family:var(--font-ui);display:flex;align-items:center;gap:3px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>2026년 5월 12일</span>
+              <div class="row" style="gap:4px">
+                <button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;height:24px">공유</button>
+                <button class="btn btn-primary" style="font-size:10px;padding:2px 7px;height:24px">결과</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 내 클래스 (RIGHT) -->
+      <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border)" class="row-between">
+          <div>
+            <span style="font-size:14px;font-weight:700">내 클래스</span>
+            <span style="font-size:11px;color:var(--text-muted);display:block;margin-top:1px">관리 중인 클래스</span>
+          </div>
+          <button class="btn btn-ghost" style="font-size:11px;padding:3px 9px">전체 보기 ›</button>
+        </div>
+        <div class="quiz-inner-grid" style="padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;align-content:start">
+          <!-- Class card 1 -->
+          <div style="padding:14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--card);cursor:pointer;transition:border-color 150ms;display:flex;flex-direction:column" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="row-between" style="margin-bottom:10px">
+              <div style="width:36px;height:36px;background:var(--primary-light);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--primary)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div class="row" style="gap:4px;align-items:center">
+                <span style="font-family:var(--font-mono);font-weight:700;color:var(--primary);font-size:11px">H3BBYB</span>
+                <button class="btn btn-ghost" style="padding:2px 5px;height:22px;color:var(--text-muted)" onclick="event.stopPropagation()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              </div>
+            </div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">나탈리</div>
+            <div style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:3px;margin-bottom:10px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>10명</div>
+            <div class="row-between" style="margin-top:auto">
+              <span style="font-size:10px;color:var(--text-hint);font-family:var(--font-ui);display:flex;align-items:center;gap:3px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>2026년 5월 14일</span>
+              <button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;height:24px">상세보기 ›</button>
+            </div>
+          </div>
+          <!-- Class card 2 -->
+          <div style="padding:14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--card);cursor:pointer;transition:border-color 150ms;display:flex;flex-direction:column" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="row-between" style="margin-bottom:10px">
+              <div style="width:36px;height:36px;background:var(--primary-light);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--primary)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div class="row" style="gap:4px;align-items:center">
+                <span style="font-family:var(--font-mono);font-weight:700;color:var(--primary);font-size:11px">ADN5LP</span>
+                <button class="btn btn-ghost" style="padding:2px 5px;height:22px;color:var(--text-muted)" onclick="event.stopPropagation()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              </div>
+            </div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">헌터</div>
+            <div style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:3px;margin-bottom:10px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>5명</div>
+            <div class="row-between" style="margin-top:auto">
+              <span style="font-size:10px;color:var(--text-hint);font-family:var(--font-ui);display:flex;align-items:center;gap:3px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>2026년 5월 9일</span>
+              <button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;height:24px">상세보기 ›</button>
+            </div>
+          </div>
+          <!-- Class card 3 -->
+          <div style="padding:14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--card);cursor:pointer;transition:border-color 150ms;display:flex;flex-direction:column" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="row-between" style="margin-bottom:10px">
+              <div style="width:36px;height:36px;background:var(--primary-light);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--primary)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div class="row" style="gap:4px;align-items:center">
+                <span style="font-family:var(--font-mono);font-weight:700;color:var(--primary);font-size:11px">ATLPWR</span>
+                <button class="btn btn-ghost" style="padding:2px 5px;height:22px;color:var(--text-muted)" onclick="event.stopPropagation()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              </div>
+            </div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">카리사</div>
+            <div style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:3px;margin-bottom:10px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>1명</div>
+            <div class="row-between" style="margin-top:auto">
+              <span style="font-size:10px;color:var(--text-hint);font-family:var(--font-ui);display:flex;align-items:center;gap:3px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>2026년 5월 4일</span>
+              <button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;height:24px">상세보기 ›</button>
+            </div>
+          </div>
+          <!-- Class card 4 -->
+          <div style="padding:14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--card);cursor:pointer;transition:border-color 150ms;display:flex;flex-direction:column" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="row-between" style="margin-bottom:10px">
+              <div style="width:36px;height:36px;background:var(--primary-light);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--primary)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div class="row" style="gap:4px;align-items:center">
+                <span style="font-family:var(--font-mono);font-weight:700;color:var(--primary);font-size:11px">4CYZWX</span>
+                <button class="btn btn-ghost" style="padding:2px 5px;height:22px;color:var(--text-muted)" onclick="event.stopPropagation()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              </div>
+            </div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">테스트 2</div>
+            <div style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:3px;margin-bottom:10px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>1명</div>
+            <div class="row-between" style="margin-top:auto">
+              <span style="font-size:10px;color:var(--text-hint);font-family:var(--font-ui);display:flex;align-items:center;gap:3px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>2026년 4월 14일</span>
+              <button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;height:24px">상세보기 ›</button>
+            </div>
+          </div>
+        </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║  3. 학생 대시보드             ║
+     ╚══════════════════════════════╝ -->
+<div id="s-student" class="screen">
+  <div class="topbar" style="border-bottom:1px solid var(--border)">
+    <div class="row">
+      <div class="app-logo" style="margin-right:20px;text-decoration:none;cursor:default">
+        <span class="app-logo-d">D</span>
+        <span class="app-logo-text">Dalkom Korean</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="avatar">이</div>
+      <button class="app-hamburger" onclick="toggleSidebar()" style="margin-left:8px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="app-layout">
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="app-sidebar">
+      <button class="app-sb-item active">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1L2 4.5V5.5L8 9L14 5.5V4.5L8 1Z" fill="currentColor" opacity=".6"/><path d="M2 7V11.5L8 15L14 11.5V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        학생 대시보드
+      </button>
+      <div class="app-sb-section" style="margin-top:24px">내 클래스</div>
+      <button class="app-sb-item" onclick="show('class-detail',document.querySelector('[onclick*=class-detail]'))">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        나탈리 클래스
+      </button>
+      <button class="app-sb-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        헌터 클래스
+      </button>
+      <button class="app-sb-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        클래스 가입
+      </button>
+      <div class="app-sb-section" style="margin-top:16px">학습</div>
+      <button class="app-sb-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        나만의 단어장
+      </button>
+      <button class="app-sb-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        오답 노트
+      </button>
+    </div>
+    <div class="app-main">
+      <div class="page">
+    <!-- Welcome -->
+    <div style="margin-bottom:18px">
+      <div style="font-family:var(--font-display);font-size:24px;color:var(--text);margin-bottom:3px">안녕하세요, 이서연님! 👋</div>
+      <div style="font-size:13px;color:var(--text-muted)">오늘도 한국어 실력을 키워봐요.</div>
+    </div>
+    <!-- 4개 Stat 카드 -->
+    <div class="stat-grid" style="margin-bottom:16px">
+      <div class="stat-card" style="background:linear-gradient(135deg,rgba(30,107,71,.08),rgba(30,107,71,.02));border-color:rgba(30,107,71,.2)">
+        <div class="stat-label">이번 주 점수</div>
+        <div class="stat-value" style="color:var(--primary)">87</div>
+        <div class="stat-delta">↑ 12점 지난주 대비</div>
+      </div>
+      <div class="stat-card" style="background:linear-gradient(135deg,rgba(45,125,82,.08),rgba(45,125,82,.02));border-color:rgba(45,125,82,.2)">
+        <div class="stat-label">완료한 퀴즈</div>
+        <div class="stat-value">8</div>
+        <div class="stat-delta" style="color:var(--text-hint)">전체 12개 중</div>
+      </div>
+      <div class="stat-card" style="background:linear-gradient(135deg,rgba(29,78,216,.07),rgba(29,78,216,.02));border-color:rgba(29,78,216,.15)">
+        <div class="stat-label">평균 점수</div>
+        <div class="stat-value">84%</div>
+        <div class="stat-delta">이번 달 기준</div>
+      </div>
+      <div class="stat-card" style="background:linear-gradient(135deg,rgba(217,119,6,.07),rgba(217,119,6,.02));border-color:rgba(217,119,6,.15)">
+        <div class="stat-label">가입된 클래스</div>
+        <div class="stat-value">2</div>
+        <div class="stat-delta" style="color:var(--text-hint)">나탈리 · 헌터</div>
+      </div>
+    </div>
+    <!-- 클래스 가입 + 단어장 + 오답노트 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
+      <div class="card" style="padding:13px 15px;display:flex;align-items:center;gap:11px;cursor:pointer">
+        <div style="width:34px;height:34px;border-radius:var(--r-md);background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">클래스 가입</div>
+          <div style="font-size:11px;color:var(--text-muted)">초대 코드로 가입</div>
+        </div>
+        <button class="btn btn-ghost" style="font-size:10px;padding:3px 9px;flex-shrink:0">코드 입력</button>
+      </div>
+      <div class="card" style="padding:13px 15px;display:flex;align-items:center;gap:11px;cursor:pointer" onmouseover="this.style.borderColor='rgba(21,128,61,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="width:34px;height:34px;border-radius:var(--r-md);background:#DCFCE7;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#15803D">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">나만의 단어장</div>
+          <div style="font-size:11px;color:var(--text-muted)">저장한 단어 복습</div>
+        </div>
+      </div>
+      <div class="card" style="padding:13px 15px;display:flex;align-items:center;gap:11px;cursor:pointer" onmouseover="this.style.borderColor='rgba(193,59,46,.3)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="width:34px;height:34px;border-radius:var(--r-md);background:#FEE2E2;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--error)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">오답 노트</div>
+          <div style="font-size:11px;color:var(--text-muted)">틀린 문제 다시 보기</div>
+        </div>
+      </div>
+    </div>
+    <!-- 풀어야 할 퀴즈 (클래스별 섹션) -->
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border)" class="row-between">
+        <div>
+          <span style="font-size:14px;font-weight:700">풀어야 할 퀴즈</span>
+          <span style="font-size:11px;color:var(--text-muted);display:block;margin-top:1px">아직 완료하지 않은 퀴즈</span>
+        </div>
+      </div>
+      <!-- 나탈리 클래스 -->
+      <div style="padding:12px 18px 8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-hint)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <span style="font-size:10px;font-weight:700;color:var(--text-hint);letter-spacing:.06em;text-transform:uppercase;font-family:var(--font-ui)">나탈리 클래스</span>
+          </div>
+          <button class="btn btn-ghost" style="font-size:10px;padding:2px 8px;height:22px;color:var(--primary)" onclick="show('class-detail',document.querySelector('[onclick*=class-detail]'))">상세보기 ›</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:7px">
+          <div style="width:32px;height:32px;border-radius:var(--r-md);background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:1px">
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-hint);font-family:var(--font-ui)">빈칸채우기</span>
+              <span class="badge cefr-a2">A2</span>
+            </div>
+            <div style="font-size:13px;font-weight:600">음식 관련 어휘</div>
+            <div style="font-size:11px;color:var(--text-muted)">15개 단어</div>
+          </div>
+          <button class="btn btn-primary" style="font-size:11px;padding:4px 12px;flex-shrink:0">풀기</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:10px">
+          <div style="width:32px;height:32px;border-radius:var(--r-md);background:#EDE9FE;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#6D28D9">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 4h10M3 8h7M3 12h5"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:1px">
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6D28D9;font-family:var(--font-ui)">문장만들기</span>
+              <span class="badge cefr-b1">B1</span>
+            </div>
+            <div style="font-size:13px;font-weight:600">날씨 표현</div>
+            <div style="font-size:11px;color:var(--text-muted)">20개 단어</div>
+          </div>
+          <button class="btn btn-primary" style="font-size:11px;padding:4px 12px;flex-shrink:0;background:#F59E0B">이어서 풀기</button>
+        </div>
+      </div>
+      <!-- 헌터 클래스 -->
+      <div style="padding:8px 18px 12px;border-top:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;margin-top:4px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-hint)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <span style="font-size:10px;font-weight:700;color:var(--text-hint);letter-spacing:.06em;text-transform:uppercase;font-family:var(--font-ui)">헌터 클래스</span>
+          </div>
+          <button class="btn btn-ghost" style="font-size:10px;padding:2px 8px;height:22px;color:var(--primary)" onclick="show('class-detail',document.querySelector('[onclick*=class-detail]'))">상세보기 ›</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md)">
+          <div style="width:32px;height:32px;border-radius:var(--r-md);background:#FEE2E2;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--error)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 12c0 3.866 3.134 7 7 7s7-3.134 7-7"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:1px">
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--error);font-family:var(--font-ui)">말하기연습</span>
+              <span class="badge cefr-a1">A1</span>
+            </div>
+            <div style="font-size:13px;font-weight:600">신체 부위</div>
+            <div style="font-size:11px;color:var(--text-muted)">12개 단어</div>
+          </div>
+          <button class="btn btn-primary" style="font-size:11px;padding:4px 12px;flex-shrink:0">풀기</button>
+        </div>
+      </div>
+    </div>
+    <!-- 최근 결과 (빈칸/문장/말하기 분리) -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border)" class="row-between">
+        <div>
+          <span style="font-size:14px;font-weight:700">최근 결과</span>
+          <span style="font-size:11px;color:var(--text-muted);display:block;margin-top:1px">완료한 퀴즈 기록</span>
+        </div>
+        <button class="btn btn-ghost" style="font-size:11px;padding:3px 9px">전체 보기 ›</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>퀴즈</th>
+            <th style="text-align:center">빈칸</th>
+            <th style="text-align:center">문장</th>
+            <th style="text-align:center">말하기</th>
+            <th>날짜</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div style="font-weight:600">음식 관련 어휘</div><div style="font-size:11px;color:var(--text-muted)">나탈리 클래스</div></td>
+            <td style="text-align:center"><span style="font-family:var(--font-mono);font-weight:700;color:var(--success)">94</span></td>
+            <td style="text-align:center"><span style="font-family:var(--font-mono);font-weight:700;color:var(--success)">88</span></td>
+            <td style="text-align:center"><span style="color:var(--text-hint)">—</span></td>
+            <td style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">05-13</td>
+            <td><div class="row" style="gap:4px;justify-content:flex-end"><button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;height:24px">결과 확인</button><button class="btn btn-primary" style="font-size:10px;padding:2px 7px;height:24px">다시 풀기</button></div></td>
+          </tr>
+          <tr>
+            <td><div style="font-weight:600">신체 부위</div><div style="font-size:11px;color:var(--text-muted)">나탈리 클래스</div></td>
+            <td style="text-align:center"><span style="font-family:var(--font-mono);font-weight:700;color:var(--warning)">78</span></td>
+            <td style="text-align:center"><span style="color:var(--text-hint)">—</span></td>
+            <td style="text-align:center"><span style="font-family:var(--font-mono);font-weight:700;color:var(--warning)">71</span></td>
+            <td style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">05-10</td>
+            <td><div class="row" style="gap:4px;justify-content:flex-end"><button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;height:24px">결과 확인</button><button class="btn btn-primary" style="font-size:10px;padding:2px 7px;height:24px">다시 풀기</button></div></td>
+          </tr>
+          <tr>
+            <td><div style="font-weight:600">날씨 표현</div><div style="font-size:11px;color:var(--text-muted)">헌터 클래스</div></td>
+            <td style="text-align:center"><span style="color:var(--text-hint)">—</span></td>
+            <td style="text-align:center"><span style="font-family:var(--font-mono);font-weight:700;color:var(--error)">65</span></td>
+            <td style="text-align:center"><span style="color:var(--text-hint)">—</span></td>
+            <td style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">05-08</td>
+            <td><div class="row" style="gap:4px;justify-content:flex-end"><button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;height:24px">결과 확인</button><button class="btn btn-primary" style="font-size:10px;padding:2px 7px;height:24px">다시 풀기</button></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║  3-B. 학생 클래스 상세         ║
+     ╚══════════════════════════════╝ -->
+<div id="s-class-detail" class="screen">
+  <div class="topbar" style="border-bottom:1px solid var(--border)">
+    <div class="row">
+      <div class="app-logo" style="margin-right:20px;text-decoration:none;cursor:default">
+        <span class="app-logo-d">D</span>
+        <span class="app-logo-text">Dalkom Korean</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="avatar">이</div>
+      <button class="app-hamburger" onclick="toggleSidebar()" style="margin-left:8px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="app-layout">
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="app-sidebar">
+      <button class="app-sb-item" onclick="show('student',document.querySelector('.sb-item[onclick*=student]'))">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1L2 4.5V5.5L8 9L14 5.5V4.5L8 1Z" fill="currentColor" opacity=".6"/><path d="M2 7V11.5L8 15L14 11.5V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        학생 대시보드
+      </button>
+      <div class="app-sb-section" style="margin-top:24px">내 클래스</div>
+      <button class="app-sb-item active">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        나탈리 클래스
+      </button>
+      <button class="app-sb-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        헌터 클래스
+      </button>
+      <button class="app-sb-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        클래스 가입
+      </button>
+      <div class="app-sb-section" style="margin-top:16px">학습</div>
+      <button class="app-sb-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        나만의 단어장
+      </button>
+      <button class="app-sb-item">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        오답 노트
+      </button>
+    </div>
+    <div class="app-main">
+      <div class="page">
+        <!-- 네비게이션용 탑바(←대시보드) 대체: 클래스 제목 표시 -->
+        <div style="font-family:var(--font-display);font-size:24px;color:var(--text);margin-bottom:18px">나탈리 클래스</div>
+    <!-- 클래스 정보 헤더 -->
+    <div class="card" style="padding:18px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:44px;height:44px;border-radius:var(--r-lg);background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div>
+          <div style="font-size:17px;font-weight:700;color:var(--text)">나탈리 클래스</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">학생 10명 · 초대 코드 H3BBYB</div>
+        </div>
+      </div>
+      <div class="row" style="gap:20px">
+        <div style="text-align:center"><div style="font-size:20px;font-weight:700;color:var(--text)">5</div><div style="font-size:10px;color:var(--text-muted);font-family:var(--font-ui)">전체 퀴즈</div></div>
+        <div style="text-align:center"><div style="font-size:20px;font-weight:700;color:var(--primary)">84%</div><div style="font-size:10px;color:var(--text-muted);font-family:var(--font-ui)">평균 점수</div></div>
+        <div style="text-align:center"><div style="font-size:20px;font-weight:700;color:var(--warning)">3</div><div style="font-size:10px;color:var(--text-muted);font-family:var(--font-ui)">낙제 미완료</div></div>
+      </div>
+    </div>
+    <!-- 클래스 퀴즈 목록 -->
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px">
+      <div style="padding:13px 18px;border-bottom:1px solid var(--border)" class="row-between">
+        <span style="font-size:14px;font-weight:700">클래스 퀴즈</span>
+        <span style="font-size:11px;color:var(--text-muted)">낙제 3개 남음</span>
+      </div>
+      <div style="padding:12px;display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md)">
+          <div style="width:32px;height:32px;border-radius:var(--r-md);background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:1px">
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-hint);font-family:var(--font-ui)">빈칸채우기</span>
+              <span class="badge cefr-a2">A2</span>
+            </div>
+            <div style="font-size:13px;font-weight:600">음식 관련 어휘</div>
+            <div style="font-size:11px;color:var(--text-muted)">15개 단어</div>
+          </div>
+          <button class="btn btn-primary" style="font-size:11px;padding:4px 12px;flex-shrink:0">풀기</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md)">
+          <div style="width:32px;height:32px;border-radius:var(--r-md);background:#EDE9FE;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#6D28D9">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 4h10M3 8h7M3 12h5"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:1px">
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6D28D9;font-family:var(--font-ui)">문장만들기</span>
+              <span class="badge cefr-b1">B1</span>
+            </div>
+            <div style="font-size:13px;font-weight:600">날씨 표현</div>
+            <div style="font-size:11px;color:var(--text-muted)">20개 단어</div>
+          </div>
+          <button class="btn btn-primary" style="font-size:11px;padding:4px 12px;flex-shrink:0;background:#F59E0B">이어서 풀기</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md);opacity:.6">
+          <div style="width:32px;height:32px;border-radius:var(--r-md);background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text-hint)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:1px">
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-hint);font-family:var(--font-ui)">빈칸채우기</span>
+              <span class="badge cefr-a1">A1</span>
+            </div>
+            <div style="font-size:13px;font-weight:600">신체 부위</div>
+            <div style="font-size:11px;color:var(--success)">✓ 완료 · 92점</div>
+          </div>
+          <span style="font-size:13px;color:var(--success);font-weight:700;font-family:var(--font-mono)">92</span>
+        </div>
+      </div>
+    </div>
+    <!-- 이 클래스 결과 히스토리 -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:13px 18px;border-bottom:1px solid var(--border)"><span style="font-size:14px;font-weight:700">이 클래스 결과</span></div>
+      <table>
+        <thead><tr><th>퀴즈</th><th style="text-align:center">빈칸</th><th style="text-align:center">문장</th><th style="text-align:center">말하기</th><th>날짜</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td><div style="font-weight:600">음식 관련 어휘</div></td>
+            <td style="text-align:center"><span style="font-family:var(--font-mono);font-weight:700;color:var(--success)">94</span></td>
+            <td style="text-align:center"><span style="font-family:var(--font-mono);font-weight:700;color:var(--success)">88</span></td>
+            <td style="text-align:center"><span style="color:var(--text-hint)">—</span></td>
+            <td style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">05-13</td>
+            <td><div class="row" style="gap:4px;justify-content:flex-end"><button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;height:24px">결과 확인</button><button class="btn btn-primary" style="font-size:10px;padding:2px 7px;height:24px">다시 풀기</button></div></td>
+          </tr>
+          <tr>
+            <td><div style="font-weight:600">신체 부위</div></td>
+            <td style="text-align:center"><span style="font-family:var(--font-mono);font-weight:700;color:var(--success)">92</span></td>
+            <td style="text-align:center"><span style="color:var(--text-hint)">—</span></td>
+            <td style="text-align:center"><span style="color:var(--text-hint)">—</span></td>
+            <td style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">05-05</td>
+            <td><div class="row" style="gap:4px;justify-content:flex-end"><button class="btn btn-ghost" style="font-size:10px;padding:2px 7px;height:24px">결과 확인</button><button class="btn btn-primary" style="font-size:10px;padding:2px 7px;height:24px">다시 풀기</button></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║  4. 빈칸 채우기               ║
+     ╚══════════════════════════════╝ -->
+<div id="s-fill" class="screen">
+  <div class="topbar">
+    <span class="topbar-title">음식 관련 어휘 — 빈칸 채우기</span>
+    <div class="topbar-actions"><span style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">세트 1 / 3</span></div>
+  </div>
+  <div class="page" style="max-width:1100px;margin-top:12px">
+
+    <!-- Card (FillBlankStage) -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:20px;box-shadow:var(--shadow-sm)">
+
+      <!-- Word bank (보기) — bg-surface, centered, border-b -->
+      <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:20px 24px;display:flex;flex-direction:column;align-items:center">
+        <p style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:14px;font-family:var(--font-ui)">보기</p>
+        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:480px">
+          <!-- used words: strikethrough + gray bg (design improvement) -->
+          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text-hint);text-decoration:line-through;opacity:.6">사과</span>
+          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text)">바나나</span>
+          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text-hint);text-decoration:line-through;opacity:.6">김치</span>
+          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text)">된장찌개</span>
+          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text-hint);text-decoration:line-through;opacity:.6">비빔밥</span>
+          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text)">냉면</span>
+          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text)">삼겹살</span>
+          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text)">불고기</span>
+        </div>
+      </div>
+
+      <!-- Problems list — divide-y -->
+      <div style="padding:24px 32px">
+        <div style="display:flex;flex-direction:column;border-top:1px solid var(--border)">
+
+          <!-- Row 1: answered correctly (no highlight, just filled) -->
+          <div style="display:flex;align-items:center;gap:10px;padding:22px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:17px;font-weight:700;color:var(--primary);min-width:26px">1.</span>
+            <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
+              <span style="font-size:17px;font-weight:500;color:var(--text)">저는&nbsp;</span>
+              <input type="text" value="사과" style="width:120px;height:38px;text-align:center;font-size:15px;font-family:var(--font-kr);background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);outline:none;padding:0 8px">
+              <span style="font-size:17px;font-weight:500;color:var(--text)">&nbsp;를 좋아해요. 달콤하고 맛있어요.</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                듣기
+              </button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                힌트
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 2: answered -->
+          <div style="display:flex;align-items:center;gap:10px;padding:22px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:17px;font-weight:700;color:var(--primary);min-width:26px">2.</span>
+            <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
+              <span style="font-size:17px;font-weight:500;color:var(--text)">한국 전통 음식인&nbsp;</span>
+              <input type="text" value="비빔밥" style="width:120px;height:38px;text-align:center;font-size:15px;font-family:var(--font-kr);background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);outline:none;padding:0 8px">
+              <span style="font-size:17px;font-weight:500;color:var(--text)">&nbsp;은 여러 가지 채소를 넣어요.</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                듣기
+              </button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px;background:#FFFBEB;color:#D97706;border-color:#FDE68A">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                힌트
+              </button>
+            </div>
+          </div>
+          <!-- Hint revealed -->
+          <div style="margin:-10px 0 0 36px;padding:10px 14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--r-md);font-size:13px;color:var(--text);margin-bottom:10px">
+            비빔밥 = mixed rice with vegetables
+          </div>
+
+          <!-- Row 3: answered -->
+          <div style="display:flex;align-items:center;gap:10px;padding:22px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:17px;font-weight:700;color:var(--primary);min-width:26px">3.</span>
+            <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
+              <input type="text" value="김치" style="width:120px;height:38px;text-align:center;font-size:15px;font-family:var(--font-kr);background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);outline:none;padding:0 8px">
+              <span style="font-size:17px;font-weight:500;color:var(--text)">&nbsp;는 한국 사람들이 자주 먹는 발효 음식이에요.</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                듣기
+              </button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                힌트
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 4: active (currently being filled) — bg-primary-light border-primary -->
+          <div style="display:flex;align-items:center;gap:10px;padding:22px 0;border-bottom:1px solid var(--border);background:var(--primary-light);margin:0 -32px;padding-left:32px;padding-right:32px">
+            <span style="font-size:17px;font-weight:700;color:var(--primary);min-width:26px">4.</span>
+            <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
+              <span style="font-size:17px;font-weight:500;color:var(--text)">주말에 친구들과&nbsp;</span>
+              <input type="text" placeholder="" style="width:140px;height:38px;text-align:center;font-size:15px;font-family:var(--font-kr);background:var(--card);border:1.5px solid var(--primary);border-radius:var(--r-md);color:var(--text);outline:none;padding:0 8px;box-shadow:0 0 0 3px var(--primary-light)">
+              <span style="font-size:17px;font-weight:500;color:var(--text)">&nbsp;를 먹으러 갔어요.</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                듣기
+              </button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                힌트
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 5: empty -->
+          <div style="display:flex;align-items:center;gap:10px;padding:22px 0">
+            <span style="font-size:17px;font-weight:700;color:var(--primary);min-width:26px">5.</span>
+            <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
+              <span style="font-size:17px;font-weight:500;color:var(--text)">여름에는 시원한&nbsp;</span>
+              <input type="text" placeholder="" style="width:120px;height:38px;text-align:center;font-size:15px;font-family:var(--font-kr);background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);outline:none;padding:0 8px">
+              <span style="font-size:17px;font-weight:500;color:var(--text)">&nbsp;이 먹고 싶어요.</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                듣기
+              </button>
+              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                힌트
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation (outside card, like FillBlankStage) -->
+    <div style="display:flex;justify-content:space-between;align-items:center;max-width:1100px">
+      <button class="btn btn-ghost" style="height:46px;padding:0 22px;background:rgba(255,255,255,.5);border-color:var(--border)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        이전 세트
+      </button>
+      <button class="btn btn-primary" style="height:46px;padding:0 22px">
+        다음 세트
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║  5. 문장 만들기               ║
+     ╚══════════════════════════════╝ -->
+<div id="s-sentence" class="screen">
+  <div class="topbar">
+    <span class="topbar-title">날씨 표현 — 문장 만들기</span>
+    <div class="topbar-actions"><span style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">7 / 20</span></div>
+  </div>
+  <div class="page" style="max-width:1100px;margin-top:12px">
+
+    <!-- Card (SentenceMakingStage) -->
+    <div style="background:transparent;border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:20px;box-shadow:var(--shadow-sm);background:var(--card)">
+      <div style="padding:24px 32px;display:flex;flex-direction:column;gap:20px">
+
+        <!-- Word display area — p-10 bg-surface rounded-2xl min-h-250 -->
+        <div style="padding:36px 40px;background:var(--surface);border-radius:16px;display:flex;flex-direction:column;min-height:230px">
+          <!-- top-right hint button -->
+          <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;height:32px;background:var(--card);box-shadow:var(--shadow-sm)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              힌트
+            </button>
+          </div>
+          <!-- Centered word badge -->
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0">
+            <p style="font-size:15px;color:var(--text-muted);font-weight:500;margin-bottom:18px;text-align:center">이 단어를 사용하여 문장을 만드세요</p>
+            <!-- Badge: outline, white, border-slate-200, rounded-2xl, large text -->
+            <span style="display:inline-flex;align-items:center;padding:10px 28px;border:1px solid var(--border);border-radius:16px;background:var(--card);font-size:22px;font-weight:700;color:var(--text);box-shadow:var(--shadow-sm)">날씨</span>
+            <!-- Translation — shown via hint (normally opacity-0, here shown) -->
+            <p style="font-size:14px;color:var(--text-muted);margin-top:20px;text-align:center">weather, 날씨</p>
+          </div>
+        </div>
+
+        <!-- Textarea -->
+        <div style="padding:0 2px">
+          <textarea class="textarea" style="min-height:100px;font-size:15px">"날씨"을(를) 사용하여 문장을 작성하세요...</textarea>
+        </div>
+
+        <!-- Navigation -->
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <button class="btn btn-ghost" style="height:46px;padding:0 22px;background:rgba(255,255,255,.5);border-color:var(--border)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            이전
+          </button>
+          <button class="btn btn-primary" style="height:46px;padding:0 22px">
+            다음 문제
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sentence Making — graded state (shown below as second example) -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm)">
+      <div style="padding:24px 32px;display:flex;flex-direction:column;gap:20px">
+        <div style="padding:36px 40px;background:var(--surface);border-radius:16px;display:flex;flex-direction:column;min-height:230px">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;height:32px;background:var(--card);box-shadow:var(--shadow-sm)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              힌트
+            </button>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <p style="font-size:15px;color:var(--text-muted);font-weight:500;margin-bottom:18px;text-align:center">이 단어를 사용하여 문장을 만드세요</p>
+            <span style="display:inline-flex;align-items:center;padding:10px 28px;border:1px solid var(--border);border-radius:16px;background:var(--card);font-size:22px;font-weight:700;color:var(--text);box-shadow:var(--shadow-sm)">날씨</span>
+            <p style="font-size:14px;color:var(--text-muted);margin-top:20px;text-align:center;opacity:0">weather, 날씨</p>
+          </div>
+        </div>
+        <!-- Filled textarea -->
+        <div style="padding:0 2px">
+          <textarea class="textarea" style="min-height:70px;font-size:15px">오늘 날씨가 정말 좋아서 공원에서 산책했어요.</textarea>
+        </div>
+        <!-- AI grading result box -->
+        <div style="padding:16px 18px;background:var(--primary-light);border:1px solid var(--primary);border-radius:var(--r-lg)">
+          <div style="font-size:36px;font-weight:700;font-family:var(--font-mono);color:var(--primary);line-height:1;margin-bottom:10px">92</div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px">
+            <span style="display:flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--r-full);font-size:11px;font-weight:600;background:var(--card);border:1px solid #BBF7D0;color:var(--success);font-family:var(--font-ui)">
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M4 8l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              단어 사용
+            </span>
+            <span style="display:flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--r-full);font-size:11px;font-weight:600;background:var(--card);border:1px solid #BBF7D0;color:var(--success);font-family:var(--font-ui)">
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M4 8l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              문법
+            </span>
+            <span style="display:flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--r-full);font-size:11px;font-weight:600;background:var(--card);border:1px solid #FDE68A;color:var(--warning);font-family:var(--font-ui)">
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 5v4M8 11v1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/></svg>
+              자연스러움
+            </span>
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.65">"공원에서 산책했어요" 대신 "공원을 산책했어요"도 자연스러운 표현이에요. 날씨 관련 단어를 잘 활용했습니다.</div>
+        </div>
+        <!-- Navigation (graded state) -->
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <button class="btn btn-ghost" style="height:46px;padding:0 22px;background:rgba(255,255,255,.5);border-color:var(--border)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            이전
+          </button>
+          <button class="btn btn-primary" style="height:46px;padding:0 22px">
+            다음 문제
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║  6. 말하기 연습               ║
+     ╚══════════════════════════════╝ -->
+<div id="s-speaking" class="screen">
+  <div class="topbar">
+    <span class="topbar-title">신체 부위 — 말하기 연습</span>
+    <div class="topbar-actions"><span style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">4 / 12</span></div>
+  </div>
+  <div class="page" style="max-width:1100px;margin-top:12px;display:flex;flex-direction:column;gap:20px">
+
+    <!-- Card (SpeakingStage) — 녹음 전 상태 -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm)">
+      <div style="padding:16px 32px 32px">
+
+        <!-- Sentence area — bg-surface rounded-2xl min-h-250 -->
+        <div style="padding:36px 40px;background:var(--surface);border-radius:16px;display:flex;flex-direction:column;min-height:230px;margin-bottom:24px;margin-top:8px">
+          <!-- top row: mode badge + hint button -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+            <span style="display:inline-flex;align-items:center;font-size:12px;font-weight:600;color:#8B5CF6;background:rgba(139,92,246,.1);padding:5px 13px;border-radius:var(--r-full)">보고 말하기</span>
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;height:32px;background:var(--card);box-shadow:var(--shadow-sm)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              힌트
+            </button>
+          </div>
+          <!-- Sentence text (read mode) -->
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <h3 style="font-size:26px;font-weight:700;color:var(--text);text-align:center;line-height:1.5;margin-bottom:20px">머리가 아파요.</h3>
+            <!-- Translation (hidden until hint clicked, here: opacity-0) -->
+            <p style="font-size:14px;color:var(--text-muted);text-align:center;opacity:0">I have a headache.</p>
+          </div>
+        </div>
+
+        <!-- Recording controls — centered column -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:14px">
+          <!-- Round record button: 80px, red (destructive) when recording -->
+          <button id="recBtn" onclick="toggleRec()" style="width:80px;height:80px;border-radius:var(--r-full);background:var(--primary);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 80ms;box-shadow:var(--shadow-md)">
+            <!-- Mic icon (not recording) -->
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 12c0 3.866 3.134 7 7 7s7-3.134 7-7"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          </button>
+          <!-- Status label -->
+          <span id="recLbl" style="font-size:13px;color:var(--text-muted);font-family:var(--font-ui)">마이크 버튼을 눌러 녹음을 시작하세요</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card — 녹음 중 상태 -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm)">
+      <div style="padding:16px 32px 32px">
+        <div style="padding:36px 40px;background:var(--surface);border-radius:16px;display:flex;flex-direction:column;min-height:230px;margin-bottom:24px;margin-top:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+            <span style="display:inline-flex;align-items:center;font-size:12px;font-weight:600;color:#8B5CF6;background:rgba(139,92,246,.1);padding:5px 13px;border-radius:var(--r-full)">보고 말하기</span>
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;height:32px;background:var(--card);box-shadow:var(--shadow-sm)">힌트</button>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <h3 style="font-size:26px;font-weight:700;color:var(--text);text-align:center;line-height:1.5;margin-bottom:20px">머리가 아파요.</h3>
+            <p style="font-size:14px;color:var(--text-muted);text-align:center;opacity:0">I have a headache.</p>
+          </div>
+        </div>
+        <!-- Recording state -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:14px">
+          <button style="width:80px;height:80px;border-radius:var(--r-full);background:var(--error);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);animation:pulse 1.2s ease-out infinite">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+          </button>
+          <div style="display:flex;align-items:center;gap:8px;color:var(--error)">
+            <span style="width:8px;height:8px;border-radius:var(--r-full);background:var(--error);animation:pulse-dot .9s ease-in-out infinite"></span>
+            <span style="font-family:var(--font-mono);font-size:14px;font-weight:600">0:08</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card — 채점 결과 상태 -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm)">
+      <div style="padding:16px 32px 32px">
+        <div style="padding:36px 40px;background:var(--surface);border-radius:16px;display:flex;flex-direction:column;min-height:230px;margin-bottom:24px;margin-top:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+            <span style="display:inline-flex;align-items:center;font-size:12px;font-weight:600;color:#8B5CF6;background:rgba(139,92,246,.1);padding:5px 13px;border-radius:var(--r-full)">보고 말하기</span>
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;height:32px;background:var(--card);box-shadow:var(--shadow-sm)">힌트</button>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <h3 style="font-size:26px;font-weight:700;color:var(--text);text-align:center;line-height:1.5;margin-bottom:20px">머리가 아파요.</h3>
+            <p style="font-size:14px;color:var(--text-muted);text-align:center;opacity:0">힌트</p>
+          </div>
+        </div>
+
+        <!-- Result box (passed) -->
+        <div style="padding:16px;border-radius:var(--r-lg);border:1px solid rgba(45,125,82,.3);background:rgba(45,125,82,.07);margin-bottom:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 12px;height:32px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+              재생
+            </button>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <!-- Word-level colored sentence (green=good, red=bad) -->
+          <p style="font-size:18px;text-align:center;padding:8px 0;font-weight:700;line-height:1.6">
+            <span style="color:var(--success)">머리가 </span><span style="color:var(--success)">아파</span><span style="color:var(--error)">요</span><span style="color:var(--success)">.</span>
+          </p>
+        </div>
+
+        <!-- Retry / Next navigation -->
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <button class="btn btn-ghost" style="height:46px;padding:0 18px;background:rgba(255,255,255,.5);border-color:var(--border)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.32"/></svg>
+            다시 시도하기
+          </button>
+          <button class="btn btn-primary" style="height:46px;padding:0 22px">
+            다음 문제
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+function setDevice(mode, btn) {
+  document.querySelectorAll('.device-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.body.classList.remove('mode-mobile','mode-tablet');
+  if (mode !== 'desktop') document.body.classList.add('mode-' + mode);
+  syncAppNavbar();
+}
+function syncAppNavbar() {
+  const active = document.querySelector('.screen.active');
+  if (!active) return;
+  const id = active.id.replace('s-','');
+  const u = users[id] || users.admin;
+  const av = document.getElementById('appNavAvatar');
+  if (av) { av.textContent = u.av; av.style.background = u.bg; av.style.color = u.fg; }
+}
+function toggleSidebar() {
+  const active = document.querySelector('.screen.active');
+  if (!active) return;
+  const sidebar = active.querySelector('.app-sidebar');
+  const overlay = active.querySelector('.sidebar-overlay');
+  if (sidebar) sidebar.classList.toggle('mobile-open');
+  if (overlay) overlay.classList.toggle('active');
+}
+const users = {
+  admin:   {av:'관', name:'관리자',      role:'Admin',   bg:'#FEE2E2', fg:'var(--error)'},
+  teacher: {av:'김', name:'김민준 선생님', role:'Teacher', bg:'var(--primary)', fg:'#fff'},
+  'class-detail': {av:'이', name:'이서연', role:'Student', bg:'var(--primary)', fg:'#fff'},
+  student: {av:'이', name:'이서연',       role:'Student', bg:'var(--primary-light)', fg:'var(--primary)'},
+  fill:    {av:'이', name:'이서연',       role:'Student', bg:'var(--primary-light)', fg:'var(--primary)'},
+  sentence:{av:'이', name:'이서연',       role:'Student', bg:'var(--primary-light)', fg:'var(--primary)'},
+  speaking:{av:'이', name:'이서연',       role:'Student', bg:'var(--primary-light)', fg:'var(--primary)'},
+};
+function show(id, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('s-'+id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  syncAppNavbar();
+  const u = users[id] || users.admin;
+  document.getElementById('sbAvatar').textContent = u.av;
+  document.getElementById('sbAvatar').style.background = u.bg;
+  document.getElementById('sbAvatar').style.color = u.fg;
+  document.getElementById('sbName').textContent = u.name;
+  document.getElementById('sbRole').textContent = u.role;
+}
+let rec = true;
+function toggleRec() {
+  rec = !rec;
+  const btn = document.getElementById('recBtn');
+  const lbl = document.getElementById('recLbl');
+  const wf  = document.getElementById('wf');
+  if (rec) {
+    btn.classList.add('recording');
+    btn.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="white"><rect x="9" y="9" width="6" height="6" rx="1"/></svg>';
+    lbl.textContent = '● 녹음 중 — 클릭하면 제출';
+    lbl.style.color = 'var(--error)';
+    wf.style.display = 'flex';
+  } else {
+    btn.classList.remove('recording');
+    btn.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="12" rx="3" fill="white"/><path d="M5 12c0 3.866 3.134 7 7 7s7-3.134 7-7" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="19" x2="12" y2="22" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>';
+    lbl.textContent = '다시 녹음하려면 클릭';
+    lbl.style.color = 'var(--text-muted)';
+    wf.style.display = 'none';
+  }
+}
+</script>
+</body>
+</html>

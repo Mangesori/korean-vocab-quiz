@@ -71,9 +71,23 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
 
   const isMultiStage = sentenceMakingEnabled || recordingEnabled;
 
+  const getCombinedPercent = (result: QuizResult) => {
+    const smDone = result.sentence_making_score !== null;
+    const recDone = result.recording_score !== null;
+    const score =
+      (result.fill_blank_score ?? result.score) +
+      (smDone ? result.sentence_making_score! : 0) +
+      (recDone ? result.recording_score! : 0);
+    const total =
+      (result.fill_blank_total ?? result.total_questions) +
+      (smDone ? (result.sentence_making_total ?? 0) : 0) +
+      (recDone ? (result.recording_total ?? 0) : 0);
+    return total > 0 ? (score / total) * 100 : 0;
+  };
+
   const renderScoreCell = (result: typeof filteredResults[0]) => {
     if (!isMultiStage) {
-      return getScoreBadge(result.score, result.total_questions);
+      return getScoreBadge(result.fill_blank_score ?? result.score, result.fill_blank_total ?? result.total_questions);
     }
     return (
       <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -129,7 +143,7 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
 
   const renderMobileScoreCell = (result: typeof filteredResults[0]) => {
     if (!isMultiStage) {
-      return getScoreBadge(result.score, result.total_questions);
+      return getScoreBadge(result.fill_blank_score ?? result.score, result.fill_blank_total ?? result.total_questions);
     }
     return (
       <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -181,7 +195,7 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
           <span>총 {results.length}건의 제출</span>
           {results.length > 0 && (
             <span>
-              (평균: {Math.round(results.reduce((acc, curr) => acc + (curr.score / curr.total_questions) * 100, 0) / results.length)}점)
+              (평균: {Math.round(results.reduce((acc, curr) => acc + getCombinedPercent(curr), 0) / results.length)}점)
             </span>
           )}
         </div>

@@ -618,6 +618,9 @@ export default function QuizTake() {
         smScore = sentenceMakingProblems.filter((p: any) =>
           (sentenceMakingResults[p.id] as any[])?.some((a: any) => a.isPassed)
         ).length;
+      } else if (quiz.sentence_making_enabled && savedSentenceMakingScore) {
+        smScore = savedSentenceMakingScore.score;
+        smTotal = savedSentenceMakingScore.total;
       }
 
       // 녹음 답안 저장 (중간 저장이 없었던 경우에만)
@@ -927,7 +930,7 @@ export default function QuizTake() {
       const smTotalR = savedSentenceMakingScore?.total ?? 0;
       const recParts = [`빈칸 채우기: ${fbScoreR}/${fbTotalR}`];
       if (quiz!.sentence_making_enabled && smTotalR > 0) recParts.push(`문장 만들기: ${smScoreR}/${smTotalR}`);
-      recParts.push(`말하기: ${recScore}/${recTotal}`);
+      recParts.push(`말하기 연습: ${recScore}/${recTotal}`);
       await updateProgressNotification('말하기 연습', `${quiz!.title} — ${recParts.join(', ')}`);
     }
 

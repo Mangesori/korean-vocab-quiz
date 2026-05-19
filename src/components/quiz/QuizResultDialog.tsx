@@ -30,6 +30,12 @@ interface QuizResultDialogProps {
     total_questions: number;
     completed_at: string;
     answers: any[];
+    fill_blank_score?: number | null;
+    fill_blank_total?: number | null;
+    sentence_making_score?: number | null;
+    sentence_making_total?: number | null;
+    recording_score?: number | null;
+    recording_total?: number | null;
   } | null;
   studentName: string;
   isAnonymous?: boolean;
@@ -354,6 +360,21 @@ export function QuizResultDialog({
 
   if (!result) return null;
 
+  const smDone = result.sentence_making_score !== null && result.sentence_making_score !== undefined;
+  const recDone = result.recording_score !== null && result.recording_score !== undefined;
+
+  const fillBlankScore = result.fill_blank_score ?? result.score;
+  const fillBlankTotal = result.fill_blank_total ?? result.total_questions;
+
+  const combinedScore =
+    fillBlankScore +
+    (smDone ? result.sentence_making_score! : 0) +
+    (recDone ? result.recording_score! : 0);
+  const combinedTotal =
+    fillBlankTotal +
+    (smDone ? (result.sentence_making_total ?? 0) : 0) +
+    (recDone ? (result.recording_total ?? 0) : 0);
+
   const hasFillBlank = Array.isArray(result.answers) && result.answers.length > 0;
   const hasSentenceMaking = detail?.sentenceMakingEnabled ?? false;
   const hasRecording = detail?.recordingEnabled ?? false;
@@ -418,10 +439,10 @@ export function QuizResultDialog({
             </div>
             <div className="text-right">
               <p className="text-3xl font-bold text-primary">
-                {result.score} / {result.total_questions}
+                {combinedScore} / {combinedTotal}
               </p>
               <p className="text-sm text-muted-foreground">
-                정답률 {Math.round((result.score / result.total_questions) * 100)}%
+                정답률 {combinedTotal > 0 ? Math.round((combinedScore / combinedTotal) * 100) : 0}%
               </p>
             </div>
           </div>
@@ -438,19 +459,31 @@ export function QuizResultDialog({
                   {hasFillBlank && (
                     <TabsTrigger value="fill_blank" className="flex items-center gap-1.5">
                       <TextCursorInput className="hidden sm:block w-4 h-4" />
-                      빈칸 채우기 ({result.answers.length})
+                      빈칸 채우기 ({fillBlankScore}/{fillBlankTotal})
                     </TabsTrigger>
                   )}
                   {hasSentenceMaking && (
                     <TabsTrigger value="sentence_making" className="flex items-center gap-1.5">
                       <PenLine className="hidden sm:block w-4 h-4" />
-                      문장 만들기{detail?.sentenceMakingProblems.length ? ` (${detail.sentenceMakingProblems.length})` : ""}
+                      문장 만들기{
+                        smDone
+                          ? ` (${result.sentence_making_score}/${result.sentence_making_total ?? detail?.sentenceMakingProblems.length ?? 0})`
+                          : detail?.sentenceMakingProblems.length
+                          ? ` (${detail.sentenceMakingProblems.length})`
+                          : ""
+                      }
                     </TabsTrigger>
                   )}
                   {hasRecording && (
                     <TabsTrigger value="recording" className="flex items-center gap-1.5">
                       <Mic className="hidden sm:block w-4 h-4" />
-                      말하기 연습{detail?.recordingProblems.length ? ` (${detail.recordingProblems.length})` : ""}
+                      말하기 연습{
+                        recDone
+                          ? ` (${result.recording_score}/${result.recording_total ?? detail?.recordingProblems.length ?? 0})`
+                          : detail?.recordingProblems.length
+                          ? ` (${detail.recordingProblems.length})`
+                          : ""
+                      }
                     </TabsTrigger>
                   )}
                 </TabsList>

@@ -163,8 +163,8 @@ export function NotificationDropdown() {
                     <div className="h-2 w-2 rounded-full bg-primary mt-2 flex-shrink-0" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{notification.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    <p className="font-medium text-sm line-clamp-2">{notification.title}</p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-4">
                       {notification.message}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
