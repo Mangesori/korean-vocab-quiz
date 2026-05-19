@@ -182,16 +182,15 @@ export function ProblemList({
             </div>
 
             {studentPreview ? (
-              <div className="border rounded-xl bg-card text-card-foreground shadow-sm">
-                 <div className="p-4 sm:p-6">
+              <div className="border shadow-sm rounded-2xl overflow-hidden bg-white">
                     {/* Word Bank for the Set */}
-                    <div className="mb-4 sm:mb-6">
-                      <p className="text-sm text-muted-foreground mb-3 text-center">보기</p>
-                      <div className="flex flex-wrap justify-center gap-2">
+                    <div className="bg-slate-50 border-b px-6 py-5 flex flex-col items-center">
+                      <p className="text-sm font-bold text-slate-500 mb-4">보기</p>
+                      <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
                         {set.map((problem) => (
                           <span
                             key={problem.id}
-                            className="px-4 py-1.5 rounded-full text-sm bg-background border font-medium"
+                            className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 shadow-sm"
                           >
                             {problem.word}
                           </span>
@@ -199,6 +198,7 @@ export function ProblemList({
                       </div>
                     </div>
 
+                    <div className="p-6 sm:p-8">
                     <div className="space-y-0 divide-y">
                       {set.map((problem) => {
                         const globalIndex = setIndex * wordsPerSet + set.indexOf(problem);
@@ -224,7 +224,7 @@ export function ProblemList({
                         );
                       })}
                     </div>
-                 </div>
+                    </div>
               </div>
             ) : (
               <div className="space-y-4">

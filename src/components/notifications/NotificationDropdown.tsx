@@ -16,7 +16,7 @@ import { ko } from 'date-fns/locale';
 
 interface Notification {
   id: string;
-  type: 'quiz_assigned' | 'quiz_completed' | 'announcement';
+  type: 'quiz_assigned' | 'quiz_completed' | 'announcement' | 'student_joined';
   title: string;
   message: string;
   quiz_id: string | null;

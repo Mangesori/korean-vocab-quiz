@@ -43,15 +43,15 @@ export function FillBlankPreview({
           </div>
 
           {studentPreview ? (
-            <Card className="shadow-lg">
-              <CardContent className="p-4 sm:p-6">
-                <div className="mb-4 sm:mb-6">
-                  <p className="text-sm text-muted-foreground mb-3 text-center">보기</p>
-                  <div className="flex flex-wrap justify-center gap-2">
+            <Card className="border shadow-sm rounded-2xl overflow-hidden bg-white">
+              <CardContent className="p-0">
+                <div className="bg-slate-50 border-b px-6 py-5 flex flex-col items-center">
+                  <p className="text-sm font-bold text-slate-500 mb-4">보기</p>
+                  <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
                     {set.map((problem) => (
                       <span
                         key={problem.id}
-                        className="px-4 py-1.5 rounded-full text-sm bg-background border font-medium"
+                        className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 shadow-sm"
                       >
                         {problem.word}
                       </span>
@@ -59,6 +59,7 @@ export function FillBlankPreview({
                   </div>
                 </div>
 
+                <div className="p-6 sm:p-8">
                 <div className="space-y-0 divide-y">
                   {set.map((problem, problemIndex) => {
                     const problemNumber = setIndex * wordsPerSet + problemIndex + 1;
@@ -104,16 +105,16 @@ export function FillBlankPreview({
 
                         <div className="hidden sm:block">
                           <div className="flex items-center gap-3">
-                            <span className="text-primary font-bold min-w-[24px]">{problemNumber}.</span>
+                            <span className="text-primary font-bold text-lg min-w-[24px]">{problemNumber}.</span>
                             <div className="flex-1 flex items-center flex-wrap gap-1">
                               {parts.map((part, partIdx, arr) => (
                                 <span key={partIdx} className="inline-flex items-center">
-                                  <span className="text-base whitespace-nowrap">{part}</span>
+                                  <span className="text-lg font-medium text-slate-800 whitespace-nowrap">{part}</span>
                                   {partIdx < arr.length - 1 && (
                                     <>
                                       <Input
                                         readOnly
-                                        className="w-48 h-8 mx-1 text-center text-sm inline-block bg-muted/30"
+                                        className="w-48 h-10 mx-1 text-center text-base inline-block bg-muted/30"
                                         placeholder="정답 입력"
                                       />
                                       {problem.hint && <span className="text-primary text-sm">{problem.hint}</span>}
@@ -146,6 +147,7 @@ export function FillBlankPreview({
                       </div>
                     );
                   })}
+                </div>
                 </div>
               </CardContent>
             </Card>

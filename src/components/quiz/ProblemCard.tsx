@@ -105,16 +105,16 @@ export function ProblemCard({
           {/* Desktop Layout: Inline */}
           <div className="hidden sm:block">
             <div className="flex items-center gap-3">
-              <span className="text-primary font-bold min-w-[24px]">{index + 1}.</span>
+              <span className="text-primary font-bold text-lg min-w-[24px]">{index + 1}.</span>
               <div className="flex-1 flex items-center flex-wrap gap-1">
                 {parts.map((part, partIdx, arr) => (
                   <span key={partIdx} className="inline-flex items-center">
-                    <span className="text-base whitespace-nowrap">{part}</span>
+                    <span className="text-lg font-medium text-slate-800 whitespace-nowrap">{part}</span>
                     {partIdx < arr.length - 1 && (
                       <>
                         <Input
                           readOnly
-                          className="w-48 h-8 mx-1 text-center text-sm inline-block bg-muted/30"
+                          className="w-48 h-10 mx-1 text-center text-base inline-block bg-muted/30"
                           placeholder="정답 입력"
                         />
                         {problem.hint && <span className="text-primary text-sm">{problem.hint}</span>}

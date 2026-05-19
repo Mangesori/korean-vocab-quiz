@@ -218,6 +218,7 @@ export default function StudentDashboard() {
     if (joinError) {
       toast.error('클래스 가입에 실패했습니다');
     } else {
+      await supabase.rpc('notify_class_teacher_on_join', { _class_id: classData.id });
       toast.success(`${classData.name} 클래스에 가입했습니다!`);
       setInviteCode('');
       setDialogOpen(false);

@@ -157,6 +157,7 @@ tr:hover td{background:var(--surface)}
 .record-btn{width:68px;height:68px;border-radius:var(--r-full);background:var(--error);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 80ms;box-shadow:0 0 0 0 rgba(193,59,46,.4)}
 .record-btn.recording{animation:pulse 1.2s ease-out infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(193,59,46,.4)}70%{box-shadow:0 0 0 20px rgba(193,59,46,0)}100%{box-shadow:0 0 0 0 rgba(193,59,46,0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
 .record-label{font-size:12px;color:var(--text-muted);font-family:var(--font-ui)}
 .waveform{display:flex;align-items:center;justify-content:center;gap:3px;height:36px;margin-bottom:20px}
 .wbar{width:3px;border-radius:var(--r-full);background:var(--primary);animation:wave 1s ease-in-out infinite}
@@ -242,6 +243,10 @@ body.mode-mobile .student-welcome-grid{grid-template-columns:1fr!important}
 body.mode-mobile .quiz-grid{grid-template-columns:1fr!important}
 body.mode-mobile .quiz-inner-grid{grid-template-columns:1fr!important}
 body.mode-mobile .content{max-width:calc(375px + 232px)}
+body.mode-mobile .fill-desktop-row{display:none!important}
+body.mode-mobile .fill-mobile-row{display:flex!important}
+body.mode-mobile .fill-problems-container{padding:16px!important}
+body.mode-mobile #s-fill .fill-nav{padding:0!important}
 
 /* ── Tablet Mode (768px 기준) ── */
 body.mode-tablet .app-sidebar{position:fixed;top:0;bottom:0;right:0;left:auto;height:100vh;transform:translateX(100%);box-shadow:var(--shadow-md)}
@@ -255,6 +260,11 @@ body.mode-tablet .teacher-lower-grid{grid-template-columns:1fr!important}
 body.mode-tablet .quiz-grid{grid-template-columns:1fr 1fr!important}
 body.mode-tablet .quiz-inner-grid{grid-template-columns:1fr 1fr!important}
 body.mode-tablet .content{max-width:calc(768px + 232px)}
+
+/* ── Final Result Tabs ── */
+.ftab-content{display:none}
+.ftab-content.active{display:block}
+.ftab-btn{cursor:pointer;border:none;transition:all 80ms;font-family:var(--font-kr)}
 </style>
 </head>
 <body>
@@ -333,6 +343,25 @@ body.mode-tablet .content{max-width:calc(768px + 232px)}
     <button class="sb-item" onclick="show('speaking',this)">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="5.5" y="1" width="5" height="8" rx="2.5" fill="currentColor" opacity=".7"/><path d="M2 8c0 3.314 2.686 5 6 5s6-1.686 6-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="13" x2="8" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
       말하기 연습
+    </button>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">결과 화면</div>
+    <button class="sb-item" onclick="show('fill-result',this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      빈칸 채우기 결과
+    </button>
+    <button class="sb-item" onclick="show('sentence-result',this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      문장 만들기 결과
+    </button>
+    <button class="sb-item" onclick="show('speaking-result',this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      말하기 연습 결과
+    </button>
+    <button class="sb-item" onclick="show('final-result',this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+      최종 결과
     </button>
   </div>
 
@@ -1138,147 +1167,262 @@ body.mode-tablet .content{max-width:calc(768px + 232px)}
      ╚══════════════════════════════╝ -->
 <div id="s-fill" class="screen">
   <div class="topbar">
-    <span class="topbar-title">음식 관련 어휘 — 빈칸 채우기</span>
+    <span class="topbar-title">일상 어휘 — 빈칸 채우기</span>
     <div class="topbar-actions"><span style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">세트 1 / 3</span></div>
   </div>
   <div class="page" style="max-width:1100px;margin-top:12px">
 
-    <!-- Card (FillBlankStage) -->
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:20px;box-shadow:var(--shadow-sm)">
+    <!-- Card (FillBlankStage) — max-w-5xl, rounded-2xl, bg-white -->
+    <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;overflow:hidden;margin-bottom:32px;box-shadow:0 1px 3px rgba(0,0,0,.07);max-width:64rem;margin-left:auto;margin-right:auto">
 
-      <!-- Word bank (보기) — bg-surface, centered, border-b -->
-      <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:20px 24px;display:flex;flex-direction:column;align-items:center">
-        <p style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:14px;font-family:var(--font-ui)">보기</p>
-        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:480px">
-          <!-- used words: strikethrough + gray bg (design improvement) -->
-          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text-hint);text-decoration:line-through;opacity:.6">사과</span>
-          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text)">바나나</span>
-          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text-hint);text-decoration:line-through;opacity:.6">김치</span>
-          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text)">된장찌개</span>
-          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text-hint);text-decoration:line-through;opacity:.6">비빔밥</span>
-          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text)">냉면</span>
-          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text)">삼겹살</span>
-          <span style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:var(--r-full);font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--text)">불고기</span>
+      <!-- Word bank (보기) — bg-slate-50, border-b -->
+      <div style="background:#F8FAFC;border-bottom:1px solid #E2E8F0;padding:20px 24px;display:flex;flex-direction:column;align-items:center">
+        <p style="font-size:14px;font-weight:700;color:#64748B;margin-bottom:16px;font-family:var(--font-ui)">보기</p>
+        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;width:100%;max-width:32rem">
+          <!-- 사용됨: 취소선 + 회색 배경 + 불투명도 낮춤 -->
+          <span style="display:inline-flex;align-items:center;padding:6px 16px;border-radius:9999px;font-size:14px;font-weight:500;background:#F1F5F9;border:1px solid #E2E8F0;color:#94A3B8;text-decoration:line-through;opacity:.65">자다</span>
+          <span style="display:inline-flex;align-items:center;padding:6px 16px;border-radius:9999px;font-size:14px;font-weight:500;background:#F1F5F9;border:1px solid #E2E8F0;color:#94A3B8;text-decoration:line-through;opacity:.65">연습하다</span>
+          <span style="display:inline-flex;align-items:center;padding:6px 16px;border-radius:9999px;font-size:14px;font-weight:500;background:#F1F5F9;border:1px solid #E2E8F0;color:#94A3B8;text-decoration:line-through;opacity:.65">혼자</span>
+          <!-- 미사용 -->
+          <span style="display:inline-flex;align-items:center;padding:6px 16px;border-radius:9999px;font-size:14px;font-weight:500;background:#fff;border:1px solid #E2E8F0;color:#334155;box-shadow:0 1px 2px rgba(0,0,0,.05)">가깝다</span>
+          <span style="display:inline-flex;align-items:center;padding:6px 16px;border-radius:9999px;font-size:14px;font-weight:500;background:#fff;border:1px solid #E2E8F0;color:#334155;box-shadow:0 1px 2px rgba(0,0,0,.05)">10분이 걸리다</span>
         </div>
       </div>
 
       <!-- Problems list — divide-y -->
-      <div style="padding:24px 32px">
-        <div style="display:flex;flex-direction:column;border-top:1px solid var(--border)">
+      <div class="fill-problems-container" style="padding:24px 32px">
+        <div style="display:flex;flex-direction:column;border-top:1px solid #E2E8F0">
 
-          <!-- Row 1: answered correctly (no highlight, just filled) -->
-          <div style="display:flex;align-items:center;gap:10px;padding:22px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:17px;font-weight:700;color:var(--primary);min-width:26px">1.</span>
-            <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
-              <span style="font-size:17px;font-weight:500;color:var(--text)">저는&nbsp;</span>
-              <input type="text" value="사과" style="width:120px;height:38px;text-align:center;font-size:15px;font-family:var(--font-kr);background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);outline:none;padding:0 8px">
-              <span style="font-size:17px;font-weight:500;color:var(--text)">&nbsp;를 좋아해요. 달콤하고 맛있어요.</span>
+          <!-- ── Row 1: 답 입력됨 (자다) ── -->
+          <div style="border-bottom:1px solid #E2E8F0;padding:24px 0 20px">
+            <!-- Desktop -->
+            <div class="fill-desktop-row" style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:18px;font-weight:700;color:var(--primary);min-width:24px">1.</span>
+              <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
+                <span style="font-size:18px;font-weight:500;color:#1E293B">피곤할 때는 일찍</span>
+                <input type="text" value="자요" style="width:192px;height:40px;text-align:center;font-size:16px;font-family:var(--font-kr);background:#fff;border:1px solid #E2E8F0;border-radius:12px;color:var(--text);outline:none;padding:0 8px;margin-left:4px">
+                <span style="font-size:16px;font-weight:500;color:var(--primary);white-space:nowrap">-아요/어요</span>
+                <span style="font-size:18px;font-weight:500;color:#1E293B">.</span>
+              </div>
+              <div style="display:flex;gap:8px;flex-shrink:0">
+                <button class="btn btn-ghost" style="font-size:13px;padding:5px 12px;height:36px;border-radius:12px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  듣기
+                </button>
+                <button class="btn btn-ghost" style="font-size:13px;padding:5px 12px;height:36px;border-radius:12px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>
+                  힌트
+                </button>
+              </div>
             </div>
-            <div style="display:flex;gap:6px;flex-shrink:0">
-              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                듣기
-              </button>
-              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                힌트
-              </button>
-            </div>
-          </div>
-
-          <!-- Row 2: answered -->
-          <div style="display:flex;align-items:center;gap:10px;padding:22px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:17px;font-weight:700;color:var(--primary);min-width:26px">2.</span>
-            <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
-              <span style="font-size:17px;font-weight:500;color:var(--text)">한국 전통 음식인&nbsp;</span>
-              <input type="text" value="비빔밥" style="width:120px;height:38px;text-align:center;font-size:15px;font-family:var(--font-kr);background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);outline:none;padding:0 8px">
-              <span style="font-size:17px;font-weight:500;color:var(--text)">&nbsp;은 여러 가지 채소를 넣어요.</span>
-            </div>
-            <div style="display:flex;gap:6px;flex-shrink:0">
-              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                듣기
-              </button>
-              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px;background:#FFFBEB;color:#D97706;border-color:#FDE68A">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                힌트
-              </button>
-            </div>
-          </div>
-          <!-- Hint revealed -->
-          <div style="margin:-10px 0 0 36px;padding:10px 14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--r-md);font-size:13px;color:var(--text);margin-bottom:10px">
-            비빔밥 = mixed rice with vegetables
-          </div>
-
-          <!-- Row 3: answered -->
-          <div style="display:flex;align-items:center;gap:10px;padding:22px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:17px;font-weight:700;color:var(--primary);min-width:26px">3.</span>
-            <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
-              <input type="text" value="김치" style="width:120px;height:38px;text-align:center;font-size:15px;font-family:var(--font-kr);background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);outline:none;padding:0 8px">
-              <span style="font-size:17px;font-weight:500;color:var(--text)">&nbsp;는 한국 사람들이 자주 먹는 발효 음식이에요.</span>
-            </div>
-            <div style="display:flex;gap:6px;flex-shrink:0">
-              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                듣기
-              </button>
-              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                힌트
-              </button>
+            <!-- Mobile -->
+            <div class="fill-mobile-row" style="display:none;flex-direction:column;gap:12px">
+              <div style="display:flex;gap:8px">
+                <span style="font-size:16px;font-weight:700;color:var(--primary);min-width:20px;flex-shrink:0">1.</span>
+                <span style="font-size:16px;font-weight:500;line-height:1.625;color:#1E293B">피곤할 때는 일찍 <span style="color:#94A3B8">( _____ )</span> <span style="font-weight:500;color:var(--primary)">-아요/어요</span> .</span>
+              </div>
+              <input type="text" value="자요" style="height:44px;width:100%;text-align:center;font-size:14px;font-family:var(--font-kr);background:#fff;border:1px solid #E2E8F0;border-radius:12px;color:var(--text);outline:none;padding:0 12px">
+              <div style="display:flex;gap:8px;width:100%">
+                <button class="btn btn-ghost" style="flex:1;justify-content:center;height:40px;border-radius:12px;font-size:13px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  듣기
+                </button>
+                <button class="btn btn-ghost" style="flex:1;justify-content:center;height:40px;border-radius:12px;font-size:13px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>
+                  힌트
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- Row 4: active (currently being filled) — bg-primary-light border-primary -->
-          <div style="display:flex;align-items:center;gap:10px;padding:22px 0;border-bottom:1px solid var(--border);background:var(--primary-light);margin:0 -32px;padding-left:32px;padding-right:32px">
-            <span style="font-size:17px;font-weight:700;color:var(--primary);min-width:26px">4.</span>
-            <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
-              <span style="font-size:17px;font-weight:500;color:var(--text)">주말에 친구들과&nbsp;</span>
-              <input type="text" placeholder="" style="width:140px;height:38px;text-align:center;font-size:15px;font-family:var(--font-kr);background:var(--card);border:1.5px solid var(--primary);border-radius:var(--r-md);color:var(--text);outline:none;padding:0 8px;box-shadow:0 0 0 3px var(--primary-light)">
-              <span style="font-size:17px;font-weight:500;color:var(--text)">&nbsp;를 먹으러 갔어요.</span>
+          <!-- ── Row 2: 힌트 표시됨 (연습하다) ── -->
+          <div style="border-bottom:1px solid #E2E8F0;padding:24px 0 20px">
+            <!-- Desktop -->
+            <div class="fill-desktop-row" style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:18px;font-weight:700;color:var(--primary);min-width:24px">2.</span>
+              <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
+                <span style="font-size:18px;font-weight:500;color:#1E293B">집에서도 발음을</span>
+                <input type="text" value="연습할 수 있어요" style="width:192px;height:40px;text-align:center;font-size:16px;font-family:var(--font-kr);background:#fff;border:1px solid #E2E8F0;border-radius:12px;color:var(--text);outline:none;padding:0 8px;margin-left:4px">
+                <span style="font-size:16px;font-weight:500;color:var(--primary);white-space:nowrap">-(으)ㄹ 수 있다 + 아요/어요</span>
+                <span style="font-size:18px;font-weight:500;color:#1E293B">.</span>
+              </div>
+              <div style="display:flex;gap:8px;flex-shrink:0">
+                <button class="btn btn-ghost" style="font-size:13px;padding:5px 12px;height:36px;border-radius:12px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  듣기
+                </button>
+                <!-- 힌트 버튼: amber 활성 상태 -->
+                <button class="btn" style="font-size:13px;padding:5px 12px;height:36px;border-radius:12px;background:#FFFBEB;color:#D97706;border:1px solid #FDE68A">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>
+                  힌트
+                </button>
+              </div>
             </div>
-            <div style="display:flex;gap:6px;flex-shrink:0">
-              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                듣기
-              </button>
-              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                힌트
-              </button>
+            <!-- 힌트 박스 (desktop) — sky-50 / sky-100 border -->
+            <div class="fill-desktop-row" style="display:flex;margin-top:16px;margin-left:32px;padding:12px 16px;background:#F0F9FF;border:1px solid #E0F2FE;border-radius:12px;font-size:14px;color:#1E293B">
+              You can practice pronunciation at home too.
+            </div>
+            <!-- Mobile -->
+            <div class="fill-mobile-row" style="display:none;flex-direction:column;gap:12px">
+              <div style="display:flex;gap:8px">
+                <span style="font-size:16px;font-weight:700;color:var(--primary);min-width:20px;flex-shrink:0">2.</span>
+                <span style="font-size:16px;font-weight:500;line-height:1.625;color:#1E293B">집에서도 발음을 <span style="color:#94A3B8">( _____ )</span> <span style="font-weight:500;color:var(--primary)">-(으)ㄹ 수 있다 + 아요/어요</span> .</span>
+              </div>
+              <input type="text" value="연습할 수 있어요" style="height:44px;width:100%;text-align:center;font-size:14px;font-family:var(--font-kr);background:#fff;border:1px solid #E2E8F0;border-radius:12px;color:var(--text);outline:none;padding:0 12px">
+              <div style="display:flex;gap:8px;width:100%">
+                <button class="btn btn-ghost" style="flex:1;justify-content:center;height:40px;border-radius:12px;font-size:13px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  듣기
+                </button>
+                <!-- 힌트 버튼: amber 활성 상태 -->
+                <button class="btn" style="flex:1;justify-content:center;height:40px;border-radius:12px;font-size:13px;background:#FFFBEB;color:#D97706;border:1px solid #FDE68A">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>
+                  힌트
+                </button>
+              </div>
+              <!-- 힌트 박스 (mobile) -->
+              <div style="padding:12px 16px;background:#F0F9FF;border:1px solid #E0F2FE;border-radius:12px;font-size:14px;color:#1E293B">
+                You can practice pronunciation at home too.
+              </div>
             </div>
           </div>
 
-          <!-- Row 5: empty -->
-          <div style="display:flex;align-items:center;gap:10px;padding:22px 0">
-            <span style="font-size:17px;font-weight:700;color:var(--primary);min-width:26px">5.</span>
-            <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
-              <span style="font-size:17px;font-weight:500;color:var(--text)">여름에는 시원한&nbsp;</span>
-              <input type="text" placeholder="" style="width:120px;height:38px;text-align:center;font-size:15px;font-family:var(--font-kr);background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);outline:none;padding:0 8px">
-              <span style="font-size:17px;font-weight:500;color:var(--text)">&nbsp;이 먹고 싶어요.</span>
+          <!-- ── Row 3: 답 입력됨 (혼자) ── -->
+          <div style="border-bottom:1px solid #E2E8F0;padding:24px 0 20px">
+            <!-- Desktop -->
+            <div class="fill-desktop-row" style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:18px;font-weight:700;color:var(--primary);min-width:24px">3.</span>
+              <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
+                <span style="font-size:18px;font-weight:500;color:#1E293B">오늘은</span>
+                <input type="text" value="혼자" style="width:192px;height:40px;text-align:center;font-size:16px;font-family:var(--font-kr);background:#fff;border:1px solid #E2E8F0;border-radius:12px;color:var(--text);outline:none;padding:0 8px;margin-left:4px">
+                <span style="font-size:18px;font-weight:500;color:#1E293B">밥을 먹었어요.</span>
+              </div>
+              <div style="display:flex;gap:8px;flex-shrink:0">
+                <button class="btn btn-ghost" style="font-size:13px;padding:5px 12px;height:36px;border-radius:12px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  듣기
+                </button>
+                <button class="btn btn-ghost" style="font-size:13px;padding:5px 12px;height:36px;border-radius:12px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>
+                  힌트
+                </button>
+              </div>
             </div>
-            <div style="display:flex;gap:6px;flex-shrink:0">
-              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                듣기
-              </button>
-              <button class="btn btn-ghost" style="font-size:12px;padding:5px 11px;height:36px">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                힌트
-              </button>
+            <!-- Mobile -->
+            <div class="fill-mobile-row" style="display:none;flex-direction:column;gap:12px">
+              <div style="display:flex;gap:8px">
+                <span style="font-size:16px;font-weight:700;color:var(--primary);min-width:20px;flex-shrink:0">3.</span>
+                <span style="font-size:16px;font-weight:500;line-height:1.625;color:#1E293B">오늘은 <span style="color:#94A3B8">( _____ )</span> 밥을 먹었어요.</span>
+              </div>
+              <input type="text" value="혼자" style="height:44px;width:100%;text-align:center;font-size:14px;font-family:var(--font-kr);background:#fff;border:1px solid #E2E8F0;border-radius:12px;color:var(--text);outline:none;padding:0 12px">
+              <div style="display:flex;gap:8px;width:100%">
+                <button class="btn btn-ghost" style="flex:1;justify-content:center;height:40px;border-radius:12px;font-size:13px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  듣기
+                </button>
+                <button class="btn btn-ghost" style="flex:1;justify-content:center;height:40px;border-radius:12px;font-size:13px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>
+                  힌트
+                </button>
+              </div>
             </div>
           </div>
+
+          <!-- ── Row 4: 빈칸 (가깝다) ── -->
+          <div style="border-bottom:1px solid #E2E8F0;padding:24px 0 20px">
+            <!-- Desktop -->
+            <div class="fill-desktop-row" style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:18px;font-weight:700;color:var(--primary);min-width:24px">4.</span>
+              <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
+                <span style="font-size:18px;font-weight:500;color:#1E293B">집에서 학교까지</span>
+                <input type="text" placeholder="정답 입력" style="width:192px;height:40px;text-align:center;font-size:16px;font-family:var(--font-kr);background:#fff;border:1px solid #E2E8F0;border-radius:12px;color:var(--text);outline:none;padding:0 8px;margin-left:4px">
+                <span style="font-size:16px;font-weight:500;color:var(--primary);white-space:nowrap">-아요/어요</span>
+                <span style="font-size:18px;font-weight:500;color:#1E293B">.</span>
+              </div>
+              <div style="display:flex;gap:8px;flex-shrink:0">
+                <button class="btn btn-ghost" style="font-size:13px;padding:5px 12px;height:36px;border-radius:12px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  듣기
+                </button>
+                <button class="btn btn-ghost" style="font-size:13px;padding:5px 12px;height:36px;border-radius:12px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>
+                  힌트
+                </button>
+              </div>
+            </div>
+            <!-- Mobile -->
+            <div class="fill-mobile-row" style="display:none;flex-direction:column;gap:12px">
+              <div style="display:flex;gap:8px">
+                <span style="font-size:16px;font-weight:700;color:var(--primary);min-width:20px;flex-shrink:0">4.</span>
+                <span style="font-size:16px;font-weight:500;line-height:1.625;color:#1E293B">집에서 학교까지 <span style="color:#94A3B8">( _____ )</span> <span style="font-weight:500;color:var(--primary)">-아요/어요</span> .</span>
+              </div>
+              <input type="text" placeholder="정답 입력" style="height:44px;width:100%;text-align:center;font-size:14px;font-family:var(--font-kr);background:#fff;border:1px solid #E2E8F0;border-radius:12px;color:var(--text);outline:none;padding:0 12px">
+              <div style="display:flex;gap:8px;width:100%">
+                <button class="btn btn-ghost" style="flex:1;justify-content:center;height:40px;border-radius:12px;font-size:13px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  듣기
+                </button>
+                <button class="btn btn-ghost" style="flex:1;justify-content:center;height:40px;border-radius:12px;font-size:13px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>
+                  힌트
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Row 5: 빈칸 (10분이 걸리다) ── -->
+          <div style="padding:24px 0 20px">
+            <!-- Desktop -->
+            <div class="fill-desktop-row" style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:18px;font-weight:700;color:var(--primary);min-width:24px">5.</span>
+              <div style="flex:1;display:flex;align-items:center;flex-wrap:wrap;gap:4px;line-height:2">
+                <span style="font-size:18px;font-weight:500;color:#1E293B">여기서 역까지</span>
+                <input type="text" placeholder="정답 입력" style="width:192px;height:40px;text-align:center;font-size:16px;font-family:var(--font-kr);background:#fff;border:1px solid #E2E8F0;border-radius:12px;color:var(--text);outline:none;padding:0 8px;margin-left:4px">
+                <span style="font-size:16px;font-weight:500;color:var(--primary);white-space:nowrap">-아요/어요</span>
+                <span style="font-size:18px;font-weight:500;color:#1E293B">.</span>
+              </div>
+              <div style="display:flex;gap:8px;flex-shrink:0">
+                <button class="btn btn-ghost" style="font-size:13px;padding:5px 12px;height:36px;border-radius:12px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  듣기
+                </button>
+                <button class="btn btn-ghost" style="font-size:13px;padding:5px 12px;height:36px;border-radius:12px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>
+                  힌트
+                </button>
+              </div>
+            </div>
+            <!-- Mobile -->
+            <div class="fill-mobile-row" style="display:none;flex-direction:column;gap:12px">
+              <div style="display:flex;gap:8px">
+                <span style="font-size:16px;font-weight:700;color:var(--primary);min-width:20px;flex-shrink:0">5.</span>
+                <span style="font-size:16px;font-weight:500;line-height:1.625;color:#1E293B">여기서 역까지 <span style="color:#94A3B8">( _____ )</span> <span style="font-weight:500;color:var(--primary)">-아요/이요</span> .</span>
+              </div>
+              <input type="text" placeholder="정답 입력" style="height:44px;width:100%;text-align:center;font-size:14px;font-family:var(--font-kr);background:#fff;border:1px solid #E2E8F0;border-radius:12px;color:var(--text);outline:none;padding:0 12px">
+              <div style="display:flex;gap:8px;width:100%">
+                <button class="btn btn-ghost" style="flex:1;justify-content:center;height:40px;border-radius:12px;font-size:13px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  듣기
+                </button>
+                <button class="btn btn-ghost" style="flex:1;justify-content:center;height:40px;border-radius:12px;font-size:13px;color:#475569;border-color:#E2E8F0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>
+                  힌트
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
 
-    <!-- Navigation (outside card, like FillBlankStage) -->
-    <div style="display:flex;justify-content:space-between;align-items:center;max-width:1100px">
-      <button class="btn btn-ghost" style="height:46px;padding:0 22px;background:rgba(255,255,255,.5);border-color:var(--border)">
+    <!-- Navigation (outside card) — h-12, rounded-xl, indigo primary -->
+    <div class="fill-nav" style="display:flex;justify-content:space-between;align-items:center;max-width:64rem;margin-left:auto;margin-right:auto;margin-top:24px">
+      <button class="btn btn-ghost" style="height:48px;padding:0 24px;border-radius:12px;background:rgba(255,255,255,.5);border-color:#E2E8F0;color:#475569;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.07)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
         이전 세트
       </button>
-      <button class="btn btn-primary" style="height:46px;padding:0 22px">
+      <button class="btn" style="height:48px;padding:0 24px;border-radius:12px;background:#6366F1;color:#fff;font-weight:600;border:none;box-shadow:0 4px 12px rgba(99,102,241,.3)">
         다음 세트
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
@@ -1315,7 +1459,7 @@ body.mode-tablet .content{max-width:calc(768px + 232px)}
             <!-- Badge: outline, white, border-slate-200, rounded-2xl, large text -->
             <span style="display:inline-flex;align-items:center;padding:10px 28px;border:1px solid var(--border);border-radius:16px;background:var(--card);font-size:22px;font-weight:700;color:var(--text);box-shadow:var(--shadow-sm)">날씨</span>
             <!-- Translation — shown via hint (normally opacity-0, here shown) -->
-            <p style="font-size:14px;color:var(--text-muted);margin-top:20px;text-align:center">weather, 날씨</p>
+            <p style="font-size:14px;color:var(--text-muted);margin-top:20px;text-align:center">weather</p>
           </div>
         </div>
 
@@ -1325,59 +1469,6 @@ body.mode-tablet .content{max-width:calc(768px + 232px)}
         </div>
 
         <!-- Navigation -->
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <button class="btn btn-ghost" style="height:46px;padding:0 22px;background:rgba(255,255,255,.5);border-color:var(--border)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            이전
-          </button>
-          <button class="btn btn-primary" style="height:46px;padding:0 22px">
-            다음 문제
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sentence Making — graded state (shown below as second example) -->
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm)">
-      <div style="padding:24px 32px;display:flex;flex-direction:column;gap:20px">
-        <div style="padding:36px 40px;background:var(--surface);border-radius:16px;display:flex;flex-direction:column;min-height:230px">
-          <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;height:32px;background:var(--card);box-shadow:var(--shadow-sm)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              힌트
-            </button>
-          </div>
-          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <p style="font-size:15px;color:var(--text-muted);font-weight:500;margin-bottom:18px;text-align:center">이 단어를 사용하여 문장을 만드세요</p>
-            <span style="display:inline-flex;align-items:center;padding:10px 28px;border:1px solid var(--border);border-radius:16px;background:var(--card);font-size:22px;font-weight:700;color:var(--text);box-shadow:var(--shadow-sm)">날씨</span>
-            <p style="font-size:14px;color:var(--text-muted);margin-top:20px;text-align:center;opacity:0">weather, 날씨</p>
-          </div>
-        </div>
-        <!-- Filled textarea -->
-        <div style="padding:0 2px">
-          <textarea class="textarea" style="min-height:70px;font-size:15px">오늘 날씨가 정말 좋아서 공원에서 산책했어요.</textarea>
-        </div>
-        <!-- AI grading result box -->
-        <div style="padding:16px 18px;background:var(--primary-light);border:1px solid var(--primary);border-radius:var(--r-lg)">
-          <div style="font-size:36px;font-weight:700;font-family:var(--font-mono);color:var(--primary);line-height:1;margin-bottom:10px">92</div>
-          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px">
-            <span style="display:flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--r-full);font-size:11px;font-weight:600;background:var(--card);border:1px solid #BBF7D0;color:var(--success);font-family:var(--font-ui)">
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M4 8l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              단어 사용
-            </span>
-            <span style="display:flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--r-full);font-size:11px;font-weight:600;background:var(--card);border:1px solid #BBF7D0;color:var(--success);font-family:var(--font-ui)">
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M4 8l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              문법
-            </span>
-            <span style="display:flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--r-full);font-size:11px;font-weight:600;background:var(--card);border:1px solid #FDE68A;color:var(--warning);font-family:var(--font-ui)">
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 5v4M8 11v1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/></svg>
-              자연스러움
-            </span>
-          </div>
-          <div style="font-size:13px;color:var(--text-muted);line-height:1.65">"공원에서 산책했어요" 대신 "공원을 산책했어요"도 자연스러운 표현이에요. 날씨 관련 단어를 잘 활용했습니다.</div>
-        </div>
-        <!-- Navigation (graded state) -->
         <div style="display:flex;justify-content:space-between;align-items:center">
           <button class="btn btn-ghost" style="height:46px;padding:0 22px;background:rgba(255,255,255,.5);border-color:var(--border)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -1508,6 +1599,598 @@ body.mode-tablet .content{max-width:calc(768px + 232px)}
       </div>
     </div>
 
+    <!-- ─── 듣고 말하기 구분선 ─── -->
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 0">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:12px;font-weight:600;color:var(--text-muted);font-family:var(--font-ui);white-space:nowrap">듣고 말하기 모드</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+
+    <!-- Card — 듣고 말하기, 녹음 전 상태 -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm)">
+      <div style="padding:16px 32px 32px">
+        <div style="padding:36px 40px;background:var(--surface);border-radius:16px;display:flex;flex-direction:column;min-height:230px;margin-bottom:24px;margin-top:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+            <span style="display:inline-flex;align-items:center;font-size:12px;font-weight:600;color:#8B5CF6;background:rgba(139,92,246,.1);padding:5px 13px;border-radius:var(--r-full)">듣고 말하기</span>
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;height:32px;background:var(--card);box-shadow:var(--shadow-sm)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              힌트
+            </button>
+          </div>
+          <!-- Listen mode: instruction + two speed buttons, no sentence text -->
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
+            <p style="font-size:15px;color:var(--text-muted);font-weight:500;text-align:center">음성을 듣고 따라 녹음하세요</p>
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="btn btn-ghost" style="height:44px;padding:0 18px;border-radius:12px;background:var(--card);box-shadow:var(--shadow-sm);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                보통 속도로 듣기
+              </button>
+              <button class="btn btn-ghost" style="height:44px;padding:0 18px;border-radius:12px;background:var(--card);box-shadow:var(--shadow-sm);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px">
+                <span style="font-size:17px;line-height:1;position:relative;top:-1px">🐢</span>
+                천천히 듣기
+              </button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:14px">
+          <button style="width:80px;height:80px;border-radius:var(--r-full);background:var(--primary);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md)">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 12c0 3.866 3.134 7 7 7s7-3.134 7-7"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          </button>
+          <span style="font-size:13px;color:var(--text-muted);font-family:var(--font-ui)">마이크 버튼을 눌러 녹음을 시작하세요</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card — 듣고 말하기, 음성 재생 중 상태 -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm)">
+      <div style="padding:16px 32px 32px">
+        <div style="padding:36px 40px;background:var(--surface);border-radius:16px;display:flex;flex-direction:column;min-height:230px;margin-bottom:24px;margin-top:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+            <span style="display:inline-flex;align-items:center;font-size:12px;font-weight:600;color:#8B5CF6;background:rgba(139,92,246,.1);padding:5px 13px;border-radius:var(--r-full)">듣고 말하기</span>
+            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;height:32px;background:var(--card);box-shadow:var(--shadow-sm)">힌트</button>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
+            <p style="font-size:15px;color:var(--text-muted);font-weight:500;text-align:center">음성을 듣고 따라 녹음하세요</p>
+            <div style="display:flex;align-items:center;gap:10px">
+              <!-- Normal speed: currently playing (spinner) -->
+              <button disabled style="height:44px;padding:0 18px;border-radius:12px;background:var(--card);box-shadow:var(--shadow-sm);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;border:1px solid var(--border);opacity:.7;cursor:not-allowed">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin .8s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                보통 속도로 듣기
+              </button>
+              <!-- Slow speed: disabled while other plays -->
+              <button disabled style="height:44px;padding:0 18px;border-radius:12px;background:var(--card);box-shadow:var(--shadow-sm);font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;border:1px solid var(--border);opacity:.4;cursor:not-allowed">
+                <span style="font-size:17px;line-height:1;position:relative;top:-1px">🐢</span>
+                천천히 듣기
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- Recording button: disabled while audio plays -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:14px">
+          <button disabled style="width:80px;height:80px;border-radius:var(--r-full);background:var(--primary);border:none;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);opacity:.45;cursor:not-allowed">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 12c0 3.866 3.134 7 7 7s7-3.134 7-7"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          </button>
+          <span style="font-size:13px;color:var(--text-muted);font-family:var(--font-ui)">마이크 버튼을 눌러 녹음을 시작하세요</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ╔══════════════════════════════╗
+     ║  7. 빈칸 채우기 결과           ║
+     ╚══════════════════════════════╝ -->
+<div id="s-fill-result" class="screen">
+  <div class="topbar">
+    <span class="topbar-title">음식 관련 어휘 — 빈칸 채우기 결과</span>
+    <div class="topbar-actions"><span style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">3 / 5 정답</span></div>
+  </div>
+  <div class="page" style="max-width:1100px;margin-top:16px">
+    <div style="max-width:64rem;margin:0 auto;display:flex;flex-direction:column;gap:16px">
+
+      <!-- 1 ✓ 사과 -->
+      <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:#2D7D52;flex-shrink:0">1</span>
+            <span style="display:inline-flex;align-items:center;padding:4px 12px;border-radius:9999px;font-size:14px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">사과</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;height:32px;border-radius:8px;color:#475569;border-color:#E2E8F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> 듣기</button>
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;height:32px;border-radius:8px;color:#475569;border-color:#E2E8F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg> 번역 보기</button>
+          </div>
+        </div>
+        <h3 style="font-size:17px;font-weight:700;line-height:1.7;color:#1E293B">저는 <span style="color:#2D7D52;font-weight:700">사과</span> 를 좋아해요. 달콤하고 맛있어요.</h3>
+      </div>
+
+      <!-- 2 ✓ 비빔밥 (번역 열린 상태) -->
+      <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:#2D7D52;flex-shrink:0">2</span>
+            <span style="display:inline-flex;align-items:center;padding:4px 12px;border-radius:9999px;font-size:14px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">비빔밥</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;height:32px;border-radius:8px;color:#475569;border-color:#E2E8F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> 듣기</button>
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;height:32px;border-radius:8px;background:#FFFBEB;color:#D97706;border-color:#FDE68A"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg> 번역 보기</button>
+          </div>
+        </div>
+        <h3 style="font-size:17px;font-weight:700;line-height:1.7;color:#1E293B">한국 전통 음식인 <span style="color:#2D7D52;font-weight:700">비빔밥</span> 은 여러 가지 채소를 넣어요.</h3>
+        <p style="font-size:13px;color:#64748B;background:#F8FAFC;padding:12px;border-radius:8px;margin-top:12px">Bibimbap is a traditional Korean food made with various vegetables.</p>
+      </div>
+
+      <!-- 3 ✗ 김치 -->
+      <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:#C13B2E;flex-shrink:0">3</span>
+            <span style="display:inline-flex;align-items:center;padding:4px 12px;border-radius:9999px;font-size:14px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">김치</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;height:32px;border-radius:8px;color:#475569;border-color:#E2E8F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> 듣기</button>
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;height:32px;border-radius:8px;color:#475569;border-color:#E2E8F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg> 번역 보기</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <h3 style="font-size:17px;font-weight:700;line-height:1.7;color:#1E293B"><span style="color:#C13B2E;font-weight:700">김치</span> 는 한국 사람들이 자주 먹는 발효 음식이에요.</h3>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:11px;font-weight:700;padding:4px 8px;min-width:56px;text-align:center;border-radius:6px;background:#F1F5F9;color:#64748B;white-space:nowrap">내 답변</span>
+            <span style="font-size:15px;font-weight:700;color:#94A3B8">깍두기</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 ✓ 삼겹살 -->
+      <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:#2D7D52;flex-shrink:0">4</span>
+            <span style="display:inline-flex;align-items:center;padding:4px 12px;border-radius:9999px;font-size:14px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">삼겹살</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;height:32px;border-radius:8px;color:#475569;border-color:#E2E8F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> 듣기</button>
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;height:32px;border-radius:8px;color:#475569;border-color:#E2E8F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg> 번역 보기</button>
+          </div>
+        </div>
+        <h3 style="font-size:17px;font-weight:700;line-height:1.7;color:#1E293B">주말에 친구들과 <span style="color:#2D7D52;font-weight:700">삼겹살</span> 을 먹으러 갔어요.</h3>
+      </div>
+
+      <!-- 5 ✗ 냉면 -->
+      <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:#C13B2E;flex-shrink:0">5</span>
+            <span style="display:inline-flex;align-items:center;padding:4px 12px;border-radius:9999px;font-size:14px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">냉면</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;height:32px;border-radius:8px;color:#475569;border-color:#E2E8F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> 듣기</button>
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;height:32px;border-radius:8px;color:#475569;border-color:#E2E8F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg> 번역 보기</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <h3 style="font-size:17px;font-weight:700;line-height:1.7;color:#1E293B">여름에는 시원한 <span style="color:#C13B2E;font-weight:700">냉면</span> 이 먹고 싶어요.</h3>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:11px;font-weight:700;padding:4px 8px;min-width:56px;text-align:center;border-radius:6px;background:#F1F5F9;color:#64748B;white-space:nowrap">내 답변</span>
+            <span style="font-size:15px;font-weight:700;color:#94A3B8">된장찌개</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Next -->
+      <div style="text-align:center;margin-top:8px;padding-bottom:40px">
+        <button class="btn" style="min-width:200px;height:48px;border-radius:12px;background:#6366F1;color:#fff;font-size:16px;font-weight:600;border:none;box-shadow:0 4px 12px rgba(99,102,241,.25)">
+          문장 만들기 시작하기
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║  8. 문장 만들기 결과           ║
+     ╚══════════════════════════════╝ -->
+<div id="s-sentence-result" class="screen">
+  <div class="topbar">
+    <span class="topbar-title">날씨 · 여행 · 가족 — 문장 만들기 결과</span>
+    <div class="topbar-actions"></div>
+  </div>
+  <div class="page" style="max-width:1100px;margin-top:16px">
+    <div style="max-width:64rem;margin:0 auto">
+
+      <!-- Score header -->
+      <div style="display:flex;flex-direction:column;align-items:center;padding:24px 0 32px">
+        <p style="font-size:56px;font-weight:900;color:var(--primary);line-height:1">82점</p>
+        <p style="font-size:16px;font-weight:500;color:#475569;margin-top:12px">3문제 중 <strong style="color:var(--primary)">2</strong>문제를 맞혔어요!</p>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;padding-bottom:24px">
+
+        <!-- 1 ✓ 날씨 (perfect) -->
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:#2D7D52">1</span>
+              <span style="display:inline-flex;align-items:center;padding:4px 12px;border-radius:9999px;font-size:14px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">날씨</span>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2D7D52" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <span style="font-size:11px;font-weight:700;padding:4px 0;min-width:64px;text-align:center;border-radius:6px;background:rgba(45,125,82,.1);color:#2D7D52;flex-shrink:0">내 답변</span>
+              <h3 style="font-size:17px;font-weight:700;line-height:1.7;color:#2D7D52">오늘 날씨가 너무 좋아서 공원에서 산책했어요.</h3>
+            </div>
+          </div>
+          <div style="background:#F8FAFC;border-radius:12px;padding:16px;border:1px solid #F1F5F9">
+            <p style="font-size:13px;color:#475569;line-height:1.7">날씨 관련 어휘를 정확하게 사용했어요. 문장이 자연스럽고 문법적으로 올바릅니다! 훌륭해요.</p>
+          </div>
+        </div>
+
+        <!-- 2 ✗ 여행 (틀림, diff 표시) -->
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:#6366F1">2</span>
+              <span style="display:inline-flex;align-items:center;padding:4px 12px;border-radius:9999px;font-size:14px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">여행</span>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <span style="font-size:11px;font-weight:700;padding:4px 0;min-width:64px;text-align:center;border-radius:6px;background:#F1F5F9;color:#64748B;flex-shrink:0">내 답변</span>
+              <h3 style="font-size:17px;font-weight:700;line-height:1.7">저는 여행을 <span style="color:#C13B2E;border-bottom:2px solid rgba(193,59,46,.3);padding-bottom:1px">가고</span> <span style="color:#C13B2E;border-bottom:2px solid rgba(193,59,46,.3);padding-bottom:1px">싶어요.</span></h3>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <span style="font-size:11px;font-weight:700;padding:4px 0;min-width:64px;text-align:center;border-radius:6px;background:rgba(99,102,241,.1);color:#6366F1;flex-shrink:0">추천 문장</span>
+              <h3 style="font-size:17px;line-height:1.7">저는 여행을 <span style="color:#6366F1;font-weight:700;border-bottom:2px solid rgba(99,102,241,.3);padding-bottom:1px">더</span> <span style="color:#6366F1;font-weight:700;border-bottom:2px solid rgba(99,102,241,.3);padding-bottom:1px">자주</span> 가고 싶어요.</h3>
+            </div>
+          </div>
+          <div style="background:#F8FAFC;border-radius:12px;padding:16px;border:1px solid #F1F5F9">
+            <p style="font-size:13px;color:#475569;line-height:1.7">단어를 사용했지만 좀 더 구체적인 표현을 사용해보세요. '여행을 더 자주 가고 싶어요'처럼 빈도나 방향을 추가하면 더 자연스러운 문장이 됩니다.</p>
+          </div>
+        </div>
+
+        <!-- 3 ✓ 가족 -->
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:#2D7D52">3</span>
+              <span style="display:inline-flex;align-items:center;padding:4px 12px;border-radius:9999px;font-size:14px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">가족</span>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2D7D52" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <span style="font-size:11px;font-weight:700;padding:4px 0;min-width:64px;text-align:center;border-radius:6px;background:rgba(45,125,82,.1);color:#2D7D52;flex-shrink:0">내 답변</span>
+              <h3 style="font-size:17px;font-weight:700;line-height:1.7;color:#2D7D52">우리 가족은 매주 함께 식사를 해요.</h3>
+            </div>
+          </div>
+          <div style="background:#F8FAFC;border-radius:12px;padding:16px;border:1px solid #F1F5F9">
+            <p style="font-size:13px;color:#475569;line-height:1.7">좋은 문장이에요! '가족'을 자연스럽게 활용했으며 문법적으로도 올바릅니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:40px">
+        <button class="btn btn-ghost" style="height:48px;padding:0 24px;border-radius:12px;background:rgba(255,255,255,.5);border-color:#E2E8F0;color:#475569;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          빈칸 채우기 결과
+        </button>
+        <button class="btn" style="height:48px;padding:0 24px;border-radius:12px;background:#6366F1;color:#fff;font-weight:600;border:none;box-shadow:0 4px 12px rgba(99,102,241,.25)">
+          말하기 연습 시작하기
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║  9. 말하기 연습 결과           ║
+     ╚══════════════════════════════╝ -->
+<div id="s-speaking-result" class="screen">
+  <div class="topbar">
+    <span class="topbar-title">말하기 연습 결과</span>
+    <div class="topbar-actions"></div>
+  </div>
+  <div class="page" style="max-width:1100px;margin-top:16px">
+    <div style="max-width:64rem;margin:0 auto">
+
+      <!-- Score header -->
+      <div style="display:flex;flex-direction:column;align-items:center;padding:24px 0 32px">
+        <p style="font-size:56px;font-weight:900;color:var(--primary);line-height:1">75점</p>
+        <p style="font-size:16px;font-weight:500;color:#475569;margin-top:12px">3문장 중 <strong style="color:var(--primary)">2</strong>문장을 통과했어요!</p>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;padding-bottom:24px">
+
+        <!-- 1 ✓ 보고 말하기 — 오늘 날씨가 정말 좋아요 -->
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:#2D7D52">1</span>
+              <span style="font-size:13px;font-weight:600;padding:4px 12px;border-radius:9999px;color:rgba(30,107,71,.8);background:rgba(30,107,71,.1)">보고 말하기</span>
+            </div>
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;height:32px;border-radius:8px;color:#475569;border-color:#E2E8F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg> 번역 보기</button>
+          </div>
+          <h3 style="font-size:17px;font-weight:700;margin-bottom:20px;color:#1E293B;padding-left:12px;line-height:1.7">오늘 날씨가 정말 좋아요.</h3>
+          <!-- 내 발음 (amber) -->
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+            <p style="font-size:13px;font-weight:600;color:#94A3B8;width:88px;text-align:right;flex-shrink:0">내 발음</p>
+            <button style="flex:1;display:flex;align-items:center;justify-content:center;background:#FFFBEB;border:none;border-radius:16px;padding:12px 16px;cursor:pointer;gap:14px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              <div style="display:flex;gap:3px;align-items:center;height:24px"><div style="width:3px;height:3px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:6px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:9px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:15px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:9px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:6px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:12px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:18px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:24px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:18px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:12px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:15px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:21px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:15px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:9px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:12px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:18px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:12px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:6px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:9px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:6px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:3px;border-radius:9px;background:#FDE68A"></div></div>
+            </button>
+          </div>
+          <div style="border-top:1px solid #F1F5F9;padding-top:20px;display:flex;flex-direction:column;gap:14px">
+            <div style="font-size:17px;padding-left:12px;font-weight:700;color:#2D7D52">오늘 날씨가 정말 좋아요.</div>
+            <div style="background:#F8FAFC;border-radius:12px;padding:16px;border:1px solid #F1F5F9">
+              <p style="font-size:13px;color:#475569;line-height:1.7">Excellent pronunciation! You sound very natural and clear.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 ✓ 듣고 말하기 — 이 음식은 너무 맛있어요 (너무 빨간색) -->
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:#2D7D52">2</span>
+              <span style="font-size:13px;font-weight:600;padding:4px 12px;border-radius:9999px;color:#C2410C;background:#FFF7ED">듣고 말하기</span>
+            </div>
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;height:32px;border-radius:8px;color:#475569;border-color:#E2E8F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg> 번역 보기</button>
+          </div>
+          <h3 style="font-size:17px;font-weight:700;margin-bottom:24px;color:#1E293B;padding-left:12px;line-height:1.7">이 음식은 너무 맛있어요.</h3>
+          <!-- 원어민 (cyan) + 내 발음 (amber) -->
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:16px">
+              <p style="font-size:13px;font-weight:600;color:#94A3B8;width:88px;text-align:right;flex-shrink:0">원어민 음성</p>
+              <button style="flex:1;display:flex;align-items:center;justify-content:center;background:#ECFEFF;border:none;border-radius:16px;padding:12px 16px;cursor:pointer;gap:14px">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                <div style="display:flex;gap:3px;align-items:center;height:24px"><div style="width:3px;height:3px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:6px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:9px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:15px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:9px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:6px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:12px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:18px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:24px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:18px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:12px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:15px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:21px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:15px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:9px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:12px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:18px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:12px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:6px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:9px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:6px;border-radius:9px;background:#A5F3FC"></div><div style="width:3px;height:3px;border-radius:9px;background:#A5F3FC"></div></div>
+              </button>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px">
+              <p style="font-size:13px;font-weight:600;color:#94A3B8;width:88px;text-align:right;flex-shrink:0">내 발음</p>
+              <button style="flex:1;display:flex;align-items:center;justify-content:center;background:#FFFBEB;border:none;border-radius:16px;padding:12px 16px;cursor:pointer;gap:14px">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                <div style="display:flex;gap:3px;align-items:center;height:24px"><div style="width:3px;height:3px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:6px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:9px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:15px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:9px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:6px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:12px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:18px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:24px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:18px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:12px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:15px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:21px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:15px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:9px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:12px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:18px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:12px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:6px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:9px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:6px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:3px;border-radius:9px;background:#FDE68A"></div></div>
+              </button>
+            </div>
+          </div>
+          <div style="border-top:1px solid #F1F5F9;padding-top:20px;display:flex;flex-direction:column;gap:14px">
+            <div style="font-size:17px;padding-left:12px;font-weight:700">
+              <span style="color:#2D7D52">이 음식은 </span><span style="color:#C13B2E">너무</span><span style="color:#2D7D52"> 맛있어요.</span>
+            </div>
+            <div style="background:#F8FAFC;border-radius:12px;padding:16px;border:1px solid #F1F5F9">
+              <p style="font-size:13px;color:#475569;line-height:1.7">Pay closer attention to the pronunciation of '너무'. Listen to the native speaker and try again!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 ✗ 보고 말하기 — 저는 한국어를 배우고 싶어요 (실패) -->
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;background:#C13B2E">3</span>
+              <span style="font-size:13px;font-weight:600;padding:4px 12px;border-radius:9999px;color:rgba(30,107,71,.8);background:rgba(30,107,71,.1)">보고 말하기</span>
+            </div>
+            <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;height:32px;border-radius:8px;color:#475569;border-color:#E2E8F0"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg> 번역 보기</button>
+          </div>
+          <h3 style="font-size:17px;font-weight:700;margin-bottom:20px;color:#1E293B;padding-left:12px;line-height:1.7">저는 한국어를 배우고 싶어요.</h3>
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+            <p style="font-size:13px;font-weight:600;color:#94A3B8;width:88px;text-align:right;flex-shrink:0">내 발음</p>
+            <button style="flex:1;display:flex;align-items:center;justify-content:center;background:#FFFBEB;border:none;border-radius:16px;padding:12px 16px;cursor:pointer;gap:14px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              <div style="display:flex;gap:3px;align-items:center;height:24px"><div style="width:3px;height:3px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:6px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:9px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:15px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:9px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:6px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:12px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:18px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:24px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:18px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:12px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:15px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:21px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:15px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:9px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:12px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:18px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:12px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:6px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:9px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:6px;border-radius:9px;background:#FDE68A"></div><div style="width:3px;height:3px;border-radius:9px;background:#FDE68A"></div></div>
+            </button>
+          </div>
+          <div style="border-top:1px solid #F1F5F9;padding-top:20px;display:flex;flex-direction:column;gap:14px">
+            <div style="font-size:17px;padding-left:12px;font-weight:700">
+              <span style="color:#2D7D52">저는 </span><span style="color:#C13B2E">한국어를</span><span style="color:#2D7D52"> 배우고 </span><span style="color:#C13B2E">싶어요.</span>
+            </div>
+            <div style="background:#F8FAFC;border-radius:12px;padding:16px;border:1px solid #F1F5F9">
+              <p style="font-size:13px;color:#475569;line-height:1.7">Pay closer attention to the pronunciation of '한국어를', '싶어요'. Listen to the native speaker and try again!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom button -->
+      <div style="text-align:center;padding-bottom:40px">
+        <button class="btn" style="min-width:200px;height:48px;border-radius:12px;background:#6366F1;color:#fff;font-size:16px;font-weight:600;border:none;box-shadow:0 4px 12px rgba(99,102,241,.25)">
+          최종 결과 보기
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ╔══════════════════════════════╗
+     ║  10. 최종 결과                ║
+     ╚══════════════════════════════╝ -->
+<div id="s-final-result" class="screen">
+  <div style="min-height:100vh;background:linear-gradient(160deg, var(--surface) 0%, rgba(30,107,71,.06) 100%)">
+    <div class="page" style="max-width:1100px;padding-top:32px">
+
+      <!-- Result header -->
+      <div style="display:flex;flex-direction:column;align-items:center;padding:16px 0 32px">
+        <h1 style="font-size:20px;font-weight:700;color:#64748B;margin-bottom:20px">음식 관련 어휘 퀴즈</h1>
+        <p style="font-size:60px;font-weight:900;color:var(--primary);line-height:1;margin-bottom:16px">82%</p>
+        <div style="background:rgba(255,255,255,.8);padding:10px 24px;border-radius:9999px;box-shadow:0 1px 3px rgba(0,0,0,.07);border:1px solid #F1F5F9;margin-bottom:14px">
+          <p style="font-size:17px;font-weight:700;color:#334155;text-align:center">11문제 중 9문제를 맞혔어요!</p>
+        </div>
+        <p style="font-size:15px;font-weight:700;color:#94A3B8">좋아요! 조금만 더 힘내볼까요? 💪</p>
+      </div>
+
+      <!-- Tab bar -->
+      <div style="background:rgba(241,245,249,.7);border-radius:20px;padding:6px;display:flex;gap:4px;margin-bottom:28px">
+        <button class="ftab-btn" id="ftab-btn-fill" onclick="showFinalTab('fill',this)" style="flex:1;display:flex;flex-direction:column;align-items:center;padding:12px 8px;border-radius:12px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;font-size:13px;font-weight:500;color:#64748B">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            빈칸 채우기
+          </div>
+          <span style="font-size:20px;font-weight:700;color:#3B82F6">80%</span>
+        </button>
+        <button class="ftab-btn" id="ftab-btn-sentence" onclick="showFinalTab('sentence',this)" style="flex:1;display:flex;flex-direction:column;align-items:center;padding:12px 8px;border-radius:12px;background:none">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;font-size:13px;font-weight:500;color:#64748B">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+            문장 만들기
+          </div>
+          <span style="font-size:20px;font-weight:700;color:#22C55E">82%</span>
+        </button>
+        <button class="ftab-btn" id="ftab-btn-speaking" onclick="showFinalTab('speaking',this)" style="flex:1;display:flex;flex-direction:column;align-items:center;padding:12px 8px;border-radius:12px;background:none">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;font-size:13px;font-weight:500;color:#64748B">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            말하기 연습
+          </div>
+          <span style="font-size:20px;font-weight:700;color:#A855F7">75%</span>
+        </button>
+      </div>
+
+      <!-- Tab 1: 빈칸 채우기 -->
+      <div class="ftab-content active" id="ftab-fill">
+        <div style="display:flex;align-items:center;gap:8px;padding:0 4px;margin-bottom:16px">
+          <span style="font-size:16px;font-weight:700;color:#1E293B">세트 1</span>
+          <div style="height:1px;background:#E2E8F0;flex:1"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <!-- 빈칸 카드 1 ✓ -->
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;background:#2D7D52">1</span><span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:13px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">사과</span></div>
+              <div style="display:flex;gap:6px"><button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;height:28px;border-radius:6px;color:#475569;border-color:#E2E8F0">듣기</button><button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;height:28px;border-radius:6px;color:#475569;border-color:#E2E8F0">번역 보기</button></div>
+            </div>
+            <h3 style="font-size:16px;font-weight:700;line-height:1.7;color:#1E293B">저는 <span style="color:#2D7D52">사과</span> 를 좋아해요. 달콤하고 맛있어요.</h3>
+          </div>
+          <!-- 빈칸 카드 2 ✓ -->
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;background:#2D7D52">2</span><span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:13px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">비빔밥</span></div>
+              <div style="display:flex;gap:6px"><button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;height:28px;border-radius:6px;color:#475569;border-color:#E2E8F0">듣기</button><button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;height:28px;border-radius:6px;color:#475569;border-color:#E2E8F0">번역 보기</button></div>
+            </div>
+            <h3 style="font-size:16px;font-weight:700;line-height:1.7;color:#1E293B">한국 전통 음식인 <span style="color:#2D7D52">비빔밥</span> 은 여러 가지 채소를 넣어요.</h3>
+          </div>
+          <!-- 빈칸 카드 3 ✗ -->
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;background:#C13B2E">3</span><span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:13px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">김치</span></div>
+              <div style="display:flex;gap:6px"><button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;height:28px;border-radius:6px;color:#475569;border-color:#E2E8F0">듣기</button><button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;height:28px;border-radius:6px;color:#475569;border-color:#E2E8F0">번역 보기</button></div>
+            </div>
+            <h3 style="font-size:16px;font-weight:700;line-height:1.7;color:#1E293B"><span style="color:#C13B2E">김치</span> 는 한국 사람들이 자주 먹는 발효 음식이에요.</h3>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px"><span style="font-size:11px;font-weight:700;padding:3px 7px;border-radius:5px;background:#F1F5F9;color:#64748B">내 답변</span><span style="font-size:14px;font-weight:700;color:#94A3B8">깍두기</span></div>
+          </div>
+          <!-- 빈칸 카드 4 ✓ -->
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;background:#2D7D52">4</span><span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:13px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">삼겹살</span></div>
+              <div style="display:flex;gap:6px"><button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;height:28px;border-radius:6px;color:#475569;border-color:#E2E8F0">듣기</button><button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;height:28px;border-radius:6px;color:#475569;border-color:#E2E8F0">번역 보기</button></div>
+            </div>
+            <h3 style="font-size:16px;font-weight:700;line-height:1.7;color:#1E293B">주말에 친구들과 <span style="color:#2D7D52">삼겹살</span> 을 먹으러 갔어요.</h3>
+          </div>
+          <!-- 빈칸 카드 5 ✗ -->
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;background:#C13B2E">5</span><span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:13px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">냉면</span></div>
+              <div style="display:flex;gap:6px"><button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;height:28px;border-radius:6px;color:#475569;border-color:#E2E8F0">듣기</button><button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;height:28px;border-radius:6px;color:#475569;border-color:#E2E8F0">번역 보기</button></div>
+            </div>
+            <h3 style="font-size:16px;font-weight:700;line-height:1.7;color:#1E293B">여름에는 시원한 <span style="color:#C13B2E">냉면</span> 이 먹고 싶어요.</h3>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px"><span style="font-size:11px;font-weight:700;padding:3px 7px;border-radius:5px;background:#F1F5F9;color:#64748B">내 답변</span><span style="font-size:14px;font-weight:700;color:#94A3B8">된장찌개</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: 문장 만들기 -->
+      <div class="ftab-content" id="ftab-sentence">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <!-- 문장 카드 1 ✓ -->
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;background:#2D7D52">1</span><span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:13px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">날씨</span></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D7D52" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px"><span style="font-size:10px;font-weight:700;padding:3px 0;min-width:56px;text-align:center;border-radius:5px;background:rgba(45,125,82,.1);color:#2D7D52;flex-shrink:0">내 답변</span><h3 style="font-size:16px;font-weight:700;line-height:1.7;color:#2D7D52">오늘 날씨가 너무 좋아서 공원에서 산책했어요.</h3></div>
+            <div style="background:#F8FAFC;border-radius:10px;padding:12px;border:1px solid #F1F5F9"><p style="font-size:12px;color:#475569;line-height:1.7">날씨 관련 어휘를 정확하게 사용했어요. 문장이 자연스럽고 문법적으로 올바릅니다!</p></div>
+          </div>
+          <!-- 문장 카드 2 ✗ -->
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;background:#6366F1">2</span><span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:13px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">여행</span></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+              <div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:10px;font-weight:700;padding:3px 0;min-width:56px;text-align:center;border-radius:5px;background:#F1F5F9;color:#64748B;flex-shrink:0">내 답변</span><h3 style="font-size:16px;font-weight:700;line-height:1.7">저는 여행을 <span style="color:#C13B2E;border-bottom:2px solid rgba(193,59,46,.3)">가고</span> <span style="color:#C13B2E;border-bottom:2px solid rgba(193,59,46,.3)">싶어요.</span></h3></div>
+              <div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:10px;font-weight:700;padding:3px 0;min-width:56px;text-align:center;border-radius:5px;background:rgba(99,102,241,.1);color:#6366F1;flex-shrink:0">추천 문장</span><h3 style="font-size:16px;line-height:1.7">저는 여행을 <span style="color:#6366F1;font-weight:700;border-bottom:2px solid rgba(99,102,241,.3)">더</span> <span style="color:#6366F1;font-weight:700;border-bottom:2px solid rgba(99,102,241,.3)">자주</span> 가고 싶어요.</h3></div>
+            </div>
+            <div style="background:#F8FAFC;border-radius:10px;padding:12px;border:1px solid #F1F5F9"><p style="font-size:12px;color:#475569;line-height:1.7">단어를 사용했지만 좀 더 구체적인 표현을 사용해보세요.</p></div>
+          </div>
+          <!-- 문장 카드 3 ✓ -->
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;background:#2D7D52">3</span><span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:13px;font-weight:600;background:#F8FAFC;border:1px solid #E2E8F0;color:#334155">가족</span></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D7D52" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px"><span style="font-size:10px;font-weight:700;padding:3px 0;min-width:56px;text-align:center;border-radius:5px;background:rgba(45,125,82,.1);color:#2D7D52;flex-shrink:0">내 답변</span><h3 style="font-size:16px;font-weight:700;line-height:1.7;color:#2D7D52">우리 가족은 매주 함께 식사를 해요.</h3></div>
+            <div style="background:#F8FAFC;border-radius:10px;padding:12px;border:1px solid #F1F5F9"><p style="font-size:12px;color:#475569;line-height:1.7">좋은 문장이에요! '가족'을 자연스럽게 활용했으며 문법적으로도 올바릅니다.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: 말하기 연습 -->
+      <div class="ftab-content" id="ftab-speaking">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <!-- 말하기 카드 1 ✓ -->
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;background:#2D7D52">1</span><span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:9999px;color:rgba(30,107,71,.8);background:rgba(30,107,71,.1)">보고 말하기</span></div>
+            </div>
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:14px;color:#1E293B;padding-left:10px">오늘 날씨가 정말 좋아요.</h3>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+              <p style="font-size:12px;font-weight:600;color:#94A3B8;width:72px;text-align:right;flex-shrink:0">내 발음</p>
+              <button style="flex:1;display:flex;align-items:center;justify-content:center;background:#FFFBEB;border:none;border-radius:12px;padding:10px 14px;cursor:pointer;gap:10px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg><div style="display:flex;gap:2px;align-items:center;height:20px"><div style="width:2px;height:3px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:5px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:8px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:13px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:8px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:5px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:10px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:16px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:20px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:16px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:10px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:13px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:18px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:13px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:8px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:5px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:3px;border-radius:9px;background:#FDE68A"></div></div></button>
+            </div>
+            <div style="border-top:1px solid #F1F5F9;padding-top:16px;font-size:16px;padding-left:10px;font-weight:700;color:#2D7D52;margin-bottom:10px">오늘 날씨가 정말 좋아요.</div>
+            <div style="background:#F8FAFC;border-radius:10px;padding:12px;border:1px solid #F1F5F9"><p style="font-size:12px;color:#475569;line-height:1.7">Excellent pronunciation! You sound very natural and clear.</p></div>
+          </div>
+          <!-- 말하기 카드 2 ✓ (듣고 말하기) -->
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;background:#2D7D52">2</span><span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:9999px;color:#C2410C;background:#FFF7ED">듣고 말하기</span></div>
+            </div>
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:14px;color:#1E293B;padding-left:10px">이 음식은 너무 맛있어요.</h3>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+              <div style="display:flex;align-items:center;gap:12px"><p style="font-size:12px;font-weight:600;color:#94A3B8;width:72px;text-align:right;flex-shrink:0">원어민 음성</p><button style="flex:1;display:flex;align-items:center;justify-content:center;background:#ECFEFF;border:none;border-radius:12px;padding:10px 14px;cursor:pointer;gap:10px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg><div style="display:flex;gap:2px;align-items:center;height:20px"><div style="width:2px;height:3px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:5px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:8px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:13px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:8px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:5px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:10px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:16px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:20px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:16px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:10px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:13px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:18px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:13px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:8px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:5px;border-radius:9px;background:#A5F3FC"></div><div style="width:2px;height:3px;border-radius:9px;background:#A5F3FC"></div></div></button></div>
+              <div style="display:flex;align-items:center;gap:12px"><p style="font-size:12px;font-weight:600;color:#94A3B8;width:72px;text-align:right;flex-shrink:0">내 발음</p><button style="flex:1;display:flex;align-items:center;justify-content:center;background:#FFFBEB;border:none;border-radius:12px;padding:10px 14px;cursor:pointer;gap:10px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg><div style="display:flex;gap:2px;align-items:center;height:20px"><div style="width:2px;height:3px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:5px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:8px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:13px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:8px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:5px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:10px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:16px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:20px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:16px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:10px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:13px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:18px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:13px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:8px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:5px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:3px;border-radius:9px;background:#FDE68A"></div></div></button></div>
+            </div>
+            <div style="border-top:1px solid #F1F5F9;padding-top:16px;font-size:16px;padding-left:10px;font-weight:700;margin-bottom:10px"><span style="color:#2D7D52">이 음식은 </span><span style="color:#C13B2E">너무</span><span style="color:#2D7D52"> 맛있어요.</span></div>
+            <div style="background:#F8FAFC;border-radius:10px;padding:12px;border:1px solid #F1F5F9"><p style="font-size:12px;color:#475569;line-height:1.7">Pay closer attention to the pronunciation of '너무'. Listen to the native speaker and try again!</p></div>
+          </div>
+          <!-- 말하기 카드 3 ✗ -->
+          <div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.07)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="display:flex;align-items:center;gap:8px"><span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:10px;font-weight:700;color:#fff;background:#C13B2E">3</span><span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:9999px;color:rgba(30,107,71,.8);background:rgba(30,107,71,.1)">보고 말하기</span></div>
+            </div>
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:14px;color:#1E293B;padding-left:10px">저는 한국어를 배우고 싶어요.</h3>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><p style="font-size:12px;font-weight:600;color:#94A3B8;width:72px;text-align:right;flex-shrink:0">내 발음</p><button style="flex:1;display:flex;align-items:center;justify-content:center;background:#FFFBEB;border:none;border-radius:12px;padding:10px 14px;cursor:pointer;gap:10px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg><div style="display:flex;gap:2px;align-items:center;height:20px"><div style="width:2px;height:3px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:5px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:8px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:13px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:8px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:5px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:10px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:16px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:20px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:16px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:10px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:13px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:18px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:13px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:8px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:5px;border-radius:9px;background:#FDE68A"></div><div style="width:2px;height:3px;border-radius:9px;background:#FDE68A"></div></div></button></div>
+            <div style="border-top:1px solid #F1F5F9;padding-top:16px;font-size:16px;padding-left:10px;font-weight:700;margin-bottom:10px"><span style="color:#2D7D52">저는 </span><span style="color:#C13B2E">한국어를</span><span style="color:#2D7D52"> 배우고 </span><span style="color:#C13B2E">싶어요.</span></div>
+            <div style="background:#F8FAFC;border-radius:10px;padding:12px;border:1px solid #F1F5F9"><p style="font-size:12px;color:#475569;line-height:1.7">Pay closer attention to the pronunciation of '한국어를', '싶어요'. Listen to the native speaker and try again!</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom buttons -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin:40px 0 80px">
+        <button class="btn btn-ghost" style="min-width:200px;height:52px;font-size:14px;border-radius:12px;border-color:#E2E8F0;color:#475569">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          대시보드로 돌아가기
+        </button>
+        <button class="btn" style="min-width:200px;height:52px;font-size:15px;font-weight:700;border-radius:12px;background:#A399F7;color:#fff;border:none;box-shadow:0 4px 12px rgba(163,153,247,.35)">
+          새 퀴즈 풀기 ✨
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1559,6 +2242,16 @@ function show(id, btn) {
   document.getElementById('sbAvatar').style.color = u.fg;
   document.getElementById('sbName').textContent = u.name;
   document.getElementById('sbRole').textContent = u.role;
+}
+function showFinalTab(id, btn) {
+  document.querySelectorAll('.ftab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ftab-btn').forEach(b => {
+    b.style.background = 'none';
+    b.style.boxShadow = 'none';
+  });
+  document.getElementById('ftab-' + id).classList.add('active');
+  btn.style.background = '#fff';
+  btn.style.boxShadow = '0 1px 3px rgba(0,0,0,.07)';
 }
 let rec = true;
 function toggleRec() {

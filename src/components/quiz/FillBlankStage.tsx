@@ -182,7 +182,7 @@ export function FillBlankStage({
                         <Input
                           value={userAnswers[problem.id] || ""}
                           onChange={(e) => onAnswerChange(problem.id, e.target.value)}
-                          className="h-11 w-full text-center text-sm rounded-xl border-slate-200"
+                          className="h-11 w-full text-center text-sm rounded-xl border-slate-200 bg-muted/30"
                           placeholder="정답 입력"
                           autoComplete="off"
                         />
@@ -240,8 +240,8 @@ export function FillBlankStage({
                           <Input
                             value={userAnswers[problem.id] || ""}
                             onChange={(e) => onAnswerChange(problem.id, e.target.value)}
-                            className="w-48 h-10 ml-1 text-center text-base inline-block rounded-xl border-slate-200"
-                            placeholder=""
+                            className="w-48 h-10 mx-1 text-center text-base inline-block rounded-xl border-slate-200 bg-muted/30"
+                            placeholder="정답 입력"
                             autoComplete="off"
                           />
                           {problem.hint && <span className="text-primary text-base font-medium whitespace-nowrap">{problem.hint}</span>}

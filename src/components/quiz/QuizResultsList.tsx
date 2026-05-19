@@ -240,9 +240,9 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
           <TableHeader>
             <TableRow>
               <TableHead>이름</TableHead>
-              <TableHead className="w-[500px]">점수</TableHead>
+              <TableHead>점수</TableHead>
               <TableHead>제출 시간</TableHead>
-              <TableHead className="text-right">상세보기</TableHead>
+              <TableHead className="text-right whitespace-nowrap">상세보기</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
