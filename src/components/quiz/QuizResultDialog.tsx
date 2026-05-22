@@ -9,9 +9,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { UserCircle, CheckCircle, XCircle, Volume2, Lightbulb, Loader2, TextCursorInput, PenLine, Mic } from "lucide-react";
+import { UserCircle, CheckCircle, XCircle, Volume2, Lightbulb, Loader2, TextCursorInput, PenLine, Mic, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { QuizReviewCard } from "@/components/quiz/QuizReviewCard";
 import { useQuizResultDetail } from "@/hooks/useQuizResultDetail";
 import type {
@@ -85,9 +87,59 @@ function SentenceMakingView({
   problems: SentenceMakingProblemDetail[];
   answers: SentenceMakingAnswerDetail[];
 }) {
+  const [localAnswers, setLocalAnswers] = useState<SentenceMakingAnswerDetail[]>(answers);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{ model_answer: string; ai_feedback: string }>({ model_answer: "", ai_feedback: "" });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const startCardEdit = (id: string, modelAnswer: string | null, aiFeedback: string, studentSentence: string) => {
+    setEditingCardId(id);
+    setEditDraft({
+      model_answer: modelAnswer?.trim() || studentSentence,
+      ai_feedback: aiFeedback.replace(/Model Answer:\s*.*/i, "").trim(),
+    });
+  };
+
+  const cancelCardEdit = () => setEditingCardId(null);
+
+  const saveCardEdit = async (attempt: SentenceMakingAnswerDetail, word: string) => {
+    setIsSaving(true);
+    const newModelAnswer = editDraft.model_answer.trim();
+    const originalModelAnswer = (attempt.model_answer || attempt.student_sentence).trim();
+    const modelAnswerChanged = newModelAnswer !== originalModelAnswer;
+
+    let newFeedback = editDraft.ai_feedback.trim();
+
+    if (modelAnswerChanged) {
+      const { data } = await supabase.functions.invoke("grade-sentence", {
+        body: {
+          regenerate_feedback: true,
+          word,
+          studentSentence: attempt.student_sentence,
+          modelAnswer: newModelAnswer,
+          translationLanguage: "English",
+        },
+      });
+      if (data?.feedback) newFeedback = data.feedback;
+    }
+
+    const { error } = await supabase
+      .from("sentence_making_answers")
+      .update({ model_answer: newModelAnswer, ai_feedback: newFeedback })
+      .eq("id", attempt.id);
+
+    setIsSaving(false);
+    if (!error) {
+      setLocalAnswers((prev) =>
+        prev.map((a) => a.id === attempt.id ? { ...a, model_answer: newModelAnswer, ai_feedback: newFeedback } : a)
+      );
+      setEditingCardId(null);
+    }
+  };
+
   // answers의 problem_id는 sentence_making_problems.id (UUID)를 참조
   const answersByProblem: Record<string, SentenceMakingAnswerDetail> = {};
-  for (const a of answers) {
+  for (const a of localAnswers) {
     const existing = answersByProblem[a.problem_id];
     if (!existing || a.attempt_number > existing.attempt_number) {
       answersByProblem[a.problem_id] = a;
@@ -118,6 +170,8 @@ function SentenceMakingView({
         if (!attempt) return null;
         const isPerfect = attempt.total_score === 100;
         const isGood = isPerfect || attempt.is_passed;
+        const hasCorrections = !!attempt.model_answer &&
+          attempt.model_answer.trim() !== attempt.student_sentence.trim();
 
         return (
           <Card key={problem.id} className="overflow-hidden border bg-white rounded-2xl shadow-sm">
@@ -138,37 +192,91 @@ function SentenceMakingView({
                   ) : (
                     <XCircle className="w-5 h-5 text-warning" />
                   )}
+                  {editingCardId !== attempt.id && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7 px-2 text-slate-500"
+                      onClick={() => startCardEdit(attempt.id, attempt.model_answer, attempt.ai_feedback || "", attempt.student_sentence)}
+                    >
+                      <Pencil className="w-3 h-3 mr-1" />
+                      수정
+                    </Button>
+                  )}
                 </div>
               </div>
 
-              <div className="mb-6 space-y-3">
-                <div className="flex items-start gap-3">
-                  <span className={`shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 ${isGood ? "bg-success/10 text-success" : "bg-slate-100 text-slate-500"}`}>
-                    학생 답변
-                  </span>
-                  <h3 className="text-lg font-bold leading-relaxed">
-                    {renderSentenceWithDiff(attempt.student_sentence, attempt.model_answer, isGood)}
-                  </h3>
-                </div>
-
-                {!isGood && attempt.model_answer && (
+              {editingCardId === attempt.id ? (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-slate-100 text-slate-500">
+                      학생 답변
+                    </span>
+                    <h3 className="text-lg font-bold leading-relaxed text-slate-700">
+                      {attempt.student_sentence}
+                    </h3>
+                  </div>
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-[#6366F1]/10 text-[#6366F1]">
                       추천 문장
                     </span>
-                    <h3 className="text-lg leading-relaxed">
-                      {renderModelAnswerWithDiff(attempt.model_answer, attempt.student_sentence)}
-                    </h3>
+                    <Textarea
+                      value={editDraft.model_answer}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, model_answer: e.target.value }))}
+                      className="flex-1 text-base min-h-[60px]"
+                      autoFocus
+                    />
                   </div>
-                )}
-              </div>
-
-              {attempt.ai_feedback && (
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-                    {attempt.ai_feedback.replace(/Model Answer:\s*.*/i, "").trim()}
-                  </p>
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <Textarea
+                      value={editDraft.ai_feedback}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, ai_feedback: e.target.value }))}
+                      className="w-full text-sm min-h-[80px] bg-transparent border-0 shadow-none focus-visible:ring-0 resize-none p-0 text-slate-600"
+                      placeholder="피드백 내용..."
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" variant="ghost" onClick={cancelCardEdit} disabled={isSaving}>
+                      취소
+                    </Button>
+                    <Button size="sm" onClick={() => saveCardEdit(attempt, problem.word)} disabled={isSaving}>
+                      {isSaving && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
+                      {isSaving ? "저장 중..." : "저장"}
+                    </Button>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <div className="mb-6 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <span className={`shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 ${isGood && !hasCorrections ? "bg-success/10 text-success" : "bg-slate-100 text-slate-500"}`}>
+                        학생 답변
+                      </span>
+                      <h3 className="text-lg font-bold leading-relaxed">
+                        {renderSentenceWithDiff(attempt.student_sentence, attempt.model_answer, !hasCorrections)}
+                      </h3>
+                    </div>
+
+                    {hasCorrections && (
+                      <div className="flex items-start gap-3">
+                        <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-[#6366F1]/10 text-[#6366F1]">
+                          추천 문장
+                        </span>
+                        <h3 className="text-lg leading-relaxed">
+                          {renderModelAnswerWithDiff(attempt.model_answer!, attempt.student_sentence)}
+                        </h3>
+                      </div>
+                    )}
+                  </div>
+
+                  {attempt.ai_feedback && (
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                      <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                        {attempt.ai_feedback.replace(/Model Answer:\s*.*/i, "").trim()}
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

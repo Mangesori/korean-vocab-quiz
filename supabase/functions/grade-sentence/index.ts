@@ -88,13 +88,13 @@ const generateSingleGradingPrompt = (
 
 **응답 형식 (JSON만 출력):**
 {
-  "errors": ["오류1 설명 (한국어)", "오류2 설명"],  // 발견된 오류 목록. 오류 없으면 반드시 빈 배열 []
+  "errors": ["오류1 설명 (한국어)", "오류2 설명"],  // 문장 전체에서 발견된 모든 오류 목록 (철자, 문법, 중복 표현 등). 오류 없으면 반드시 빈 배열 []
   "wordUsageScore": 숫자,
   "grammarScore": 숫자,
   "naturalnessScore": 숫자,
   "totalScore": 세 점수의 가중 평균 (단어사용 40%, 문법 35%, 자연스러움 25%),
   "feedback": "구체적인 피드백을 ${translationLanguage}로 작성. 잘한 점과 개선할 점을 2-3문장으로 설명.",
-  "modelAnswer": "errors에 나열된 오류만 수정한 한국어 문장. errors가 빈 배열이면 학생 문장을 그대로 반환.",
+  "modelAnswer": "errors에 나열된 모든 오류를 수정한 한국어 문장. errors가 빈 배열이면 학생 문장을 그대로 반환.",
   "isPassed": totalScore >= 70
 }
 
@@ -136,13 +136,13 @@ ${problemsList}
 **응답 형식 (JSON 배열만 출력):**
 [
   {
-    "errors": ["오류1 설명 (한국어)", "오류2 설명"],  // 발견된 오류 목록. 오류 없으면 반드시 빈 배열 []
+    "errors": ["오류1 설명 (한국어)", "오류2 설명"],  // 문장 전체에서 발견된 모든 오류 목록 (철자, 문법, 중복 표현 등). 오류 없으면 반드시 빈 배열 []
     "wordUsageScore": 숫자,
     "grammarScore": 숫자,
     "naturalnessScore": 숫자,
     "totalScore": 가중 평균 (단어사용 40%, 문법 35%, 자연스러움 25%),
     "feedback": "구체적인 피드백을 ${translationLanguage}로 2-3문장 작성. 잘한 점과 개선할 점을 설명.",
-    "modelAnswer": "errors에 나열된 오류만 수정한 한국어 문장. errors가 빈 배열이면 학생 문장 그대로 반환.",
+    "modelAnswer": "errors에 나열된 모든 오류를 수정한 한국어 문장. errors가 빈 배열이면 학생 문장 그대로 반환.",
     "isPassed": totalScore >= 70
   },
   ...
@@ -235,6 +235,34 @@ serve(async (req) => {
   try {
     const reqBody = await req.json();
     const targetLang = reqBody.translationLanguage || "English"; // Default to English if not provided
+
+    // 피드백 재생성 모드: 선생님이 추천 문장을 수정했을 때
+    if (reqBody.regenerate_feedback === true) {
+      const { word, studentSentence, modelAnswer } = reqBody;
+      if (!word || !studentSentence || !modelAnswer) {
+        return new Response(
+          JSON.stringify({ error: "word, studentSentence, modelAnswer는 필수입니다." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const prompt = `당신은 한국어 교육 전문가입니다. 선생님이 학생 문장을 검토하고 교정문을 작성했습니다. 교정 내용을 바탕으로 학생에게 줄 피드백을 작성해주세요.
+
+- 단어 (기본형): ${word}
+- 학생 문장: ${studentSentence}
+- 선생님 교정 문장: ${modelAnswer}
+
+피드백 작성 규칙:
+- ${targetLang}로 작성
+- 2-3문장, 격려하는 톤
+- 잘한 점과 어떤 부분이 왜 틀렸는지 설명
+- 피드백 텍스트만 반환 (JSON, 마크다운, 접두어 없이)`;
+
+      const systemInstruction = "You are a Korean language education expert. Write helpful, encouraging feedback for students. Respond with plain text only — no JSON, no markdown.";
+      const feedback = await callClaude(prompt, systemInstruction);
+      return new Response(JSON.stringify({ feedback: feedback.trim() }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // 일괄 채점 모드: problems 배열이 있는 경우
     if (reqBody.problems && Array.isArray(reqBody.problems)) {
