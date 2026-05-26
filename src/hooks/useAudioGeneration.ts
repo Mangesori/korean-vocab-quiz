@@ -99,6 +99,13 @@ export function useAudioGeneration(quizId: string | undefined) {
               translation: problem.translation,
               sentence_audio_url: audioUrl,
             }, { onConflict: 'quiz_id,problem_id' });
+
+          // recording_problems도 동기화 (listen 모드 문제에 오디오 URL 반영)
+          await supabase
+            .from("recording_problems")
+            .update({ sentence_audio_url: audioUrl })
+            .eq("quiz_id", quizId)
+            .eq("problem_id", problem.id);
         }
 
         // ElevenLabs rate limit 방지: 마지막 문제 제외하고 1초 대기
@@ -142,6 +149,13 @@ export function useAudioGeneration(quizId: string | undefined) {
             translation: problem.translation,
             sentence_audio_url: audioUrl,
           }, { onConflict: 'quiz_id,problem_id' });
+
+        // recording_problems도 동기화 (listen 모드 문제에 오디오 URL 반영)
+        await supabase
+          .from("recording_problems")
+          .update({ sentence_audio_url: audioUrl })
+          .eq("quiz_id", quizId)
+          .eq("problem_id", problem.id);
 
         onAudioGenerated(problem.id, audioUrl);
         toast.success(`"${problem.word}" 문제의 음성이 재생성되었습니다`);

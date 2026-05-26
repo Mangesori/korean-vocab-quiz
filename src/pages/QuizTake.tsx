@@ -310,17 +310,33 @@ export default function QuizTake() {
       if (quizData.recording_enabled) {
         const { data: recProblems } = await supabase
           .from("recording_problems")
-          .select("id, sentence, mode, sentence_audio_url, translation")
+          .select("id, sentence, mode, sentence_audio_url, translation, problem_id")
           .eq("quiz_id", id);
 
         if (recProblems && recProblems.length > 0) {
+          // listen 모드인데 audio URL이 없는 문제 → quiz_problems에서 fallback
+          const missingAudio = recProblems.filter(p => p.mode === "listen" && !p.sentence_audio_url);
+          let fallbackMap: Record<string, string> = {};
+          if (missingAudio.length > 0) {
+            const { data: qpData } = await supabase
+              .from("quiz_problems")
+              .select("problem_id, sentence_audio_url")
+              .eq("quiz_id", id)
+              .in("problem_id", missingAudio.map(p => p.problem_id).filter(Boolean));
+            if (qpData) {
+              fallbackMap = Object.fromEntries(
+                qpData.filter(p => p.sentence_audio_url).map(p => [p.problem_id, p.sentence_audio_url!])
+              );
+            }
+          }
+
           // 문제 순서 셔플
           const shuffledRec = [...recProblems].sort(() => Math.random() - 0.5);
           setRecordingProblems(shuffledRec.map(p => ({
             id: p.id,
             sentence: p.sentence,
             mode: p.mode as "read" | "listen",
-            sentenceAudioUrl: p.sentence_audio_url,
+            sentenceAudioUrl: p.sentence_audio_url || fallbackMap[p.problem_id] || null,
             translation: p.translation,
           })));
         }
