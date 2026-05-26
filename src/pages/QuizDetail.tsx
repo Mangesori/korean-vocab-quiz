@@ -582,12 +582,12 @@ export default function QuizDetail() {
 
             {/* 문제 유형 서브 탭 */}
             <div className="flex justify-center mb-6">
-              <div className="inline-flex items-center bg-muted p-1 rounded-lg gap-1">
+              <div className="inline-flex items-center bg-muted border border-border/50 p-1 rounded-lg gap-1">
                 <button
                   onClick={() => setProblemTab("fill_blank")}
                   className={`inline-flex items-center gap-2 px-5 py-1.5 rounded-md text-sm font-medium transition-all ${
                     problemTab === "fill_blank"
-                      ? "bg-white shadow-sm text-foreground"
+                      ? "bg-primary text-primary-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -599,7 +599,7 @@ export default function QuizDetail() {
                   className={`inline-flex items-center gap-2 px-5 py-1.5 rounded-md text-sm font-medium transition-all ${
                     quiz.sentence_making_enabled
                       ? problemTab === "sentence_making"
-                        ? "bg-white shadow-sm text-foreground"
+                        ? "bg-primary text-primary-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                       : "text-muted-foreground/50 border border-dashed border-muted-foreground/30 hover:text-muted-foreground"
                   }`}
@@ -612,7 +612,7 @@ export default function QuizDetail() {
                   className={`inline-flex items-center gap-2 px-5 py-1.5 rounded-md text-sm font-medium transition-all ${
                     quiz.recording_enabled
                       ? problemTab === "recording"
-                        ? "bg-white shadow-sm text-foreground"
+                        ? "bg-primary text-primary-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                       : "text-muted-foreground/50 border border-dashed border-muted-foreground/30 hover:text-muted-foreground"
                   }`}

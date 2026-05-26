@@ -19,6 +19,7 @@ import {
   BookMarked,
   BookOpen,
   FileX,
+  Home,
   Users,
   ChevronRight,
   ArrowRight,
@@ -341,7 +342,8 @@ export default function StudentDashboard() {
 
         {/* Greeting */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Home className="h-8 w-8 text-primary" />
             안녕하세요, {displayName}님! 👋
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">오늘도 한국어 공부 화이팅!</p>

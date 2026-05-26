@@ -262,8 +262,8 @@ export default function TeacherDashboard() {
                             <div className="flex gap-1">
                               <Button
                                 size="sm"
-                                variant="ghost"
-                                className="h-6 text-[10px] px-[7px] py-0"
+                                variant="outline"
+                                className="h-6 text-[10px] px-[7px] leading-none"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -276,7 +276,7 @@ export default function TeacherDashboard() {
                               </Button>
                               <Button
                                 size="sm"
-                                className="h-6 text-[10px] px-[7px] py-0"
+                                className="h-6 text-[10px] px-[7px] leading-none"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -321,23 +321,12 @@ export default function TeacherDashboard() {
                     <Link key={cls.id} to={`/class/${cls.id}`}>
                       <Card className="flex flex-col cursor-pointer hover:border-primary/40 transition-colors h-full">
                         <CardContent className="p-[14px] flex flex-col flex-1">
-                          <div className="flex items-start justify-between mb-[10px]">
+                          <div className="flex items-center justify-between mb-[10px]">
                             <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
                               <Users className="w-4 h-4 text-primary" />
                             </div>
-                            <span className="font-mono font-bold text-[11px] text-primary">{cls.invite_code}</span>
-                          </div>
-                          <h3 className="text-[13px] font-semibold truncate mb-0.5">{cls.name}</h3>
-                          <p className="text-[11px] text-muted-foreground mb-[10px]">초대 코드로 가입</p>
-                          <div className="flex items-center justify-between mt-auto">
-                            <span className="font-ui text-[10px] text-muted-foreground flex items-center gap-[3px]">
-                              <Clock className="w-[10px] h-[10px]" />
-                              {formatDateShort(cls.created_at)}
-                            </span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 text-[10px] px-[7px] py-0"
+                            <button
+                              className="flex items-center gap-1 mr-1 rounded px-1.5 py-1 hover:bg-accent transition-colors"
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -345,7 +334,21 @@ export default function TeacherDashboard() {
                                 toast.success('초대 코드가 복사되었습니다');
                               }}
                             >
-                              <Copy className="w-[10px] h-[10px] mr-[3px]" />코드 복사
+                              <span className="font-mono font-bold text-[11px] text-primary">{cls.invite_code}</span>
+                              <Copy className="w-[10px] h-[10px] text-primary" />
+                            </button>
+                          </div>
+                          <h3 className="text-[13px] font-semibold truncate mb-0.5">{cls.name}</h3>
+                          <p className="text-[11px] text-muted-foreground flex items-center gap-[3px] mb-[10px]">
+                            <Users className="w-[10px] h-[10px]" />{cls.member_count}명
+                          </p>
+                          <div className="flex items-center justify-between mt-auto">
+                            <span className="font-ui text-[10px] text-muted-foreground flex items-center gap-[3px]">
+                              <Clock className="w-[10px] h-[10px]" />
+                              {formatDateShort(cls.created_at)}
+                            </span>
+                            <Button size="sm" variant="ghost" className="h-6 text-[10px] px-[6px] leading-none">
+                              상세보기 <ChevronRight className="w-[10px] h-[10px] ml-[2px]" />
                             </Button>
                           </div>
                         </CardContent>
@@ -366,20 +369,20 @@ export default function TeacherDashboard() {
       />
 
       <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
-          <ShareQuizDialogContent
-            classes={classes as any}
-            selectedClassId={selectedClassId}
-            onSelectClass={setSelectedClassId}
-            onSendQuiz={() => handleSendQuiz(selectedClassId, () => setSelectedClassId(""))}
-            isSending={isSending}
-            shareUrl={shareUrl}
-            allowAnonymous={allowAnonymous}
-            onSetAllowAnonymous={setAllowAnonymous}
-            onGenerateLink={generateShareLink}
-            isGeneratingLink={isGeneratingLink}
-            onCopyLink={copyToClipboard}
-          />
-        </Dialog>
+        <ShareQuizDialogContent
+          classes={classes as any}
+          selectedClassId={selectedClassId}
+          onSelectClass={setSelectedClassId}
+          onSendQuiz={() => handleSendQuiz(selectedClassId, () => setSelectedClassId(""))}
+          isSending={isSending}
+          shareUrl={shareUrl}
+          allowAnonymous={allowAnonymous}
+          onSetAllowAnonymous={setAllowAnonymous}
+          onGenerateLink={generateShareLink}
+          isGeneratingLink={isGeneratingLink}
+          onCopyLink={copyToClipboard}
+        />
+      </Dialog>
 
       <AlertDialog open={reassignDialogOpen} onOpenChange={(open) => { if (!open) handleCancelReassign(); }}>
         <AlertDialogContent>

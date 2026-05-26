@@ -26,12 +26,14 @@ import {
   Settings,
   LogOut,
   GraduationCap,
+  FileText,
 } from "lucide-react";
 
 interface NavItem {
   path: string;
   icon: React.ElementType;
   label: string;
+  exactSearch?: string;
 }
 
 const SB_ITEM_CLASS =
@@ -43,7 +45,10 @@ const SB_SECTION_CLASS =
 function NavLink({ item }: { item: NavItem }) {
   const location = useLocation();
   const { setOpenMobile } = useSidebar();
-  const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
+  const isActive =
+    item.exactSearch !== undefined
+      ? location.pathname === item.path && location.search === item.exactSearch
+      : location.pathname === item.path || location.pathname.startsWith(item.path + "/");
   const Icon = item.icon;
 
   return (
@@ -94,8 +99,17 @@ export function AppSidebar() {
     { path: "/classes", icon: Users, label: "내 클래스" },
   ];
 
-  const adminExtraItems: NavItem[] = [
-    { path: "/admin", icon: Shield, label: "관리자 대시보드" },
+  const adminItems: NavItem[] = [
+    { path: "/admin", icon: Shield,        label: "관리자 대시보드", exactSearch: "" },
+    { path: "/admin", icon: GraduationCap, label: "선생님 관리",     exactSearch: "?tab=teachers" },
+    { path: "/admin", icon: FileText,      label: "시스템 리포트",   exactSearch: "?tab=report" },
+  ];
+
+  const adminTeacherItems: NavItem[] = [
+    { path: "/dashboard", icon: Home, label: "선생님 대시보드" },
+    { path: "/quizzes", icon: BookOpen, label: "내 퀴즈" },
+    { path: "/quiz/create", icon: PenSquare, label: "퀴즈 만들기" },
+    { path: "/classes", icon: Users, label: "내 클래스" },
   ];
 
   const studentMainItems: NavItem[] = [
@@ -110,8 +124,6 @@ export function AppSidebar() {
   ];
 
   const isTeacherOrAdmin = role === "teacher" || role === "admin";
-  const teacherNavItems =
-    role === "admin" ? [...adminExtraItems, ...teacherItems] : teacherItems;
 
   return (
     <Sidebar className="border-r border-border">
@@ -123,14 +135,31 @@ export function AppSidebar() {
 
       {isTeacherOrAdmin ? (
         <SidebarContent className="px-2 pt-0">
-          <div className={`${SB_SECTION_CLASS} mt-5`}>
-            {role === "admin" ? "관리자 메뉴" : "선생님 메뉴"}
-          </div>
-          <SidebarMenu>
-            {teacherNavItems.map((item) => (
-              <NavLink key={item.path} item={item} />
-            ))}
-          </SidebarMenu>
+          {role === "admin" ? (
+            <>
+              <div className={`${SB_SECTION_CLASS} mt-5`}>관리자</div>
+              <SidebarMenu>
+                {adminItems.map((item) => (
+                  <NavLink key={item.label} item={item} />
+                ))}
+              </SidebarMenu>
+              <div className={`${SB_SECTION_CLASS} mt-5`}>선생님</div>
+              <SidebarMenu>
+                {adminTeacherItems.map((item) => (
+                  <NavLink key={item.path} item={item} />
+                ))}
+              </SidebarMenu>
+            </>
+          ) : (
+            <>
+              <div className={`${SB_SECTION_CLASS} mt-5`}>선생님 메뉴</div>
+              <SidebarMenu>
+                {teacherItems.map((item) => (
+                  <NavLink key={item.path} item={item} />
+                ))}
+              </SidebarMenu>
+            </>
+          )}
         </SidebarContent>
       ) : (
         <SidebarContent className="px-2 pt-0">

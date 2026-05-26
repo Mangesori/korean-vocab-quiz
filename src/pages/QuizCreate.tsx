@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Loader2, BookOpen, PenLine, Mic, Type, Sparkles } from "lucide-react";
+import { Loader2, BookOpen, PenLine, PenSquare, Mic, Type, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -182,11 +182,14 @@ export default function QuizCreate() {
     <AppLayout>
       <div className="container mx-auto px-4 py-10 max-w-2xl">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">새 퀴즈 만들기</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
+            <PenSquare className="h-8 w-8 text-primary" />
+            퀴즈 만들기
+          </h1>
           <p className="text-muted-foreground mt-1 text-sm">AI가 문맥에 맞는 문제를 생성합니다</p>
         </div>
 
-        <div className="space-y-8">
+        <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6 md:p-8 space-y-8">
           {/* ── 섹션 1: 단어 입력 ── */}
           <section>
             <div className="flex items-center gap-3 mb-3">
@@ -209,7 +212,7 @@ export default function QuizCreate() {
           <section>
             <div className="flex items-center gap-3 mb-3">
               <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">2</span>
-              <h2 className="font-semibold text-foreground">난이도 (CEFR)</h2>
+              <h2 className="font-semibold text-foreground">난이도</h2>
             </div>
             <div className="grid grid-cols-6 gap-2">
               {DIFFICULTY_LEVELS.map(({ level, bg, text, border }) => (
@@ -217,11 +220,10 @@ export default function QuizCreate() {
                   key={level}
                   type="button"
                   onClick={() => setDifficulty(level)}
-                  className={`py-2.5 rounded-full border-2 font-bold text-sm transition-all ${bg} ${text} ${border} ${
-                    difficulty === level
+                  className={`py-2.5 rounded-full border-2 font-bold text-sm transition-all ${bg} ${text} ${border} ${difficulty === level
                       ? "opacity-100 ring-2 ring-offset-2 ring-current shadow-sm"
                       : "opacity-50 border-transparent"
-                  }`}
+                    }`}
                 >
                   {level}
                 </button>
@@ -248,11 +250,10 @@ export default function QuizCreate() {
               <button
                 type="button"
                 onClick={() => setSentenceMakingEnabled(!sentenceMakingEnabled)}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${
-                  sentenceMakingEnabled
+                className={`p-4 rounded-xl border-2 text-left transition-all ${sentenceMakingEnabled
                     ? "border-primary bg-accent"
                     : "border-border hover:border-primary/40"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2 mb-1">
                   <PenLine className={`w-4 h-4 ${sentenceMakingEnabled ? "text-primary" : "text-muted-foreground"}`} />
@@ -266,11 +267,10 @@ export default function QuizCreate() {
               <button
                 type="button"
                 onClick={() => setRecordingEnabled(!recordingEnabled)}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${
-                  recordingEnabled
+                className={`p-4 rounded-xl border-2 text-left transition-all ${recordingEnabled
                     ? "border-primary bg-accent"
                     : "border-border hover:border-primary/40"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2 mb-1">
                   <Mic className={`w-4 h-4 ${recordingEnabled ? "text-primary" : "text-muted-foreground"}`} />
@@ -340,7 +340,7 @@ export default function QuizCreate() {
                   <div className="space-y-2 pt-1">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">제한 시간</span>
-                      <span className="text-sm font-semibold text-foreground font-mono">
+                      <span className="text-sm font-semibold text-foreground">
                         {Math.floor(timerSeconds / 60) > 0 && `${Math.floor(timerSeconds / 60)}분 `}
                         {timerSeconds % 60}초
                       </span>

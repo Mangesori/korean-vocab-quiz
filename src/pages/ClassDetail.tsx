@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -19,10 +19,6 @@ import {
   X,
   Clock,
   FileText,
-  Calendar,
-  BarChart2,
-  ChevronDown,
-  ChevronUp,
   ChevronRight,
   Megaphone
 } from 'lucide-react';
@@ -38,7 +34,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
-import { Label } from '@/components/ui/label';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { StudentHistoryDialog } from '@/components/class/StudentHistoryDialog';
@@ -82,10 +77,8 @@ export default function ClassDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [showAllAssignments, setShowAllAssignments] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
-  const [copiedCode, setCopiedCode] = useState(false);
   const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<{ id: string; name: string } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
@@ -355,8 +348,10 @@ export default function ClassDetail() {
             <div className="text-xs text-muted-foreground mt-1">학생 수</div>
           </div>
           <div className="bg-card border border-border rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-foreground">{classData.invite_code}</div>
-            <div className="text-xs text-muted-foreground mt-1">초대 코드</div>
+            <div className="text-2xl font-bold text-foreground">
+              {assignments.length > 0 ? formatDateShort(assignments[0].assigned_at) : '—'}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">최근 배정일</div>
           </div>
         </div>
 

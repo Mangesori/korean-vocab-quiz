@@ -1,8 +1,8 @@
-# Design System — 달콤한 한국어
+# Design System — 나무 (Namu) Korean
 
 ## Product Context
 
-- **What this is:** AI 기반 한국어 어휘 퀴즈 플랫폼. 선생님이 단어를 입력하면 AI가 빈칸 채우기, 문장 만들기, 말하기 연습 문제를 자동 생성. 학생은 초대 코드로 클래스에 가입 후 퀴즈를 풀 수 있음.
+- **What this is:** 나무 (Namu) — AI 기반 한국어 어휘 퀴즈 플랫폼. 선생님이 단어를 입력하면 AI가 빈칸 채우기, 문장 만들기, 말하기 연습 문제를 자동 생성. 학생은 초대 코드로 클래스에 가입 후 퀴즈를 풀 수 있음.
 - **Who it's for:** 한국어 선생님 (퀴즈 생성/관리) + 학생 (퀴즈 수행)
 - **Space/industry:** EdTech, 언어 학습, 한국어 교육
 - **Project type:** Web app (dashboard + quiz experience)
@@ -23,10 +23,15 @@
 ## Typography
 
 - **한국어 전체 (한글 본문/UI):** Pretendard Variable — 가장 잘 설계된 한국어 web font. 굵기 9단계, 한글 획 세밀. CDN: `https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css`
-- **한국어 Display (브랜드/랜딩):** Paperozi — 기존 사용 중인 브랜드 폰트. 홈, 랜딩, 마케팅 레벨 display에만 유지. 앱 내 UI에는 사용하지 않음.
+- **한국어 Display (브랜드/랜딩):** Paperozi (font-family 이름) — 실제 폰트는 **Paperlogy**. `@font-face`로 CDN에서 전 웨이트(100–900) 직접 로드. 나무 워드마크, 홈, 랜딩, 마케팅 display에만 사용. 앱 내 일반 UI에는 사용하지 않음.
 - **영문 Display/Hero:** DM Serif Display — 선생님 대시보드 큰 타이틀, 마케팅 헤더에만 사용. Google Fonts.
 - **영문 Body/UI:** Geist — 점수, 타이머, UI 라벨, 영문 본문. Vercel Fonts / Google Fonts.
 - **데이터/점수/숫자:** Geist Mono (tabular-nums) — 점수판, 타이머, 통계 수치. 고정폭으로 정렬 유지.
+- **Font Utility Classes:**
+  - `.font-brand` → `font-brand` (Paperozi/Paperlogy) — 나무 워드마크, 랜딩 hero
+  - `.font-ui` → `font-ui` (Geist) — 영문 UI 라벨
+  - `.font-mono` → `font-mono` (Geist Mono) — 점수, 타이머, 통계
+
 - **Scale:**
   - xs: 11px (캡션, 라벨)
   - sm: 12–13px (보조 텍스트, 힌트)
@@ -42,6 +47,7 @@
 - **Primary:** `#1E6B47` (대나무 그린) — 신뢰, 성숙함, 자연스러움. 보라/파란색 EdTech 카테고리에서 의도적으로 이탈.
 - **Primary Dark:** `#155237` — hover, active 상태, 아이콘 강조
 - **Primary Light:** `#E8F5EE` — 배지 배경, subtle highlight, 포커스 링
+- **Leaf Accent:** `#8FC85A` (나뭇잎 그린) — **나무 로고 리프 아이콘 전용**. 일반 UI에는 사용하지 않음.
 
 - **Surface:** `#F8F5F0` (한지 오프화이트) — 앱 전체 배경. 순백이 아닌 따뜻한 톤.
 - **Card:** `#FFFFFF` — 카드, 모달, 입력 필드 배경
@@ -64,13 +70,13 @@
   - text: `#F2EDE8`
   - (Primary, success, error 등은 동일 값 유지, 포화도 10–15% 감소 고려)
 
-- **CEFR Level badges:**
-  - A1: `background #DCFCE7, color #15803D`
-  - A2: `background #CFFAFE, color #0E7490`
-  - B1: `background #DBEAFE, color #1D4ED8`
-  - B2: `background #EDE9FE, color #6D28D9`
-  - C1: `background #FCE7F3, color #9D174D`
-  - C2: `background #FEF9C3, color #854D0E`
+- **CEFR Level badges** (Tailwind 클래스 기준, `level-badge.tsx` + `src/index.css`):
+  - A1: `bg-emerald-100 text-emerald-700` (dark: `bg-emerald-900 text-emerald-300`) — 초급
+  - A2: `bg-teal-100 text-teal-700` (dark: `bg-teal-900 text-teal-300`) — 초중급
+  - B1: `bg-sky-100 text-sky-700` (dark: `bg-sky-900 text-sky-300`) — 중급
+  - B2: `bg-violet-100 text-violet-700` (dark: `bg-violet-900 text-violet-300`) — 중고급
+  - C1: `bg-purple-100 text-purple-700` (dark: `bg-purple-900 text-purple-300`) — 고급
+  - C2: `bg-pink-100 text-pink-700` (dark: `bg-pink-900 text-pink-300`) — 최고급
 
 ## Spacing
 
@@ -93,11 +99,11 @@
 - **학생 퀴즈 원칙:** 한 번에 하나의 문제. 조용하고 집중된 화면. 게임 UI 없음. 점수/결과는 세트 완료 후.
 - **Max content width:** 1120px (대시보드), 640px (학생 퀴즈)
 - **Grid:** 12-column, 24px gap
-- **Border radius:**
-  - sm: 4px (인라인 요소, 작은 배지)
-  - md: 8px (버튼, 입력 필드, 작은 카드)
-  - lg: 12px (큰 카드, 모달, 섹션)
-  - full: 9999px (pill 배지, 아바타)
+- **Border radius** (`--radius: 0.75rem`):
+  - `sm`: 8px — `calc(var(--radius) - 4px)` (배지, 인라인 요소)
+  - `md`: 10px — `calc(var(--radius) - 2px)` (버튼, 입력 필드, 작은 카드)
+  - `lg`: 12px — `var(--radius)` (큰 카드, 모달, 섹션)
+  - `full`: 9999px (pill 배지, 아바타)
 
 ## Motion
 
@@ -108,6 +114,12 @@
   - short: 150ms (드롭다운 열기, 포커스 링)
   - medium: 250ms (모달 등장, 슬라이드)
   - long: 400ms (페이지 전환)
+
+- **Keyframes** (`tailwind.config.ts`):
+  - `accordion-down / accordion-up` — 0.2s ease-out (아코디언)
+  - `fade-in` — 0.5s ease-out, opacity + translateY(10px→0) (모달, 오버레이)
+  - `slide-in-right` — 0.3s ease-out, opacity + translateX(20px→0) (사이드바 패널)
+  - `pulse-soft` — 2s ease-in-out infinite, opacity 1→0.7→1 (녹음 중 빨간 펄스)
 
 ## Quiz-Specific Guidelines
 
@@ -129,22 +141,58 @@
 
 ```css
 :root {
-  --background:          0 0% 100%;          /* card */
-  --foreground:          25 8% 10%;          /* #1A1714 */
-  --primary:             152 55% 27%;        /* #1E6B47 */
+  /* Surfaces */
+  --background:          40 15% 97%;         /* #F8F5F0 한지 오프화이트 (앱 배경) */
+  --foreground:          20 8% 10%;          /* #1A1714 잉크 */
+  --card:                0 0% 100%;          /* 카드/모달/입력 배경 */
+  --card-foreground:     20 8% 10%;
+
+  /* Brand */
+  --primary:             152 55% 27%;        /* #1E6B47 대나무 그린 */
   --primary-foreground:  0 0% 100%;
-  --secondary:           40 15% 97%;         /* surface #F8F5F0 */
-  --secondary-foreground: 25 8% 10%;
+  --accent:              152 55% 95%;        /* #E8F5EE primary-light */
+  --accent-foreground:   152 55% 20%;        /* primary-dark */
+
+  /* Neutral */
+  --secondary:           40 15% 97%;
+  --secondary-foreground: 20 8% 10%;
   --muted:               40 15% 97%;
   --muted-foreground:    22 7% 40%;          /* #6B6460 */
-  --accent:              152 55% 95%;        /* primary-light #E8F5EE */
-  --accent-foreground:   152 55% 20%;        /* primary-dark */
   --border:              25 12% 88%;         /* #E2DDD8 */
   --input:               25 12% 88%;
-  --ring:                152 55% 27%;        /* primary */
-  --radius:              0.5rem;             /* 8px = md */
+  --ring:                152 55% 27%;
+
+  /* Semantic */
+  --success:             150 47% 34%;        /* #2D7D52 */
+  --warning:             38 72% 45%;         /* #D97706 */
+  --destructive:         3 60% 47%;          /* #C13B2E (error) */
+  --info:                199 89% 48%;        /* #1D4ED8 */
+
+  /* Radius */
+  --radius:              0.75rem;            /* 12px = lg */
+
+  /* Sidebar */
+  --sidebar-background:          40 15% 97%;
+  --sidebar-foreground:          20 8% 10%;
+  --sidebar-primary:             152 55% 27%;
+  --sidebar-primary-foreground:  0 0% 100%;
+  --sidebar-accent:              152 55% 95%;
+  --sidebar-accent-foreground:   152 55% 20%;
+  --sidebar-border:              25 12% 88%;
+  --sidebar-ring:                152 55% 27%;
 }
 ```
+
+## CSS Utilities (`src/index.css`)
+
+| 클래스 | 설명 |
+|--------|------|
+| `.gradient-primary` | `bg-gradient-to-r from-primary to-purple-500` — 강조 버튼/배너 전용 |
+| `.gradient-text` | 위 그라디언트 + `bg-clip-text text-transparent` |
+| `.card-hover` | `transition-all duration-300 hover:shadow-lg hover:-translate-y-1` |
+| `.glass` | `bg-background/80 backdrop-blur-lg` |
+| `.level-badge` | `px-3 py-1 rounded-full text-xs font-semibold` — CEFR 배지 베이스 |
+| `.level-a1` ~ `.level-c2` | 위 색상 섹션 참조 |
 
 ## Decisions Log
 
@@ -157,3 +205,7 @@
 | 2026-04-23 | 학생 퀴즈: 게임 UI 없음 | 집중 모드. 점수는 세트 완료 후. 진지한 학습 도구 인상. |
 | 2026-04-23 | Surface: #F8F5F0 (한지 오프화이트) | 순백이 아닌 따뜻함. 장시간 화면 피로 감소. |
 | 2026-04-23 | Initial design system created | /design-consultation via gstack |
+| 2026-05-26 | 브랜드 나무(Namu)로 리네임 | 트리/잎 모티프로 자연 친화적 아이덴티티. "달콤한 한국어"에서 전환. |
+| 2026-05-26 | 나뭇잎 그린 #8FC85A 추가 (로고 전용) | 로고 리프 아이콘 포인트 컬러. 일반 UI 사용 금지. |
+| 2026-05-26 | AppSidebar 레이아웃 도입 | 역할별 네비게이션(선생님/학생/관리자) 분리. sidebar CSS 토큰 시스템 추가. |
+| 2026-05-26 | --radius 0.5rem → 0.75rem | 전체적으로 더 부드러운 모서리. 카드/모달 질감 개선. |

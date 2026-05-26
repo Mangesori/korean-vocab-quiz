@@ -12,12 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Plus, 
-  Users, 
+  Plus,
+  Users,
   Copy,
   Loader2,
   ChevronRight,
-  Search // Added Search icon
+  Search,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -170,7 +171,10 @@ export default function Classes() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">클래스 관리</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
+              <Users className="h-8 w-8 text-primary" />
+              내 클래스
+            </h1>
             <p className="text-muted-foreground mt-1">클래스를 만들고 학생을 초대하세요</p>
           </div>
           
@@ -277,7 +281,7 @@ export default function Classes() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>{cls.name}</span>
-                    <span className="text-sm font-normal text-muted-foreground flex items-center gap-1">
+                    <span className="text-sm font-normal text-muted-foreground flex items-center gap-1 mr-2">
                       <Users className="w-4 h-4" />
                       {cls.member_count}
                     </span>
@@ -292,8 +296,8 @@ export default function Classes() {
                       <p className="text-xs text-muted-foreground">초대 코드</p>
                       <p className="font-mono text-lg font-bold text-primary">{cls.invite_code}</p>
                     </div>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -305,7 +309,8 @@ export default function Classes() {
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
                       {formatDateShort(cls.created_at)}
                     </p>
                     <Button variant="ghost" size="sm">

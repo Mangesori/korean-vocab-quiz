@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,6 +46,8 @@ export default function AdminDashboard() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "dashboard";
   const [searchTerm, setSearchTerm] = useState('');
   const [teacherSearchTerm, setTeacherSearchTerm] = useState('');
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
@@ -336,8 +338,8 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        <Tabs defaultValue="dashboard">
-          <TabsList className="mb-6">
+        <Tabs value={activeTab} onValueChange={(v) => setSearchParams(v === "dashboard" ? {} : { tab: v })}>
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="dashboard" className="gap-2">
               <BarChart3 className="h-4 w-4" />대시보드
             </TabsTrigger>
