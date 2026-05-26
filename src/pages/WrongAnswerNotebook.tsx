@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { formatDateShort } from '@/lib/formatDate';
 import {
   Loader2,
   Search,
@@ -25,8 +26,6 @@ import {
   X,
   ListChecks,
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
 
 interface WrongAnswer {
   id: string;
@@ -288,7 +287,7 @@ export default function WrongAnswerNotebook() {
                       </Badge>
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {format(new Date(item.completed_at), 'M월 d일', { locale: ko })}
+                      {formatDateShort(item.completed_at)}
                     </span>
                   </div>
                 </CardHeader>

@@ -528,7 +528,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
 
               <Button
                 onClick={handleNext}
-                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-[#6366F1] text-white text-xs sm:text-sm font-semibold hover:bg-[#4F46E5] shadow-md transition-colors"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
               >
                 {currentIndex < problems.length - 1 ? (
                   <>

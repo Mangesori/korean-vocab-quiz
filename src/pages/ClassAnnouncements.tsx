@@ -37,8 +37,7 @@ import {
   Bell,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatDateShort } from '@/lib/formatDate';
 
 interface Announcement {
   id: string;
@@ -379,7 +378,7 @@ export default function ClassAnnouncements() {
                     )}
                   </div>
                   <CardDescription>
-                    {format(new Date(announcement.created_at), 'PPP', { locale: ko })}
+                    {formatDateShort(announcement.created_at)}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

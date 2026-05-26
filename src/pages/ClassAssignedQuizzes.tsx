@@ -14,6 +14,7 @@ import { ko } from 'date-fns/locale';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { LevelBadge } from '@/components/ui/level-badge';
+import { formatDateShort } from '@/lib/formatDate';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -213,7 +214,7 @@ export default function ClassAssignedQuizzes() {
                     <div className="flex items-center justify-between mt-4">
                       <div className="flex items-center text-xs text-muted-foreground">
                         <Clock className="w-3 h-3 mr-1" />
-                        {format(new Date(assignment.assigned_at), 'yyyy년 M월 d일', { locale: ko })}
+                        {formatDateShort(assignment.assigned_at)}
                       </div>
                       <div className="flex gap-1">
                         <Button 

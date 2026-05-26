@@ -268,7 +268,7 @@ export function SpeakingResultStage({
       <div className="text-center space-y-4 mt-8">
         <Button 
           onClick={onComplete}
-          className="w-full sm:w-auto min-w-[200px] h-12 text-base font-semibold shadow-md bg-[#6366F1] hover:bg-[#4F46E5] transition-colors rounded-xl"
+          className="w-full sm:w-auto min-w-[200px] h-12 text-base font-semibold shadow-md bg-primary hover:bg-primary/90 transition-colors rounded-xl"
         >
           최종 결과 보기
         </Button>

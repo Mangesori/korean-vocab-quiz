@@ -16,8 +16,6 @@ import {
   Trash2,
   Send
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { LevelBadge } from '@/components/ui/level-badge';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
@@ -37,6 +35,7 @@ import { ShareQuizDialogContent } from '@/components/quiz/ShareQuizDialog';
 import { useQuizSharing } from '@/hooks/useQuizSharing';
 import { useClasses } from '@/hooks/useClasses';
 import { toast } from 'sonner';
+import { formatDateShort } from '@/lib/formatDate';
 
 interface Quiz {
   id: string;
@@ -229,7 +228,7 @@ export default function Quizzes() {
                     <div className="flex items-center justify-between mt-4">
                       <div className="flex items-center text-xs text-muted-foreground">
                         <Clock className="w-3 h-3 mr-1" />
-                        {format(new Date(quiz.created_at), 'yyyy년 M월 d일', { locale: ko })}
+                        {formatDateShort(quiz.created_at)}
                       </div>
                       <div className="flex gap-1">
                         <Button

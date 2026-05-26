@@ -281,7 +281,7 @@ export function SentenceMakingStage({
             <Button
               onClick={handleNext}
               disabled={!sentences[currentProblem.id]?.trim()}
-              className="h-12 px-6 rounded-xl bg-[#6366F1] text-white font-semibold hover:bg-[#4F46E5] shadow-md transition-colors"
+              className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
             >
               다음 문제 <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
@@ -289,7 +289,7 @@ export function SentenceMakingStage({
             <Button
               onClick={handleGradeAll}
               disabled={!allFilled}
-              className="h-12 px-6 rounded-xl bg-[#6366F1] text-white font-semibold hover:bg-[#4F46E5] shadow-md transition-colors"
+              className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
             >
               다음 단계로 <ChevronRight className="w-5 h-5 ml-2" />
             </Button>

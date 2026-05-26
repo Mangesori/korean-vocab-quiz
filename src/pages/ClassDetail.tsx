@@ -38,13 +38,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { StudentHistoryDialog } from '@/components/class/StudentHistoryDialog';
 import { LevelBadge } from '@/components/ui/level-badge';
+import { formatDateShort } from '@/lib/formatDate';
 
 interface ClassData {
   id: string;
@@ -324,7 +323,7 @@ export default function ClassDetail() {
               )}
               
               <p className="text-xs text-muted-foreground">
-                생성일: {format(new Date(classData.created_at), 'yyyy년 M월 d일', { locale: ko })}
+                생성일: {formatDateShort(classData.created_at)}
               </p>
             </div>
 
@@ -345,6 +344,21 @@ export default function ClassDetail() {
             </div>
           </div>
 
+        {/* Header stat bar */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="bg-card border border-border rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-foreground">{assignments.length}</div>
+            <div className="text-xs text-muted-foreground mt-1">전체 퀴즈</div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-primary">{members.length}</div>
+            <div className="text-xs text-muted-foreground mt-1">학생 수</div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-foreground">{classData.invite_code}</div>
+            <div className="text-xs text-muted-foreground mt-1">초대 코드</div>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
           {/* Assigned Quizzes Card - 2/3 (Left) */}
@@ -374,7 +388,7 @@ export default function ClassDetail() {
                 <>
                   <div className="grid gap-4 sm:grid-cols-1 xl:grid-cols-2">
                     {assignments.slice(0, 6).map((assignment) => (
-                      <Card key={assignment.id} className="hover:shadow-lg transition-all hover:border-primary/50 h-full">
+                      <Card key={assignment.id} className="hover:shadow-lg transition-all hover:border-primary/50 h-full cursor-pointer" onClick={() => navigate(`/quiz/${assignment.quiz_id}`)}>
                         <CardContent className="p-5">
                           {/* Icon + Badge */}
                           <div className="flex items-start justify-between mb-3">
@@ -415,21 +429,13 @@ export default function ClassDetail() {
                           <div className="flex items-center justify-between mt-4">
                             <div className="flex items-center text-xs text-muted-foreground">
                               <Clock className="w-3 h-3 mr-1" />
-                              {format(new Date(assignment.assigned_at), 'yyyy년 M월 d일', { locale: ko })}
+                              {formatDateShort(assignment.assigned_at)}
                             </div>
                             <div className="flex gap-1">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 className="h-8 text-xs"
-                                onClick={() => navigate(`/quiz/${assignment.quiz_id}`)}
-                              >
-                                문제 보기
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                className="h-8 text-xs"
-                                onClick={() => navigate(`/quiz/${assignment.quiz_id}?tab=results`)}
+                                onClick={(e) => { e.stopPropagation(); navigate(`/quiz/${assignment.quiz_id}?tab=results`); }}
                               >
                                 결과 확인
                               </Button>
@@ -437,7 +443,7 @@ export default function ClassDetail() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                onClick={() => handleDeleteClick(assignment)}
+                                onClick={(e) => { e.stopPropagation(); handleDeleteClick(assignment); }}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -491,7 +497,7 @@ export default function ClassDetail() {
                         <div>
                           <p className="font-medium">{member.profile?.name || '이름 없음'}</p>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(member.joined_at), 'M월 d일 가입', { locale: ko })}
+                            {formatDateShort(member.joined_at) + ' 가입'}
                           </p>
                         </div>
                       </div>

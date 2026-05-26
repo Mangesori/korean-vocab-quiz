@@ -1,4 +1,17 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+
+const CHO  = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const JUNG = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+const JONG = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+function toJamo(text: string): string {
+  return text.split('').map(ch => {
+    const cp = ch.charCodeAt(0);
+    if (cp < 0xAC00 || cp > 0xD7A3) return ch;
+    const n = cp - 0xAC00;
+    return CHO[Math.floor(n / 588)] + JUNG[Math.floor((n % 588) / 28)] + JONG[n % 28];
+  }).join('');
+}
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +84,42 @@ export function FillBlankStage({
       .map((p) => p.word)
       .sort(() => Math.random() - 0.5);
   }, [currentSetIds]);
+
+  // 답이 입력된 문제의 뱅크 단어 추적 (취소선용) — 자모 분해로 불규칙 활용 대응
+  const usedBankWords = useMemo(() => {
+    const used = new Set<string>();
+    const bankWords = currentSet.map(p => p.word);
+
+    currentSet.forEach((p) => {
+      const answer = userAnswers[p.id]?.trim();
+      if (!answer) return;
+
+      if (bankWords.includes(answer)) {
+        used.add(answer);
+        return;
+      }
+
+      const ansJamo = toJamo(answer);
+      let bestWord = p.word;
+      let bestScore = 0;
+
+      for (const bw of bankWords) {
+        const bwJamo = toJamo(bw);
+        let score = 0;
+        while (score < bwJamo.length && score < ansJamo.length && bwJamo[score] === ansJamo[score]) {
+          score++;
+        }
+        if (score > bestScore || (score === bestScore && bw === p.word)) {
+          bestScore = score;
+          bestWord = bw;
+        }
+      }
+
+      used.add(bestScore > 0 ? bestWord : p.word);
+    });
+
+    return used;
+  }, [currentSet, userAnswers]);
 
   const toggleTranslation = (problemId: string) => {
     setShowTranslations((prev) => ({ ...prev, [problemId]: !prev[problemId] }));
@@ -147,11 +196,22 @@ export function FillBlankStage({
           <div className="bg-slate-50 border-b px-6 py-5 flex flex-col items-center">
             <p className="text-sm font-bold text-slate-500 mb-4">보기</p>
             <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
-              {shuffledWordBank.map((word, idx) => (
-                <Badge key={idx} variant="outline" className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border-slate-200 text-slate-700 shadow-sm">
-                  {word}
-                </Badge>
-              ))}
+              {shuffledWordBank.map((word, idx) => {
+                const isUsed = usedBankWords.has(word);
+                return (
+                  <Badge
+                    key={idx}
+                    variant="outline"
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium bg-white shadow-sm transition-all ${
+                      isUsed
+                        ? 'line-through text-slate-400 border-slate-200 opacity-60'
+                        : 'text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    {word}
+                  </Badge>
+                );
+              })}
             </div>
           </div>
 
@@ -174,7 +234,7 @@ export function FillBlankStage({
                         <span className="text-base font-medium leading-relaxed text-slate-800">
                           {parts[0]}
                           <span className="text-muted-foreground mx-1">( _____ )</span>
-                          {problem.hint && <span className="text-primary font-medium mx-1">{problem.hint}</span>}
+                          {problem.hint && <span className="text-primary/70 font-medium mx-1">{problem.hint}</span>}
                           {parts[1]}
                         </span>
                       </div>
@@ -201,7 +261,7 @@ export function FillBlankStage({
                                       playAudio(problem.sentence_audio_url, problem.id);
                                     }
                                   }}
-                                  className={`flex-1 h-10 rounded-xl text-slate-600 font-medium hover:bg-[#20B2AA] hover:text-white hover:border-[#20B2AA] transition-all ${isAnonymous ? "opacity-60" : ""}`}
+                                  className={`flex-1 h-10 rounded-xl text-slate-600 font-medium hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all ${isAnonymous ? "opacity-60" : ""}`}
                                   size="sm"
                                 >
                                   {isAnonymous ? (
@@ -217,7 +277,7 @@ export function FillBlankStage({
                           <Button
                             variant="outline"
                             onClick={() => toggleTranslation(problem.id)}
-                            className={`flex-1 h-10 rounded-xl font-medium transition-all ${showTranslations[problem.id] ? "bg-amber-50 text-amber-600 border-amber-200" : "text-slate-600 hover:bg-[#20B2AA] hover:text-white hover:border-[#20B2AA]"}`}
+                            className={`flex-1 h-10 rounded-xl font-medium transition-all ${showTranslations[problem.id] ? "bg-amber-50 text-amber-600 border-amber-200" : "text-slate-600 hover:bg-primary/10 hover:text-primary hover:border-primary/30"}`}
                             size="sm"
                           >
                             <Lightbulb className={`w-4 h-4 mr-2 ${showTranslations[problem.id] ? "text-amber-500" : ""}`} /> 힌트
@@ -244,7 +304,7 @@ export function FillBlankStage({
                             placeholder="정답 입력"
                             autoComplete="off"
                           />
-                          {problem.hint && <span className="text-primary text-base font-medium whitespace-nowrap">{problem.hint}</span>}
+                          {problem.hint && <span className="text-primary/70 text-base font-medium whitespace-nowrap">{problem.hint}</span>}
                           <span className="text-lg font-medium text-slate-800 whitespace-nowrap">{parts[1]?.trim()}</span>
                         </div>
                         <div className="flex gap-2 shrink-0">
@@ -263,7 +323,7 @@ export function FillBlankStage({
                                       playAudio(problem.sentence_audio_url, problem.id);
                                     }
                                   }}
-                                  className={`h-9 px-3 rounded-xl text-sm text-slate-600 font-medium hover:bg-[#20B2AA] hover:text-white hover:border-[#20B2AA] transition-all ${isAnonymous ? "opacity-60" : ""}`}
+                                  className={`h-9 px-3 rounded-xl text-sm text-slate-600 font-medium hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all ${isAnonymous ? "opacity-60" : ""}`}
                                 >
                                   {isAnonymous ? (
                                     <><Lock className="w-4 h-4 mr-1.5" /> 듣기</>
@@ -279,7 +339,7 @@ export function FillBlankStage({
                             variant="outline"
                             size="sm"
                             onClick={() => toggleTranslation(problem.id)}
-                            className={`h-9 px-3 rounded-xl text-sm font-medium transition-all ${showTranslations[problem.id] ? "bg-amber-50 text-amber-600 border-amber-200" : "text-slate-600 hover:bg-[#20B2AA] hover:text-white hover:border-[#20B2AA]"}`}
+                            className={`h-9 px-3 rounded-xl text-sm font-medium transition-all ${showTranslations[problem.id] ? "bg-amber-50 text-amber-600 border-amber-200" : "text-slate-600 hover:bg-primary/10 hover:text-primary hover:border-primary/30"}`}
                           >
                             <Lightbulb className={`w-4 h-4 mr-1.5 ${showTranslations[problem.id] ? "text-amber-500" : ""}`} /> 힌트
                           </Button>
@@ -314,7 +374,7 @@ export function FillBlankStage({
           <Button
             onClick={handleNextSet}
             disabled={!currentSetAnswered()}
-            className="h-12 px-6 rounded-xl bg-[#6366F1] text-white font-semibold hover:bg-[#4F46E5] shadow-md transition-colors"
+            className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
           >
             다음 세트 <ChevronRight className="w-4 h-4 ml-2" />
           </Button>
@@ -322,7 +382,7 @@ export function FillBlankStage({
           <Button
             onClick={handleComplete}
             disabled={isSubmitting || !allAnswered()}
-            className="h-12 px-6 rounded-xl bg-[#6366F1] text-white font-semibold hover:bg-[#4F46E5] shadow-md transition-colors"
+            className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
           >
             {isSubmitting ? (
               <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> 제출 중...</>

@@ -21,8 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatDateShort } from '@/lib/formatDate';
 
 interface Class {
   id: string;
@@ -307,7 +306,7 @@ export default function Classes() {
                   
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(cls.created_at), 'yyyy년 M월 d일', { locale: ko })}
+                      {formatDateShort(cls.created_at)}
                     </p>
                     <Button variant="ghost" size="sm">
                       상세보기 <ChevronRight className="w-4 h-4 ml-1" />

@@ -125,7 +125,7 @@ function renderModelAnswerWithDiff(modelAnswer: string, studentSentence: string)
       {modelWords.map((word, idx) => {
         const isOriginal = studentWords.includes(word);
         if (!isOriginal) {
-          return <span key={idx} className="text-[#6366F1] font-bold mr-1.5 border-b-2 border-[#6366F1]/30 pb-0.5">{word}</span>;
+          return <span key={idx} className="text-primary font-bold mr-1.5 border-b-2 border-primary/30 pb-0.5">{word}</span>;
         }
         return <span key={idx} className="mr-1.5 text-slate-700">{word}</span>;
       })}
@@ -419,7 +419,7 @@ export default function QuizResult() {
                             <div className="flex items-center justify-between mb-4">
                               <div className="flex items-center gap-2">
                                 <span className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${
-                                  isPerfect ? "bg-success" : "bg-[#6366F1]"
+                                  isPerfect ? "bg-success" : "bg-primary"
                                 }`}>
                                   {idx + 1}
                                 </span>
@@ -450,7 +450,7 @@ export default function QuizResult() {
 
                               {(!isPerfect && lastAttempt?.model_answer && lastAttempt.model_answer.trim() !== studentSentence.trim()) && (
                                 <div className="flex items-start gap-3">
-                                  <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-[#6366F1]/10 text-[#6366F1]">
+                                  <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-primary/10 text-primary">
                                     추천 문장
                                   </span>
                                   <h3 className="text-lg leading-relaxed">

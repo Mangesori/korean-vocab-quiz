@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 
+
 const NotFound = () => {
   const location = useLocation();
 
@@ -12,8 +13,8 @@ const NotFound = () => {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b px-6 py-4">
-        <Link to="/" className="text-lg font-bold">
-          Dalkom Korean
+        <Link to="/" className="hover:opacity-80 transition-opacity">
+          <img src="/Namu_logo_text_right.png" className="h-7 w-auto" alt="나무 Korean" />
         </Link>
       </header>
       <div className="flex flex-1 items-center justify-center bg-muted">

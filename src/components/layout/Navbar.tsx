@@ -16,6 +16,7 @@ import { NotificationDropdown } from '@/components/notifications/NotificationDro
 import { Protect } from '@/components/auth/Protect';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 
+
 export function Navbar() {
   const { user, role, signOut } = useAuth();
   const { can } = usePermissions();
@@ -36,10 +37,7 @@ export function Navbar() {
       <div className="container flex h-16 items-center">
         <div className="flex items-center gap-6">
           <Link to="/" className="hover:opacity-80 transition-opacity shrink-0">
-            <span className="whitespace-nowrap inline-flex items-center gap-0.5">
-              <span className="text-3xl font-brand font-black bg-gradient-to-b from-pink-400 to-primary bg-clip-text text-transparent">D</span>
-              <span className="hidden sm:inline text-xl font-brand font-bold text-foreground mt-1">alkom Korean</span>
-            </span>
+            <img src="/Namu_logo_text_right.png" className="h-7 w-auto" alt="나무 Korean" />
           </Link>
 
           {user && (

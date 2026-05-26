@@ -30,6 +30,7 @@ import WrongAnswerPractice from "./pages/WrongAnswerPractice";
 import ClassAnnouncements from "./pages/ClassAnnouncements";
 import WrongAnswerQuizCreate from "./pages/WrongAnswerQuizCreate";
 import QuizUIPreview from "./pages/QuizUIPreview";
+import MyQuizzes from "./pages/MyQuizzes";
 
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -124,6 +125,7 @@ const App = () => (
             } />
 
             <Route path="/quiz/ui-preview" element={<QuizUIPreview />} />
+            <Route path="/my-quizzes" element={<MyQuizzes />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

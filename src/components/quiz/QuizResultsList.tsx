@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { format } from "date-fns";
-import { ko } from "date-fns/locale";
 import { useQuizResults, QuizResult } from "@/hooks/useQuizResults";
+import { formatDateFull } from "@/lib/formatDate";
 import { useSubmissionTimes } from "@/hooks/useSubmissionTimes";
 import {
   Table,
@@ -42,7 +41,7 @@ function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }:
     recordingEnabled
   );
 
-  const formattedDate = format(new Date(result.completed_at), "yyyy-MM-dd HH:mm", { locale: ko });
+  const formattedDate = formatDateFull(result.completed_at);
 
   if (!isMultiStage) {
     return <span>{formattedDate}</span>;
@@ -65,7 +64,7 @@ function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }:
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground">빈칸 채우기</span>
               <span className="font-medium tabular-nums">
-                {format(new Date(times.fillBlank), "M월 d일 HH:mm", { locale: ko })}
+                {formatDateFull(times.fillBlank)}
               </span>
             </div>
             {sentenceMakingEnabled && (
@@ -73,7 +72,7 @@ function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }:
                 <span className="text-muted-foreground">문장 만들기</span>
                 <span className="font-medium tabular-nums">
                   {times.sentenceMaking
-                    ? format(new Date(times.sentenceMaking), "M월 d일 HH:mm", { locale: ko })
+                    ? formatDateFull(times.sentenceMaking)
                     : "대기 중"}
                 </span>
               </div>
@@ -83,7 +82,7 @@ function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }:
                 <span className="text-muted-foreground">말하기 연습</span>
                 <span className="font-medium tabular-nums">
                   {times.recording
-                    ? format(new Date(times.recording), "M월 d일 HH:mm", { locale: ko })
+                    ? formatDateFull(times.recording)
                     : "대기 중"}
                 </span>
               </div>

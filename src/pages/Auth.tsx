@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { GraduationCap, Users, Mail, Lock, User, Loader2 } from 'lucide-react';
+import { Users, Mail, Lock, User, Loader2 } from 'lucide-react';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -90,10 +90,11 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 px-4">
       <Card className="w-full max-w-md shadow-xl border-border/50">
         <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-            <GraduationCap className="w-6 h-6 text-primary" />
-          </div>
-          <CardTitle className="text-2xl font-bold">Dalkom Korean</CardTitle>
+          <CardTitle className="flex justify-center py-1">
+            <Link to="/" className="hover:opacity-80 transition-opacity">
+              <img src="/Namu_logo_text_right.png" className="h-8 w-auto" alt="나무 Korean" />
+            </Link>
+          </CardTitle>
           <CardDescription>선생님과 학생을 위한 어휘 학습 플랫폼</CardDescription>
         </CardHeader>
         

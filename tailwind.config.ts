@@ -71,8 +71,11 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["'Noto Sans KR'", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
-        serif: ["'Noto Serif KR'", "serif"],
+        sans:  ["'Pretendard Variable'", "Pretendard", "system-ui", "sans-serif"],
+        brand: ["'Paperozi'", "'Pretendard Variable'", "sans-serif"],
+        serif: ["'DM Serif Display'", "serif"],
+        ui:    ["'Geist'", "system-ui", "sans-serif"],
+        mono:  ["'Geist Mono'", "monospace"],
       },
       borderRadius: {
         lg: "var(--radius)",

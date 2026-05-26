@@ -1,8 +1,8 @@
-import { ReactNode } from 'react';
-import { Navbar } from './Navbar';
-import { Footer } from './Footer';
-import { MobileBottomNav } from './MobileBottomNav';
-import { cn } from '@/lib/utils';
+import { ReactNode } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "./AppSidebar";
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -10,15 +10,23 @@ interface AppLayoutProps {
   hideMobileNav?: boolean;
 }
 
-export function AppLayout({ children, hideFooter = false, hideMobileNav = false }: AppLayoutProps) {
+export function AppLayout({ children }: AppLayoutProps) {
+  const { user } = useAuth();
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className={cn("flex-1", !hideMobileNav && "pb-16 md:pb-0")}>
-        {children}
-      </main>
-      {!hideFooter && <Footer />}
-      {!hideMobileNav && <MobileBottomNav />}
-    </div>
+    <SidebarProvider>
+      {user && <AppSidebar />}
+      <SidebarInset>
+        <header className="flex h-14 items-center gap-2 px-4 border-b border-border bg-background shrink-0">
+          <SidebarTrigger className="-ml-1" />
+          <div className="ml-auto flex items-center gap-2">
+            {user && <NotificationDropdown />}
+          </div>
+        </header>
+        <main className="flex-1">
+          {children}
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

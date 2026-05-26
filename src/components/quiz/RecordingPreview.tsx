@@ -118,7 +118,7 @@ export function RecordingPreview({
                   <Button
                     onClick={() => { setPreviewIndex(prev => Math.min(total - 1, prev + 1)); setShowHint(false); }}
                     disabled={previewIndex === total - 1}
-                    className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-[#6366F1] text-white font-semibold hover:bg-[#4F46E5] shadow-md transition-colors"
+                    className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
                   >
                     다음 문제 <ChevronRight className="w-4 h-4 ml-2" />
                   </Button>

@@ -10,6 +10,7 @@ import { Quiz } from "@/hooks/useQuizData";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ShareQuizDialogContent } from "./ShareQuizDialog";
 import { DuplicateQuizButton } from "./DuplicateQuizButton";
+import { formatDateShort } from '@/lib/formatDate';
 
 interface QuizHeaderProps {
   quiz: Quiz;
@@ -74,7 +75,7 @@ export function QuizHeader({ quiz, onUpdateTitle, onDelete, onOpenSendDialog }: 
             </span>
           )}
           <span className="text-muted-foreground text-sm">
-            {format(new Date(quiz.created_at), "yyyy년 M월 d일", { locale: ko })}
+            {formatDateShort(quiz.created_at)}
           </span>
         </div>
       </div>
