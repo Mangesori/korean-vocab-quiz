@@ -32,7 +32,7 @@ export default function Index() {
                 <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-md break-keep">
                   단어만 입력하면 빈칸·문장·말하기 퀴즈가{" "}
                   <strong className="text-foreground font-semibold">10초 안에</strong> 만들어집니다.
-                  학생들에게 바로 배포하고 결과까지 한눈에 볼 수 있어요.
+                  학생들에게 바로 공유하고 결과까지 한눈에 볼 수 있어요.
                 </p>
 
                 <div className="flex gap-3 mb-6">

@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { AppLayout } from "@/components/layout/AppLayout";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -179,8 +179,7 @@ export default function QuizExample() {
   const allAnswered = EXAMPLE_PROBLEMS.every(p => (userAnswers[p.id] || "").trim().length > 0);
 
   return (
-    <AppLayout>
-      <div className="min-h-screen bg-gradient-to-br from-background to-primary/5">
+    <div className="min-h-screen bg-gradient-to-br from-background to-primary/5">
          {/* Simple Header */}
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b">
             <div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -343,7 +342,6 @@ export default function QuizExample() {
             </div>
 
         </div>
-      </div>
-    </AppLayout>
+    </div>
   );
 }
