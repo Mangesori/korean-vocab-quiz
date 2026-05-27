@@ -32,33 +32,30 @@ function PaneCreate({ isActive }: { isActive: boolean }) {
   const FULL_TEXT = "자다, 연습하다, 혼자, 가깝다, 걸리다";
   const WORDS = ["자다", "연습하다", "혼자", "가깝다", "걸리다"];
   const [typed, setTyped] = useState("");
-  const [cefrSelected, setCefrSelected] = useState("B1");
+  const [cefrSelected, setCefrSelected] = useState("A1");
 
   useEffect(() => {
-    if (!isActive) { setTyped(""); setCefrSelected("B1"); return; }
+    if (!isActive) { setTyped(""); setCefrSelected("A1"); return; }
     let i = 0;
     let tid: ReturnType<typeof setTimeout>;
     let t1: ReturnType<typeof setTimeout> | undefined;
-    let t2: ReturnType<typeof setTimeout> | undefined;
     const tick = () => {
       if (i < FULL_TEXT.length) {
         setTyped(FULL_TEXT.slice(0, i + 1));
         i++;
         tid = setTimeout(tick, 70);
       } else {
-        // typing done — animate CEFR A1 → A2 → B1 during 2200ms pause
-        setCefrSelected("A1");
-        t1 = setTimeout(() => setCefrSelected("A2"), 600);
-        t2 = setTimeout(() => setCefrSelected("B1"), 1200);
+        // typing done — jump A1 → B1
+        t1 = setTimeout(() => setCefrSelected("B1"), 300);
         tid = setTimeout(() => {
           setTyped(""); i = 0;
-          setCefrSelected("B1");
+          setCefrSelected("A1");
           tid = setTimeout(tick, 300);
         }, 2200);
       }
     };
     tid = setTimeout(tick, 600);
-    return () => { clearTimeout(tid); if (t1) clearTimeout(t1); if (t2) clearTimeout(t2); };
+    return () => { clearTimeout(tid); if (t1) clearTimeout(t1); };
   }, [isActive]);
 
   const wordCount = WORDS.filter(w => typed.includes(w)).length;
