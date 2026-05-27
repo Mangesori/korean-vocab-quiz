@@ -134,82 +134,93 @@ function PaneCreate({ isActive }: { isActive: boolean }) {
 
 // ─── Pane: 빈칸 채우기 ───────────────────────────────────────────────────────
 function PaneBlank() {
+  const PROBLEMS = [
+    { n: 1, sentBefore: "피곤할 때는 일찍", sentAfter: "", hint: "-아/어요", answer: "자요", state: "done" as const },
+    { n: 2, sentBefore: "집에서도 한국어를", sentAfter: "", hint: "-았/었어요", answer: "연습했어요", state: "done" as const },
+    { n: 3, sentBefore: "오늘은", sentAfter: "밥을 먹었어요", hint: "", answer: "혼자", state: "done" as const },
+    { n: 4, sentBefore: "여기서 역까지", sentAfter: "", hint: "-아/어요", answer: "", state: "active" as const },
+    { n: 5, sentBefore: "집에서 학교까지 10분이", sentAfter: "", hint: "-아/어요", answer: "", state: "empty" as const },
+  ];
+
   return (
-    <div style={{ padding: "14px 16px 16px", display: "flex", flexDirection: "column", gap: 10, height: "100%" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 15, color: "#1A1714" }}>빈칸 채우기</div>
-        <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10.5, color: "#6B6460" }}>세트 1 / 3</div>
-      </div>
-
-      {/* 보기 */}
-      <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "7px 12px", border: "1px solid #E2E8F0" }}>
-        <div style={{ fontSize: 9.5, fontWeight: 700, color: "#64748B", textAlign: "center", marginBottom: 5, letterSpacing: "0.04em" }}>보기</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center" }}>
-          {[
-            { w: "자다", used: true },
-            { w: "연습하다", used: true },
-            { w: "혼자", used: true },
-            { w: "가깝다", used: false },
-            { w: "걸리다", used: false },
-          ].map((p, i) => (
-            <span key={i} style={{
-              padding: "2px 9px", borderRadius: 9999, fontSize: 10.5, fontWeight: 500,
-              background: p.used ? "#F1F5F9" : "#fff",
-              border: "1px solid #E2E8F0",
-              color: p.used ? "#94A3B8" : "#334155",
-              textDecoration: p.used ? "line-through" : "none",
-              opacity: p.used ? 0.6 : 1,
-            }}>{p.w}</span>
-          ))}
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* Fixed header */}
+      <div style={{ padding: "14px 16px 10px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 15, color: "#1A1714" }}>빈칸 채우기</div>
+          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10.5, color: "#6B6460" }}>세트 1 / 3</div>
+        </div>
+        <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "7px 12px", border: "1px solid #E2E8F0" }}>
+          <div style={{ fontSize: 9.5, fontWeight: 700, color: "#64748B", textAlign: "center", marginBottom: 5, letterSpacing: "0.04em" }}>보기</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center" }}>
+            {[
+              { w: "자다", used: true },
+              { w: "연습하다", used: true },
+              { w: "혼자", used: true },
+              { w: "가깝다", used: false },
+              { w: "걸리다", used: false },
+            ].map((p, i) => (
+              <span key={i} style={{
+                padding: "2px 9px", borderRadius: 9999, fontSize: 10.5, fontWeight: 500,
+                background: p.used ? "#F1F5F9" : "#fff",
+                border: "1px solid #E2E8F0",
+                color: p.used ? "#94A3B8" : "#334155",
+                textDecoration: p.used ? "line-through" : "none",
+                opacity: p.used ? 0.6 : 1,
+              }}>{p.w}</span>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Q3 — 완료된 문제 (컴팩트) */}
-      <div style={{ paddingBottom: 10, borderBottom: "1px solid #E2E8F0" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#1E6B47", minWidth: 18, flexShrink: 0 }}>3.</span>
-          <p style={{ fontSize: 12.5, color: "#1E293B", lineHeight: 1.65, margin: 0 }}>
-            오늘은{" "}
-            <span style={{ fontWeight: 700, color: "#1E6B47", background: "#E8F5EE", borderRadius: 4, padding: "1px 6px", border: "1px solid #B6DFC8" }}>혼자</span>
-            {" "}밥을 먹었어요.
-          </p>
-        </div>
+      {/* Scrollable questions */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "4px 16px 0" }}>
+        {PROBLEMS.map((p, idx) => (
+          <div key={p.n} style={{
+            paddingBottom: 10,
+            borderBottom: idx < PROBLEMS.length - 1 ? "1px solid #F1F5F9" : "none",
+            marginBottom: idx < PROBLEMS.length - 1 ? 10 : 0,
+          }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 5, marginBottom: 7 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#1E6B47", minWidth: 16, flexShrink: 0 }}>{p.n}.</span>
+              <p style={{ fontSize: 12, color: "#1E293B", lineHeight: 1.65, margin: 0 }}>
+                {p.sentBefore}{" "}
+                <span style={{ background: "#F1F5F9", border: "1px dashed #CBD5E1", borderRadius: 5, padding: "1px 8px", fontSize: 11, color: "#94A3B8" }}>___</span>
+                {p.hint && <span style={{ fontSize: 10, color: "#6B6460", marginLeft: 3 }}>{p.hint}</span>}
+                {p.sentAfter && <span> {p.sentAfter}</span>}
+              </p>
+            </div>
+            <div style={{
+              width: "100%", boxSizing: "border-box" as const,
+              border: p.state === "active" ? "1.5px solid #1E6B47" : p.state === "done" ? "1.5px solid #B6DFC8" : "1.5px solid #E2E8F0",
+              borderRadius: 9, padding: "8px 12px",
+              background: p.state === "done" ? "#F0FAF4" : "#fff",
+              boxShadow: p.state === "active" ? "0 0 0 3px #E8F5EE" : "none",
+              fontSize: 12.5, fontWeight: p.state === "done" ? 600 : 400,
+              color: p.state === "done" ? "#1E6B47" : "#94A3B8",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              marginBottom: 7,
+            }}>
+              {p.state === "done" ? p.answer : p.state === "active" ? (
+                <>정답을 입력하세요<span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 3, animation: "blink 1.1s infinite" }} /></>
+              ) : "정답을 입력하세요"}
+            </div>
+            <div style={{ display: "flex", gap: 7 }}>
+              <button style={{ flex: 1, padding: "6px", borderRadius: 8, background: "#fff", border: "1px solid #E2E8F0", fontSize: 11, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
+                듣기
+              </button>
+              <button style={{ flex: 1, padding: "6px", borderRadius: 8, background: "#fff", border: "1px solid #E2E8F0", fontSize: 11, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" /></svg>
+                힌트
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Q4 — 현재 활성 문제 (모바일 스타일) */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#1E6B47", minWidth: 18, flexShrink: 0, paddingTop: 2 }}>4.</span>
-          <p style={{ fontSize: 12.5, color: "#1E293B", lineHeight: 1.65, margin: 0 }}>
-            집에서 학교까지 10분이{" "}
-            <span style={{ background: "#F1F5F9", border: "1px dashed #CBD5E1", borderRadius: 5, padding: "1px 10px", fontSize: 11, color: "#94A3B8" }}>___</span>
-            {"  "}
-            <span style={{ fontSize: 10, color: "#6B6460" }}>-아요/어요</span>
-          </p>
-        </div>
-        {/* 전체 너비 입력창 */}
-        <div style={{ border: "1.5px solid #1E6B47", borderRadius: 9, padding: "9px 12px", background: "#fff", boxShadow: "0 0 0 3px #E8F5EE", fontSize: 12.5, color: "#94A3B8", display: "flex", alignItems: "center" }}>
-          정답을 입력하세요
-          <span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 3, animation: "blink 1.1s infinite" }} />
-        </div>
-        {/* 버튼 나란히 */}
-        <div style={{ display: "flex", gap: 7 }}>
-          <button style={{ flex: 1, padding: "7px", borderRadius: 8, background: "#fff", border: "1px solid #E2E8F0", fontSize: 11, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
-            듣기
-          </button>
-          <button style={{ flex: 1, padding: "7px", borderRadius: 8, background: "#fff", border: "1px solid #E2E8F0", fontSize: 11, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" /></svg>
-            힌트
-          </button>
-        </div>
-      </div>
-
-      <div style={{ textAlign: "center", marginTop: "auto", padding: "4px 0" }}>
-        <span style={{ fontSize: 10, color: "#9E9894" }}>↓ 3문제 더</span>
-      </div>
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {/* Fixed footer nav */}
+      <div style={{ padding: "10px 16px 14px", flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ padding: "7px 12px", borderRadius: 9, background: "#fff", border: "1px solid #E2E8F0", fontSize: 11.5, fontWeight: 600, color: "#64748B" }}>‹ 이전 세트</div>
         <div style={{ padding: "7px 14px", borderRadius: 9, background: "#1E6B47", color: "#fff", fontSize: 11.5, fontWeight: 600 }}>다음 세트 ›</div>
       </div>
@@ -332,7 +343,7 @@ function PaneResult() {
 
   const RESULT_TABS = [
     { id: "blank" as const, label: "빈칸 채우기", pct: "80%", color: "#1E6B47" },
-    { id: "sentence" as const, label: "문장 만들기", pct: "70%", color: "#6D28D9" },
+    { id: "sentence" as const, label: "문장 만들기", pct: "60%", color: "#6D28D9" },
     { id: "speak" as const, label: "말하기 연습", pct: "60%", color: "#D97706" },
   ];
 
@@ -348,9 +359,9 @@ function PaneResult() {
       {/* 점수 헤더 */}
       <div style={{ textAlign: "center", paddingTop: 2 }}>
         <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 11, color: "#9E9894", marginBottom: 4 }}>일상 어휘 퀴즈</div>
-        <div style={{ fontSize: 44, fontWeight: 900, color: "#1E6B47", lineHeight: 1, letterSpacing: "-0.02em" }}>72%</div>
+        <div style={{ fontSize: 44, fontWeight: 900, color: "#1E6B47", lineHeight: 1, letterSpacing: "-0.02em" }}>67%</div>
         <div style={{ display: "inline-block", marginTop: 7, padding: "4px 14px", borderRadius: 9999, background: "rgba(255,255,255,0.9)", border: "1px solid #E2DDD8", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", fontSize: 11, fontWeight: 700, color: "#1A1714" }}>
-          25문제 중 18문제를 맞혔어요!
+          15문제 중 10문제를 맞혔어요!
         </div>
         <div style={{ fontSize: 10.5, color: "#9E9894", marginTop: 5 }}>잘했어요! 조금만 더 연습해볼까요? 💪</div>
       </div>
@@ -374,8 +385,11 @@ function PaneResult() {
       {/* 카드 목록 */}
       <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
         {tab === "blank" && [
-          { ok: true, n: 1, word: "가깝다", sentence: "집에서 학교까지 ", answer: "가까워요", rest: "." },
-          { ok: false, n: 2, word: "걸리다", sentence: "여기서 역까지 10분이 ", answer: "걸려요", rest: ".", mine: "가요" },
+          { ok: true, n: 1, word: "자다", sentence: "피곤할 때는 일찍 ", answer: "자요", rest: "." },
+          { ok: true, n: 2, word: "연습하다", sentence: "집에서도 한국어를 ", answer: "연습했어요", rest: "." },
+          { ok: true, n: 3, word: "혼자", sentence: "오늘은 ", answer: "혼자", rest: " 밥을 먹었어요." },
+          { ok: false, n: 4, word: "가깝다", sentence: "여기서 역까지 ", answer: "가까워요", rest: ".", mine: "걸려요" },
+          { ok: true, n: 5, word: "걸리다", sentence: "집에서 학교까지 10분이 ", answer: "걸려요", rest: "." },
         ].map((c) => (
           <div key={c.n} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "10px 12px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
             {/* 헤더: [번호][단어] ... [듣기][번역 보기] */}
@@ -406,8 +420,11 @@ function PaneResult() {
         ))}
 
         {tab === "sentence" && [
-          { ok: true, n: 1, word: "혼자", mine: "저는 주말마다 혼자 운동해요.", mineColors: [] as string[], recommend: "", feedback: "" },
-          { ok: false, n: 2, word: "연습하다", mine: "저는 발음을 연습해요.", mineColors: ["연습해요."] as string[], recommend: "저는 매일 발음을 꾸준히 연습하고 있어요.", feedback: '"매일", "꾸준히" 같은 빈도·방법 표현을 추가해보세요.' },
+          { ok: true, n: 1, word: "자다", mine: "오늘 너무 피곤해서 일찍 잤어요.", mineColors: [] as string[], recommend: "", feedback: "" },
+          { ok: false, n: 2, word: "연습하다", mine: "어제 한국어가 연습해요.", mineColors: ["한국어가", "연습해요."] as string[], recommend: "어제 한국어를 연습했어요.", feedback: 'Use "를" not "가" after 한국어, and use past tense "-었어요".' },
+          { ok: true, n: 3, word: "혼자", mine: "저는 주말마다 혼자 운동해요.", mineColors: [] as string[], recommend: "", feedback: "" },
+          { ok: true, n: 4, word: "가깝다", mine: "학교가 집에서 가까워요.", mineColors: [] as string[], recommend: "", feedback: "" },
+          { ok: false, n: 5, word: "걸리다", mine: "10분을 걸려요.", mineColors: ["10분을", "걸려요."] as string[], recommend: "집에서 도서관까지 10분이 걸려요.", feedback: 'Use "이" not "을" as the particle before 걸리다.' },
         ].map((c) => (
           <div key={c.n} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "10px 12px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
             {/* 헤더 */}
@@ -445,8 +462,11 @@ function PaneResult() {
         ))}
 
         {tab === "speak" && [
-          { n: 1, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "오늘은 일찍 잘 거예요.", wrongWords: [] as string[], feedback: "발음이 매우 자연스러워요!" },
-          { n: 2, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "매일 조금씩 연습해요.", wrongWords: ["연습해요."] as string[], feedback: "\"연습해요\" 발음에 더 주의해보세요." },
+          { n: 1, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "오늘 일찍 잘 거예요.", wrongWords: [] as string[], feedback: "Pronunciation is very natural!" },
+          { n: 2, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "매일 조금씩 연습해요.", wrongWords: ["연습해요."] as string[], feedback: "Pay attention to the pronunciation of '연습해요'." },
+          { n: 3, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "혼자 공부하는 게 좋아요.", wrongWords: [] as string[], feedback: "Great pronunciation!" },
+          { n: 4, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "여기서 가까워요.", wrongWords: [] as string[], feedback: "Accurate pronunciation!" },
+          { n: 5, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "거기까지 얼마나 걸려요?", wrongWords: ["걸려요?"] as string[], feedback: "Pay attention to the pronunciation of '걸려요'." },
         ].map((c) => (
           <div key={c.n} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "10px 12px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
             {/* 헤더 */}
