@@ -28,7 +28,30 @@ function StepBadge({ n }: { n: number }) {
   );
 }
 
-function PaneCreate() {
+function PaneCreate({ isActive }: { isActive: boolean }) {
+  const FULL_TEXT = "자다, 연습하다, 혼자, 가깝다, 걸리다";
+  const WORDS = ["자다", "연습하다", "혼자", "가깝다", "걸리다"];
+  const [typed, setTyped] = useState("");
+
+  useEffect(() => {
+    if (!isActive) { setTyped(""); return; }
+    let i = 0;
+    let tid: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      if (i < FULL_TEXT.length) {
+        setTyped(FULL_TEXT.slice(0, i + 1));
+        i++;
+        tid = setTimeout(tick, 70);
+      } else {
+        tid = setTimeout(() => { setTyped(""); i = 0; tid = setTimeout(tick, 300); }, 2200);
+      }
+    };
+    tid = setTimeout(tick, 600);
+    return () => clearTimeout(tid);
+  }, [isActive]);
+
+  const wordCount = WORDS.filter(w => typed.includes(w)).length;
+
   return (
     <div style={{ padding: "14px 18px 16px", display: "flex", flexDirection: "column", gap: 20, height: "100%" }}>
       <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16, color: "#1A1714" }}>새 퀴즈 만들기</div>
@@ -39,12 +62,12 @@ function PaneCreate() {
           <StepBadge n={1} />
           <span style={{ fontSize: 12, fontWeight: 600, color: "#1A1714" }}>단어 입력</span>
         </div>
-        <div style={{ border: "1.5px solid #1E6B47", background: "#FCFBF9", borderRadius: 8, padding: "8px 11px", boxShadow: "0 0 0 3px #E8F5EE", fontSize: 12, color: "#1A1714", lineHeight: 1.6 }}>
-          자다, 연습하다, 혼자, 가깝다, 걸리다
+        <div style={{ border: "1.5px solid #1E6B47", background: "#FCFBF9", borderRadius: 8, padding: "8px 11px", boxShadow: "0 0 0 3px #E8F5EE", fontSize: 12, color: "#1A1714", lineHeight: 1.6, minHeight: 36 }}>
+          {typed}
           <span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} />
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", paddingLeft: 1 }}>
-          <span style={{ fontSize: 10, color: "#6B6460" }}>입력된 단어: <strong style={{ color: "#1A1714" }}>6</strong>개</span>
+          <span style={{ fontSize: 10, color: "#6B6460" }}>입력된 단어: <strong style={{ color: "#1A1714" }}>{wordCount}</strong>개</span>
           <span style={{ fontSize: 9.5, fontFamily: "'Geist Mono', monospace", color: "#9E9894" }}>쉼표(,) 또는 줄바꿈으로 구분</span>
         </div>
       </div>
@@ -195,7 +218,33 @@ function PaneBlank() {
 }
 
 // ─── Pane: 문장 만들기 ───────────────────────────────────────────────────────
-function PaneSentence() {
+function PaneSentence({ isActive }: { isActive: boolean }) {
+  const FULL_TEXT = "집에서 학교까지 10분이 걸려요.";
+  const H_START = "집에서 학교까지 10분이 ".length;
+  const H_END = H_START + "걸려요".length;
+  const [typed, setTyped] = useState("");
+
+  useEffect(() => {
+    if (!isActive) { setTyped(""); return; }
+    let i = 0;
+    let tid: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      if (i < FULL_TEXT.length) {
+        setTyped(FULL_TEXT.slice(0, i + 1));
+        i++;
+        tid = setTimeout(tick, 70);
+      } else {
+        tid = setTimeout(() => { setTyped(""); i = 0; tid = setTimeout(tick, 300); }, 2200);
+      }
+    };
+    tid = setTimeout(tick, 400);
+    return () => clearTimeout(tid);
+  }, [isActive]);
+
+  const beforeH = typed.slice(0, Math.min(typed.length, H_START));
+  const inH = typed.length > H_START ? typed.slice(H_START, Math.min(typed.length, H_END)) : "";
+  const afterH = typed.length > H_END ? typed.slice(H_END) : "";
+
   return (
     <div style={{ padding: "18px 22px 22px", display: "flex", flexDirection: "column", gap: 14, height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -215,7 +264,9 @@ function PaneSentence() {
       </div>
 
       <div style={{ padding: "12px 14px", minHeight: 80, border: "1.5px solid #1E6B47", borderRadius: 10, background: "#fff", boxShadow: "0 0 0 4px #E8F5EE", fontSize: 13, color: "#1A1714", lineHeight: 1.65 }}>
-        집에서 학교까지 10분이 <strong style={{ color: "#1E6B47" }}>걸려요</strong>.
+        {beforeH}
+        {inH && <strong style={{ color: "#1E6B47" }}>{inH}</strong>}
+        {afterH}
         <span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 1, animation: "blink 1.1s infinite" }} />
       </div>
 
@@ -434,14 +485,6 @@ function PaneResult() {
   );
 }
 
-const PANES: Record<TabId, JSX.Element> = {
-  create: <PaneCreate />,
-  blank: <PaneBlank />,
-  sentence: <PaneSentence />,
-  speak: <PaneSpeak />,
-  result: <PaneResult />,
-};
-
 export function HeroProductMock() {
   const [active, setActive] = useState<TabId>("create");
   const [paused, setPaused] = useState(false);
@@ -502,7 +545,11 @@ export function HeroProductMock() {
         <div style={{ height: 440, position: "relative", background: "#fff" }}>
           {TABS.map((t) => (
             <div key={t.id} style={{ position: "absolute", inset: 0, opacity: t.id === active ? 1 : 0, transition: "opacity 280ms ease", pointerEvents: t.id === active ? "auto" : "none" }}>
-              {PANES[t.id]}
+              {t.id === "create" && <PaneCreate isActive={active === "create"} />}
+              {t.id === "blank" && <PaneBlank />}
+              {t.id === "sentence" && <PaneSentence isActive={active === "sentence"} />}
+              {t.id === "speak" && <PaneSpeak />}
+              {t.id === "result" && <PaneResult />}
             </div>
           ))}
         </div>
