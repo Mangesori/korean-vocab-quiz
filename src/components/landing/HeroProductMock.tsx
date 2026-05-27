@@ -463,9 +463,9 @@ function PaneResult() {
 
         {tab === "speak" && [
           { n: 1, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "오늘 일찍 잘 거예요.", wrongWords: [] as string[], feedback: "Pronunciation is very natural!" },
-          { n: 2, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "매일 조금씩 연습해요.", wrongWords: ["연습해요."] as string[], feedback: "Pay attention to the pronunciation of '연습해요'." },
+          { n: 2, type: "듣고 말하기", typeColor: "#8B5CF6", typeBg: "rgba(139,92,246,0.1)", sentence: "매일 조금씩 연습해요.", wrongWords: ["연습해요."] as string[], feedback: "Pay attention to the pronunciation of '연습해요'." },
           { n: 3, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "혼자 공부하는 게 좋아요.", wrongWords: [] as string[], feedback: "Great pronunciation!" },
-          { n: 4, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "여기서 가까워요.", wrongWords: [] as string[], feedback: "Accurate pronunciation!" },
+          { n: 4, type: "듣고 말하기", typeColor: "#8B5CF6", typeBg: "rgba(139,92,246,0.1)", sentence: "여기서 가까워요.", wrongWords: [] as string[], feedback: "Accurate pronunciation!" },
           { n: 5, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "거기까지 얼마나 걸려요?", wrongWords: ["걸려요?"] as string[], feedback: "Pay attention to the pronunciation of '걸려요'." },
         ].map((c) => (
           <div key={c.n} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "10px 12px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
@@ -479,7 +479,7 @@ function PaneResult() {
             {/* 내 발음 row */}
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
               <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4, background: "#F1F5F9", color: "#64748B", minWidth: 38, textAlign: "center", flexShrink: 0 }}>내 발음</span>
-              <div style={{ flex: 1, display: "flex", alignItems: "center", background: "#FFFBEB", borderRadius: 8, padding: "6px 10px", gap: 6 }}>
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#FFFBEB", borderRadius: 8, padding: "6px 10px", gap: 6 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
                 <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   {WAVEFORM_HEIGHTS.map((h, i) => (
@@ -497,7 +497,13 @@ function PaneResult() {
               })}
             </div>
             {/* 피드백 박스 */}
-            <div style={{ padding: "6px 8px", borderRadius: 7, background: "#F8FAFC", border: "1px solid #E2E8F0", fontSize: 10, color: "#64748B", lineHeight: 1.5 }}>{c.feedback}</div>
+            <div style={{ padding: "6px 8px", borderRadius: 7, background: "#F8FAFC", border: "1px solid #E2E8F0", fontSize: 10, color: "#64748B", lineHeight: 1.5 }}>
+              {c.feedback.split(/('(?:[^']+)')/).map((part, i) =>
+                /^'[^']+'$/.test(part)
+                  ? <span key={i} style={{ color: "#C13B2E", fontWeight: 700 }}>{part}</span>
+                  : part
+              )}
+            </div>
           </div>
         ))}
       </div>
