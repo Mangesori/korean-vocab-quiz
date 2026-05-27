@@ -304,14 +304,7 @@ function PaneSpeak({ isActive }: { isActive: boolean }) {
 
   useEffect(() => {
     if (!isActive) { setRecording(false); return; }
-    let tid: ReturnType<typeof setTimeout>;
-    let on = false;
-    const tick = () => {
-      on = !on;
-      setRecording(on);
-      tid = setTimeout(tick, on ? 2500 : 1200);
-    };
-    tid = setTimeout(tick, 1200);
+    const tid = setTimeout(() => setRecording(true), 1200);
     return () => clearTimeout(tid);
   }, [isActive]);
 
