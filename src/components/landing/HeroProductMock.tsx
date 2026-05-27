@@ -95,7 +95,8 @@ function PaneCreate({ isActive }: { isActive: boolean }) {
               background: c.bg, color: c.text,
               opacity: c.l === cefrSelected ? 1 : 0.45,
               boxShadow: c.l === cefrSelected ? `0 0 0 2px ${c.border}` : "none",
-              transition: "all 180ms ease",
+              transition: "opacity 180ms ease, border 180ms ease, box-shadow 180ms ease",
+              animation: c.l === "B1" && cefrSelected === "B1" ? "cefr-pop 300ms ease" : "none",
             }}>{c.l}</div>
           ))}
         </div>
@@ -575,6 +576,7 @@ export function HeroProductMock() {
         @keyframes blink { 0%, 50% { opacity: 1 } 51%, 100% { opacity: 0 } }
         @keyframes hero-progress { from { width: 0% } to { width: 100% } }
         @keyframes pulse-red { 0%, 100% { box-shadow: 0 4px 16px rgba(220,38,38,0.4), 0 0 0 0px rgba(220,38,38,0.25) } 50% { box-shadow: 0 4px 16px rgba(220,38,38,0.4), 0 0 0 10px rgba(220,38,38,0.0) } }
+        @keyframes cefr-pop { 0% { transform: scale(1) } 30% { transform: scale(0.82) } 65% { transform: scale(1.12) } 100% { transform: scale(1) } }
       `}</style>
 
       {/* Tab bar above window */}
