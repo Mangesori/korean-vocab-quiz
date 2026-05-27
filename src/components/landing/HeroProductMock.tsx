@@ -112,15 +112,16 @@ function PaneCreate() {
 // ─── Pane: 빈칸 채우기 ───────────────────────────────────────────────────────
 function PaneBlank() {
   return (
-    <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 10, height: "100%" }}>
+    <div style={{ padding: "14px 16px 16px", display: "flex", flexDirection: "column", gap: 10, height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16, color: "#1A1714" }}>빈칸 채우기</div>
-        <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11, color: "#6B6460" }}>세트 1 / 3</div>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 15, color: "#1A1714" }}>빈칸 채우기</div>
+        <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10.5, color: "#6B6460" }}>세트 1 / 3</div>
       </div>
 
-      <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "9px 14px", border: "1px solid #E2E8F0" }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textAlign: "center", marginBottom: 6, letterSpacing: "0.04em" }}>보기</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
+      {/* 보기 */}
+      <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "7px 12px", border: "1px solid #E2E8F0" }}>
+        <div style={{ fontSize: 9.5, fontWeight: 700, color: "#64748B", textAlign: "center", marginBottom: 5, letterSpacing: "0.04em" }}>보기</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center" }}>
           {[
             { w: "자다", used: true },
             { w: "연습하다", used: true },
@@ -129,50 +130,63 @@ function PaneBlank() {
             { w: "걸리다", used: false },
           ].map((p, i) => (
             <span key={i} style={{
-              padding: "2px 10px", borderRadius: 9999, fontSize: 10.5, fontWeight: 500,
+              padding: "2px 9px", borderRadius: 9999, fontSize: 10.5, fontWeight: 500,
               background: p.used ? "#F1F5F9" : "#fff",
               border: "1px solid #E2E8F0",
               color: p.used ? "#94A3B8" : "#334155",
               textDecoration: p.used ? "line-through" : "none",
-              opacity: p.used ? 0.65 : 1,
+              opacity: p.used ? 0.6 : 1,
             }}>{p.w}</span>
           ))}
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", fontSize: 12 }}>
-        {[
-          { n: 1, before: "피곤할 때는 일찍", input: "자요", grammar: "-아요/어요", after: "." },
-          { n: 2, before: "집에서도 발음을", input: "연습할 수 있어요", grammar: "-(으)ㄹ 수 있다 + 아요/어요", after: "." },
-          { n: 3, before: "오늘은", input: "혼자", grammar: "", after: "밥을 먹었어요." },
-          { n: 4, before: "집에서 학교까지 10분이", input: "", grammar: "-아요/어요", after: "." },
-          { n: 5, before: "여기서 역까지", input: "", grammar: "-아요/어요", after: "." },
-        ].map((row) => (
-          <div key={row.n} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 0", borderBottom: "1px solid #E2E8F0" }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#1E6B47", minWidth: 14, flexShrink: 0 }}>{row.n}.</span>
-            <div style={{ flex: 1, color: "#1E293B", lineHeight: 1.7, fontSize: 11.5 }}>
-              {row.before}{" "}
-              <span style={{ display: "inline-block", minWidth: 60, padding: "1px 5px", background: "#fff", border: "1px solid #E2E8F0", borderRadius: 6, fontSize: 10.5, fontWeight: 600, textAlign: "center", color: row.input ? "#1E293B" : "#94A3B8", margin: "0 2px" }}>
-                {row.input || "정답 입력"}
-              </span>{" "}
-              {row.grammar && <span style={{ color: "#6B6460", fontWeight: 500 }}>{row.grammar}</span>}
-              {row.after}
-            </div>
-            <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-              <button style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "3px 7px", height: 24, borderRadius: 6, background: "#fff", border: "1px solid #E2E8F0", fontSize: 10, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
-                듣기
-              </button>
-              <button style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "3px 7px", height: 24, borderRadius: 6, background: "#fff", border: "1px solid #E2E8F0", fontSize: 10, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" /></svg>
-                힌트
-              </button>
-            </div>
-          </div>
-        ))}
+      {/* Q3 — 완료된 문제 (컴팩트) */}
+      <div style={{ paddingBottom: 10, borderBottom: "1px solid #E2E8F0" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#1E6B47", minWidth: 18, flexShrink: 0 }}>3.</span>
+          <p style={{ fontSize: 12.5, color: "#1E293B", lineHeight: 1.65, margin: 0 }}>
+            오늘은{" "}
+            <span style={{ fontWeight: 700, color: "#1E6B47", background: "#E8F5EE", borderRadius: 4, padding: "1px 6px", border: "1px solid #B6DFC8" }}>혼자</span>
+            {" "}밥을 먹었어요.
+          </p>
+        </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
+      {/* Q4 — 현재 활성 문제 (모바일 스타일) */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#1E6B47", minWidth: 18, flexShrink: 0, paddingTop: 2 }}>4.</span>
+          <p style={{ fontSize: 12.5, color: "#1E293B", lineHeight: 1.65, margin: 0 }}>
+            집에서 학교까지 10분이{" "}
+            <span style={{ background: "#F1F5F9", border: "1px dashed #CBD5E1", borderRadius: 5, padding: "1px 10px", fontSize: 11, color: "#94A3B8" }}>___</span>
+            {"  "}
+            <span style={{ fontSize: 10, color: "#6B6460" }}>-아요/어요</span>
+          </p>
+        </div>
+        {/* 전체 너비 입력창 */}
+        <div style={{ border: "1.5px solid #1E6B47", borderRadius: 9, padding: "9px 12px", background: "#fff", boxShadow: "0 0 0 3px #E8F5EE", fontSize: 12.5, color: "#94A3B8", display: "flex", alignItems: "center" }}>
+          정답을 입력하세요
+          <span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 3, animation: "blink 1.1s infinite" }} />
+        </div>
+        {/* 버튼 나란히 */}
+        <div style={{ display: "flex", gap: 7 }}>
+          <button style={{ flex: 1, padding: "7px", borderRadius: 8, background: "#fff", border: "1px solid #E2E8F0", fontSize: 11, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
+            듣기
+          </button>
+          <button style={{ flex: 1, padding: "7px", borderRadius: 8, background: "#fff", border: "1px solid #E2E8F0", fontSize: 11, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" /></svg>
+            힌트
+          </button>
+        </div>
+      </div>
+
+      <div style={{ textAlign: "center", marginTop: "auto", padding: "4px 0" }}>
+        <span style={{ fontSize: 10, color: "#9E9894" }}>↓ 3문제 더</span>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ padding: "7px 12px", borderRadius: 9, background: "#fff", border: "1px solid #E2E8F0", fontSize: 11.5, fontWeight: 600, color: "#64748B" }}>‹ 이전 세트</div>
         <div style={{ padding: "7px 14px", borderRadius: 9, background: "#1E6B47", color: "#fff", fontSize: 11.5, fontWeight: 600 }}>다음 세트 ›</div>
       </div>
