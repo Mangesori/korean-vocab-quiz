@@ -299,8 +299,22 @@ function PaneSentence({ isActive }: { isActive: boolean }) {
 }
 
 // ─── Pane: 듣고 말하기 ───────────────────────────────────────────────────────
-function PaneSpeak() {
+function PaneSpeak({ isActive }: { isActive: boolean }) {
   const [recording, setRecording] = useState(false);
+
+  useEffect(() => {
+    if (!isActive) { setRecording(false); return; }
+    let tid: ReturnType<typeof setTimeout>;
+    let on = false;
+    const tick = () => {
+      on = !on;
+      setRecording(on);
+      tid = setTimeout(tick, on ? 2500 : 1200);
+    };
+    tid = setTimeout(tick, 1200);
+    return () => clearTimeout(tid);
+  }, [isActive]);
+
   return (
     <div style={{ padding: "18px 22px 22px", display: "flex", flexDirection: "column", gap: 14, height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -331,9 +345,7 @@ function PaneSpeak() {
 
       {/* 녹음 컨트롤 */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-        <button
-          onClick={() => setRecording(r => !r)}
-          style={{
+        <button style={{
             width: 64, height: 64, borderRadius: "50%", border: "none", cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
             background: recording ? "#DC2626" : "#1E6B47",
@@ -347,7 +359,7 @@ function PaneSpeak() {
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5 12c0 3.866 3.134 7 7 7s7-3.134 7-7" /><line x1="12" y1="19" x2="12" y2="22" /></svg>
         </button>
         <span style={{ fontSize: 11, color: recording ? "#DC2626" : "#9E9894", fontFamily: "'Geist', system-ui", transition: "color 200ms ease" }}>
-          {recording ? "녹음 중... 버튼을 눌러 중지하세요" : "마이크 버튼을 눌러 녹음을 시작하세요"}
+          {recording ? "녹음 중" : "마이크 버튼을 눌러 녹음을 시작하세요"}
         </span>
       </div>
 
@@ -609,7 +621,7 @@ export function HeroProductMock() {
               {t.id === "create" && <PaneCreate isActive={active === "create"} />}
               {t.id === "blank" && <PaneBlank />}
               {t.id === "sentence" && <PaneSentence isActive={active === "sentence"} />}
-              {t.id === "speak" && <PaneSpeak />}
+              {t.id === "speak" && <PaneSpeak isActive={active === "speak"} />}
               {t.id === "result" && <PaneResult />}
             </div>
           ))}
