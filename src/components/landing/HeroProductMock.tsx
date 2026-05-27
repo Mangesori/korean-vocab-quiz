@@ -32,22 +32,33 @@ function PaneCreate({ isActive }: { isActive: boolean }) {
   const FULL_TEXT = "자다, 연습하다, 혼자, 가깝다, 걸리다";
   const WORDS = ["자다", "연습하다", "혼자", "가깝다", "걸리다"];
   const [typed, setTyped] = useState("");
+  const [cefrSelected, setCefrSelected] = useState("B1");
 
   useEffect(() => {
-    if (!isActive) { setTyped(""); return; }
+    if (!isActive) { setTyped(""); setCefrSelected("B1"); return; }
     let i = 0;
     let tid: ReturnType<typeof setTimeout>;
+    let t1: ReturnType<typeof setTimeout> | undefined;
+    let t2: ReturnType<typeof setTimeout> | undefined;
     const tick = () => {
       if (i < FULL_TEXT.length) {
         setTyped(FULL_TEXT.slice(0, i + 1));
         i++;
         tid = setTimeout(tick, 70);
       } else {
-        tid = setTimeout(() => { setTyped(""); i = 0; tid = setTimeout(tick, 300); }, 2200);
+        // typing done — animate CEFR A1 → A2 → B1 during 2200ms pause
+        setCefrSelected("A1");
+        t1 = setTimeout(() => setCefrSelected("A2"), 600);
+        t2 = setTimeout(() => setCefrSelected("B1"), 1200);
+        tid = setTimeout(() => {
+          setTyped(""); i = 0;
+          setCefrSelected("B1");
+          tid = setTimeout(tick, 300);
+        }, 2200);
       }
     };
     tid = setTimeout(tick, 600);
-    return () => clearTimeout(tid);
+    return () => { clearTimeout(tid); if (t1) clearTimeout(t1); if (t2) clearTimeout(t2); };
   }, [isActive]);
 
   const wordCount = WORDS.filter(w => typed.includes(w)).length;
@@ -76,17 +87,18 @@ function PaneCreate({ isActive }: { isActive: boolean }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <StepBadge n={2} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#1A1714" }}>난이도 (CEFR)</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#1A1714" }}>난이도</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 4 }}>
           {CEFR_LEVELS.map((c) => (
             <div key={c.l} style={{
               padding: "5px 0", borderRadius: 9999, fontSize: 10.5, fontWeight: 700,
               textAlign: "center",
-              border: c.l === "B1" ? `2px solid ${c.border}` : "2px solid transparent",
+              border: c.l === cefrSelected ? `2px solid ${c.border}` : "2px solid transparent",
               background: c.bg, color: c.text,
-              opacity: c.l === "B1" ? 1 : 0.45,
-              boxShadow: c.l === "B1" ? `0 0 0 2px ${c.border}` : "none",
+              opacity: c.l === cefrSelected ? 1 : 0.45,
+              boxShadow: c.l === cefrSelected ? `0 0 0 2px ${c.border}` : "none",
+              transition: "all 180ms ease",
             }}>{c.l}</div>
           ))}
         </div>
@@ -154,11 +166,11 @@ function PaneBlank() {
           <div style={{ fontSize: 9.5, fontWeight: 700, color: "#64748B", textAlign: "center", marginBottom: 5, letterSpacing: "0.04em" }}>보기</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center" }}>
             {[
-              { w: "자다", used: true },
-              { w: "연습하다", used: true },
-              { w: "혼자", used: true },
-              { w: "가깝다", used: false },
               { w: "걸리다", used: false },
+              { w: "자다", used: true },
+              { w: "가깝다", used: false },
+              { w: "혼자", used: true },
+              { w: "연습하다", used: true },
             ].map((p, i) => (
               <span key={i} style={{
                 padding: "2px 9px", borderRadius: 9999, fontSize: 10.5, fontWeight: 500,
@@ -270,7 +282,7 @@ function PaneSentence({ isActive }: { isActive: boolean }) {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <div style={{ fontSize: 12, color: "#6B6460", fontWeight: 500, marginBottom: 12 }}>이 단어를 사용하여 문장을 만드세요</div>
           <div style={{ display: "inline-flex", alignItems: "center", padding: "10px 28px", background: "#fff", border: "1px solid #E2DDD8", borderRadius: 14, fontSize: 22, fontWeight: 700, color: "#1A1714" }}>걸리다</div>
-          <div style={{ fontSize: 12, color: "#6B6460", marginTop: 12, fontFamily: "'Geist', system-ui" }}>take time / catch</div>
+          <div style={{ fontSize: 12, color: "#6B6460", marginTop: 12, fontFamily: "'Geist', system-ui" }}>take time</div>
         </div>
       </div>
 
@@ -291,6 +303,7 @@ function PaneSentence({ isActive }: { isActive: boolean }) {
 
 // ─── Pane: 듣고 말하기 ───────────────────────────────────────────────────────
 function PaneSpeak() {
+  const [recording, setRecording] = useState(false);
   return (
     <div style={{ padding: "18px 22px 22px", display: "flex", flexDirection: "column", gap: 14, height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -321,10 +334,24 @@ function PaneSpeak() {
 
       {/* 녹음 컨트롤 */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-        <button style={{ width: 64, height: 64, borderRadius: "50%", background: "#1E6B47", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(30,107,71,0.28)" }}>
+        <button
+          onClick={() => setRecording(r => !r)}
+          style={{
+            width: 64, height: 64, borderRadius: "50%", border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: recording ? "#DC2626" : "#1E6B47",
+            boxShadow: recording
+              ? "0 4px 16px rgba(220,38,38,0.4), 0 0 0 0px rgba(220,38,38,0.2)"
+              : "0 4px 16px rgba(30,107,71,0.28)",
+            animation: recording ? "pulse-red 1.4s ease-in-out infinite" : "none",
+            transition: "background 200ms ease, box-shadow 200ms ease",
+          }}
+        >
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5 12c0 3.866 3.134 7 7 7s7-3.134 7-7" /><line x1="12" y1="19" x2="12" y2="22" /></svg>
         </button>
-        <span style={{ fontSize: 11, color: "#9E9894", fontFamily: "'Geist', system-ui" }}>마이크 버튼을 눌러 녹음을 시작하세요</span>
+        <span style={{ fontSize: 11, color: recording ? "#DC2626" : "#9E9894", fontFamily: "'Geist', system-ui", transition: "color 200ms ease" }}>
+          {recording ? "녹음 중... 버튼을 눌러 중지하세요" : "마이크 버튼을 눌러 녹음을 시작하세요"}
+        </span>
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
@@ -545,6 +572,7 @@ export function HeroProductMock() {
       <style>{`
         @keyframes blink { 0%, 50% { opacity: 1 } 51%, 100% { opacity: 0 } }
         @keyframes hero-progress { from { width: 0% } to { width: 100% } }
+        @keyframes pulse-red { 0%, 100% { box-shadow: 0 4px 16px rgba(220,38,38,0.4), 0 0 0 0px rgba(220,38,38,0.25) } 50% { box-shadow: 0 4px 16px rgba(220,38,38,0.4), 0 0 0 10px rgba(220,38,38,0.0) } }
       `}</style>
 
       {/* Tab bar above window */}
