@@ -38,7 +38,7 @@ export function LandingHeader() {
           </nav>
         </div>
 
-        <div className="ml-auto flex items-center gap-2 -mr-4">
+        <div className="ml-auto flex items-center gap-2">
           {user ? (
             <>
               <NotificationDropdown />
