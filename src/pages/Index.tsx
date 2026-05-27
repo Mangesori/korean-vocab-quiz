@@ -30,12 +30,12 @@ export default function Index() {
                 </h1>
 
                 <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-md break-keep">
-                  단어 목록을 붙여넣으면 빈칸 채우기, 문장 만들기, 말하기 퀴즈가{" "}
+                  단어만 입력하면 빈칸·문장·말하기 퀴즈가{" "}
                   <strong className="text-foreground font-semibold">10초 안에</strong> 만들어집니다.
-                  클래스에 바로 배포하고 결과까지 한눈에 볼 수 있어요.
+                  학생들에게 바로 배포하고 결과까지 한눈에 볼 수 있어요.
                 </p>
 
-                <div className="flex flex-wrap gap-3 mb-6">
+                <div className="flex gap-3 mb-6">
                   {user ? (
                     <Link to="/dashboard">
                       <Button size="lg" className="gap-2">
@@ -44,13 +44,13 @@ export default function Index() {
                     </Link>
                   ) : (
                     <>
-                      <Link to="/auth?mode=signup">
-                        <Button size="lg" className="gap-2">
+                      <Link to="/auth?mode=signup" className="flex-1 sm:flex-none">
+                        <Button size="lg" className="gap-2 w-full sm:w-auto">
                           무료로 시작하기 <ArrowRight className="w-4 h-4" />
                         </Button>
                       </Link>
-                      <Link to="/quiz/example">
-                        <Button variant="outline" size="lg">
+                      <Link to="/quiz/example" className="flex-1 sm:flex-none">
+                        <Button variant="outline" size="lg" className="w-full sm:w-auto">
                           퀴즈 맛보기
                         </Button>
                       </Link>

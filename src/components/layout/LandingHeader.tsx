@@ -25,18 +25,20 @@ export function LandingHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container grid grid-cols-[auto_1fr_auto] h-16 items-center gap-4">
+      <div className="container flex h-16 items-center gap-4">
         <Link to="/" className="hover:opacity-80 transition-opacity shrink-0">
           <img src="/Namu_logo_text_right.png" className="h-8 w-auto" alt="나무 Korean" />
         </Link>
 
-        <nav className="hidden md:flex items-center justify-center gap-6 text-[15px] font-medium text-foreground">
-          <a href="#features" className="hover:text-foreground transition-colors">기능</a>
-          <a href="#pricing" className="hover:text-foreground transition-colors">요금</a>
-          <a href="#help" className="hover:text-foreground transition-colors">도움말</a>
-        </nav>
+        <div className="flex-1 hidden md:flex justify-center">
+          <nav className="flex items-center gap-6 text-[15px] font-medium text-foreground">
+            <a href="#features" className="hover:text-foreground transition-colors">기능</a>
+            <a href="#pricing" className="hover:text-foreground transition-colors">요금</a>
+            <a href="#help" className="hover:text-foreground transition-colors">도움말</a>
+          </nav>
+        </div>
 
-        <div className="flex items-center gap-2 -mr-4">
+        <div className="ml-auto flex items-center gap-2 -mr-4">
           {user ? (
             <>
               <NotificationDropdown />

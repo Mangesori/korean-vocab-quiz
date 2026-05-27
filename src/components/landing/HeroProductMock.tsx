@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 
 const TABS = [
-  { id: "create", label: "퀴즈 만들기", role: "선생님", subtitle: "선생님 화면 / 새 퀴즈 만들기" },
-  { id: "blank", label: "빈칸 채우기", role: "학생", subtitle: "학생 화면 / 빈칸 채우기 퀴즈" },
-  { id: "sentence", label: "문장 만들기", role: "학생", subtitle: "학생 화면 / 문장 만들기 퀴즈" },
-  { id: "speak", label: "말하기 연습", role: "학생", subtitle: "학생 화면 / 말하기 연습 퀴즈" },
+  { id: "create", label: "만들기", role: "선생님", subtitle: "선생님 화면 / 새 퀴즈 만들기" },
+  { id: "blank", label: "빈칸", role: "학생", subtitle: "학생 화면 / 빈칸 채우기 퀴즈" },
+  { id: "sentence", label: "문장", role: "학생", subtitle: "학생 화면 / 문장 만들기 퀴즈" },
+  { id: "speak", label: "말하기", role: "학생", subtitle: "학생 화면 / 말하기 연습 퀴즈" },
   { id: "result", label: "결과", role: "학생", subtitle: "학생 화면 / 퀴즈 결과" },
 ] as const;
 
@@ -195,13 +195,13 @@ function PaneSentence() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <div style={{ fontSize: 12, color: "#6B6460", fontWeight: 500, marginBottom: 12 }}>이 단어를 사용하여 문장을 만드세요</div>
-          <div style={{ display: "inline-flex", alignItems: "center", padding: "10px 28px", background: "#fff", border: "1px solid #E2DDD8", borderRadius: 14, fontSize: 22, fontWeight: 700, color: "#1A1714" }}>날씨</div>
-          <div style={{ fontSize: 12, color: "#6B6460", marginTop: 12, fontFamily: "'Geist', system-ui" }}>weather</div>
+          <div style={{ display: "inline-flex", alignItems: "center", padding: "10px 28px", background: "#fff", border: "1px solid #E2DDD8", borderRadius: 14, fontSize: 22, fontWeight: 700, color: "#1A1714" }}>걸리다</div>
+          <div style={{ fontSize: 12, color: "#6B6460", marginTop: 12, fontFamily: "'Geist', system-ui" }}>take time / catch</div>
         </div>
       </div>
 
       <div style={{ padding: "12px 14px", minHeight: 80, border: "1.5px solid #1E6B47", borderRadius: 10, background: "#fff", boxShadow: "0 0 0 4px #E8F5EE", fontSize: 13, color: "#1A1714", lineHeight: 1.65 }}>
-        오늘 <strong style={{ color: "#1E6B47" }}>날씨</strong>가 너무 좋아서 공원에서 산책했어요.
+        집에서 학교까지 10분이 <strong style={{ color: "#1E6B47" }}>걸려요</strong>.
         <span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 1, animation: "blink 1.1s infinite" }} />
       </div>
 
@@ -230,12 +230,12 @@ function PaneSpeak() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, paddingTop: 8, paddingBottom: 4 }}>
           <p style={{ fontSize: 13, color: "#6B6460", fontWeight: 500, textAlign: "center" }}>음성을 듣고 따라 녹음하세요</p>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 10, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 8, width: "100%" }}>
+            <button style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 14px", borderRadius: 10, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
               보통 속도로 듣기
             </button>
-            <button style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 10, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
+            <button style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 14px", borderRadius: 10, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
               <span style={{ fontSize: 15, lineHeight: 1 }}>🐢</span>
               천천히 듣기
             </button>
@@ -282,7 +282,7 @@ function PaneResult() {
     <div style={{ padding: "14px 18px 18px", display: "flex", flexDirection: "column", gap: 10, height: "100%", overflowY: "auto" }}>
       {/* 점수 헤더 */}
       <div style={{ textAlign: "center", paddingTop: 2 }}>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 11, color: "#9E9894", marginBottom: 4 }}>봄 단어 어휘 퀴즈</div>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 11, color: "#9E9894", marginBottom: 4 }}>일상 어휘 퀴즈</div>
         <div style={{ fontSize: 44, fontWeight: 900, color: "#1E6B47", lineHeight: 1, letterSpacing: "-0.02em" }}>72%</div>
         <div style={{ display: "inline-block", marginTop: 7, padding: "4px 14px", borderRadius: 9999, background: "rgba(255,255,255,0.9)", border: "1px solid #E2DDD8", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", fontSize: 11, fontWeight: 700, color: "#1A1714" }}>
           25문제 중 18문제를 맞혔어요!
@@ -309,8 +309,8 @@ function PaneResult() {
       {/* 카드 목록 */}
       <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
         {tab === "blank" && [
-          { ok: true, n: 1, word: "사과", sentence: "저는 ", answer: "사과를", rest: " 좋아해요." },
-          { ok: false, n: 2, word: "김치", sentence: "발효 음식인 ", answer: "깍두기를", rest: " 자주 먹어요.", mine: "깍두기" },
+          { ok: true, n: 1, word: "가깝다", sentence: "집에서 학교까지 ", answer: "가까워요", rest: "." },
+          { ok: false, n: 2, word: "걸리다", sentence: "여기서 역까지 10분이 ", answer: "걸려요", rest: ".", mine: "가요" },
         ].map((c) => (
           <div key={c.n} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "10px 12px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
             {/* 헤더: [번호][단어] ... [듣기][번역 보기] */}
@@ -341,8 +341,8 @@ function PaneResult() {
         ))}
 
         {tab === "sentence" && [
-          { ok: true, n: 1, word: "날씨", mine: "오늘 날씨가 너무 좋아서 공원에서 산책했어요.", mineColors: [] as string[], recommend: "", feedback: "" },
-          { ok: false, n: 2, word: "여행", mine: "저는 여행을 가고 싶어요.", mineColors: ["여행을"] as string[], recommend: "저는 여행을 더 자주 가고 싶어요.", feedback: '"더 자주"처럼 빈도 표현을 추가해보세요.' },
+          { ok: true, n: 1, word: "혼자", mine: "저는 주말마다 혼자 운동해요.", mineColors: [] as string[], recommend: "", feedback: "" },
+          { ok: false, n: 2, word: "연습하다", mine: "저는 발음을 연습해요.", mineColors: ["연습해요."] as string[], recommend: "저는 매일 발음을 꾸준히 연습하고 있어요.", feedback: '"매일", "꾸준히" 같은 빈도·방법 표현을 추가해보세요.' },
         ].map((c) => (
           <div key={c.n} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "10px 12px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
             {/* 헤더 */}
@@ -380,8 +380,8 @@ function PaneResult() {
         ))}
 
         {tab === "speak" && [
-          { n: 1, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "오늘은 혼자 밥을 먹었어요.", wrongWords: [] as string[], feedback: "발음이 매우 자연스러워요!" },
-          { n: 2, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "오늘은 혼자 밥을 먹었어요.", wrongWords: ["오늘은"] as string[], feedback: "\"오늘은\" 발음에 더 주의해보세요." },
+          { n: 1, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "오늘은 일찍 잘 거예요.", wrongWords: [] as string[], feedback: "발음이 매우 자연스러워요!" },
+          { n: 2, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "매일 조금씩 연습해요.", wrongWords: ["연습해요."] as string[], feedback: "\"연습해요\" 발음에 더 주의해보세요." },
         ].map((c) => (
           <div key={c.n} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "10px 12px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
             {/* 헤더 */}
