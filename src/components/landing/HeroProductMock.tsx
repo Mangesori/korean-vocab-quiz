@@ -143,14 +143,59 @@ function PaneCreate({ isActive }: { isActive: boolean }) {
 }
 
 // ─── Pane: 빈칸 채우기 ───────────────────────────────────────────────────────
-function PaneBlank() {
-  const PROBLEMS = [
-    { n: 1, sentBefore: "피곤할 때는 일찍", sentAfter: "", hint: "-아/어요", answer: "자요", state: "done" as const },
-    { n: 2, sentBefore: "집에서도 한국어를", sentAfter: "", hint: "-았/었어요", answer: "연습했어요", state: "done" as const },
-    { n: 3, sentBefore: "오늘은", sentAfter: "밥을 먹었어요", hint: "", answer: "혼자", state: "done" as const },
-    { n: 4, sentBefore: "여기서 역까지", sentAfter: "", hint: "-아/어요", answer: "", state: "active" as const },
-    { n: 5, sentBefore: "집에서 학교까지 10분이", sentAfter: "", hint: "-아/어요", answer: "", state: "empty" as const },
+function PaneBlank({ isActive }: { isActive: boolean }) {
+  const Q1_ANS = "자요";
+  const Q2_ANS = "연습했어요";
+  const [q1typed, setQ1typed] = useState("");
+  const [q2typed, setQ2typed] = useState("");
+
+  useEffect(() => {
+    if (!isActive) { setQ1typed(""); setQ2typed(""); return; }
+    let cancelled = false;
+    const tids: ReturnType<typeof setTimeout>[] = [];
+    const T = (fn: () => void, ms: number) => {
+      const id = setTimeout(() => { if (!cancelled) fn(); }, ms);
+      tids.push(id);
+    };
+    const cycle = () => {
+      let t = 700;
+      for (let i = 1; i <= Q1_ANS.length; i++) {
+        const s = Q1_ANS.slice(0, i);
+        T(() => setQ1typed(s), t); t += 100;
+      }
+      t += 700;
+      for (let i = 1; i <= Q2_ANS.length; i++) {
+        const s = Q2_ANS.slice(0, i);
+        T(() => setQ2typed(s), t); t += 100;
+      }
+      t += 2000;
+      T(() => { setQ1typed(""); setQ2typed(""); T(cycle, 400); }, t);
+    };
+    cycle();
+    return () => { cancelled = true; tids.forEach(clearTimeout); };
+  }, [isActive]);
+
+  type QS = "done" | "typing" | "active" | "empty";
+  const q1s: QS = q1typed === Q1_ANS ? "done" : q1typed ? "typing" : "empty";
+  const q2s: QS = q2typed === Q2_ANS ? "done" : q2typed ? "typing" : "empty";
+
+  const PROBLEMS: { n: number; sentBefore: string; sentAfter: string; hint: string; answer: string; qs: QS }[] = [
+    { n: 1, sentBefore: "피곤할 때는 일찍", sentAfter: "", hint: "-아/어요", answer: q1typed, qs: q1s },
+    { n: 2, sentBefore: "집에서도 한국어를", sentAfter: "", hint: "-았/었어요", answer: q2typed, qs: q2s },
+    { n: 3, sentBefore: "오늘은", sentAfter: "밥을 먹었어요", hint: "", answer: "혼자", qs: "done" },
+    { n: 4, sentBefore: "여기서 역까지", sentAfter: "", hint: "-아/어요", answer: "", qs: "active" },
+    { n: 5, sentBefore: "집에서 학교까지 10분이", sentAfter: "", hint: "-아/어요", answer: "", qs: "empty" },
   ];
+
+  const bankWords = [
+    { w: "걸리다", struck: false },
+    { w: "자다", struck: q1typed === Q1_ANS },
+    { w: "가깝다", struck: false },
+    { w: "혼자", struck: false },
+    { w: "연습하다", struck: q2typed === Q2_ANS },
+  ];
+
+  const isGlow = (s: QS) => s === "active" || s === "typing";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -163,20 +208,15 @@ function PaneBlank() {
         <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "7px 12px", border: "1px solid #E2E8F0" }}>
           <div style={{ fontSize: 9.5, fontWeight: 700, color: "#64748B", textAlign: "center", marginBottom: 5, letterSpacing: "0.04em" }}>보기</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center" }}>
-            {[
-              { w: "걸리다", used: false },
-              { w: "자다", used: true },
-              { w: "가깝다", used: false },
-              { w: "혼자", used: true },
-              { w: "연습하다", used: true },
-            ].map((p, i) => (
+            {bankWords.map((p, i) => (
               <span key={i} style={{
                 padding: "2px 9px", borderRadius: 9999, fontSize: 10.5, fontWeight: 500,
-                background: p.used ? "#F1F5F9" : "#fff",
+                background: p.struck ? "#F1F5F9" : "#fff",
                 border: "1px solid #E2E8F0",
-                color: p.used ? "#94A3B8" : "#334155",
-                textDecoration: p.used ? "line-through" : "none",
-                opacity: p.used ? 0.6 : 1,
+                color: p.struck ? "#94A3B8" : "#334155",
+                textDecoration: p.struck ? "line-through" : "none",
+                opacity: p.struck ? 0.6 : 1,
+                transition: "all 250ms ease",
               }}>{p.w}</span>
             ))}
           </div>
@@ -202,18 +242,24 @@ function PaneBlank() {
             </div>
             <div style={{
               width: "100%", boxSizing: "border-box" as const,
-              border: p.state === "active" ? "1.5px solid #1E6B47" : p.state === "done" ? "1.5px solid #B6DFC8" : "1.5px solid #E2E8F0",
+              border: isGlow(p.qs) ? "1.5px solid #1E6B47" : p.qs === "done" ? "1.5px solid #B6DFC8" : "1.5px solid #E2E8F0",
               borderRadius: 9, padding: "8px 12px",
-              background: p.state === "done" ? "#F0FAF4" : "#fff",
-              boxShadow: p.state === "active" ? "0 0 0 3px #E8F5EE" : "none",
-              fontSize: 12.5, fontWeight: p.state === "done" ? 600 : 400,
-              color: p.state === "done" ? "#1E6B47" : "#94A3B8",
+              background: p.qs === "done" ? "#F0FAF4" : "#fff",
+              boxShadow: isGlow(p.qs) ? "0 0 0 3px #E8F5EE" : "none",
+              fontSize: 12.5,
+              fontWeight: p.qs === "done" || p.qs === "typing" ? 600 : 400,
+              color: p.qs === "done" ? "#1E6B47" : p.qs === "typing" ? "#1A1714" : "#94A3B8",
               display: "flex", alignItems: "center", justifyContent: "center",
               marginBottom: 7,
+              transition: "border 200ms ease, background 200ms ease, box-shadow 200ms ease",
             }}>
-              {p.state === "done" ? p.answer : p.state === "active" ? (
-                <>정답을 입력하세요<span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 3, animation: "blink 1.1s infinite" }} /></>
-              ) : "정답을 입력하세요"}
+              {p.qs === "done" ? p.answer
+                : p.qs === "typing" ? (
+                  <>{p.answer}<span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} /></>
+                ) : p.qs === "active" ? (
+                  <>정답을 입력하세요<span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 3, animation: "blink 1.1s infinite" }} /></>
+                ) : "정답을 입력하세요"
+              }
             </div>
             <div style={{ display: "flex", gap: 7 }}>
               <button style={{ flex: 1, padding: "6px", borderRadius: 8, background: "#fff", border: "1px solid #E2E8F0", fontSize: 11, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
@@ -614,7 +660,7 @@ export function HeroProductMock() {
           {TABS.map((t) => (
             <div key={t.id} style={{ position: "absolute", inset: 0, opacity: t.id === active ? 1 : 0, transition: "opacity 280ms ease", pointerEvents: t.id === active ? "auto" : "none" }}>
               {t.id === "create" && <PaneCreate isActive={active === "create"} />}
-              {t.id === "blank" && <PaneBlank />}
+              {t.id === "blank" && <PaneBlank isActive={active === "blank"} />}
               {t.id === "sentence" && <PaneSentence isActive={active === "sentence"} />}
               {t.id === "speak" && <PaneSpeak isActive={active === "speak"} />}
               {t.id === "result" && <PaneResult />}
