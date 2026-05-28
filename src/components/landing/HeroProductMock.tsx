@@ -161,15 +161,14 @@ function PaneBlank({ isActive }: { isActive: boolean }) {
       let t = 700;
       for (let i = 1; i <= Q1_ANS.length; i++) {
         const s = Q1_ANS.slice(0, i);
-        T(() => setQ1typed(s), t); t += 100;
+        T(() => setQ1typed(s), t); t += 500;
       }
       t += 700;
       for (let i = 1; i <= Q2_ANS.length; i++) {
         const s = Q2_ANS.slice(0, i);
-        T(() => setQ2typed(s), t); t += 100;
+        T(() => setQ2typed(s), t); t += 500;
       }
-      t += 2000;
-      T(() => { setQ1typed(""); setQ2typed(""); T(cycle, 400); }, t);
+      // stop after 2s hold — no reset, no loop
     };
     cycle();
     return () => { cancelled = true; tids.forEach(clearTimeout); };
@@ -182,7 +181,7 @@ function PaneBlank({ isActive }: { isActive: boolean }) {
   const PROBLEMS: { n: number; sentBefore: string; sentAfter: string; hint: string; answer: string; qs: QS }[] = [
     { n: 1, sentBefore: "피곤할 때는 일찍", sentAfter: "", hint: "-아/어요", answer: q1typed, qs: q1s },
     { n: 2, sentBefore: "집에서도 한국어를", sentAfter: "", hint: "-았/었어요", answer: q2typed, qs: q2s },
-    { n: 3, sentBefore: "오늘은", sentAfter: "밥을 먹었어요", hint: "", answer: "혼자", qs: "done" },
+    { n: 3, sentBefore: "오늘은", sentAfter: "밥을 먹었어요", hint: "", answer: "", qs: "empty" },
     { n: 4, sentBefore: "여기서 역까지", sentAfter: "", hint: "-아/어요", answer: "", qs: "active" },
     { n: 5, sentBefore: "집에서 학교까지 10분이", sentAfter: "", hint: "-아/어요", answer: "", qs: "empty" },
   ];
