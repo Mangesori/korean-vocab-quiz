@@ -84,9 +84,11 @@ function renderModelAnswerWithDiff(modelAnswer: string, studentSentence: string)
 function SentenceMakingView({
   problems,
   answers,
+  resultId,
 }: {
   problems: SentenceMakingProblemDetail[];
   answers: SentenceMakingAnswerDetail[];
+  resultId: string;
 }) {
   const [localAnswers, setLocalAnswers] = useState<SentenceMakingAnswerDetail[]>(answers);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
@@ -110,6 +112,7 @@ function SentenceMakingView({
     const modelAnswerChanged = newModelAnswer !== originalModelAnswer;
 
     let newFeedback = editDraft.ai_feedback.trim();
+    let newScores: { word_usage_score: number; grammar_score: number; naturalness_score: number; total_score: number; is_passed: boolean } | null = null;
 
     if (modelAnswerChanged) {
       const { data } = await supabase.functions.invoke("grade-sentence", {
@@ -122,19 +125,49 @@ function SentenceMakingView({
         },
       });
       if (data?.feedback) newFeedback = data.feedback;
+      if (data?.totalScore !== undefined) {
+        newScores = {
+          word_usage_score: data.wordUsageScore,
+          grammar_score: data.grammarScore,
+          naturalness_score: data.naturalnessScore,
+          total_score: data.totalScore,
+          is_passed: data.isPassed,
+        };
+      }
     }
+
+    const updatePayload: Record<string, unknown> = { model_answer: newModelAnswer, ai_feedback: newFeedback };
+    if (newScores) Object.assign(updatePayload, newScores);
 
     const { error } = await supabase
       .from("sentence_making_answers")
-      .update({ model_answer: newModelAnswer, ai_feedback: newFeedback })
+      .update(updatePayload)
       .eq("id", attempt.id);
 
     setIsSaving(false);
     if (!error) {
-      setLocalAnswers((prev) =>
-        prev.map((a) => a.id === attempt.id ? { ...a, model_answer: newModelAnswer, ai_feedback: newFeedback } : a)
+      const updatedAnswers = localAnswers.map((a) =>
+        a.id === attempt.id
+          ? { ...a, model_answer: newModelAnswer, ai_feedback: newFeedback, ...(newScores ?? {}) }
+          : a
       );
+      setLocalAnswers(updatedAnswers);
       setEditingCardId(null);
+
+      // 집계 점수 재계산: problem별 최고 attempt의 is_passed 카운트
+      if (newScores) {
+        const bestByProblem: Record<string, SentenceMakingAnswerDetail> = {};
+        for (const a of updatedAnswers) {
+          const ex = bestByProblem[a.problem_id];
+          if (!ex || a.attempt_number > ex.attempt_number) bestByProblem[a.problem_id] = a;
+        }
+        const passedCount = Object.values(bestByProblem).filter((a) => a.is_passed).length;
+        await supabase.rpc("update_quiz_result_sentence_score" as any, {
+          _result_id: resultId,
+          _score: passedCount,
+          _total: problems.length,
+        });
+      }
     }
   };
 
@@ -607,6 +640,7 @@ export function QuizResultDialog({
                   <SentenceMakingView
                     problems={detail.sentenceMakingProblems}
                     answers={detail.sentenceMakingAnswers}
+                    resultId={result.id}
                   />
                 </TabsContent>
               )}

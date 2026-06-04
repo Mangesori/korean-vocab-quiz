@@ -11,6 +11,7 @@ export interface SentenceMakingProblemDetail {
 
 export interface SentenceMakingAnswerDetail {
   id: string;
+  result_id: string;
   problem_id: string;
   attempt_number: number;
   student_sentence: string;
