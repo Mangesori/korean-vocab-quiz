@@ -236,7 +236,7 @@ serve(async (req) => {
     const reqBody = await req.json();
     const targetLang = reqBody.translationLanguage || "English"; // Default to English if not provided
 
-    // 피드백 재생성 모드: 선생님이 추천 문장을 수정했을 때
+    // 피드백+점수 재계산 모드: 선생님이 추천 문장을 수정했을 때
     if (reqBody.regenerate_feedback === true) {
       const { word, studentSentence, modelAnswer } = reqBody;
       if (!word || !studentSentence || !modelAnswer) {
@@ -245,23 +245,46 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const prompt = `당신은 한국어 교육 전문가입니다. 선생님이 학생 문장을 검토하고 교정문을 작성했습니다. 교정 내용을 바탕으로 학생에게 줄 피드백을 작성해주세요.
+      const prompt = `당신은 한국어 교육 전문가입니다. 선생님이 학생 문장을 검토하고 정답 기준 문장을 제공했습니다. 이 기준으로 학생 문장을 재채점하고 피드백을 작성해주세요.
 
 - 단어 (기본형): ${word}
 - 학생 문장: ${studentSentence}
-- 선생님 교정 문장: ${modelAnswer}
+- 선생님 정답 기준 문장: ${modelAnswer}
 
-피드백 작성 규칙:
-- ${targetLang}로 작성
-- 2-3문장, 격려하는 톤
-- 잘한 점과 어떤 부분이 왜 틀렸는지 설명
-- 피드백 텍스트만 반환 (JSON, 마크다운, 접두어 없이)`;
+채점 기준 (각 0-100점):
+1. wordUsageScore: 주어진 단어를 올바르게 사용했는가
+2. grammarScore: 조사·어미 등 문법이 정확한가
+3. naturalnessScore: 한국어로 자연스러운가
+4. totalScore: (wordUsageScore * 0.4 + grammarScore * 0.4 + naturalnessScore * 0.2) 반올림
+5. isPassed: totalScore >= 60
+6. feedback: ${targetLang}로 2-3문장, 격려하는 톤, 잘한 점과 틀린 부분 설명
 
-      const systemInstruction = "You are a Korean language education expert. Write helpful, encouraging feedback for students. Respond with plain text only — no JSON, no markdown.";
-      const feedback = await callClaude(prompt, systemInstruction);
-      return new Response(JSON.stringify({ feedback: feedback.trim() }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+반드시 아래 JSON 형식만 반환하세요 (마크다운 없이):
+{"wordUsageScore":숫자,"grammarScore":숫자,"naturalnessScore":숫자,"totalScore":숫자,"isPassed":불리언,"feedback":"문자열"}`;
+
+      const systemInstruction = "You are a Korean language education expert. Respond only in valid JSON format with no markdown or extra text.";
+      const jsonStr = await callClaude(prompt, systemInstruction);
+      let result: { wordUsageScore: number; grammarScore: number; naturalnessScore: number; totalScore: number; isPassed: boolean; feedback: string };
+      try {
+        result = JSON.parse(jsonStr);
+      } catch {
+        // JSON 파싱 실패 시 피드백만 반환하는 폴백
+        return new Response(JSON.stringify({ feedback: jsonStr.trim() }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const validated = validateAndClampResult({ ...result, errors: [], modelAnswer });
+      return new Response(
+        JSON.stringify({
+          feedback: result.feedback?.trim() ?? "",
+          wordUsageScore: validated.wordUsageScore,
+          grammarScore: validated.grammarScore,
+          naturalnessScore: validated.naturalnessScore,
+          totalScore: validated.totalScore,
+          isPassed: validated.isPassed,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // 일괄 채점 모드: problems 배열이 있는 경우
