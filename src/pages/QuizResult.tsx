@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Home, FileText, Pencil, Mic, Play, Pause, CheckCircle, XCircle, Lightbulb, Volume2 } from 'lucide-react';
 import { QuizReviewCard } from '@/components/quiz/QuizReviewCard';
+import { FeedbackPromptCard } from '@/components/feedback/FeedbackPromptCard';
+import { renderSentenceWithDiff, renderModelAnswerWithDiff, renderSentenceWithFeedback, generateSpeakingFeedback, type SpeakingFeedbackInput } from '@/components/quiz/quizResultUtils';
 
 interface Problem {
   id: string;
@@ -96,42 +98,6 @@ interface Result {
   recording_total?: number;
 }
 
-function renderSentenceWithDiff(studentSentence: string, modelAnswer: string | null | undefined, isPerfect: boolean) {
-  const noCorrection = isPerfect || !modelAnswer || modelAnswer.trim() === studentSentence.trim();
-
-  if (noCorrection) {
-    return <span className="text-success">{studentSentence}</span>;
-  }
-  const studentWords = studentSentence.trim().split(/\s+/);
-  const modelWords = modelAnswer!.trim().split(/\s+/);
-  return (
-    <>
-      {studentWords.map((word, idx) => {
-        const isCorrect = modelWords.includes(word);
-        if (!isCorrect) {
-          return <span key={idx} className="text-destructive font-bold mr-1.5 border-b-2 border-destructive/30 pb-0.5">{word}</span>;
-        }
-        return <span key={idx} className="mr-1.5 text-slate-700">{word}</span>;
-      })}
-    </>
-  );
-}
-
-function renderModelAnswerWithDiff(modelAnswer: string, studentSentence: string) {
-  const modelWords = modelAnswer.trim().split(/\s+/);
-  const studentWords = studentSentence.trim().split(/\s+/);
-  return (
-    <>
-      {modelWords.map((word, idx) => {
-        const isOriginal = studentWords.includes(word);
-        if (!isOriginal) {
-          return <span key={idx} className="text-primary font-bold mr-1.5 border-b-2 border-primary/30 pb-0.5">{word}</span>;
-        }
-        return <span key={idx} className="mr-1.5 text-slate-700">{word}</span>;
-      })}
-    </>
-  );
-}
 
 export default function QuizResult() {
   const { id, resultId } = useParams<{ id: string; resultId: string }>();
@@ -444,7 +410,9 @@ export default function QuizResult() {
                                   내 답변
                                 </span>
                                 <h3 className="text-lg font-bold leading-relaxed">
-                                  {renderSentenceWithDiff(studentSentence, lastAttempt?.model_answer, isPerfect)}
+                                  {renderSentenceWithDiff(studentSentence, lastAttempt?.model_answer,
+                                    isPerfect || !lastAttempt?.model_answer || studentSentence.trim() === lastAttempt.model_answer.trim()
+                                  )}
                                 </h3>
                               </div>
 
@@ -482,56 +450,14 @@ export default function QuizResult() {
                       const lastAttempt = answers[answers.length - 1];
                       const isPassed = (lastAttempt as any)?.isPassed ?? lastAttempt?.is_passed ?? false;
                       const wordFeedback = (lastAttempt as any)?.wordLevelFeedback ?? lastAttempt?.word_level_feedback ?? [];
-                      
-                      // Feedback rendering helpers
-                      const renderSentenceFeedback = () => {
-                        if (!wordFeedback || wordFeedback.length === 0) {
-                          return <span className={isPassed ? "text-success font-bold" : ""}>{problem.sentence}</span>;
-                        }
-                        const lowScoreWords = new Set(
-                          wordFeedback.filter((w: any) => w.accuracyScore < 60).map((w: any) => w.word.replace(/[.,!?。，！？]/g, ""))
-                        );
-                        if (lowScoreWords.size === 0) {
-                          return <span className="text-success font-bold">{problem.sentence}</span>;
-                        }
-                        return (
-                          <span className="font-bold">
-                            {problem.sentence.split(/(\s+)/).map((word, i) => {
-                              const cleanWord = word.replace(/[.,!?。，！？]/g, "");
-                              if (lowScoreWords.has(cleanWord)) {
-                                return <span key={i} className="text-destructive">{word}</span>;
-                              }
-                              return <span key={i} className="text-success">{word}</span>;
-                            })}
-                          </span>
-                        );
-                      };
-
-                      const generateGeneralFeedback = () => {
-                        if (!lastAttempt) return "";
-                        const lowWords = wordFeedback.filter((w: any) => w.accuracyScore < 60).map((w: any) => w.word.replace(/[.,!?。，！？]/g, ""));
-                        if (lowWords.length > 0) {
-                          const displayWords = lowWords.slice(0, 3).join("', '");
-                          const suffix = lowWords.length > 3 ? "' and others" : "'";
-                          return `Pay closer attention to the pronunciation of '${displayWords}${suffix}. Listen to the native speaker and try again!`;
-                        }
-                        if (isPassed) {
-                          const overall = (lastAttempt as any)?.overallScore ?? lastAttempt?.overall_score ?? 0;
-                          if (overall >= 90) return "Excellent pronunciation! You sound very natural and clear.";
-                          let feedback = "Good job! ";
-                          if (((lastAttempt as any)?.fluencyScore ?? lastAttempt?.fluency_score ?? 100) < 80) {
-                            feedback += "Try to speak a bit more smoothly without pausing.";
-                          } else if (((lastAttempt as any)?.prosodyScore ?? lastAttempt?.prosody_score ?? 100) < 80) {
-                            feedback += "Pay a little more attention to the natural rhythm and intonation.";
-                          } else if (((lastAttempt as any)?.completenessScore ?? lastAttempt?.completeness_score ?? 100) < 80) {
-                            feedback += "Make sure to pronounce every word in the sentence clearly.";
-                          } else {
-                            feedback += "Keep practicing to make it even more natural.";
-                          }
-                          return feedback;
-                        }
-                        return "Please listen carefully to the native speaker and try again.";
-                      };
+                      const speakingFeedbackInput: SpeakingFeedbackInput = lastAttempt ? {
+                        isPassed,
+                        overallScore: (lastAttempt as any)?.overallScore ?? lastAttempt?.overall_score ?? 0,
+                        fluencyScore: (lastAttempt as any)?.fluencyScore ?? lastAttempt?.fluency_score ?? 100,
+                        prosodyScore: (lastAttempt as any)?.prosodyScore ?? lastAttempt?.prosody_score ?? 100,
+                        completenessScore: (lastAttempt as any)?.completenessScore ?? lastAttempt?.completeness_score ?? 100,
+                        wordLevelFeedback: wordFeedback,
+                      } : { isPassed: false, overallScore: 0, fluencyScore: 100, prosodyScore: 100, completenessScore: 100 };
 
                       return (
                         <Card key={problem.id} className="overflow-hidden border bg-white rounded-xl shadow-sm">
@@ -612,11 +538,11 @@ export default function QuizResult() {
 
                             <div className="mt-6 border-t border-slate-100 pt-5 space-y-4 px-1 sm:px-3">
                               <div className="text-lg">
-                                {renderSentenceFeedback()}
+                                {renderSentenceWithFeedback(problem.sentence, wordFeedback, isPassed)}
                               </div>
-                              
+
                               <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                                <p className="text-sm text-slate-600 leading-relaxed break-keep">{generateGeneralFeedback()}</p>
+                                <p className="text-sm text-slate-600 leading-relaxed break-keep">{lastAttempt ? generateSpeakingFeedback(speakingFeedbackInput) : ""}</p>
                               </div>
                             </div>
                           </CardContent>
@@ -659,8 +585,13 @@ export default function QuizResult() {
             </div>
           )}
 
+          {/* 피드백 별점 카드 */}
+          <div className="mt-12">
+            <FeedbackPromptCard context="quiz_result" />
+          </div>
+
           {/* 하단 버튼 */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-12 mb-20">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6 mb-20">
             <Link to="/dashboard">
               <Button variant="outline" className="w-full sm:w-auto min-w-[200px] h-14 text-base rounded-xl font-medium" size="lg">
                 <Home className="w-4 h-4 mr-2" /> 대시보드로 돌아가기

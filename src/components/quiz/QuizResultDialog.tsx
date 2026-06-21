@@ -16,6 +16,7 @@ import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { QuizReviewCard } from "@/components/quiz/QuizReviewCard";
 import { useQuizResultDetail } from "@/hooks/useQuizResultDetail";
+import { renderSentenceWithDiff, renderModelAnswerWithDiff, renderSentenceWithFeedback } from "@/components/quiz/quizResultUtils";
 import { formatDateFull } from '@/lib/formatDate';
 import type {
   SentenceMakingProblemDetail,
@@ -45,41 +46,6 @@ interface QuizResultDialogProps {
   quizId: string;
 }
 
-// 학생 답변과 모범 답안을 비교하여 틀린 단어를 빨간색으로 표시
-function renderSentenceWithDiff(studentSentence: string, modelAnswer: string | null | undefined, isPerfect: boolean) {
-  if (isPerfect || !modelAnswer) {
-    return <span className={isPerfect ? "text-success" : "text-slate-700"}>{studentSentence}</span>;
-  }
-  const studentWords = studentSentence.trim().split(/\s+/);
-  const modelWords = modelAnswer.trim().split(/\s+/);
-  return (
-    <>
-      {studentWords.map((word, idx) => {
-        const isCorrect = modelWords.includes(word);
-        if (!isCorrect) {
-          return <span key={idx} className="text-destructive font-bold mr-1.5 border-b-2 border-destructive/30 pb-0.5">{word}</span>;
-        }
-        return <span key={idx} className="mr-1.5 text-slate-700">{word}</span>;
-      })}
-    </>
-  );
-}
-
-function renderModelAnswerWithDiff(modelAnswer: string, studentSentence: string) {
-  const modelWords = modelAnswer.trim().split(/\s+/);
-  const studentWords = studentSentence.trim().split(/\s+/);
-  return (
-    <>
-      {modelWords.map((word, idx) => {
-        const isOriginal = studentWords.includes(word);
-        if (!isOriginal) {
-          return <span key={idx} className="text-primary font-bold mr-1.5 border-b-2 border-primary/30 pb-0.5">{word}</span>;
-        }
-        return <span key={idx} className="mr-1.5 text-slate-700">{word}</span>;
-      })}
-    </>
-  );
-}
 
 function SentenceMakingView({
   problems,
@@ -348,32 +314,6 @@ function RecordingView({
     audio.onended = () => setPlayingId(null);
     audio.onerror = () => setPlayingId(null);
     audio.play();
-  };
-
-  const renderSentenceWithFeedback = (
-    sentence: string,
-    wordFeedback?: { word: string; accuracyScore: number }[],
-    isPassed?: boolean
-  ) => {
-    if (!wordFeedback || wordFeedback.length === 0) {
-      return <span className={isPassed ? "text-success font-bold" : ""}>{sentence}</span>;
-    }
-    const lowScoreWords = new Set(
-      wordFeedback.filter((w) => w.accuracyScore < 60).map((w) => w.word.replace(/[.,!?。，！？]/g, ""))
-    );
-    if (lowScoreWords.size === 0) {
-      return <span className="text-success font-bold">{sentence}</span>;
-    }
-    return (
-      <span className="font-bold">
-        {sentence.split(/(\s+)/).map((word, idx) => {
-          const clean = word.replace(/[.,!?。，！？]/g, "");
-          return lowScoreWords.has(clean)
-            ? <span key={idx} className="text-destructive">{word}</span>
-            : <span key={idx} className="text-success">{word}</span>;
-        })}
-      </span>
-    );
   };
 
   if (problems.length === 0 || answers.length === 0) {

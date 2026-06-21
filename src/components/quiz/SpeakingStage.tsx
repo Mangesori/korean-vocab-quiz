@@ -18,6 +18,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { renderSentenceWithFeedback } from "@/components/quiz/quizResultUtils";
 
 interface SpeakingProblem {
   id: string;
@@ -334,39 +335,6 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const renderSentenceWithFeedback = (sentence: string, wordFeedback: { word: string; accuracyScore: number; errorType?: string }[]) => {
-    if (!wordFeedback || wordFeedback.length === 0) {
-      return <span className="text-success font-bold">{sentence}</span>;
-    }
-
-    const lowScoreWords = new Set(
-      wordFeedback
-        .filter((w) => w.accuracyScore < 60)
-        .map((w) => w.word.replace(/[.,!?。，！？]/g, ""))
-    );
-
-    if (lowScoreWords.size === 0) {
-      return <span className="text-success font-bold">{sentence}</span>;
-    }
-
-    const words = sentence.split(/(\s+)/);
-    return (
-      <span className="font-bold">
-        {words.map((word, idx) => {
-          const cleanWord = word.replace(/[.,!?。，！？]/g, "");
-          if (lowScoreWords.has(cleanWord)) {
-            return (
-              <span key={idx} className="text-destructive">
-                {word}
-              </span>
-            );
-          }
-          return <span key={idx} className="text-success">{word}</span>;
-        })}
-      </span>
-    );
-  };
-
   if (!currentProblem) {
     return null;
   }
@@ -466,7 +434,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
               </div>
               {isRecording && (
                 <div className="flex items-center gap-2 text-destructive">
-                  <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-destructive animate-pulse-soft" />
                   <span className="font-mono">{formatTime(recordingTime)}</span>
                 </div>
               )}

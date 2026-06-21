@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
+import { Loader2, AlertCircle, Bookmark, ChevronRight } from "lucide-react";
 
 export default function QuizShare() {
   const { token } = useParams<{ token: string }>();
@@ -18,6 +16,8 @@ export default function QuizShare() {
   const [teacherName, setTeacherName] = useState<string>("");
   const [remainingAttempts, setRemainingAttempts] = useState<number>(0);
   const [anonymousName, setAnonymousName] = useState("");
+  const [sentenceCount, setSentenceCount] = useState(0);
+  const [recordingCount, setRecordingCount] = useState(0);
 
 
   useEffect(() => {
@@ -91,6 +91,13 @@ export default function QuizShare() {
         .eq("user_id", quizData.teacher_id)
         .single();
 
+      const [{ count: sc }, { count: rc }] = await Promise.all([
+        supabase.from("sentence_making_problems").select("*", { count: "exact", head: true }).eq("quiz_id", shareData.quiz_id),
+        supabase.from("recording_problems").select("*", { count: "exact", head: true }).eq("quiz_id", shareData.quiz_id),
+      ]);
+      setSentenceCount(sc ?? 0);
+      setRecordingCount(rc ?? 0);
+
       setQuiz(quizData);
       setTeacherName(profileData?.name || "선생님");
       setIsLoading(false);
@@ -129,87 +136,112 @@ export default function QuizShare() {
     );
   }
 
-  return (
-    <AppLayout>
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Banner */}
-        <Alert className="mb-6 border-primary bg-primary/5">
-          <AlertDescription className="text-center">
-            이 퀴즈는 <span className="font-semibold">{teacherName}</span>님이 공유했습니다
-          </AlertDescription>
-        </Alert>
+  const typeChips = [
+    { label: "빈칸 채우기", count: `${quiz.problems.length}문제`, show: true },
+    { label: "문장 만들기", count: `${sentenceCount}문제`, show: !!quiz.sentence_making_enabled },
+    { label: "말하기 연습", count: `${recordingCount}문제`, show: !!quiz.recording_enabled },
+  ].filter((t) => t.show);
 
-        {/* Quiz Info Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">{quiz.title}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">난이도:</span>{" "}
-                <span className="font-medium">{quiz.difficulty}</span>
+  return (
+    <div className="min-h-screen flex flex-col bg-[#F8F5F0]">
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-[456px] flex flex-col items-center">
+          {/* 브랜드 */}
+          <img src="/Namu_logo_text_right.png" className="h-16 w-auto mb-6" alt="나무 Korean" />
+
+          {/* 퀴즈 카드 */}
+          <div className="w-full bg-card border border-border rounded-2xl shadow-md overflow-hidden">
+            {/* 그라데이션 헤더 */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#1E6B47] to-[#155237] text-white px-7 py-6">
+              <div className="flex items-center gap-2 text-sm opacity-90 mb-3">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20 text-[11px] font-bold">
+                  {teacherName.charAt(0)}
+                </span>
+                <span><span className="font-semibold">{teacherName}</span>님이 보낸 퀴즈</span>
               </div>
-              <div>
-                <span className="text-muted-foreground">문제 수:</span>{" "}
-                <span className="font-medium">{quiz.problems.length}개</span>
-              </div>
-              <div className="col-span-2">
-                <span className="text-muted-foreground">남은 응시 횟수:</span>{" "}
-                <span className="font-medium text-primary">{remainingAttempts}회</span>
+              <h1 className="font-bold text-[27px] leading-tight">{quiz.title}</h1>
+              <div className="flex flex-wrap items-center gap-2 mt-3.5">
+                <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-primary">
+                  {quiz.difficulty}
+                </span>
+                <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold">
+                  문제 {quiz.problems.length + (quiz.sentence_making_enabled ? sentenceCount : 0) + (quiz.recording_enabled ? recordingCount : 0)}개
+                </span>
+                <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold">
+                  남은 응시 {remainingAttempts}회
+                </span>
               </div>
             </div>
 
+            {/* 본문 */}
+            <div className="px-7 pt-6 pb-7">
+              {typeChips.length > 1 && (
+                <div className="flex gap-2 mb-5">
+                  {typeChips.map((t) => (
+                    <div key={t.label} className="flex-1 flex flex-col items-center gap-1.5 py-3 px-2 border border-border rounded-xl text-center">
+                      <div className="text-[13px] font-bold text-foreground whitespace-nowrap">{t.label}</div>
+                      <div className="font-mono text-[11px] text-muted-foreground">{t.count}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-            <div className="space-y-4 pt-4 border-t">
               {user ? (
-                <div className="text-center space-y-2">
+                <div className="text-center space-y-1 mb-2">
                   <p className="font-medium text-lg">
                     <span className="text-primary">{user.user_metadata.name}</span>님으로 참여합니다
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    준비되셨나요?
-                  </p>
+                  <p className="text-sm text-muted-foreground">준비되셨나요?</p>
                 </div>
               ) : (
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">
-                    이름을 입력해주세요
+                  <label className="block text-[12.5px] font-semibold text-foreground mb-1.5">
+                    이름을 입력하고 시작하세요
                   </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={anonymousName}
-                      onChange={(e) => setAnonymousName(e.target.value)}
-                      placeholder="홍길동"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                    {anonymousName.trim().length > 0 && anonymousName.trim().length < 2 && (
-                      <p className="text-xs text-destructive mt-1">
-                        이름은 2글자 이상 입력해주세요
-                      </p>
-                    )}
-                  </div>
+                  <input
+                    type="text"
+                    value={anonymousName}
+                    onChange={(e) => setAnonymousName(e.target.value)}
+                    placeholder="예) 이서연"
+                    className="w-full h-[46px] px-3.5 rounded-[10px] border border-border bg-card text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
+                  />
+                  {anonymousName.trim().length > 0 && anonymousName.trim().length < 2 && (
+                    <p className="text-xs text-destructive mt-1">이름은 2글자 이상 입력해주세요</p>
+                  )}
                 </div>
               )}
 
               <button
                 onClick={startQuiz}
-                disabled={(!user && (!anonymousName.trim() || anonymousName.trim().length < 2))}
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!user && (!anonymousName.trim() || anonymousName.trim().length < 2)}
+                className="w-full mt-4 h-[50px] rounded-[11px] bg-primary text-white font-bold text-base flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(30,107,71,.24)] hover:bg-[#155237] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 퀴즈 시작하기
               </button>
-            </div>
 
-            {!user && (
-              <p className="text-sm text-muted-foreground text-center">
-                로그인 없이 바로 시작할 수 있습니다
+              <p className="text-xs text-muted-foreground text-center mt-3.5 leading-relaxed">
+                내 답안은 <span className="font-medium text-foreground">{teacherName}</span> 선생님이 볼 수 있어요.
               </p>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+
+          {/* 학생 전환 배너 (게스트만) */}
+          {!user && (
+            <Link
+              to="/auth?mode=signup"
+              className="w-full mt-4 flex items-center gap-2.5 px-4 py-3.5 rounded-xl border border-dashed border-border bg-card hover:bg-accent transition-colors"
+            >
+              <Bookmark className="h-5 w-5 text-primary shrink-0" />
+              <span className="text-[13px] text-muted-foreground leading-snug">
+                <span className="font-semibold text-foreground">가입하면</span> 점수와 오답을 저장할 수 있어요.
+              </span>
+              <span className="ml-auto flex items-center gap-0.5 text-[13px] font-semibold text-primary whitespace-nowrap">
+                학생으로 가입 <ChevronRight className="h-4 w-4" />
+              </span>
+            </Link>
+          )}
+        </div>
       </div>
-    </AppLayout>
+    </div>
   );
 }

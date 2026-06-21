@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { renderSentenceWithDiff, renderModelAnswerWithDiff } from "@/components/quiz/quizResultUtils";
 
 interface SentenceAttempt {
   attemptNumber: number;
@@ -12,46 +13,6 @@ interface SentenceAttempt {
   isPassed: boolean;
 }
 
-// 학생 답변과 모범 답안을 비교하여 틀린 단어를 빨간색으로 표시
-function renderSentenceWithDiff(studentSentence: string, modelAnswer: string | null | undefined, isGood: boolean) {
-  if (isGood || !modelAnswer) {
-    return <span className="text-success">{studentSentence}</span>;
-  }
-
-  const studentWords = studentSentence.trim().split(/\s+/);
-  const modelWords = modelAnswer!.trim().split(/\s+/);
-
-  return (
-    <>
-      {studentWords.map((word, idx) => {
-        // 모범 답안에 똑같은 텍스트가 존재하는지 여부로 단순 Diff 처리
-        const isCorrect = modelWords.includes(word);
-        if (!isCorrect) {
-          return <span key={idx} className="text-destructive font-bold mr-1.5 border-b-2 border-destructive/30 pb-0.5">{word}</span>;
-        }
-        return <span key={idx} className="mr-1.5 text-slate-700">{word}</span>;
-      })}
-    </>
-  );
-}
-
-// 모범 답안에서 학생이 틀린(수정된) 부분만 파란색(Primary)으로 표시
-function renderModelAnswerWithDiff(modelAnswer: string, studentSentence: string) {
-  const modelWords = modelAnswer.trim().split(/\s+/);
-  const studentWords = studentSentence.trim().split(/\s+/);
-  
-  return (
-    <>
-      {modelWords.map((word, idx) => {
-        const isOriginal = studentWords.includes(word);
-        if (!isOriginal) {
-          return <span key={idx} className="text-primary font-bold mr-1.5 border-b-2 border-primary/30 pb-0.5">{word}</span>;
-        }
-        return <span key={idx} className="mr-1.5 text-slate-700">{word}</span>;
-      })}
-    </>
-  );
-}
 
 interface SentenceMakingProblem {
   id: string;
@@ -133,11 +94,13 @@ export function SentenceMakingResultStage({
                       내 답변
                     </span>
                     <h3 className="text-lg font-bold leading-relaxed">
-                      {renderSentenceWithDiff(attempt.sentence, attempt.modelAnswer, isGood)}
+                      {renderSentenceWithDiff(attempt.sentence, attempt.modelAnswer,
+                        isPerfect || !attempt.modelAnswer || attempt.sentence.trim() === attempt.modelAnswer.trim()
+                      )}
                     </h3>
                   </div>
 
-                  {(!isGood && attempt.modelAnswer && attempt.modelAnswer.trim() !== attempt.sentence.trim()) && (
+                  {(!isPerfect && attempt.modelAnswer && attempt.modelAnswer.trim() !== attempt.sentence.trim()) && (
                     <div className="flex items-start gap-3">
                       <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-primary/10 text-primary">
                         추천 문장

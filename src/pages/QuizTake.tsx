@@ -1117,15 +1117,15 @@ export default function QuizTake() {
                           ? "bg-primary text-primary-foreground shadow-md"
                           : idx < currentGlobalIndex
                           ? "bg-primary/20 text-primary"
-                          : "text-muted-foreground bg-muted"
+                          : "text-muted-foreground bg-card border border-border"
                       }`}>
                         {/* 활성화된 뱃지의 숫자 배경을 눈에 잘 띄게 흰색으로 적용 */}
                         <span className={`flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full text-[10px] sm:text-xs shadow-sm font-bold ${
-                          idx === currentGlobalIndex 
-                            ? "bg-white text-primary" 
-                            : idx < currentGlobalIndex 
-                            ? "bg-primary text-white" 
-                            : "bg-background text-muted-foreground"
+                          idx === currentGlobalIndex
+                            ? "bg-white text-primary"
+                            : idx < currentGlobalIndex
+                            ? "bg-primary text-white"
+                            : "bg-muted text-muted-foreground"
                         }`}>
                           {idx + 1}
                         </span>
