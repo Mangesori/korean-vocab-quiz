@@ -9,7 +9,7 @@
 
 ## Memorable Thing
 
-> "초 만에 완성되는 한국어 퀴즈"
+> "10초 만에 완성되는 한국어 퀴즈"
 
 속도와 효율이 핵심 가치. 선생님은 바쁘다. 디자인은 그 바쁨을 덜어줘야 한다.
 
@@ -22,15 +22,10 @@
 
 ## Typography
 
-- **한국어 전체 (한글 본문/UI):** Pretendard Variable — 가장 잘 설계된 한국어 web font. 굵기 9단계, 한글 획 세밀. CDN: `https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css`
-- **한국어 Display (브랜드/랜딩):** Paperozi (font-family 이름) — 실제 폰트는 **Paperlogy**. `@font-face`로 CDN에서 전 웨이트(100–900) 직접 로드. 나무 워드마크, 홈, 랜딩, 마케팅 display에만 사용. 앱 내 일반 UI에는 사용하지 않음.
-- **영문 Display/Hero:** DM Serif Display — 선생님 대시보드 큰 타이틀, 마케팅 헤더에만 사용. Google Fonts.
-- **영문 Body/UI:** Geist — 점수, 타이머, UI 라벨, 영문 본문. Vercel Fonts / Google Fonts.
-- **데이터/점수/숫자:** Geist Mono (tabular-nums) — 점수판, 타이머, 통계 수치. 고정폭으로 정렬 유지.
-- **Font Utility Classes:**
-  - `.font-brand` → `font-brand` (Paperozi/Paperlogy) — 나무 워드마크, 랜딩 hero
-  - `.font-ui` → `font-ui` (Geist) — 영문 UI 라벨
-  - `.font-mono` → `font-mono` (Geist Mono) — 점수, 타이머, 통계
+- **전체 (한글·영문·숫자 모두):** Pretendard Variable — 단일 폰트로 통일. 가장 잘 설계된 한국어 web font, 굵기 9단계(100–900), 라틴·숫자 글리프도 깔끔(슬래시 없는 0). CDN: `https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css`
+- **제거됨 (2026-06):** Paperozi/Paperlogy, DM Serif Display, Geist, Geist Mono — 모두 제거하고 Pretendard 하나로 통일. (Geist Mono의 슬래시 제로 비선호 + 폰트 수 최소화)
+- **숫자 정렬:** 별도 mono 없이 Pretendard + `font-feature-settings: "tnum" 1`(고정폭 숫자)로 표·가격 정렬 유지.
+- **Font Utility Classes:** `.font-brand` / `.font-ui` / `.font-mono` 는 **의미용 별칭으로만 유지** — 전부 Pretendard로 렌더(`.font-mono`만 tabular-nums 추가). 신규 코드는 가급적 기본(Pretendard)을 쓰고 이 별칭에 의존하지 말 것.
 
 - **Scale:**
   - xs: 11px (캡션, 라벨)
@@ -62,6 +57,11 @@
   - warning: `#D97706` — 주의
   - error: `#C13B2E` — 오답, 경고, 삭제
   - info: `#1D4ED8` — 안내
+
+- **퀴즈 유형 의미색:** 유형 구분 전용 고정색. 태그/아이콘/통계 범례에만 사용, 일반 UI 강조엔 금지.
+  - 빈칸 채우기: #1E6B47 (primary, --type-fill)
+  - 문장 만들기: #6D28D9 (보라, --type-sentence) · 배경 #EDE9FE
+  - 말하기 연습: #C13B2E (error 레드, --type-speaking) · 배경 #FEE2E2
 
 - **Dark mode:**
   - surface: `#141210`
@@ -209,3 +209,4 @@
 | 2026-05-26 | 나뭇잎 그린 #8FC85A 추가 (로고 전용) | 로고 리프 아이콘 포인트 컬러. 일반 UI 사용 금지. |
 | 2026-05-26 | AppSidebar 레이아웃 도입 | 역할별 네비게이션(선생님/학생/관리자) 분리. sidebar CSS 토큰 시스템 추가. |
 | 2026-05-26 | --radius 0.5rem → 0.75rem | 전체적으로 더 부드러운 모서리. 카드/모달 질감 개선. |
+| 2026-06-11 | 폰트 단일화 → Pretendard 하나 | Paperozi·DM Serif·Geist·Geist Mono 전부 제거. Geist Mono 슬래시 제로 비선호 + 폰트 수/로드 최소화. 숫자는 Pretendard + tnum. |

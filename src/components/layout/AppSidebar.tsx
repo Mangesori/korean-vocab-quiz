@@ -27,6 +27,7 @@ import {
   LogOut,
   GraduationCap,
   FileText,
+  MessageSquare,
 } from "lucide-react";
 
 interface NavItem {
@@ -59,7 +60,7 @@ function NavLink({ item }: { item: NavItem }) {
         className={SB_ITEM_CLASS}
         onClick={() => setOpenMobile(false)}
       >
-        <Link to={item.path}>
+        <Link to={item.path + (item.exactSearch ?? "")}>
           <Icon className="w-[15px] h-[15px] shrink-0" />
           <span>{item.label}</span>
         </Link>
@@ -103,6 +104,7 @@ export function AppSidebar() {
     { path: "/admin", icon: Shield,        label: "관리자 대시보드", exactSearch: "" },
     { path: "/admin", icon: GraduationCap, label: "선생님 관리",     exactSearch: "?tab=teachers" },
     { path: "/admin", icon: FileText,      label: "시스템 리포트",   exactSearch: "?tab=report" },
+    { path: "/admin", icon: MessageSquare, label: "피드백",         exactSearch: "?tab=feedback" },
   ];
 
   const adminTeacherItems: NavItem[] = [

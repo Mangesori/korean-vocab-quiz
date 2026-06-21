@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { PendingTeacherBanner } from '@/components/dashboard/PendingTeacherBanner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -340,6 +341,8 @@ export default function StudentDashboard() {
     <AppLayout>
       <div className="container mx-auto px-4 py-8 max-w-5xl">
 
+        <PendingTeacherBanner />
+
         {/* Greeting */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -436,7 +439,7 @@ export default function StudentDashboard() {
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           <div className="bg-card border border-border rounded-xl px-[18px] py-4 flex items-center gap-[14px]">
-            <div className="w-[38px] h-[38px] rounded-lg bg-[#FEF3C7] flex items-center justify-center text-lg shrink-0">🔥</div>
+            <div className="w-[38px] h-[38px] rounded-lg bg-[#FEF3C7] dark:bg-amber-950/50 flex items-center justify-center text-lg shrink-0">🔥</div>
             <div>
               <div className="font-bold text-[18px] leading-none text-foreground">
                 {stats.streak}<span className="text-[13px] text-muted-foreground ml-[3px] font-medium">일</span>
@@ -457,7 +460,7 @@ export default function StudentDashboard() {
             </div>
           </div>
           <div className="bg-card border border-border rounded-xl px-[18px] py-4 flex items-center gap-[14px]">
-            <div className="w-[38px] h-[38px] rounded-lg bg-[#DBEAFE] flex items-center justify-center text-lg shrink-0">🎯</div>
+            <div className="w-[38px] h-[38px] rounded-lg bg-[#DBEAFE] dark:bg-blue-950/50 flex items-center justify-center text-lg shrink-0">🎯</div>
             <div>
               <div className="font-bold text-[18px] leading-none text-foreground">
                 {stats.averageScore}<span className="text-[13px] text-muted-foreground ml-[3px] font-medium">%</span>
@@ -509,7 +512,7 @@ export default function StudentDashboard() {
           <Link to="/vocabulary">
             <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
               <CardContent className="flex items-center gap-[11px] px-[15px] py-[13px]">
-                <div className="w-[34px] h-[34px] rounded-lg bg-[#DCFCE7] flex items-center justify-center shrink-0">
+                <div className="w-[34px] h-[34px] rounded-lg bg-[#DCFCE7] dark:bg-emerald-950/50 flex items-center justify-center shrink-0">
                   <BookMarked className="w-[15px] h-[15px] text-[#15803D]" />
                 </div>
                 <div className="min-w-0">
@@ -523,7 +526,7 @@ export default function StudentDashboard() {
           <Link to="/wrong-answers">
             <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
               <CardContent className="flex items-center gap-[11px] px-[15px] py-[13px]">
-                <div className="w-[34px] h-[34px] rounded-lg bg-[#FEE2E2] flex items-center justify-center shrink-0">
+                <div className="w-[34px] h-[34px] rounded-lg bg-[#FEE2E2] dark:bg-red-950/50 flex items-center justify-center shrink-0">
                   <FileX className="w-[15px] h-[15px] text-destructive" />
                 </div>
                 <div className="min-w-0">

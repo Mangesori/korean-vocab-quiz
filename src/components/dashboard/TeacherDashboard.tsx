@@ -7,7 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, FileText, Bell, ChevronRight, BookOpen, Clock, GraduationCap, Send, FileX, Copy } from "lucide-react";
+import { Plus, Users, FileText, Bell, ChevronRight, BookOpen, Clock, GraduationCap, FileX, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog } from "@/components/ui/dialog";
 import {
@@ -142,31 +142,31 @@ export default function TeacherDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardContent className="p-[18px]">
-              <div className="font-ui text-[11px] text-muted-foreground mb-[6px]">전체 클래스</div>
+              <div className="font-ui text-xs text-muted-foreground mb-[6px]">전체 클래스</div>
               <div className="font-mono font-bold text-[26px] leading-none text-foreground">{classes.length}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-[18px]">
-              <div className="font-ui text-[11px] text-muted-foreground mb-[6px]">전체 학생</div>
+              <div className="font-ui text-xs text-muted-foreground mb-[6px]">전체 학생</div>
               <div className="font-mono font-bold text-[26px] leading-none text-foreground">{stats.totalStudents}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-[18px]">
-              <div className="font-ui text-[11px] text-muted-foreground mb-[6px]">생성된 퀴즈</div>
+              <div className="font-ui text-xs text-muted-foreground mb-[6px]">생성된 퀴즈</div>
               <div className="font-mono font-bold text-[26px] leading-none text-foreground">{stats.totalQuizzes}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-[18px]">
-              <div className="font-ui text-[11px] text-muted-foreground mb-[6px]">새 알림</div>
+              <div className="font-ui text-xs text-muted-foreground mb-[6px]">새 알림</div>
               <div className="font-mono font-bold text-[26px] leading-none text-warning">{stats.pendingResults}</div>
               {stats.pendingResults > 0 && (
-                <div className="font-ui text-[11px] text-warning mt-[5px]">미확인 결과</div>
+                <div className="font-ui text-xs text-warning mt-[5px]">미확인 결과</div>
               )}
             </CardContent>
           </Card>
@@ -181,8 +181,8 @@ export default function TeacherDashboard() {
                   <Plus className="w-[14px] h-[14px] text-primary" />
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold text-foreground">새 퀴즈 만들기</p>
-                  <p className="text-[11px] text-muted-foreground">AI로 문제 자동 생성</p>
+                  <p className="text-sm font-semibold text-foreground">새 퀴즈 만들기</p>
+                  <p className="text-xs text-muted-foreground">AI로 문제 자동 생성</p>
                 </div>
               </CardContent>
             </Card>
@@ -195,8 +195,8 @@ export default function TeacherDashboard() {
                   <FileX className="w-[14px] h-[14px] text-destructive" />
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold text-foreground">오답 복습 퀴즈</p>
-                  <p className="text-[11px] text-muted-foreground">학생 오답으로 생성</p>
+                  <p className="text-sm font-semibold text-foreground">오답 복습 퀴즈</p>
+                  <p className="text-xs text-muted-foreground">학생 오답으로 생성</p>
                 </div>
               </CardContent>
             </Card>
@@ -209,8 +209,8 @@ export default function TeacherDashboard() {
                   <Users className="w-[14px] h-[14px] text-primary" />
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold text-foreground">새 클래스 만들기</p>
-                  <p className="text-[11px] text-muted-foreground">학생 초대 코드 발급</p>
+                  <p className="text-sm font-semibold text-foreground">새 클래스 만들기</p>
+                  <p className="text-xs text-muted-foreground">학생 초대 코드 발급</p>
                 </div>
               </CardContent>
             </Card>
@@ -223,12 +223,12 @@ export default function TeacherDashboard() {
           <Card className="overflow-hidden" style={{ padding: 0 }}>
             <CardHeader className="flex flex-row items-center justify-between px-[18px] py-[14px] border-b border-border">
               <div>
-                <CardTitle className="text-[14px] font-bold">내 퀴즈</CardTitle>
-                <p className="text-[11px] text-muted-foreground mt-0.5">생성한 퀴즈 목록</p>
+                <CardTitle className="text-md font-bold">내 퀴즈</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">생성한 퀴즈 목록</p>
               </div>
               <Link to="/quizzes">
-                <Button variant="ghost" className="text-[11px] h-auto py-[3px] px-[9px]">
-                  전체 보기 ›
+                <Button variant="ghost" className="text-xs h-auto py-[3px] px-[9px] gap-[2px] [&_svg]:size-3">
+                  전체 보기<ChevronRight />
                 </Button>
               </Link>
             </CardHeader>
@@ -250,20 +250,20 @@ export default function TeacherDashboard() {
                             </div>
                             <LevelBadge level={quiz.difficulty} />
                           </div>
-                          <h3 className="text-[13px] font-semibold truncate mb-0.5">{quiz.title}</h3>
-                          <p className="text-[11px] text-muted-foreground mb-[10px]">
+                          <h3 className="text-sm font-semibold truncate mb-0.5">{quiz.title}</h3>
+                          <p className="text-xs text-muted-foreground mb-[10px]">
                             {quiz.words.length}개 단어 · {Math.ceil(quiz.words.length / quiz.words_per_set)}세트
                           </p>
                           <div className="flex items-center justify-between mt-auto">
-                            <span className="font-ui text-[10px] text-muted-foreground flex items-center gap-[3px]">
-                              <Clock className="w-[10px] h-[10px]" />
+                            <span className="font-ui text-xs text-muted-foreground flex items-center gap-[3px]">
+                              <Clock className="w-3 h-3" />
                               {formatDateShort(quiz.created_at)}
                             </span>
                             <div className="flex gap-1">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-6 text-[10px] px-[7px] leading-none"
+                                className="h-6 text-xs px-[7px]"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -276,7 +276,7 @@ export default function TeacherDashboard() {
                               </Button>
                               <Button
                                 size="sm"
-                                className="h-6 text-[10px] px-[7px] leading-none"
+                                className="h-6 text-xs px-[7px]"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -300,12 +300,12 @@ export default function TeacherDashboard() {
           <Card className="overflow-hidden" style={{ padding: 0 }}>
             <CardHeader className="flex flex-row items-center justify-between px-[18px] py-[14px] border-b border-border">
               <div>
-                <CardTitle className="text-[14px] font-bold">내 클래스</CardTitle>
-                <p className="text-[11px] text-muted-foreground mt-0.5">관리 중인 클래스</p>
+                <CardTitle className="text-md font-bold">내 클래스</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">관리 중인 클래스</p>
               </div>
               <Link to="/classes">
-                <Button variant="ghost" className="text-[11px] h-auto py-[3px] px-[9px]">
-                  전체 보기 ›
+                <Button variant="ghost" className="text-xs h-auto py-[3px] px-[9px] gap-[2px] [&_svg]:size-3">
+                  전체 보기<ChevronRight />
                 </Button>
               </Link>
             </CardHeader>
@@ -334,21 +334,21 @@ export default function TeacherDashboard() {
                                 toast.success('초대 코드가 복사되었습니다');
                               }}
                             >
-                              <span className="font-mono font-bold text-[11px] text-primary">{cls.invite_code}</span>
-                              <Copy className="w-[10px] h-[10px] text-primary" />
+                              <span className="font-mono font-bold text-xs text-primary">{cls.invite_code}</span>
+                              <Copy className="w-3 h-3 text-primary" />
                             </button>
                           </div>
-                          <h3 className="text-[13px] font-semibold truncate mb-0.5">{cls.name}</h3>
-                          <p className="text-[11px] text-muted-foreground flex items-center gap-[3px] mb-[10px]">
-                            <Users className="w-[10px] h-[10px]" />{cls.member_count}명
+                          <h3 className="text-sm font-semibold truncate mb-0.5">{cls.name}</h3>
+                          <p className="text-xs text-muted-foreground flex items-center gap-[3px] mb-[10px]">
+                            <Users className="w-3 h-3" />{cls.member_count}명
                           </p>
                           <div className="flex items-center justify-between mt-auto">
-                            <span className="font-ui text-[10px] text-muted-foreground flex items-center gap-[3px]">
-                              <Clock className="w-[10px] h-[10px]" />
+                            <span className="font-ui text-xs text-muted-foreground flex items-center gap-[3px]">
+                              <Clock className="w-3 h-3" />
                               {formatDateShort(cls.created_at)}
                             </span>
-                            <Button size="sm" variant="ghost" className="h-6 text-[10px] px-[6px] leading-none">
-                              상세보기 <ChevronRight className="w-[10px] h-[10px] ml-[2px]" />
+                            <Button size="sm" variant="ghost" className="h-6 text-xs px-[6px] gap-[2px] [&_svg]:size-3">
+                              상세보기<ChevronRight />
                             </Button>
                           </div>
                         </CardContent>

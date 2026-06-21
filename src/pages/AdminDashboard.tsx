@@ -11,9 +11,19 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Users, GraduationCap, BookOpen, Shield, Search, RefreshCw, BarChart3, FileText } from 'lucide-react';
+import { Users, GraduationCap, Shield, Search, RefreshCw, FileText, Download, Check, X, Clock, Trash2, MessageSquare, Star } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 
@@ -40,6 +50,14 @@ interface QuizMeta {
   difficulty: string | null;
   sentence_making_enabled: boolean;
   recording_enabled: boolean;
+  created_at?: string;
+}
+
+interface Growth {
+  users: number;
+  teachers: number;
+  classes: number;
+  quizzes: number;
 }
 
 export default function AdminDashboard() {
@@ -48,9 +66,21 @@ export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "dashboard";
+
+  // 사이드바로 전환되는 현재 뷰에 맞춘 페이지 헤더 (본문 탭 바 제거 후 위치 안내 역할)
+  const PAGE_HEADINGS = {
+    dashboard: { icon: Shield, iconColor: "text-destructive", title: "관리자 대시보드", desc: "시스템 전체 사용자와 콘텐츠를 관리합니다" },
+    teachers: { icon: GraduationCap, iconColor: "text-primary", title: "선생님 관리", desc: "선생님 계정의 권한과 역할을 관리합니다" },
+    report: { icon: FileText, iconColor: "text-primary", title: "시스템 리포트", desc: "학습 활동과 사용량을 분석합니다" },
+    feedback: { icon: MessageSquare, iconColor: "text-primary", title: "피드백", desc: "사용자가 남긴 의견을 확인합니다" },
+  } as const;
+  const PageHeading = PAGE_HEADINGS[activeTab as keyof typeof PAGE_HEADINGS] ?? PAGE_HEADINGS.dashboard;
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'teacher' | 'student'>('all');
   const [teacherSearchTerm, setTeacherSearchTerm] = useState('');
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [deletingUser, setDeletingUser] = useState<UserWithRole | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['adminDashboard'],
@@ -75,18 +105,34 @@ export default function AdminDashboard() {
       const students = usersWithProfiles.filter(u => u.role === 'student').length;
 
       const [
-        { count: classCount },
+        { data: classesData },
         { data: quizzesData },
         { count: totalResults },
         { data: scoresData },
+        { data: applicationsData },
       ] = await Promise.all([
-        supabase.from('classes').select('*', { count: 'exact', head: true }),
-        supabase.from('quizzes').select('difficulty, sentence_making_enabled, recording_enabled'),
+        supabase.from('classes').select('created_at'),
+        supabase.from('quizzes').select('difficulty, sentence_making_enabled, recording_enabled, created_at'),
         supabase.from('quiz_results').select('*', { count: 'exact', head: true }),
         supabase.from('quiz_results').select('score, total_questions').not('score', 'is', null).not('total_questions', 'is', null),
+        supabase.from('teacher_applications' as any).select('id, user_id, created_at').eq('status', 'pending').order('created_at', { ascending: false }),
       ]);
 
       const quizzes: QuizMeta[] = quizzesData || [];
+      const classes = classesData || [];
+
+      // 이번 달 신규 증가량 (created_at 기준, 월초 00:00부터)
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      const som = startOfMonth.getTime();
+      const isThisMonth = (d?: string | null) => !!d && new Date(d).getTime() >= som;
+      const growth: Growth = {
+        users: usersWithProfiles.filter(u => isThisMonth(u.created_at)).length,
+        teachers: usersWithProfiles.filter(u => u.role === 'teacher' && isThisMonth(u.created_at)).length,
+        classes: classes.filter(c => isThisMonth(c.created_at)).length,
+        quizzes: quizzes.filter(q => isThisMonth(q.created_at)).length,
+      };
 
       const avgScore = scoresData && scoresData.length > 0
         ? Math.round(
@@ -104,24 +150,63 @@ export default function AdminDashboard() {
           admins,
           teachers,
           students,
-          totalClasses: classCount || 0,
+          totalClasses: classes.length,
           totalQuizzes: quizzes.length,
         } as Stats,
+        growth,
         report: {
           totalResults: totalResults || 0,
           avgScore,
           quizzes,
         },
+        pendingApplications: (applicationsData as unknown as { id: string; user_id: string; created_at: string }[] | null) || [],
       };
     },
     enabled: !!user && can(PERMISSIONS.MANAGE_USERS),
   });
 
+  // 피드백 목록 (피드백 탭)
+  const { data: feedbackList = [], isLoading: feedbackLoading, refetch: refetchFeedback } = useQuery({
+    queryKey: ['adminFeedback'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('feedback' as any)
+        .select('id, message, email, rating, context, created_at')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data as unknown as {
+        id: string; message: string; email: string | null; rating: number | null; context: string | null; created_at: string;
+      }[]) || [];
+    },
+    enabled: !!user && can(PERMISSIONS.MANAGE_USERS) && activeTab === 'feedback',
+  });
+
+  const CONTEXT_LABEL: Record<string, string> = {
+    quiz_result: '퀴즈 결과',
+    share_result: '공유 퀴즈 결과',
+    footer: '푸터',
+    pricing_enterprise: '요금(기관 문의)',
+  };
+
   const users = data?.users ?? [];
   const stats = data?.stats ?? {
     totalUsers: 0, admins: 0, teachers: 0, students: 0, totalClasses: 0, totalQuizzes: 0,
   };
+  const growth = data?.growth ?? { users: 0, teachers: 0, classes: 0, quizzes: 0 };
   const report = data?.report ?? { totalResults: 0, avgScore: 0, quizzes: [] as QuizMeta[] };
+  const pendingApplications = data?.pendingApplications ?? [];
+
+  // 신청 user_id → 사용자 정보 매핑 (이름·이메일 표시용)
+  const pendingTeachers = pendingApplications.map((app) => {
+    const u = users.find((x) => x.user_id === app.user_id);
+    return {
+      applicationId: app.id,
+      userId: app.user_id,
+      name: u?.profile?.name || '(이름 없음)',
+      email: u?.email || '(이메일 없음)',
+      createdAt: app.created_at,
+    };
+  });
 
   const handleRoleChange = async (userId: string, newRole: 'admin' | 'teacher' | 'student') => {
     if (userId === user?.id) {
@@ -169,6 +254,182 @@ export default function AdminDashboard() {
     }
   };
 
+  // ── 선생님 신청 승인/거절 ──
+  const [reviewingAppId, setReviewingAppId] = useState<string | null>(null);
+
+  const handleApproveTeacher = async (userId: string, applicationId: string) => {
+    setReviewingAppId(applicationId);
+    try {
+      // 1) 역할 승격
+      const { error: roleError } = await supabase
+        .from('profiles')
+        .update({ role: 'teacher' })
+        .eq('user_id', userId);
+      if (roleError) throw roleError;
+
+      // 2) 신청 처리 기록
+      const { error: appError } = await supabase
+        .from('teacher_applications' as any)
+        .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user?.id })
+        .eq('id', applicationId);
+      if (appError) throw appError;
+
+      // 캐시 갱신: 대기 목록에서 제거 + 역할/통계 반영
+      queryClient.setQueryData(['adminDashboard'], (prev: typeof data) => {
+        if (!prev) return prev;
+        const wasStudent = prev.users.find((u) => u.user_id === userId)?.role === 'student';
+        return {
+          ...prev,
+          users: prev.users.map((u) => (u.user_id === userId ? { ...u, role: 'teacher' as const } : u)),
+          stats: {
+            ...prev.stats,
+            teachers: prev.stats.teachers + 1,
+            students: wasStudent ? prev.stats.students - 1 : prev.stats.students,
+          },
+          pendingApplications: prev.pendingApplications.filter((a) => a.id !== applicationId),
+        };
+      });
+
+      toast.success('선생님으로 승인되었습니다');
+    } catch (error) {
+      console.error('Error approving teacher:', error);
+      toast.error('승인에 실패했습니다');
+    } finally {
+      setReviewingAppId(null);
+    }
+  };
+
+  const handleRejectTeacher = async (applicationId: string) => {
+    setReviewingAppId(applicationId);
+    try {
+      const { error } = await supabase
+        .from('teacher_applications' as any)
+        .update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: user?.id })
+        .eq('id', applicationId);
+      if (error) throw error;
+
+      queryClient.setQueryData(['adminDashboard'], (prev: typeof data) => {
+        if (!prev) return prev;
+        return { ...prev, pendingApplications: prev.pendingApplications.filter((a) => a.id !== applicationId) };
+      });
+
+      toast.success('신청을 거절했습니다');
+    } catch (error) {
+      console.error('Error rejecting teacher:', error);
+      toast.error('거절 처리에 실패했습니다');
+    } finally {
+      setReviewingAppId(null);
+    }
+  };
+
+  // ── 계정 삭제 ──
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return;
+    const targetId = deletingUser.user_id;
+    setIsDeleting(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke('admin-delete-user', {
+        body: { userId: targetId },
+      });
+      if (error) throw error;
+      if (res?.error) throw new Error(res.error);
+
+      const removedRole = deletingUser.role;
+      queryClient.setQueryData(['adminDashboard'], (prev: typeof data) => {
+        if (!prev) return prev;
+        const newStats = { ...prev.stats, totalUsers: prev.stats.totalUsers - 1 };
+        if (removedRole === 'admin') newStats.admins--;
+        else if (removedRole === 'teacher') newStats.teachers--;
+        else newStats.students--;
+        return {
+          ...prev,
+          users: prev.users.filter((u) => u.user_id !== targetId),
+          stats: newStats,
+          pendingApplications: prev.pendingApplications.filter((a) => a.user_id !== targetId),
+        };
+      });
+
+      toast.success('계정이 삭제되었습니다');
+      setDeletingUser(null);
+    } catch (e) {
+      console.error('Error deleting user:', e);
+      toast.error('계정 삭제에 실패했습니다');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // ── CSV 내보내기 ──
+  const downloadCsv = (filename: string, headers: string[], rows: (string | number)[][]) => {
+    const escape = (v: string | number) => {
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = [headers, ...rows].map((r) => r.map(escape).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" }); // BOM: Excel 한글
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const roleLabel = (r: string) => (r === "admin" ? "관리자" : r === "teacher" ? "선생님" : "학생");
+
+  const exportUsersCsv = () => {
+    if (users.length === 0) { toast.error("내보낼 사용자가 없습니다"); return; }
+    const rows = users.map((u) => [
+      u.profile?.name || "",
+      u.email || "",
+      roleLabel(u.role),
+      new Date(u.created_at).toLocaleDateString("ko-KR"),
+    ]);
+    downloadCsv(`나무_사용자_${new Date().toISOString().slice(0, 10)}.csv`, ["이름", "이메일", "역할", "가입일"], rows);
+    toast.success(`사용자 ${users.length}명 내보내기 완료`);
+  };
+
+  const [exportingResults, setExportingResults] = useState(false);
+  const exportResultsCsv = async () => {
+    setExportingResults(true);
+    try {
+      const [{ data: results, error }, { data: quizRows }] = await Promise.all([
+        supabase
+          .from("quiz_results")
+          .select("quiz_id, student_id, anonymous_name, is_anonymous, completed_at, score, total_questions")
+          .order("completed_at", { ascending: false }),
+        supabase.from("quizzes").select("id, title"),
+      ]);
+      if (error) throw error;
+      if (!results || results.length === 0) { toast.error("내보낼 퀴즈 결과가 없습니다"); return; }
+
+      const quizTitle: Record<string, string> = {};
+      for (const q of quizRows || []) quizTitle[q.id] = q.title;
+      const userName: Record<string, string> = {};
+      for (const u of users) userName[u.user_id] = u.profile?.name || u.email || "";
+
+      const rows = results.map((r) => {
+        const student = r.is_anonymous ? (r.anonymous_name || "익명") : (r.student_id ? userName[r.student_id] || "(알 수 없음)" : "익명");
+        const pct = r.total_questions > 0 ? Math.round((r.score / r.total_questions) * 100) : 0;
+        return [
+          student,
+          quizTitle[r.quiz_id] || "(삭제된 퀴즈)",
+          new Date(r.completed_at).toLocaleDateString("ko-KR"),
+          r.score,
+          r.total_questions,
+          `${pct}%`,
+        ];
+      });
+      downloadCsv(`나무_퀴즈결과_${new Date().toISOString().slice(0, 10)}.csv`, ["학생", "퀴즈", "완료일", "점수", "총문항", "정답률"], rows);
+      toast.success(`퀴즈 결과 ${rows.length}건 내보내기 완료`);
+    } catch (e) {
+      console.error("Error exporting results:", e);
+      toast.error("퀴즈 결과 내보내기에 실패했습니다");
+    } finally {
+      setExportingResults(false);
+    }
+  };
+
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'admin':
@@ -182,11 +443,14 @@ export default function AdminDashboard() {
     }
   };
 
-  const filteredUsers = users.filter(u =>
-    u.profile?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.user_id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter(u => {
+    const matchesSearch =
+      u.profile?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.user_id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
 
   const teacherUsers = users.filter(u => u.role === 'teacher');
   const filteredTeachers = teacherUsers.filter(u =>
@@ -200,6 +464,22 @@ export default function AdminDashboard() {
   const teacherPct = Math.round((stats.teachers / total) * 100);
   const studentPct = Math.round((stats.students / total) * 100);
 
+  // Role distribution donut — 학생 > 선생님 > 관리자 순, 의미색 고정
+  const DONUT_R = 56;
+  const DONUT_C = 2 * Math.PI * DONUT_R;
+  const roleSegments = [
+    { label: '학생', count: stats.students, pct: studentPct, color: '#1E6B47' },
+    { label: '선생님', count: stats.teachers, pct: teacherPct, color: '#1D4ED8' },
+    { label: '관리자', count: stats.admins, pct: adminPct, color: '#C13B2E' },
+  ];
+  let donutOffset = 0;
+  const donutArcs = roleSegments.map((seg) => {
+    const len = (seg.count / total) * DONUT_C;
+    const arc = { ...seg, len, offset: -donutOffset };
+    donutOffset += len;
+    return arc;
+  });
+
   // CEFR distribution
   const cefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   const totalQ = report.quizzes.length || 1;
@@ -208,10 +488,12 @@ export default function AdminDashboard() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Quiz type distribution
-  const fillBlankOnly = report.quizzes.filter(q => !q.sentence_making_enabled && !q.recording_enabled).length;
-  const withSentence = report.quizzes.filter(q => q.sentence_making_enabled && !q.recording_enabled).length;
-  const allThree = report.quizzes.filter(q => q.sentence_making_enabled && q.recording_enabled).length;
+  // Quiz type distribution — 유형별 포함 퀴즈 수 (빈칸 채우기는 모든 퀴즈의 기본)
+  const quizTypeStats = [
+    { label: '빈칸 채우기', count: report.quizzes.length, color: '#1E6B47' },
+    { label: '문장 만들기', count: report.quizzes.filter(q => q.sentence_making_enabled).length, color: '#6D28D9' },
+    { label: '말하기 연습', count: report.quizzes.filter(q => q.recording_enabled).length, color: '#C13B2E' },
+  ];
 
   if (loading) {
     return (
@@ -239,9 +521,10 @@ export default function AdminDashboard() {
               <TableRow>
                 <TableHead className="w-[150px]">이름</TableHead>
                 <TableHead className="w-[200px]">이메일</TableHead>
-                <TableHead className="w-[100px]">현재 역할</TableHead>
-                <TableHead className="w-[120px]">가입일</TableHead>
-                <TableHead className="w-[150px]">역할 변경</TableHead>
+                <TableHead className="w-[120px]">현재 역할</TableHead>
+                <TableHead className="w-[100px]">가입일</TableHead>
+                <TableHead className="w-[130px]">역할 변경</TableHead>
+                <TableHead className="w-[60px] text-right">관리</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -267,13 +550,26 @@ export default function AdminDashboard() {
                         onValueChange={(value) => handleRoleChange(u.user_id, value as 'admin' | 'teacher' | 'student')}
                         disabled={updatingUserId === u.user_id}
                       >
-                        <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">관리자</SelectItem>
                           <SelectItem value="teacher">선생님</SelectItem>
                           <SelectItem value="student">학생</SelectItem>
                         </SelectContent>
                       </Select>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {u.user_id !== user?.id && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => setDeletingUser(u)}
+                        aria-label="계정 삭제"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     )}
                   </TableCell>
                 </TableRow>
@@ -304,18 +600,29 @@ export default function AdminDashboard() {
                 {u.user_id === user?.id ? (
                   <span className="text-sm text-muted-foreground">변경 불가</span>
                 ) : (
-                  <Select
-                    value={u.role}
-                    onValueChange={(value) => handleRoleChange(u.user_id, value as 'admin' | 'teacher' | 'student')}
-                    disabled={updatingUserId === u.user_id}
-                  >
-                    <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">관리자</SelectItem>
-                      <SelectItem value="teacher">선생님</SelectItem>
-                      <SelectItem value="student">학생</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={u.role}
+                      onValueChange={(value) => handleRoleChange(u.user_id, value as 'admin' | 'teacher' | 'student')}
+                      disabled={updatingUserId === u.user_id}
+                    >
+                      <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">관리자</SelectItem>
+                        <SelectItem value="teacher">선생님</SelectItem>
+                        <SelectItem value="student">학생</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={() => setDeletingUser(u)}
+                      aria-label="계정 삭제"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
@@ -325,32 +632,26 @@ export default function AdminDashboard() {
     );
   }
 
+  const GrowthNote = ({ n, unit }: { n: number; unit: string }) => (
+    <div className={`font-ui text-[11px] mt-[5px] ${n > 0 ? 'text-success' : 'text-muted-foreground'}`}>
+      {n > 0 ? `이번 달 +${n}${unit}` : '이번 달 신규 없음'}
+    </div>
+  );
+
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Shield className="h-8 w-8 text-destructive" />
-            관리자 대시보드
+            <PageHeading.icon className={`h-8 w-8 ${PageHeading.iconColor}`} />
+            {PageHeading.title}
           </h1>
           <p className="text-muted-foreground mt-1">
-            시스템 전체 사용자와 콘텐츠를 관리합니다
+            {PageHeading.desc}
           </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setSearchParams(v === "dashboard" ? {} : { tab: v })}>
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="dashboard" className="gap-2">
-              <BarChart3 className="h-4 w-4" />대시보드
-            </TabsTrigger>
-            <TabsTrigger value="teachers" className="gap-2">
-              <GraduationCap className="h-4 w-4" />선생님 관리
-            </TabsTrigger>
-            <TabsTrigger value="report" className="gap-2">
-              <FileText className="h-4 w-4" />시스템 리포트
-            </TabsTrigger>
-          </TabsList>
-
           {/* ── 대시보드 탭 ── */}
           <TabsContent value="dashboard" className="space-y-6">
             {/* Stats Cards */}
@@ -359,7 +660,7 @@ export default function AdminDashboard() {
                 <CardContent className="p-[18px]">
                   <div className="font-ui text-[11px] text-muted-foreground mb-[6px]">전체 사용자</div>
                   <div className="font-mono font-bold text-[26px] leading-none text-foreground">{stats.totalUsers}</div>
-                  <div className="font-ui text-[11px] text-muted-foreground mt-[5px]">관리자 {stats.admins} · 선생님 {stats.teachers}</div>
+                  <GrowthNote n={growth.users} unit="명" />
                 </CardContent>
               </Card>
 
@@ -367,7 +668,7 @@ export default function AdminDashboard() {
                 <CardContent className="p-[18px]">
                   <div className="font-ui text-[11px] text-muted-foreground mb-[6px]">전체 선생님</div>
                   <div className="font-mono font-bold text-[26px] leading-none text-foreground">{stats.teachers}</div>
-                  <div className="font-ui text-[11px] text-success mt-[5px]">퀴즈 생성 가능</div>
+                  <GrowthNote n={growth.teachers} unit="명" />
                 </CardContent>
               </Card>
 
@@ -375,7 +676,7 @@ export default function AdminDashboard() {
                 <CardContent className="p-[18px]">
                   <div className="font-ui text-[11px] text-muted-foreground mb-[6px]">전체 클래스</div>
                   <div className="font-mono font-bold text-[26px] leading-none text-foreground">{stats.totalClasses}</div>
-                  <div className="font-ui text-[11px] text-success mt-[5px]">개설된 클래스</div>
+                  <GrowthNote n={growth.classes} unit="개" />
                 </CardContent>
               </Card>
 
@@ -383,89 +684,166 @@ export default function AdminDashboard() {
                 <CardContent className="p-[18px]">
                   <div className="font-ui text-[11px] text-muted-foreground mb-[6px]">전체 퀴즈</div>
                   <div className="font-mono font-bold text-[26px] leading-none text-foreground">{stats.totalQuizzes}</div>
-                  <div className="font-ui text-[11px] text-success mt-[5px]">생성된 퀴즈</div>
+                  <GrowthNote n={growth.quizzes} unit="개" />
                 </CardContent>
               </Card>
             </div>
 
-            {/* Role distribution */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">역할 분포</CardTitle>
-                <CardDescription>전체 사용자 {stats.totalUsers}명 기준</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Shield className="h-3.5 w-3.5 text-destructive" />관리자
-                    </span>
-                    <span className="text-muted-foreground">{stats.admins}명 ({adminPct}%)</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-destructive transition-all" style={{ width: `${adminPct}%` }} />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <GraduationCap className="h-3.5 w-3.5 text-primary" />선생님
-                    </span>
-                    <span className="text-muted-foreground">{stats.teachers}명 ({teacherPct}%)</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${teacherPct}%` }} />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <Users className="h-3.5 w-3.5 text-muted-foreground" />학생
-                    </span>
-                    <span className="text-muted-foreground">{stats.students}명 ({studentPct}%)</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-muted-foreground/50 transition-all" style={{ width: `${studentPct}%` }} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* All users */}
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <CardTitle>전체 사용자</CardTitle>
-                    <CardDescription>사용자 역할을 확인하고 변경합니다</CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="이름 또는 이메일 검색..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 w-64"
-                      />
+            {/* 메인(사용자) 좌측 + 사이드 레일(사용자 분포·퀵 액션) 우측 */}
+            <div className="grid lg:grid-cols-4 gap-6 items-start">
+              {/* LEFT: All users */}
+              <Card className="lg:col-span-3">
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <CardTitle>전체 사용자</CardTitle>
                     </div>
-                    <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isLoading}>
-                      <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="이름 또는 이메일 검색..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-9 w-full sm:w-64"
+                        />
+                      </div>
+                      <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as typeof roleFilter)}>
+                        <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">전체 역할</SelectItem>
+                          <SelectItem value="student">학생</SelectItem>
+                          <SelectItem value="teacher">선생님</SelectItem>
+                          <SelectItem value="admin">관리자</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isLoading}>
+                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <UserTable
-                  list={filteredUsers}
-                  emptyMsg={searchTerm ? '검색 결과가 없습니다' : '사용자가 없습니다'}
-                />
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent>
+                  <UserTable
+                    list={filteredUsers}
+                    emptyMsg={searchTerm || roleFilter !== 'all' ? '검색 결과가 없습니다' : '사용자가 없습니다'}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* RIGHT rail: 사용자 분포(위) + 퀵 액션(아래) */}
+              <div className="space-y-6">
+                {/* 사용자 분포 */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">사용자 분포</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col items-center gap-4">
+                    {/* 도넛 차트 */}
+                    <svg width="140" height="140" viewBox="0 0 140 140" className="shrink-0">
+                      <circle cx="70" cy="70" r={DONUT_R} fill="none" stroke="hsl(var(--muted))" strokeWidth="18" />
+                      {donutArcs.map((arc) => (
+                        <circle
+                          key={arc.label}
+                          cx="70" cy="70" r={DONUT_R}
+                          fill="none"
+                          stroke={arc.color}
+                          strokeWidth="18"
+                          strokeDasharray={`${arc.len} ${DONUT_C - arc.len}`}
+                          strokeDashoffset={arc.offset}
+                          transform="rotate(-90 70 70)"
+                        />
+                      ))}
+                      <text x="70" y="68" textAnchor="middle" className="font-mono font-bold" fontSize="22" fill="hsl(var(--foreground))">{stats.totalUsers}</text>
+                      <text x="70" y="86" textAnchor="middle" className="font-ui" fontSize="10" fill="hsl(var(--muted-foreground))">전체 사용자</text>
+                    </svg>
+                    {/* 범례 */}
+                    <div className="w-full space-y-2.5">
+                      {donutArcs.map((arc) => (
+                        <div key={arc.label} className="flex items-center justify-between text-sm">
+                          <span className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: arc.color }} />
+                            {arc.label}
+                          </span>
+                          <span className="font-mono font-semibold">
+                            {arc.count} <span className="text-muted-foreground font-normal">· {arc.pct}%</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 퀵 액션 */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">내보내기</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-2">
+                    <Button variant="outline" className="justify-start gap-2" onClick={exportUsersCsv}>
+                      <Download className="h-4 w-4" />사용자 목록 내보내기
+                    </Button>
+                    <Button variant="outline" className="justify-start gap-2" onClick={exportResultsCsv} disabled={exportingResults}>
+                      {exportingResults ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                      퀴즈 결과 내보내기
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* ── 선생님 관리 탭 ── */}
-          <TabsContent value="teachers">
+          <TabsContent value="teachers" className="space-y-6">
+            {/* 검토 대기 신청 */}
+            {pendingTeachers.length > 0 && (
+              <Card className="border-warning/40">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Clock className="h-4 w-4 text-warning" />
+                    검토 대기
+                    <Badge variant="secondary" className="ml-1">{pendingTeachers.length}</Badge>
+                  </CardTitle>
+                  <CardDescription>선생님 권한을 신청한 사용자입니다. 승인하면 즉시 선생님으로 전환됩니다.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {pendingTeachers.map((t) => (
+                    <div
+                      key={t.applicationId}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-border p-4"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{t.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{t.email}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          신청일: {new Date(t.createdAt).toLocaleDateString('ko-KR')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => handleApproveTeacher(t.userId, t.applicationId)}
+                          disabled={reviewingAppId === t.applicationId}
+                        >
+                          <Check className="h-4 w-4" />승인
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 text-destructive hover:text-destructive"
+                          onClick={() => handleRejectTeacher(t.applicationId)}
+                          disabled={reviewingAppId === t.applicationId}
+                        >
+                          <X className="h-4 w-4" />거절
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -566,23 +944,22 @@ export default function AdminDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">퀴즈 유형 분포</CardTitle>
-                  <CardDescription>활성화된 퀴즈 유형 기준</CardDescription>
+                  <CardDescription>유형별 포함 퀴즈 수 · 전체 {report.quizzes.length}개</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {[
-                    { label: '빈칸만', count: fillBlankOnly },
-                    { label: '빈칸 + 문장 만들기', count: withSentence },
-                    { label: '빈칸 + 문장 + 말하기', count: allThree },
-                  ].map(({ label, count }) => {
+                  {quizTypeStats.map(({ label, count, color }) => {
                     const pct = Math.round((count / totalQ) * 100);
                     return (
                       <div key={label} className="space-y-1">
                         <div className="flex justify-between text-sm">
-                          <span>{label}</span>
+                          <span className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
+                            {label}
+                          </span>
                           <span className="text-muted-foreground">{count}개 ({pct}%)</span>
                         </div>
                         <div className="h-2 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
                         </div>
                       </div>
                     );
@@ -591,8 +968,82 @@ export default function AdminDashboard() {
               </Card>
             </div>
           </TabsContent>
+
+          {/* ── 피드백 탭 ── */}
+          <TabsContent value="feedback" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>피드백</CardTitle>
+                    <CardDescription>사용자가 퀴즈 결과·푸터·요금 페이지에서 남긴 의견 ({feedbackList.length}건)</CardDescription>
+                  </div>
+                  <Button variant="outline" size="icon" onClick={() => refetchFeedback()} disabled={feedbackLoading}>
+                    <RefreshCw className={`h-4 w-4 ${feedbackLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {feedbackLoading ? (
+                  <div className="flex justify-center py-8"><LoadingSpinner /></div>
+                ) : feedbackList.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">아직 받은 피드백이 없습니다</p>
+                ) : (
+                  <div className="space-y-3">
+                    {feedbackList.map((f) => (
+                      <div key={f.id} className="border border-border rounded-lg p-4 space-y-2">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            {f.rating != null && (
+                              <span className="flex items-center gap-0.5">
+                                {Array.from({ length: f.rating }).map((_, i) => (
+                                  <Star key={i} className="h-3.5 w-3.5 fill-warning text-warning" />
+                                ))}
+                              </span>
+                            )}
+                            {f.context && (
+                              <Badge variant="secondary" className="text-xs">{CONTEXT_LABEL[f.context] ?? f.context}</Badge>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(f.created_at).toLocaleString('ko-KR')}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground whitespace-pre-wrap">{f.message}</p>
+                        {f.email && (
+                          <p className="text-xs text-muted-foreground">↳ {f.email}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
+
+      <AlertDialog open={!!deletingUser} onOpenChange={(open) => !open && setDeletingUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>계정을 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-medium text-foreground">{deletingUser?.profile?.name || deletingUser?.email}</span>
+              {' '}계정과 관련된 모든 데이터(클래스·퀴즈·결과 등)가 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDeleteUser(); }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? '삭제 중...' : '삭제'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

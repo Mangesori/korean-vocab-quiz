@@ -1,6 +1,7 @@
 import { Link, Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { LandingHeader } from '@/components/layout/LandingHeader';
+import { Footer } from '@/components/layout/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { Sparkles, Layers, Users, ArrowRight } from 'lucide-react';
 import { HeroProductMock } from '@/components/landing/HeroProductMock';
@@ -67,7 +68,7 @@ export default function Index() {
                 {!user && (
                   <p className="mt-4 text-sm text-muted-foreground">
                     학생이신가요?{" "}
-                    <Link to="/auth" className="text-primary underline hover:text-primary/80">
+                    <Link to="/auth?mode=signup" className="text-primary underline hover:text-primary/80">
                       학생으로 가입하기
                     </Link>
                   </p>
@@ -98,7 +99,7 @@ export default function Index() {
                   icon: <Sparkles className="w-5 h-5" />,
                   title: "AI가 문제를 만듭니다",
                   desc: "단어만 입력하면 끝. 빈칸·문장·말하기 세 가지 유형을 동시에 생성합니다.",
-                  stat: "평균 3.4초",
+                  stat: "평균 10초",
                 },
                 {
                   icon: <Layers className="w-5 h-5" />,
@@ -132,7 +133,7 @@ export default function Index() {
         <section className="bg-primary text-primary-foreground py-16 text-center">
           <div className="container">
             <h2 className="font-brand font-black text-2xl md:text-3xl tracking-tight mb-3">
-              오늘 수업, 30초 만에 준비하세요
+              오늘 과제, 10초 만에 끝내세요
             </h2>
             <p className="text-primary-foreground/80 text-base mb-7 max-w-md mx-auto break-keep">
               구독 없이도 매월 일정량까지 무료. 필요할 때 더 쓰세요.
@@ -152,6 +153,7 @@ export default function Index() {
           </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

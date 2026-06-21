@@ -193,8 +193,8 @@ export function FillBlankStage({
       <Card className="border shadow-sm rounded-2xl overflow-hidden mb-8 bg-white max-w-5xl mx-auto mt-4">
         <CardContent className="p-0">
           {/* Word Bank */}
-          <div className="bg-slate-50 border-b px-6 py-5 flex flex-col items-center">
-            <p className="text-sm font-bold text-slate-500 mb-4">보기</p>
+          <div className="bg-muted border-b px-6 py-5 flex flex-col items-center">
+            <p className="text-sm font-bold text-muted-foreground mb-4">보기</p>
             <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
               {shuffledWordBank.map((word, idx) => {
                 const isUsed = usedBankWords.has(word);
@@ -204,8 +204,8 @@ export function FillBlankStage({
                     variant="outline"
                     className={`px-4 py-1.5 rounded-full text-sm font-medium bg-white shadow-sm transition-all ${
                       isUsed
-                        ? 'line-through text-slate-400 border-slate-200 opacity-60'
-                        : 'text-slate-700 border-slate-200'
+                        ? 'line-through text-muted-foreground border-border opacity-60'
+                        : 'text-foreground border-border'
                     }`}
                   >
                     {word}
@@ -231,7 +231,7 @@ export function FillBlankStage({
                     <div className="flex flex-col gap-3 sm:hidden">
                       <div className="flex gap-2">
                         <span className="text-primary font-bold text-base min-w-[20px]">{problemNumber}.</span>
-                        <span className="text-base font-medium leading-relaxed text-slate-800">
+                        <span className="text-base font-medium leading-relaxed text-foreground">
                           {parts[0]}
                           <span className="text-muted-foreground mx-1">( _____ )</span>
                           {problem.hint && <span className="text-primary/70 font-medium mx-1">{problem.hint}</span>}
@@ -242,7 +242,7 @@ export function FillBlankStage({
                         <Input
                           value={userAnswers[problem.id] || ""}
                           onChange={(e) => onAnswerChange(problem.id, e.target.value)}
-                          className="h-11 w-full text-center text-sm rounded-xl border-slate-200 bg-muted/30"
+                          className="h-11 w-full text-center text-sm rounded-xl border-border bg-muted/30"
                           placeholder="정답 입력"
                           autoComplete="off"
                         />
@@ -261,7 +261,7 @@ export function FillBlankStage({
                                       playAudio(problem.sentence_audio_url, problem.id);
                                     }
                                   }}
-                                  className={`flex-1 h-10 rounded-xl text-slate-600 font-medium hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all ${isAnonymous ? "opacity-60" : ""}`}
+                                  className={`flex-1 h-10 rounded-xl text-muted-foreground font-medium hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all ${isAnonymous ? "opacity-60" : ""}`}
                                   size="sm"
                                 >
                                   {isAnonymous ? (
@@ -277,7 +277,7 @@ export function FillBlankStage({
                           <Button
                             variant="outline"
                             onClick={() => toggleTranslation(problem.id)}
-                            className={`flex-1 h-10 rounded-xl font-medium transition-all ${showTranslations[problem.id] ? "bg-amber-50 text-amber-600 border-amber-200" : "text-slate-600 hover:bg-primary/10 hover:text-primary hover:border-primary/30"}`}
+                            className={`flex-1 h-10 rounded-xl font-medium transition-all ${showTranslations[problem.id] ? "bg-amber-50 text-amber-600 border-amber-200" : "text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30"}`}
                             size="sm"
                           >
                             <Lightbulb className={`w-4 h-4 mr-2 ${showTranslations[problem.id] ? "text-amber-500" : ""}`} /> 힌트
@@ -285,7 +285,7 @@ export function FillBlankStage({
                         </div>
                       </div>
                       {showTranslations[problem.id] && problem.translation && (
-                        <div className="mt-3 px-4 py-3 bg-sky-50 rounded-xl text-sm border border-sky-100 text-slate-800">
+                        <div className="mt-3 px-4 py-3 bg-sky-50 rounded-xl text-sm border border-sky-100 text-foreground">
                           {maskTranslation(problem.translation)}
                         </div>
                       )}
@@ -296,16 +296,16 @@ export function FillBlankStage({
                       <div className="flex items-center gap-3">
                         <span className="text-primary font-bold text-lg min-w-[24px]">{problemNumber}.</span>
                         <div className="flex-1 flex items-center flex-wrap gap-1 leading-loose">
-                          <span className="text-lg font-medium text-slate-800 whitespace-nowrap">{parts[0]?.trim()}</span>
+                          <span className="text-lg font-medium text-foreground whitespace-nowrap">{parts[0]?.trim()}</span>
                           <Input
                             value={userAnswers[problem.id] || ""}
                             onChange={(e) => onAnswerChange(problem.id, e.target.value)}
-                            className="w-48 h-10 mx-1 text-center text-base inline-block rounded-xl border-slate-200 bg-muted/30"
+                            className="w-48 h-10 mx-1 text-center text-base inline-block rounded-xl border-border bg-muted/30"
                             placeholder="정답 입력"
                             autoComplete="off"
                           />
                           {problem.hint && <span className="text-primary/70 text-base font-medium whitespace-nowrap">{problem.hint}</span>}
-                          <span className="text-lg font-medium text-slate-800 whitespace-nowrap">{parts[1]?.trim()}</span>
+                          <span className="text-lg font-medium text-foreground whitespace-nowrap">{parts[1]?.trim()}</span>
                         </div>
                         <div className="flex gap-2 shrink-0">
                           <TooltipProvider>
@@ -323,7 +323,7 @@ export function FillBlankStage({
                                       playAudio(problem.sentence_audio_url, problem.id);
                                     }
                                   }}
-                                  className={`h-9 px-3 rounded-xl text-sm text-slate-600 font-medium hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all ${isAnonymous ? "opacity-60" : ""}`}
+                                  className={`h-9 px-3 rounded-xl text-sm text-muted-foreground font-medium hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all ${isAnonymous ? "opacity-60" : ""}`}
                                 >
                                   {isAnonymous ? (
                                     <><Lock className="w-4 h-4 mr-1.5" /> 듣기</>
@@ -339,14 +339,14 @@ export function FillBlankStage({
                             variant="outline"
                             size="sm"
                             onClick={() => toggleTranslation(problem.id)}
-                            className={`h-9 px-3 rounded-xl text-sm font-medium transition-all ${showTranslations[problem.id] ? "bg-amber-50 text-amber-600 border-amber-200" : "text-slate-600 hover:bg-primary/10 hover:text-primary hover:border-primary/30"}`}
+                            className={`h-9 px-3 rounded-xl text-sm font-medium transition-all ${showTranslations[problem.id] ? "bg-amber-50 text-amber-600 border-amber-200" : "text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30"}`}
                           >
                             <Lightbulb className={`w-4 h-4 mr-1.5 ${showTranslations[problem.id] ? "text-amber-500" : ""}`} /> 힌트
                           </Button>
                         </div>
                       </div>
                       {showTranslations[problem.id] && problem.translation && (
-                        <div className="mt-4 ml-8 px-4 py-3 bg-sky-50 rounded-xl text-sm border border-sky-100 text-slate-800">
+                        <div className="mt-4 ml-8 px-4 py-3 bg-sky-50 rounded-xl text-sm border border-sky-100 text-foreground">
                           {maskTranslation(problem.translation)}
                         </div>
                       )}
@@ -365,7 +365,7 @@ export function FillBlankStage({
           variant="outline"
           onClick={handlePrevSet}
           disabled={currentSetIndex === 0}
-          className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+          className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-border text-muted-foreground font-semibold hover:bg-white hover:text-foreground shadow-sm"
         >
           <ChevronLeft className="w-4 h-4 mr-2" /> 이전 세트
         </Button>

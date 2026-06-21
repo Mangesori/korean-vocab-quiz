@@ -71,11 +71,11 @@ export default {
         },
       },
       fontFamily: {
+        // 폰트 통일: 전부 Pretendard. brand/ui/mono는 의미용 별칭으로만 유지.
         sans:  ["'Pretendard Variable'", "Pretendard", "system-ui", "sans-serif"],
-        brand: ["'Paperozi'", "'Pretendard Variable'", "sans-serif"],
-        serif: ["'DM Serif Display'", "serif"],
-        ui:    ["'Geist'", "system-ui", "sans-serif"],
-        mono:  ["'Geist Mono'", "monospace"],
+        brand: ["'Pretendard Variable'", "Pretendard", "system-ui", "sans-serif"],
+        ui:    ["'Pretendard Variable'", "Pretendard", "system-ui", "sans-serif"],
+        mono:  ["'Pretendard Variable'", "Pretendard", "system-ui", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",
