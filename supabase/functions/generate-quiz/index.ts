@@ -20,6 +20,8 @@ interface QuizRequest {
   recordingMode?: "read" | "listen" | "mixed";
   recordingModes?: Array<{ wordIndex: number; mode: "read" | "listen" }>;
   skipFillBlank?: boolean;
+  matchupEnabled?: boolean;
+  typeAnswerEnabled?: boolean;
 }
 
 interface Problem {
@@ -29,6 +31,19 @@ interface Problem {
   sentence: string;
   hint: string;
   translation: string;
+  meaning?: string; // 단어(기본형)의 짧은 뜻 — 매치업/문장만들기 뜻 칸에 사용
+}
+
+interface MatchupProblem {
+  problem_id: string;
+  korean_text: string;
+  meaning_text: string;
+}
+
+interface TypeAnswerProblem {
+  problem_id: string;
+  prompt: string; // 뜻
+  answer: string; // 한국어 단어(기본형)
 }
 
 interface SentenceMakingProblem {
@@ -290,6 +305,13 @@ ${selectedGuide}
 · 모든 문제의 translation에 대괄호가 반드시 하나 있어야 합니다.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§6-2. 단어 뜻(meaning) 규칙
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· meaning에는 단어(기본형)의 핵심 사전적 뜻을 ${languageName}로 1~3 단어로 간결하게 적으세요.
+· 문장 전체 번역이 아니라 단어 하나의 뜻만 적습니다. 대괄호는 쓰지 마세요.
+  예: word "학생" → meaning "student" / word "마음에 들다" → meaning "to like"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §7. 부자연스러운 패턴 블랙리스트 (절대 금지)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 아래와 같은 문장은 절대로 만들지 마세요:
@@ -316,7 +338,8 @@ ${selectedGuide}
       "answer": "활용형 정답",
       "sentence": "( )가 포함된 ${difficulty} 수준 문장.",
       "hint": "문법 형태",
-      "translation": "${languageName} 번역 with [core meaning]"
+      "translation": "${languageName} 번역 with [core meaning]",
+      "meaning": "${languageName}로 된 단어의 짧은 뜻"
     }
   ]
 }
@@ -458,6 +481,8 @@ serve(async (req) => {
       recordingMode: _recordingMode = "read",
       recordingModes: _recordingModes = [],
       skipFillBlank = false,
+      matchupEnabled = false,
+      typeAnswerEnabled = false,
     }: QuizRequest = await req.json();
 
     const languageName = LANGUAGE_NAMES[translationLanguage] || "영어";
@@ -587,6 +612,7 @@ serve(async (req) => {
         sentence: p.sentence,
         hint: p.hint || "",
         translation: p.translation,
+        meaning: p.meaning || "",
       }));
 
       console.log(`Successfully generated ${problems.length} fill-blank problems`);
@@ -599,20 +625,52 @@ serve(async (req) => {
       problems: Problem[];
       sentenceMakingProblems?: SentenceMakingProblem[];
       recordingProblems?: RecordingProblem[];
+      matchupProblems?: MatchupProblem[];
+      typeAnswerProblems?: TypeAnswerProblem[];
     } = { problems };
+
+    // 단어별 뜻 맵 (빈칸 생성 결과에서 추출) — 문장 만들기/매치업 뜻 칸에 재사용
+    const meaningByWord = new Map<string, string>(
+      problems.map((p) => [p.word.trim(), p.meaning || ""])
+    );
 
     // 문장 만들기 퀴즈 생성 (AI 호출 불필요 - 단어 목록만 반환)
     if (sentenceMakingEnabled && !regenerateSingle) {
       console.log(`Creating sentence making problems for ${words.length} words`);
       // 단어 목록으로 문제 생성 (AI 채점은 학생이 제출할 때 진행)
+      // word_meaning은 빈칸 생성에서 나온 단어 뜻으로 자동 채움 (선생님이 미리보기에서 수정 가능)
       const smProblems: SentenceMakingProblem[] = words.map((word, index) => ({
         problem_id: `sm-${Date.now()}-${index}`,
         word: word,
-        word_meaning: "", // 학생에게 표시 안 함
+        word_meaning: meaningByWord.get(word.trim()) || "",
         model_answer: "", // 더 이상 사용 안 함 - AI가 실시간 채점
       }));
       responseData.sentenceMakingProblems = smProblems;
       console.log(`Created ${smProblems.length} sentence making problems`);
+    }
+
+    // 매치업 퀴즈 생성 (단어 ↔ 뜻) — 빈칸 생성 결과의 단어/뜻을 재사용
+    if (matchupEnabled && !regenerateSingle) {
+      console.log(`Creating matchup problems for ${words.length} words`);
+      const muProblems: MatchupProblem[] = words.map((word, index) => ({
+        problem_id: `mu-${Date.now()}-${index}`,
+        korean_text: word,
+        meaning_text: meaningByWord.get(word.trim()) || "",
+      }));
+      responseData.matchupProblems = muProblems;
+      console.log(`Created ${muProblems.length} matchup problems`);
+    }
+
+    // 답 입력 퀴즈 생성 (뜻 → 한국어 단어) — 빈칸 생성 결과의 단어/뜻 재사용
+    if (typeAnswerEnabled && !regenerateSingle) {
+      console.log(`Creating type-answer problems for ${words.length} words`);
+      const taProblems: TypeAnswerProblem[] = words.map((word, index) => ({
+        problem_id: `ta-${Date.now()}-${index}`,
+        prompt: meaningByWord.get(word.trim()) || "",
+        answer: word,
+      }));
+      responseData.typeAnswerProblems = taProblems;
+      console.log(`Created ${taProblems.length} type-answer problems`);
     }
 
     // 녹음 퀴즈 생성 - QuizPreview에서 빈칸 채우기 문장을 기반으로 생성

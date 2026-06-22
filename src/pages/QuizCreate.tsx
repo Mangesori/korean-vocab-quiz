@@ -8,12 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Loader2, BookOpen, PenLine, PenSquare, Mic, Type, Sparkles } from "lucide-react";
+import { Loader2, BookOpen, PenLine, PenSquare, Mic, Type, Sparkles, Link2, Keyboard, Magnet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/lib/rbac/roles";
-import type { Problem, SentenceMakingProblem, RecordingProblem } from "@/types/quiz";
+import type { Problem, SentenceMakingProblem, RecordingProblem, MatchupProblem, TypeAnswerProblem } from "@/types/quiz";
 
 const DIFFICULTY_LEVELS = [
   { level: "A1", bg: "bg-[#DCFCE7]", text: "text-[#15803D]", border: "border-[#15803D]" },
@@ -51,8 +51,12 @@ export default function QuizCreate() {
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(60);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [fillBlankEnabled, setFillBlankEnabled] = useState(true);
   const [sentenceMakingEnabled, setSentenceMakingEnabled] = useState(false);
   const [recordingEnabled, setRecordingEnabled] = useState(false);
+  const [matchupEnabled, setMatchupEnabled] = useState(false);
+  const [typeAnswerEnabled, setTypeAnswerEnabled] = useState(false);
+  const [wordMagnetEnabled, setWordMagnetEnabled] = useState(false);
 
   const words = wordsText
     .split(/[,\n]/)
@@ -95,6 +99,10 @@ export default function QuizCreate() {
       toast.error("퀴즈 제목을 입력해주세요");
       return;
     }
+    if (!fillBlankEnabled && !matchupEnabled && !typeAnswerEnabled && !wordMagnetEnabled && !sentenceMakingEnabled && !recordingEnabled) {
+      toast.error("최소 한 가지 퀴즈 유형을 선택해주세요");
+      return;
+    }
 
     setIsGenerating(true);
 
@@ -103,6 +111,8 @@ export default function QuizCreate() {
       const allProblems: Problem[] = [];
       const allSentenceMakingProblems: SentenceMakingProblem[] = [];
       const allRecordingProblems: RecordingProblem[] = [];
+      const allMatchupProblems: MatchupProblem[] = [];
+      const allTypeAnswerProblems: TypeAnswerProblem[] = [];
 
       const wordChunks: string[][] = [];
       for (let i = 0; i < words.length; i += BATCH_SIZE) {
@@ -124,6 +134,8 @@ export default function QuizCreate() {
               wordsPerSet,
               sentenceMakingEnabled,
               recordingEnabled,
+              matchupEnabled,
+              typeAnswerEnabled,
               recordingMode: "read",
             },
           });
@@ -134,6 +146,8 @@ export default function QuizCreate() {
           allProblems.push(...data.problems);
           if (data.sentenceMakingProblems) allSentenceMakingProblems.push(...data.sentenceMakingProblems);
           if (data.recordingProblems) allRecordingProblems.push(...data.recordingProblems);
+          if (data.matchupProblems) allMatchupProblems.push(...data.matchupProblems);
+          if (data.typeAnswerProblems) allTypeAnswerProblems.push(...data.typeAnswerProblems);
         } catch (batchError: any) {
           console.error(`Batch ${i + 1} generation error:`, batchError);
           if (allProblems.length > 0) {
@@ -160,10 +174,17 @@ export default function QuizCreate() {
           timerEnabled,
           timerSeconds: timerEnabled ? timerSeconds : null,
           problems: allProblems,
+          fillBlankEnabled,
           sentenceMakingEnabled,
           recordingEnabled,
+          matchupEnabled,
+          typeAnswerEnabled,
+          wordMagnetEnabled,
           sentenceMakingProblems: allSentenceMakingProblems,
           recordingProblems: allRecordingProblems,
+          matchupProblems: allMatchupProblems,
+          typeAnswerProblems: allTypeAnswerProblems,
+          wordMagnetProblems: [],
         }),
       );
 
@@ -237,15 +258,74 @@ export default function QuizCreate() {
               <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">3</span>
               <h2 className="font-semibold text-foreground">퀴즈 유형</h2>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              {/* 빈칸 채우기 — always active */}
-              <div className="p-4 rounded-xl border-2 border-primary bg-accent text-left">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setFillBlankEnabled(!fillBlankEnabled)}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${fillBlankEnabled
+                    ? "border-primary bg-accent"
+                    : "border-border hover:border-primary/40"
+                  }`}
+              >
                 <div className="flex items-center gap-2 mb-1">
-                  <Type className="w-4 h-4 text-primary" />
+                  <Type className={`w-4 h-4 ${fillBlankEnabled ? "text-primary" : "text-muted-foreground"}`} />
                   <span className="font-bold text-sm text-foreground">빈칸 채우기</span>
                 </div>
-                <div className="text-xs text-muted-foreground">필수 포함</div>
-              </div>
+                <div className={`text-xs ${fillBlankEnabled ? "text-primary" : "text-muted-foreground"}`}>
+                  {fillBlankEnabled ? "선택됨" : "빈칸 채우기"}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMatchupEnabled(!matchupEnabled)}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${matchupEnabled
+                    ? "border-primary bg-accent"
+                    : "border-border hover:border-primary/40"
+                  }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Link2 className={`w-4 h-4 ${matchupEnabled ? "text-primary" : "text-muted-foreground"}`} />
+                  <span className="font-bold text-sm text-foreground">매치업</span>
+                </div>
+                <div className={`text-xs ${matchupEnabled ? "text-primary" : "text-muted-foreground"}`}>
+                  {matchupEnabled ? "선택됨" : "단어 ↔ 뜻"}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTypeAnswerEnabled(!typeAnswerEnabled)}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${typeAnswerEnabled
+                    ? "border-primary bg-accent"
+                    : "border-border hover:border-primary/40"
+                  }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Keyboard className={`w-4 h-4 ${typeAnswerEnabled ? "text-primary" : "text-muted-foreground"}`} />
+                  <span className="font-bold text-sm text-foreground">답 입력</span>
+                </div>
+                <div className={`text-xs ${typeAnswerEnabled ? "text-primary" : "text-muted-foreground"}`}>
+                  {typeAnswerEnabled ? "선택됨" : "뜻 → 한국어"}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWordMagnetEnabled(!wordMagnetEnabled)}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${wordMagnetEnabled
+                    ? "border-primary bg-accent"
+                    : "border-border hover:border-primary/40"
+                  }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Magnet className={`w-4 h-4 ${wordMagnetEnabled ? "text-primary" : "text-muted-foreground"}`} />
+                  <span className="font-bold text-sm text-foreground">워드 마그넷</span>
+                </div>
+                <div className={`text-xs ${wordMagnetEnabled ? "text-primary" : "text-muted-foreground"}`}>
+                  {wordMagnetEnabled ? "선택됨" : "문장 조립"}
+                </div>
+              </button>
 
               <button
                 type="button"

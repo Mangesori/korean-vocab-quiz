@@ -14,11 +14,21 @@ export interface StudentQuizActivity {
   // per-type scores
   fill_blank_score: number | null;
   fill_blank_total: number | null;
+  matchup_score: number | null;
+  matchup_total: number | null;
+  type_answer_score: number | null;
+  type_answer_total: number | null;
+  word_magnet_score: number | null;
+  word_magnet_total: number | null;
   sentence_making_score: number | null;
   sentence_making_total: number | null;
   recording_score: number | null;
   recording_total: number | null;
   // quiz type flags
+  fill_blank_enabled: boolean;
+  matchup_enabled: boolean;
+  type_answer_enabled: boolean;
+  word_magnet_enabled: boolean;
   sentence_making_enabled: boolean;
   recording_enabled: boolean;
   // per-type submission times
@@ -40,7 +50,7 @@ export function useStudentHistory(studentId: string, classId: string) {
   const fetchHistory = async () => {
     setIsLoading(true);
     try {
-      const { data: assignedQuizzes, error: quizError } = await supabase
+      const { data: assignedQuizzes, error: quizError } = await (supabase as any)
         .from("quiz_assignments")
         .select(`
           quiz_id,
@@ -48,6 +58,10 @@ export function useStudentHistory(studentId: string, classId: string) {
           quizzes (
             id,
             title,
+            fill_blank_enabled,
+            matchup_enabled,
+            type_answer_enabled,
+            word_magnet_enabled,
             sentence_making_enabled,
             recording_enabled
           )
@@ -61,6 +75,10 @@ export function useStudentHistory(studentId: string, classId: string) {
       const assignmentMap: Record<string, {
         title: string;
         assigned_at: string;
+        fill_blank_enabled: boolean;
+        matchup_enabled: boolean;
+        type_answer_enabled: boolean;
+        word_magnet_enabled: boolean;
         sentence_making_enabled: boolean;
         recording_enabled: boolean;
       }> = {};
@@ -68,6 +86,10 @@ export function useStudentHistory(studentId: string, classId: string) {
         assignmentMap[cq.quiz_id] = {
           title: cq.quizzes?.title || "삭제된 퀴즈",
           assigned_at: cq.assigned_at,
+          fill_blank_enabled: cq.quizzes?.fill_blank_enabled ?? true,
+          matchup_enabled: cq.quizzes?.matchup_enabled ?? false,
+          type_answer_enabled: cq.quizzes?.type_answer_enabled ?? false,
+          word_magnet_enabled: cq.quizzes?.word_magnet_enabled ?? false,
           sentence_making_enabled: cq.quizzes?.sentence_making_enabled ?? false,
           recording_enabled: cq.quizzes?.recording_enabled ?? false,
         };
@@ -126,10 +148,20 @@ export function useStudentHistory(studentId: string, classId: string) {
               status: "completed",
               fill_blank_score: r.fill_blank_score ?? null,
               fill_blank_total: r.fill_blank_total ?? null,
+              matchup_score: (r as any).matchup_score ?? null,
+              matchup_total: (r as any).matchup_total ?? null,
+              type_answer_score: (r as any).type_answer_score ?? null,
+              type_answer_total: (r as any).type_answer_total ?? null,
+              word_magnet_score: (r as any).word_magnet_score ?? null,
+              word_magnet_total: (r as any).word_magnet_total ?? null,
               sentence_making_score: r.sentence_making_score ?? null,
               sentence_making_total: r.sentence_making_total ?? null,
               recording_score: r.recording_score ?? null,
               recording_total: r.recording_total ?? null,
+              fill_blank_enabled: assignment?.fill_blank_enabled ?? true,
+              matchup_enabled: assignment?.matchup_enabled ?? false,
+              type_answer_enabled: assignment?.type_answer_enabled ?? false,
+              word_magnet_enabled: assignment?.word_magnet_enabled ?? false,
               sentence_making_enabled: assignment?.sentence_making_enabled ?? false,
               recording_enabled: assignment?.recording_enabled ?? false,
               fill_blank_time: r.completed_at,
@@ -154,10 +186,20 @@ export function useStudentHistory(studentId: string, classId: string) {
             status: "pending",
             fill_blank_score: null,
             fill_blank_total: null,
+            matchup_score: null,
+            matchup_total: null,
+            type_answer_score: null,
+            type_answer_total: null,
+            word_magnet_score: null,
+            word_magnet_total: null,
             sentence_making_score: null,
             sentence_making_total: null,
             recording_score: null,
             recording_total: null,
+            fill_blank_enabled: cq.quizzes?.fill_blank_enabled ?? true,
+            matchup_enabled: cq.quizzes?.matchup_enabled ?? false,
+            type_answer_enabled: cq.quizzes?.type_answer_enabled ?? false,
+            word_magnet_enabled: cq.quizzes?.word_magnet_enabled ?? false,
             sentence_making_enabled: cq.quizzes?.sentence_making_enabled ?? false,
             recording_enabled: cq.quizzes?.recording_enabled ?? false,
             fill_blank_time: null,

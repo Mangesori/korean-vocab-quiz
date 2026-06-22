@@ -15,7 +15,20 @@ import { PERMISSIONS } from "@/lib/rbac/roles";
 import { FillBlankPreview } from "@/components/quiz/FillBlankPreview";
 import { SentenceMakingPreview } from "@/components/quiz/SentenceMakingPreview";
 import { RecordingPreview } from "@/components/quiz/RecordingPreview";
-import type { Problem, SentenceMakingProblem, RecordingProblem, QuizDraft } from "@/types/quiz";
+import { MatchUpPreview } from "@/components/quiz/MatchUpPreview";
+import { TypeAnswerPreview } from "@/components/quiz/TypeAnswerPreview";
+import { WordMagnetPreview } from "@/components/quiz/WordMagnetPreview";
+import { parseSentenceToItems } from "@/lib/korean/wordMagnet";
+import type { Problem, SentenceMakingProblem, RecordingProblem, MatchupProblem, TypeAnswerProblem, WordMagnetProblem, QuizDraft } from "@/types/quiz";
+
+const STAGE_LABELS: Record<string, string> = {
+  fill_blank: "빈칸 채우기",
+  matchup: "매치업",
+  type_answer: "답 입력",
+  word_magnet: "워드 마그넷",
+  sentence_making: "문장 만들기",
+  recording: "말하기 연습",
+};
 
 const LANGUAGE_LABELS: Record<string, string> = {
   en: "영어",
@@ -42,15 +55,27 @@ export default function QuizPreview() {
   const [studentPreview, setStudentPreview] = useState(false);
   const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
 
-  type PreviewStage = "fill_blank" | "sentence_making" | "recording";
+  type PreviewStage = "fill_blank" | "matchup" | "type_answer" | "word_magnet" | "sentence_making" | "recording";
   const [previewStage, setPreviewStage] = useState<PreviewStage>("fill_blank");
 
   const enabledStages = useMemo(() => {
-    const stages: PreviewStage[] = ["fill_blank"];
+    const stages: PreviewStage[] = [];
+    if (draft?.fillBlankEnabled !== false) stages.push("fill_blank");
+    if (draft?.matchupEnabled) stages.push("matchup");
+    if (draft?.typeAnswerEnabled) stages.push("type_answer");
+    if (draft?.wordMagnetEnabled) stages.push("word_magnet");
     if (draft?.sentenceMakingEnabled) stages.push("sentence_making");
     if (draft?.recordingEnabled) stages.push("recording");
     return stages;
-  }, [draft?.sentenceMakingEnabled, draft?.recordingEnabled]);
+  }, [draft?.fillBlankEnabled, draft?.matchupEnabled, draft?.typeAnswerEnabled, draft?.wordMagnetEnabled, draft?.sentenceMakingEnabled, draft?.recordingEnabled]);
+
+  // 빈칸 OFF면 첫 활성 스테이지에서 미리보기 시작
+  useEffect(() => {
+    if (enabledStages.length > 0 && !enabledStages.includes(previewStage)) {
+      setPreviewStage(enabledStages[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabledStages]);
 
   const currentStageIndex = enabledStages.indexOf(previewStage);
   const isLastStage = currentStageIndex === enabledStages.length - 1;
@@ -72,6 +97,62 @@ export default function QuizPreview() {
       return { ...prev, recordingProblems };
     });
   }, [draft?.recordingEnabled, draft?.problems]);
+
+  // 매치업: 단어 목록에서 파생 (비었을 때만 — 엣지/교사가 채운 건 보존)
+  const generateMatchupProblems = useCallback(() => {
+    if (!draft?.matchupEnabled || !draft.problems) return;
+    if (draft.matchupProblems && draft.matchupProblems.length > 0) return;
+    const muProblems: MatchupProblem[] = draft.problems
+      .filter((p) => p.word?.trim())
+      .map((p) => ({ problem_id: p.id, korean_text: p.word, meaning_text: p.meaning || "" }));
+    setDraft((prev) => (prev ? { ...prev, matchupProblems: muProblems } : null));
+  }, [draft?.matchupEnabled, draft?.problems, draft?.matchupProblems]);
+
+  // 답 입력: 단어 목록에서 파생 (비었을 때만)
+  const generateTypeAnswerProblems = useCallback(() => {
+    if (!draft?.typeAnswerEnabled || !draft.problems) return;
+    if (draft.typeAnswerProblems && draft.typeAnswerProblems.length > 0) return;
+    const taProblems: TypeAnswerProblem[] = draft.problems
+      .filter((p) => p.word?.trim())
+      .map((p) => ({ problem_id: p.id, prompt: p.meaning || "", answer: p.word }));
+    setDraft((prev) => (prev ? { ...prev, typeAnswerProblems: taProblems } : null));
+  }, [draft?.typeAnswerEnabled, draft?.problems, draft?.typeAnswerProblems]);
+
+  const generateWordMagnetProblems = useCallback(() => {
+    if (!draft?.wordMagnetEnabled || !draft.problems) return;
+
+    const wmProblems: WordMagnetProblem[] = draft.problems
+      .map((problem) => {
+        const baseText = problem.sentence
+          .replace(/\(\s*\)|\(\)/g, problem.answer)
+          .replace(/([.?!])\s*\.+\s*$/, "$1")
+          .trim();
+        const items = parseSentenceToItems(baseText).map((it) => ({
+          content: it.content,
+          isParticle: it.isParticle,
+        }));
+        return {
+          problem_id: problem.id,
+          base_text: baseText,
+          translation: (problem.translation || "").replace(/[[\]]/g, ""),
+          items,
+        };
+      })
+      .filter((p) => p.items.length > 0);
+
+    setDraft((prev) => {
+      if (!prev) return null;
+      return { ...prev, wordMagnetProblems: wmProblems };
+    });
+  }, [draft?.wordMagnetEnabled, draft?.problems]);
+
+  // 스테이지 진입 시 해당 유형 문제 파생 (매치업·답입력은 비었을 때만, 워드마그넷은 매번 재파생)
+  useEffect(() => {
+    if (previewStage === "matchup") generateMatchupProblems();
+    if (previewStage === "type_answer") generateTypeAnswerProblems();
+    if (previewStage === "word_magnet") generateWordMagnetProblems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewStage]);
 
   const handleNextStage = () => {
     if (previewStage === "fill_blank" && draft?.recordingEnabled) {
@@ -165,6 +246,70 @@ export default function QuizPreview() {
         model_answer: "",
       };
       return { ...prev, sentenceMakingProblems: [...(prev.sentenceMakingProblems || []), newProblem] };
+    });
+  };
+
+  const updateMatchupProblem = (problemId: string, field: keyof MatchupProblem, value: string) => {
+    setDraft((prev) => {
+      if (!prev || !prev.matchupProblems) return prev;
+      const updated = prev.matchupProblems.map((p) =>
+        p.problem_id === problemId ? { ...p, [field]: value } : p
+      );
+      return { ...prev, matchupProblems: updated };
+    });
+  };
+
+  const deleteMatchupProblem = (problemId: string) => {
+    setDraft((prev) => {
+      if (!prev || !prev.matchupProblems) return prev;
+      return {
+        ...prev,
+        matchupProblems: prev.matchupProblems.filter((p) => p.problem_id !== problemId),
+      };
+    });
+  };
+
+  const addMatchupProblem = () => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const newProblem: MatchupProblem = {
+        problem_id: `mu-${Date.now()}`,
+        korean_text: "",
+        meaning_text: "",
+      };
+      return { ...prev, matchupProblems: [...(prev.matchupProblems || []), newProblem] };
+    });
+  };
+
+  const updateTypeAnswerProblem = (problemId: string, field: keyof TypeAnswerProblem, value: string) => {
+    setDraft((prev) => {
+      if (!prev || !prev.typeAnswerProblems) return prev;
+      const updated = prev.typeAnswerProblems.map((p) =>
+        p.problem_id === problemId ? { ...p, [field]: value } : p
+      );
+      return { ...prev, typeAnswerProblems: updated };
+    });
+  };
+
+  const deleteTypeAnswerProblem = (problemId: string) => {
+    setDraft((prev) => {
+      if (!prev || !prev.typeAnswerProblems) return prev;
+      return {
+        ...prev,
+        typeAnswerProblems: prev.typeAnswerProblems.filter((p) => p.problem_id !== problemId),
+      };
+    });
+  };
+
+  const addTypeAnswerProblem = () => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const newProblem: TypeAnswerProblem = {
+        problem_id: `ta-${Date.now()}`,
+        prompt: "",
+        answer: "",
+      };
+      return { ...prev, typeAnswerProblems: [...(prev.typeAnswerProblems || []), newProblem] };
     });
   };
 
@@ -341,11 +486,15 @@ export default function QuizPreview() {
         timer_seconds: draft.timerSeconds,
         problems: JSON.parse(JSON.stringify(shuffledProblems)),
         teacher_id: user.id,
+        fill_blank_enabled: draft.fillBlankEnabled !== false,
         sentence_making_enabled: draft.sentenceMakingEnabled || false,
         recording_enabled: draft.recordingEnabled || false,
+        matchup_enabled: draft.matchupEnabled || false,
+        type_answer_enabled: draft.typeAnswerEnabled || false,
+        word_magnet_enabled: draft.wordMagnetEnabled || false,
       };
 
-      const { data, error } = await supabase.from("quizzes").insert(quizData).select().single();
+      const { data, error } = await supabase.from("quizzes").insert(quizData as any).select().single();
 
       if (error) throw error;
 
@@ -376,6 +525,61 @@ export default function QuizPreview() {
         const { error: smError } = await supabase.from("sentence_making_problems").insert(smProblemsToInsert);
         if (smError) {
           console.error("Failed to save sentence making problems:", smError);
+        }
+      }
+
+      if (draft.matchupEnabled && draft.matchupProblems && draft.matchupProblems.length > 0) {
+        const muProblemsToInsert = draft.matchupProblems
+          .filter((p) => p.korean_text.trim() && p.meaning_text.trim())
+          .map((p) => ({
+            quiz_id: data.id,
+            problem_id: p.problem_id,
+            korean_text: p.korean_text,
+            meaning_text: p.meaning_text,
+          }));
+
+        if (muProblemsToInsert.length > 0) {
+          const { error: muError } = await (supabase as any).from("matchup_problems").insert(muProblemsToInsert);
+          if (muError) {
+            console.error("Failed to save matchup problems:", muError);
+          }
+        }
+      }
+
+      if (draft.typeAnswerEnabled && draft.typeAnswerProblems && draft.typeAnswerProblems.length > 0) {
+        const taProblemsToInsert = draft.typeAnswerProblems
+          .filter((p) => p.prompt.trim() && p.answer.trim())
+          .map((p) => ({
+            quiz_id: data.id,
+            problem_id: p.problem_id,
+            prompt: p.prompt,
+            answer: p.answer,
+          }));
+
+        if (taProblemsToInsert.length > 0) {
+          const { error: taError } = await (supabase as any).from("type_answer_problems").insert(taProblemsToInsert);
+          if (taError) {
+            console.error("Failed to save type answer problems:", taError);
+          }
+        }
+      }
+
+      if (draft.wordMagnetEnabled && draft.wordMagnetProblems && draft.wordMagnetProblems.length > 0) {
+        const wmProblemsToInsert = draft.wordMagnetProblems
+          .filter((p) => p.base_text.trim() && p.items.length > 0)
+          .map((p) => ({
+            quiz_id: data.id,
+            problem_id: p.problem_id,
+            base_text: p.base_text,
+            translation: p.translation || null,
+            items: p.items,
+          }));
+
+        if (wmProblemsToInsert.length > 0) {
+          const { error: wmError } = await (supabase as any).from("word_magnet_problems").insert(wmProblemsToInsert);
+          if (wmError) {
+            console.error("Failed to save word magnet problems:", wmError);
+          }
         }
       }
 
@@ -509,7 +713,7 @@ export default function QuizPreview() {
 
               {!isLastStage ? (
                 <Button onClick={handleNextStage} size="lg">
-                  다음: {nextStage === "sentence_making" ? "문장 만들기" : "말하기 연습"}
+                  다음: {STAGE_LABELS[nextStage] ?? ""}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               ) : (
@@ -539,9 +743,7 @@ export default function QuizPreview() {
                     {index + 1}
                   </span>
                   <span className="text-sm font-medium whitespace-nowrap">
-                    {stage === "fill_blank" && "빈칸 채우기"}
-                    {stage === "sentence_making" && "문장 만들기"}
-                    {stage === "recording" && "말하기 연습"}
+                    {STAGE_LABELS[stage]}
                   </span>
                 </div>
                 {index < enabledStages.length - 1 && <ChevronRight className="w-4 h-4 text-muted-foreground" />}
@@ -563,6 +765,30 @@ export default function QuizPreview() {
             regenerateProblem={regenerateProblem}
             addFillBlankProblem={addFillBlankProblem}
           />
+        )}
+
+        {previewStage === "matchup" && draft.matchupProblems && draft.matchupProblems.length > 0 && (
+          <MatchUpPreview
+            problems={draft.matchupProblems}
+            studentPreview={studentPreview}
+            updateMatchupProblem={updateMatchupProblem}
+            deleteMatchupProblem={deleteMatchupProblem}
+            addMatchupProblem={addMatchupProblem}
+          />
+        )}
+
+        {previewStage === "type_answer" && draft.typeAnswerProblems && draft.typeAnswerProblems.length > 0 && (
+          <TypeAnswerPreview
+            problems={draft.typeAnswerProblems}
+            studentPreview={studentPreview}
+            updateTypeAnswerProblem={updateTypeAnswerProblem}
+            deleteTypeAnswerProblem={deleteTypeAnswerProblem}
+            addTypeAnswerProblem={addTypeAnswerProblem}
+          />
+        )}
+
+        {previewStage === "word_magnet" && draft.wordMagnetProblems && draft.wordMagnetProblems.length > 0 && (
+          <WordMagnetPreview problems={draft.wordMagnetProblems} studentPreview={studentPreview} />
         )}
 
         {previewStage === "sentence_making" &&
@@ -598,7 +824,7 @@ export default function QuizPreview() {
 
           {!isLastStage ? (
             <Button onClick={handleNextStage} size="lg">
-              다음: {nextStage === "sentence_making" ? "문장 만들기" : "말하기 연습"}
+              다음: {STAGE_LABELS[nextStage] ?? ""}
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (

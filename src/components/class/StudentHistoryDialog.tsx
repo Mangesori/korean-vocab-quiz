@@ -73,6 +73,9 @@ export function StudentHistoryDialog({
                     <TableHead>퀴즈 제목</TableHead>
                     <TableHead className="whitespace-nowrap">배정일</TableHead>
                     <TableHead className="whitespace-nowrap">빈칸 채우기</TableHead>
+                    <TableHead className="whitespace-nowrap">매치업</TableHead>
+                    <TableHead className="whitespace-nowrap">답 입력</TableHead>
+                    <TableHead className="whitespace-nowrap">워드 마그넷</TableHead>
                     <TableHead className="whitespace-nowrap">문장 만들기</TableHead>
                     <TableHead className="whitespace-nowrap">말하기 연습</TableHead>
                     <TableHead className="whitespace-nowrap text-center">상세보기</TableHead>
@@ -81,7 +84,7 @@ export function StudentHistoryDialog({
                 <TableBody>
                   {activities.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
                         배정된 퀴즈가 없습니다.
                       </TableCell>
                     </TableRow>
@@ -98,7 +101,28 @@ export function StudentHistoryDialog({
                           <ScoreCell
                             score={activity.fill_blank_score}
                             total={activity.fill_blank_total}
-                            enabled={true}
+                            enabled={activity.fill_blank_enabled ?? true}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <ScoreCell
+                            score={activity.matchup_score}
+                            total={activity.matchup_total}
+                            enabled={activity.matchup_enabled}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <ScoreCell
+                            score={activity.type_answer_score}
+                            total={activity.type_answer_total}
+                            enabled={activity.type_answer_enabled}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <ScoreCell
+                            score={activity.word_magnet_score}
+                            total={activity.word_magnet_total}
+                            enabled={activity.word_magnet_enabled}
                           />
                         </TableCell>
                         <TableCell>

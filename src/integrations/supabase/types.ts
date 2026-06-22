@@ -139,6 +139,122 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          context: string | null
+          created_at: string
+          email: string | null
+          id: string
+          message: string
+          rating: number | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message: string
+          rating?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string
+          rating?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      matchup_answers: {
+        Row: {
+          attempt_number: number
+          created_at: string
+          id: string
+          is_correct: boolean | null
+          problem_id: string
+          quiz_id: string
+          result_id: string | null
+          selected_meaning: string | null
+          student_id: string | null
+        }
+        Insert: {
+          attempt_number?: number
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          problem_id: string
+          quiz_id: string
+          result_id?: string | null
+          selected_meaning?: string | null
+          student_id?: string | null
+        }
+        Update: {
+          attempt_number?: number
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          problem_id?: string
+          quiz_id?: string
+          result_id?: string | null
+          selected_meaning?: string | null
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matchup_answers_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matchup_answers_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matchup_problems: {
+        Row: {
+          created_at: string
+          id: string
+          korean_text: string
+          meaning_text: string
+          problem_id: string
+          quiz_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          korean_text: string
+          meaning_text: string
+          problem_id: string
+          quiz_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          korean_text?: string
+          meaning_text?: string
+          problem_id?: string
+          quiz_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matchup_problems_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           announcement_id: string | null
@@ -382,6 +498,8 @@ export type Database = {
           fill_blank_total: number | null
           id: string
           is_anonymous: boolean
+          matchup_score: number | null
+          matchup_total: number | null
           quiz_id: string
           recording_score: number | null
           recording_total: number | null
@@ -391,6 +509,10 @@ export type Database = {
           share_token: string | null
           student_id: string | null
           total_questions: number
+          type_answer_score: number | null
+          type_answer_total: number | null
+          word_magnet_score: number | null
+          word_magnet_total: number | null
         }
         Insert: {
           anonymous_name?: string | null
@@ -400,6 +522,8 @@ export type Database = {
           fill_blank_total?: number | null
           id?: string
           is_anonymous?: boolean
+          matchup_score?: number | null
+          matchup_total?: number | null
           quiz_id: string
           recording_score?: number | null
           recording_total?: number | null
@@ -409,6 +533,10 @@ export type Database = {
           share_token?: string | null
           student_id?: string | null
           total_questions: number
+          type_answer_score?: number | null
+          type_answer_total?: number | null
+          word_magnet_score?: number | null
+          word_magnet_total?: number | null
         }
         Update: {
           anonymous_name?: string | null
@@ -418,6 +546,8 @@ export type Database = {
           fill_blank_total?: number | null
           id?: string
           is_anonymous?: boolean
+          matchup_score?: number | null
+          matchup_total?: number | null
           quiz_id?: string
           recording_score?: number | null
           recording_total?: number | null
@@ -427,6 +557,10 @@ export type Database = {
           share_token?: string | null
           student_id?: string | null
           total_questions?: number
+          type_answer_score?: number | null
+          type_answer_total?: number | null
+          word_magnet_score?: number | null
+          word_magnet_total?: number | null
         }
         Relationships: [
           {
@@ -511,7 +645,9 @@ export type Database = {
           api_provider: string | null
           created_at: string
           difficulty: Database["public"]["Enums"]["difficulty_level"]
+          fill_blank_enabled: boolean
           id: string
+          matchup_enabled: boolean
           problems: Json
           recording_enabled: boolean
           sentence_making_enabled: boolean
@@ -520,7 +656,9 @@ export type Database = {
           timer_seconds: number | null
           title: string
           translation_language: Database["public"]["Enums"]["translation_language"]
+          type_answer_enabled: boolean
           updated_at: string
+          word_magnet_enabled: boolean
           words: string[]
           words_per_set: number
         }
@@ -528,7 +666,9 @@ export type Database = {
           api_provider?: string | null
           created_at?: string
           difficulty?: Database["public"]["Enums"]["difficulty_level"]
+          fill_blank_enabled?: boolean
           id?: string
+          matchup_enabled?: boolean
           problems?: Json
           recording_enabled?: boolean
           sentence_making_enabled?: boolean
@@ -537,7 +677,9 @@ export type Database = {
           timer_seconds?: number | null
           title: string
           translation_language?: Database["public"]["Enums"]["translation_language"]
+          type_answer_enabled?: boolean
           updated_at?: string
+          word_magnet_enabled?: boolean
           words: string[]
           words_per_set?: number
         }
@@ -545,7 +687,9 @@ export type Database = {
           api_provider?: string | null
           created_at?: string
           difficulty?: Database["public"]["Enums"]["difficulty_level"]
+          fill_blank_enabled?: boolean
           id?: string
+          matchup_enabled?: boolean
           problems?: Json
           recording_enabled?: boolean
           sentence_making_enabled?: boolean
@@ -554,7 +698,9 @@ export type Database = {
           timer_seconds?: number | null
           title?: string
           translation_language?: Database["public"]["Enums"]["translation_language"]
+          type_answer_enabled?: boolean
           updated_at?: string
+          word_magnet_enabled?: boolean
           words?: string[]
           words_per_set?: number
         }
@@ -585,7 +731,7 @@ export type Database = {
           recording_duration_seconds: number | null
           recording_url: string
           result_id: string | null
-          student_id: string
+          student_id: string | null
           word_level_feedback: Json | null
         }
         Insert: {
@@ -604,7 +750,7 @@ export type Database = {
           recording_duration_seconds?: number | null
           recording_url: string
           result_id?: string | null
-          student_id: string
+          student_id?: string | null
           word_level_feedback?: Json | null
         }
         Update: {
@@ -623,7 +769,7 @@ export type Database = {
           recording_duration_seconds?: number | null
           recording_url?: string
           result_id?: string | null
-          student_id?: string
+          student_id?: string | null
           word_level_feedback?: Json | null
         }
         Relationships: [
@@ -703,7 +849,7 @@ export type Database = {
           problem_id: string
           quiz_id: string
           result_id: string | null
-          student_id: string
+          student_id: string | null
           student_sentence: string
           total_score: number | null
           word_usage_score: number | null
@@ -720,7 +866,7 @@ export type Database = {
           problem_id: string
           quiz_id: string
           result_id?: string | null
-          student_id: string
+          student_id?: string | null
           student_sentence: string
           total_score?: number | null
           word_usage_score?: number | null
@@ -737,7 +883,7 @@ export type Database = {
           problem_id?: string
           quiz_id?: string
           result_id?: string | null
-          student_id?: string
+          student_id?: string | null
           student_sentence?: string
           total_score?: number | null
           word_usage_score?: number | null
@@ -800,6 +946,119 @@ export type Database = {
           },
         ]
       }
+      teacher_applications: {
+        Row: {
+          created_at: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      type_answer_answers: {
+        Row: {
+          attempt_number: number
+          created_at: string
+          id: string
+          is_correct: boolean | null
+          problem_id: string
+          quiz_id: string
+          result_id: string | null
+          student_answer: string | null
+          student_id: string | null
+        }
+        Insert: {
+          attempt_number?: number
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          problem_id: string
+          quiz_id: string
+          result_id?: string | null
+          student_answer?: string | null
+          student_id?: string | null
+        }
+        Update: {
+          attempt_number?: number
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          problem_id?: string
+          quiz_id?: string
+          result_id?: string | null
+          student_answer?: string | null
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "type_answer_answers_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "type_answer_answers_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      type_answer_problems: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          problem_id: string
+          prompt: string
+          quiz_id: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          problem_id: string
+          prompt: string
+          quiz_id: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          problem_id?: string
+          prompt?: string
+          quiz_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "type_answer_problems_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vocabulary_lists: {
         Row: {
           created_at: string | null
@@ -854,6 +1113,95 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      word_magnet_answers: {
+        Row: {
+          attempt_number: number
+          created_at: string
+          id: string
+          is_correct: boolean | null
+          problem_id: string
+          quiz_id: string
+          result_id: string | null
+          student_id: string | null
+          student_sentence: string | null
+        }
+        Insert: {
+          attempt_number?: number
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          problem_id: string
+          quiz_id: string
+          result_id?: string | null
+          student_id?: string | null
+          student_sentence?: string | null
+        }
+        Update: {
+          attempt_number?: number
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          problem_id?: string
+          quiz_id?: string
+          result_id?: string | null
+          student_id?: string | null
+          student_sentence?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "word_magnet_answers_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "word_magnet_answers_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      word_magnet_problems: {
+        Row: {
+          base_text: string
+          created_at: string
+          id: string
+          items: Json
+          problem_id: string
+          quiz_id: string
+          translation: string | null
+        }
+        Insert: {
+          base_text: string
+          created_at?: string
+          id?: string
+          items?: Json
+          problem_id: string
+          quiz_id: string
+          translation?: string | null
+        }
+        Update: {
+          base_text?: string
+          created_at?: string
+          id?: string
+          items?: Json
+          problem_id?: string
+          quiz_id?: string
+          translation?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "word_magnet_problems_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -925,6 +1273,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ensure_quiz_result: { Args: { _quiz_id: string }; Returns: Json }
+      finalize_quiz_result: { Args: { _result_id: string }; Returns: undefined }
       generate_invite_code: { Args: never; Returns: string }
       get_class_by_invite_code: {
         Args: { _invite_code: string }
@@ -947,6 +1297,10 @@ export type Database = {
         }[]
       }
       get_quiz_for_student: { Args: { _quiz_id: string }; Returns: Json }
+      get_type_answer_problems_for_student: {
+        Args: { _quiz_id: string }
+        Returns: Json
+      }
       get_user_profiles_with_email: {
         Args: never
         Returns: {
@@ -962,6 +1316,18 @@ export type Database = {
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_word_magnet_problems_for_student: {
+        Args: { _quiz_id: string }
+        Returns: Json
+      }
+      grade_type_answers: {
+        Args: { _answers: Json; _quiz_id: string }
+        Returns: Json
+      }
+      grade_word_magnets: {
+        Args: { _answers: Json; _quiz_id: string }
+        Returns: Json
       }
       has_role: {
         Args: {
@@ -991,13 +1357,56 @@ export type Database = {
       is_teacher_or_admin:
         | { Args: never; Returns: boolean }
         | { Args: { user_id: string }; Returns: boolean }
+      korean_subject_postfix: { Args: { name: string }; Returns: string }
+      notify_class_teacher_on_join: {
+        Args: { _class_id: string }
+        Returns: undefined
+      }
       notify_quiz_completion: {
         Args: { _anonymous_name: string; _quiz_id: string }
         Returns: undefined
       }
-      submit_quiz_answers: {
-        Args: { _quiz_id: string; _student_answers: Json; _problem_order?: string[] }
-        Returns: Json
+      submit_quiz_answers:
+        | { Args: { _quiz_id: string; _student_answers: Json }; Returns: Json }
+        | {
+            Args: {
+              _problem_order?: string[]
+              _quiz_id: string
+              _student_answers: Json
+            }
+            Returns: Json
+          }
+      update_quiz_progress_notification:
+        | {
+            Args: { _message: string; _quiz_id: string; _student_id: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _message: string
+              _quiz_id: string
+              _stage: string
+              _student_id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _is_redo?: boolean
+              _message: string
+              _quiz_id: string
+              _stage: string
+              _student_id: string
+            }
+            Returns: undefined
+          }
+      update_quiz_result_matchup_score: {
+        Args: { _result_id: string; _score: number; _total: number }
+        Returns: undefined
+      }
+      update_quiz_result_recording_score: {
+        Args: { _result_id: string; _score: number; _total: number }
+        Returns: undefined
       }
       update_quiz_result_scores: {
         Args: {
@@ -1011,11 +1420,27 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_quiz_result_sentence_score: {
+        Args: { _result_id: string; _score: number; _total: number }
+        Returns: undefined
+      }
+      update_quiz_result_type_answer_score: {
+        Args: { _result_id: string; _score: number; _total: number }
+        Returns: undefined
+      }
+      update_quiz_result_word_magnet_score: {
+        Args: { _result_id: string; _score: number; _total: number }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "teacher" | "student" | "admin"
       difficulty_level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"
-      notification_type: "quiz_assigned" | "quiz_completed" | "announcement"
+      notification_type:
+        | "quiz_assigned"
+        | "quiz_completed"
+        | "announcement"
+        | "student_joined"
       recording_mode: "read" | "listen"
       sentence_source: "reuse" | "ai_generated" | "teacher_input"
       translation_language:
@@ -1159,7 +1584,12 @@ export const Constants = {
     Enums: {
       app_role: ["teacher", "student", "admin"],
       difficulty_level: ["A1", "A2", "B1", "B2", "C1", "C2"],
-      notification_type: ["quiz_assigned", "quiz_completed", "announcement"],
+      notification_type: [
+        "quiz_assigned",
+        "quiz_completed",
+        "announcement",
+        "student_joined",
+      ],
       recording_mode: ["read", "listen"],
       sentence_source: ["reuse", "ai_generated", "teacher_input"],
       translation_language: [
