@@ -25,6 +25,7 @@ import { Navigate } from "react-router-dom";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { maskTranslation } from "@/utils/maskTranslation";
+import { STAGE_ORDER, STAGE_LABELS, type BaseStage } from "@/types/quiz";
 
 interface Problem {
   id: string;
@@ -122,18 +123,25 @@ export default function QuizTake() {
     setStageProgress({ current, total, label });
   }, []);
 
-  // 전역 단계(Stepper) 구성을 위한 배열 계산
-  const globalStages = useMemo(() => {
+  // 활성 스테이지 목록 — 정규 순서(STAGE_ORDER)를 따른다.
+  const enabledBases = useMemo<BaseStage[]>(() => {
     if (!quiz) return [];
-    const stages: { id: string; label: string }[] = [];
-    if (quiz.fill_blank_enabled !== false) stages.push({ id: "fill_blank", label: "빈칸 채우기" });
-    if (quiz.matchup_enabled) stages.push({ id: "matchup", label: "매치업" });
-    if (quiz.type_answer_enabled) stages.push({ id: "type_answer", label: "답 입력" });
-    if (quiz.word_magnet_enabled) stages.push({ id: "word_magnet", label: "워드 마그넷" });
-    if (quiz.sentence_making_enabled) stages.push({ id: "sentence_making", label: "문장 만들기" });
-    if (quiz.recording_enabled) stages.push({ id: "recording", label: "말하기 연습" });
-    return stages;
+    const isEnabled: Record<BaseStage, boolean> = {
+      matchup: !!quiz.matchup_enabled,
+      type_answer: !!quiz.type_answer_enabled,
+      fill_blank: quiz.fill_blank_enabled !== false,
+      word_magnet: !!quiz.word_magnet_enabled,
+      sentence_making: !!quiz.sentence_making_enabled,
+      recording: !!quiz.recording_enabled,
+    };
+    return STAGE_ORDER.filter((s) => isEnabled[s]);
   }, [quiz]);
+
+  // 전역 단계(Stepper) 구성을 위한 배열 계산
+  const globalStages = useMemo(
+    () => enabledBases.map((id) => ({ id, label: STAGE_LABELS[id] })),
+    [enabledBases]
+  );
 
   const getCurrentGlobalStageIndex = () => {
     if (currentStage.includes("recording")) return globalStages.findIndex(s => s.id === "recording");
@@ -141,7 +149,8 @@ export default function QuizTake() {
     if (currentStage.includes("word_magnet")) return globalStages.findIndex(s => s.id === "word_magnet");
     if (currentStage.includes("type_answer")) return globalStages.findIndex(s => s.id === "type_answer");
     if (currentStage.includes("matchup")) return globalStages.findIndex(s => s.id === "matchup");
-    return 0; // fill_blank 가본값
+    if (currentStage.includes("fill_blank")) return globalStages.findIndex(s => s.id === "fill_blank");
+    return 0;
   };
 
   // Wait for initial render to complete before checking auth
@@ -164,15 +173,14 @@ export default function QuizTake() {
     }
   }, [quiz]);
 
-  // 빈칸 채우기를 끈 퀴즈: 첫 활성 스테이지에서 시작 (resume은 checkProgress가 덮어씀)
+  // 첫 활성 스테이지에서 시작 (정규 순서 기준, resume은 checkProgress가 덮어씀)
+  // currentStage 기본값은 "fill_blank"이지만, 새 순서에서는 보통 matchup이 먼저다.
   useEffect(() => {
-    if (!quiz || quiz.fill_blank_enabled !== false) return;
-    if (currentStage !== "fill_blank") return;
-    if (quiz.matchup_enabled) setCurrentStage("matchup");
-    else if (quiz.type_answer_enabled) setCurrentStage("type_answer");
-    else if (quiz.word_magnet_enabled) setCurrentStage("word_magnet");
-    else if (quiz.sentence_making_enabled) setCurrentStage("sentence_making");
-    else if (quiz.recording_enabled) setCurrentStage("recording");
+    if (!quiz) return;
+    const first = enabledBases[0];
+    if (first && currentStage === "fill_blank" && first !== "fill_blank") {
+      setCurrentStage(first);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quiz?.id]);
 
@@ -200,7 +208,7 @@ export default function QuizTake() {
     const checkProgress = async () => {
       const { data: existing } = await (supabase as any)
         .from("quiz_results")
-        .select("id, score, total_questions, matchup_score, matchup_total, type_answer_score, type_answer_total, word_magnet_score, word_magnet_total, sentence_making_score, sentence_making_total, recording_score")
+        .select("id, score, total_questions, fill_blank_score, fill_blank_total, matchup_score, matchup_total, type_answer_score, type_answer_total, word_magnet_score, word_magnet_total, sentence_making_score, sentence_making_total, recording_score")
         .eq("quiz_id", quiz.id)
         .eq("student_id", user.id)
         .order("completed_at", { ascending: false })
@@ -209,19 +217,23 @@ export default function QuizTake() {
 
       if (!existing) return;
 
+      const fbDone = quiz.fill_blank_enabled === false || (existing as any).fill_blank_score !== null;
       const muDone = !quiz.matchup_enabled || (existing as any).matchup_score !== null;
       const taDone = !quiz.type_answer_enabled || (existing as any).type_answer_score !== null;
       const wmDone = !quiz.word_magnet_enabled || (existing as any).word_magnet_score !== null;
       const smDone = !quiz.sentence_making_enabled || existing.sentence_making_score !== null;
       const recDone = !quiz.recording_enabled || existing.recording_score !== null;
 
-      if (muDone && taDone && wmDone && smDone && recDone) return;
+      if (fbDone && muDone && taDone && wmDone && smDone && recDone) return;
 
       setQuizResultId(existing.id);
-      setSavedFillBlankScore({
-        score: existing.score,
-        total: existing.total_questions ?? 0,
-      });
+      // 빈칸 점수 복원 — 빈칸 완료 시 fill_blank_score 컬럼 기준(없으면 집계 score 폴백)
+      if (fbDone && quiz.fill_blank_enabled !== false) {
+        setSavedFillBlankScore({
+          score: (existing as any).fill_blank_score ?? existing.score ?? 0,
+          total: (existing as any).fill_blank_total ?? existing.total_questions ?? 0,
+        });
+      }
       // 이미 완료한 후속 스테이지 점수 복원
       if (quiz.matchup_enabled && (existing as any).matchup_score !== null) {
         setSavedMatchupScore({
@@ -248,21 +260,21 @@ export default function QuizTake() {
         });
       }
 
-      if (!muDone) {
-        setCurrentStage("matchup");
-        toast.info("빈칸 채우기를 이미 완료했습니다. 매치업부터 시작합니다.");
-      } else if (!taDone) {
-        setCurrentStage("type_answer");
-        toast.info("이전 단계를 완료했습니다. 답 입력부터 시작합니다.");
-      } else if (!wmDone) {
-        setCurrentStage("word_magnet");
-        toast.info("이전 단계를 완료했습니다. 워드 마그넷부터 시작합니다.");
-      } else if (!smDone) {
-        setCurrentStage("sentence_making");
-        toast.info("이전 단계를 완료했습니다. 문장 만들기부터 시작합니다.");
-      } else {
-        setCurrentStage("recording");
-        toast.info("이전 단계를 완료했습니다. 말하기 연습부터 시작합니다.");
+      // 정규 순서로 첫 미완료 스테이지를 찾아 재개
+      const doneByStage: Record<BaseStage, boolean> = {
+        fill_blank: fbDone,
+        matchup: muDone,
+        type_answer: taDone,
+        word_magnet: wmDone,
+        sentence_making: smDone,
+        recording: recDone,
+      };
+      const resumeStage = STAGE_ORDER.find(
+        (s) => enabledBases.includes(s) && !doneByStage[s]
+      );
+      if (resumeStage) {
+        setCurrentStage(resumeStage);
+        toast.info(`이전 단계를 완료했습니다. ${STAGE_LABELS[resumeStage]}부터 시작합니다.`);
       }
     };
 
@@ -934,82 +946,50 @@ export default function QuizTake() {
 
   if (!quiz) return null;
 
-  // 다음 스테이지 결정 (fill_blank 완료 후 -> fill_blank_result 또는 completed)
-  const getStageAfterFillBlankResult = (): QuizStage => {
-    if (quiz.matchup_enabled) {
-      if (Object.keys(matchupResults).length > 0) return "matchup_result";
-      return "matchup";
+  // 스테이지가 이미 풀이된 적이 있는지(메모리) — 다시 진입 시 결과 화면으로 바로 이동
+  const stageHasResults = (base: BaseStage): boolean => {
+    switch (base) {
+      case "fill_blank": return fillBlankAnswers.length > 0;
+      case "matchup": return Object.keys(matchupResults).length > 0;
+      case "type_answer": return typeAnswerResults.length > 0;
+      case "word_magnet": return wordMagnetResults.length > 0;
+      case "sentence_making": return Object.keys(sentenceMakingResults).length > 0;
+      case "recording": return !!stageResults.recording;
     }
-    if (quiz.type_answer_enabled) {
-      if (typeAnswerResults.length > 0) return "type_answer_result";
-      return "type_answer";
-    }
-    if (quiz.word_magnet_enabled) {
-      if (wordMagnetResults.length > 0) return "word_magnet_result";
-      return "word_magnet";
-    }
-    if (quiz.sentence_making_enabled) {
-      // 문장 만들기가 이미 완료된 경우 결과 페이지로 바로 이동
-      if (Object.keys(sentenceMakingResults).length > 0) return "sentence_making_result";
-      return "sentence_making";
-    }
-    if (quiz.recording_enabled) return "recording";
-    return "completed";
   };
 
+  // 정규 순서(enabledBases) 기반 다음 스테이지 결정.
+  // - base 스테이지 → 해당 결과(`${base}_result`)
+  // - 결과 스테이지 → 다음 활성 base (이미 풀이됐으면 그 결과로 바로). 없으면 "completed".
   const getNextStage = (current: QuizStage): QuizStage => {
-    if (current === "fill_blank") {
-      return "fill_blank_result";
+    if (current === "completed") return "completed";
+    if (current.endsWith("_result")) {
+      const base = current.slice(0, -"_result".length) as BaseStage;
+      const idx = enabledBases.indexOf(base);
+      const next = idx >= 0 ? enabledBases[idx + 1] : undefined;
+      if (!next) return "completed";
+      return (stageHasResults(next) ? `${next}_result` : next) as QuizStage;
     }
-    if (current === "fill_blank_result") {
-      if (quiz.matchup_enabled) return "matchup";
-      if (quiz.type_answer_enabled) return "type_answer";
-      if (quiz.word_magnet_enabled) return "word_magnet";
-      if (quiz.sentence_making_enabled) return "sentence_making";
-      if (quiz.recording_enabled) return "recording";
-      return "completed";
-    }
-    if (current === "matchup") {
-      return "matchup_result";
-    }
-    if (current === "matchup_result") {
-      if (quiz.type_answer_enabled) return "type_answer";
-      if (quiz.word_magnet_enabled) return "word_magnet";
-      if (quiz.sentence_making_enabled) return "sentence_making";
-      if (quiz.recording_enabled) return "recording";
-      return "completed";
-    }
-    if (current === "type_answer") {
-      return "type_answer_result";
-    }
-    if (current === "type_answer_result") {
-      if (quiz.word_magnet_enabled) return "word_magnet";
-      if (quiz.sentence_making_enabled) return "sentence_making";
-      if (quiz.recording_enabled) return "recording";
-      return "completed";
-    }
-    if (current === "word_magnet") {
-      return "word_magnet_result";
-    }
-    if (current === "word_magnet_result") {
-      if (quiz.sentence_making_enabled) return "sentence_making";
-      if (quiz.recording_enabled) return "recording";
-      return "completed";
-    }
-    if (current === "sentence_making") {
-      return "sentence_making_result";
-    }
-    if (current === "sentence_making_result") {
-      if (quiz.recording_enabled) return "recording";
-      return "completed";
-    }
-    if (current === "recording") {
-      return "recording_result";
-    }
-    if (current === "recording_result") {
-      return "completed";
-    }
-    return "completed";
+    return `${current}_result` as QuizStage;
+  };
+
+  // 이전(정규 순서상 직전) 활성 스테이지의 결과 화면으로 돌아가는 onBack 핸들러.
+  // 첫 스테이지면 undefined(뒤로 버튼 숨김).
+  const goBackToPrev = (base: BaseStage): (() => void) | undefined => {
+    const idx = enabledBases.indexOf(base);
+    if (idx <= 0) return undefined;
+    const prev = enabledBases[idx - 1];
+    if (!stageHasResults(prev)) return undefined;
+    return () => setCurrentStage(`${prev}_result` as QuizStage);
+  };
+
+  // 뒤로가기 버튼 라벨 — 직전 활성 스테이지의 결과명("{직전} 결과"). goBackToPrev와 동일 조건.
+  const prevResultLabel = (base: BaseStage): string | undefined => {
+    const idx = enabledBases.indexOf(base);
+    if (idx <= 0) return undefined;
+    const prev = enabledBases[idx - 1];
+    if (!stageHasResults(prev)) return undefined;
+    return `${STAGE_LABELS[prev]} 결과`;
   };
 
   // 빈칸 채우기 완료 핸들러
@@ -1084,7 +1064,7 @@ export default function QuizTake() {
 
   // 빈칸 채우기 결과 → 다음 스테이지로
   const handleFillBlankResultNext = () => {
-    const next = getStageAfterFillBlankResult();
+    const next = getNextStage("fill_blank_result");
     if (next === "completed") {
       handleSubmit();
     } else {
@@ -1123,8 +1103,8 @@ export default function QuizTake() {
       const fbScore = savedFillBlankScore?.score ?? 0;
       const fbTotal = savedFillBlankScore?.total ?? 0;
       await updateProgressNotification(
-        "매치업",
-        `${quiz!.title} — 빈칸 채우기: ${fbScore}/${fbTotal}, 매치업: ${muScore}/${muTotal}`
+        "짝 맞추기",
+        `${quiz!.title} — 빈칸 채우기: ${fbScore}/${fbTotal}, 짝 맞추기: ${muScore}/${muTotal}`
       );
     }
 
@@ -1193,8 +1173,8 @@ export default function QuizTake() {
       const fbScore = savedFillBlankScore?.score ?? 0;
       const fbTotal = savedFillBlankScore?.total ?? 0;
       await updateProgressNotification(
-        "답 입력",
-        `${quiz!.title} — 빈칸 채우기: ${fbScore}/${fbTotal}, 답 입력: ${taScore}/${taTotal}`
+        "뜻 보고 단어 쓰기",
+        `${quiz!.title} — 빈칸 채우기: ${fbScore}/${fbTotal}, 뜻 보고 단어 쓰기: ${taScore}/${taTotal}`
       );
     }
 
@@ -1262,8 +1242,8 @@ export default function QuizTake() {
       const fbScore = savedFillBlankScore?.score ?? 0;
       const fbTotal = savedFillBlankScore?.total ?? 0;
       await updateProgressNotification(
-        "워드 마그넷",
-        `${quiz!.title} — 빈칸 채우기: ${fbScore}/${fbTotal}, 워드 마그넷: ${wmScore}/${wmTotal}`
+        "문장 순서 맞추기",
+        `${quiz!.title} — 빈칸 채우기: ${fbScore}/${fbTotal}, 문장 순서 맞추기: ${wmScore}/${wmTotal}`
       );
     }
 
@@ -1409,13 +1389,8 @@ export default function QuizTake() {
   const renderStageContent = () => {
     // 빈칸 채우기 결과 스테이지 렌더링
     if (currentStage === "fill_blank_result" && fillBlankAnswers.length > 0) {
-      const nextStage = getStageAfterFillBlankResult();
-      const nextLabel =
-        nextStage === "sentence_making_result"
-          ? "문장 만들기 결과로"
-          : nextStage === "sentence_making" || nextStage === "recording"
-          ? "다음 단계로"
-          : "결과 제출";
+      const nextStage = getNextStage("fill_blank_result");
+      const nextLabel = nextStage === "completed" ? "결과 제출" : "다음 단계로";
 
       const correctCount = fillBlankAnswers.filter((a) => a.isCorrect).length;
       const totalCount = fillBlankAnswers.length;
@@ -1436,6 +1411,8 @@ export default function QuizTake() {
             answers={fillBlankAnswers}
             onNext={handleFillBlankResultNext}
             nextLabel={nextLabel}
+            onBack={goBackToPrev("fill_blank")}
+            backLabel={prevResultLabel("fill_blank")}
           />
         </div>
       );
@@ -1449,7 +1426,8 @@ export default function QuizTake() {
             problems={matchupProblems}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleMatchupComplete}
-            onBack={fillBlankAnswers.length > 0 ? () => setCurrentStage("fill_blank_result") : undefined}
+            onBack={goBackToPrev("matchup")}
+            backLabel={prevResultLabel("matchup")}
           />
         </div>
       );
@@ -1463,14 +1441,15 @@ export default function QuizTake() {
       return (
         <div className="container mx-auto px-4 py-8">
           <div className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-foreground">매치업 결과</h2>
+            <h2 className="text-2xl font-bold text-foreground">짝 맞추기 결과</h2>
           </div>
           <MatchUpResultStage
             problems={matchupProblems}
             results={matchupResults}
             onNext={handleMatchupResultNext}
             nextLabel={nextLabel}
-            onBack={fillBlankAnswers.length > 0 ? () => setCurrentStage("fill_blank_result") : undefined}
+            onBack={goBackToPrev("matchup")}
+            backLabel={prevResultLabel("matchup")}
           />
         </div>
       );
@@ -1484,7 +1463,8 @@ export default function QuizTake() {
             problems={typeAnswerProblems}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleTypeAnswerComplete}
-            onBack={fillBlankAnswers.length > 0 ? () => setCurrentStage("fill_blank_result") : undefined}
+            onBack={goBackToPrev("type_answer")}
+            backLabel={prevResultLabel("type_answer")}
           />
         </div>
       );
@@ -1498,13 +1478,14 @@ export default function QuizTake() {
       return (
         <div className="container mx-auto px-4 py-8">
           <div className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-foreground">답 입력 결과</h2>
+            <h2 className="text-2xl font-bold text-foreground">뜻 보고 단어 쓰기 결과</h2>
           </div>
           <TypeAnswerResultStage
             results={typeAnswerResults}
             onNext={handleTypeAnswerResultNext}
             nextLabel={nextLabel}
-            onBack={fillBlankAnswers.length > 0 ? () => setCurrentStage("fill_blank_result") : undefined}
+            onBack={goBackToPrev("type_answer")}
+            backLabel={prevResultLabel("type_answer")}
           />
         </div>
       );
@@ -1518,7 +1499,8 @@ export default function QuizTake() {
             problems={wordMagnetProblems}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleWordMagnetComplete}
-            onBack={fillBlankAnswers.length > 0 ? () => setCurrentStage("fill_blank_result") : undefined}
+            onBack={goBackToPrev("word_magnet")}
+            backLabel={prevResultLabel("word_magnet")}
           />
         </div>
       );
@@ -1532,13 +1514,14 @@ export default function QuizTake() {
       return (
         <div className="container mx-auto px-4 py-8">
           <div className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-foreground">워드 마그넷 결과</h2>
+            <h2 className="text-2xl font-bold text-foreground">문장 순서 맞추기 결과</h2>
           </div>
           <WordMagnetResultStage
             results={wordMagnetResults}
             onNext={handleWordMagnetResultNext}
             nextLabel={nextLabel}
-            onBack={fillBlankAnswers.length > 0 ? () => setCurrentStage("fill_blank_result") : undefined}
+            onBack={goBackToPrev("word_magnet")}
+            backLabel={prevResultLabel("word_magnet")}
           />
         </div>
       );
@@ -1555,7 +1538,8 @@ export default function QuizTake() {
             translationLanguage={quiz.translation_language}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleSentenceMakingComplete}
-            onBack={fillBlankAnswers.length > 0 ? () => setCurrentStage("fill_blank_result") : undefined}
+            onBack={goBackToPrev("sentence_making")}
+            backLabel={prevResultLabel("sentence_making")}
           />
         </div>
       );
@@ -1564,10 +1548,7 @@ export default function QuizTake() {
     // 문장 만들기 결과 스테이지 렌더링
     if (currentStage === "sentence_making_result" && Object.keys(sentenceMakingResults).length > 0) {
       const nextStage = getNextStage("sentence_making_result");
-      const nextLabel =
-        nextStage === "recording"
-          ? "다음 단계로"
-          : "결과 제출";
+      const nextLabel = nextStage === "completed" ? "결과 제출" : "다음 단계로";
 
       return (
         <div className="container mx-auto px-4 py-8">
@@ -1579,7 +1560,8 @@ export default function QuizTake() {
             results={sentenceMakingResults}
             onNext={handleSentenceMakingResultNext}
             nextLabel={nextLabel}
-            onBack={fillBlankAnswers.length > 0 ? () => setCurrentStage("fill_blank_result") : undefined}
+            onBack={goBackToPrev("sentence_making")}
+            backLabel={prevResultLabel("sentence_making")}
           />
         </div>
       );
@@ -1593,7 +1575,8 @@ export default function QuizTake() {
             problems={recordingProblems}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleRecordingComplete}
-            onBack={Object.keys(sentenceMakingResults).length > 0 ? () => setCurrentStage("sentence_making_result") : undefined}
+            onBack={goBackToPrev("recording")}
+            backLabel={prevResultLabel("recording")}
           />
         </div>
       );
@@ -1621,8 +1604,9 @@ export default function QuizTake() {
       );
     }
 
-    // 빈칸 OFF 퀴즈: 스테이지 데이터 로딩 중이면 스피너 (빈칸 스테이지로 폴백 방지)
-    if (quiz.fill_blank_enabled === false) {
+    // 빈칸 스테이지가 아닌데 위 분기에 안 걸렸으면(해당 유형 데이터 로딩 중) 스피너.
+    // 빈칸이 첫 스테이지가 아닐 수 있으므로(예: 짝 맞추기 먼저) 빈칸 스테이지로 잘못 폴백하지 않도록 방지.
+    if (currentStage !== "fill_blank" && currentStage !== "fill_blank_result") {
       return (
         <div className="container mx-auto px-4 py-16 flex justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -1637,7 +1621,7 @@ export default function QuizTake() {
           problems={quiz.problems as any}
           wordsPerSet={wordsPerSet}
           isAnonymous={isAnonymous}
-          hasNextStage={!!(quiz.sentence_making_enabled || quiz.recording_enabled)}
+          hasNextStage={enabledBases.indexOf("fill_blank") < enabledBases.length - 1}
           userAnswers={userAnswers}
           onAnswerChange={handleAnswerChange}
           onProgressUpdate={handleProgressUpdate}

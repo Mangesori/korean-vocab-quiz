@@ -5,21 +5,20 @@ import { Edit2, Save, Loader2, Plus, Eye } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { SentenceMakingStudentView } from "@/components/quiz/shared/SentenceMakingStudentView";
+import { TypeAnswerStudentView } from "@/components/quiz/shared/TypeAnswerStudentView";
 import { WordMeaningEditCard } from "@/components/quiz/shared/WordMeaningEditCard";
 
-export interface SentenceMakingProblem {
+export interface TypeAnswerProblem {
   id: string;
   quiz_id: string;
   problem_id: string;
-  word: string;
-  word_meaning: string | null;
-  model_answer: string;
+  prompt: string;
+  answer: string;
   created_at: string;
 }
 
-interface SentenceMakingProblemListProps {
-  problems: SentenceMakingProblem[];
+interface TypeAnswerProblemListProps {
+  problems: TypeAnswerProblem[];
   onRefresh: () => void;
   studentPreview?: boolean;
   onToggleStudentPreview?: (v: boolean) => void;
@@ -29,7 +28,7 @@ interface SentenceMakingProblemListProps {
   registerSaver: (fn: (() => Promise<void>) | null) => void;
 }
 
-export function SentenceMakingProblemList({
+export function TypeAnswerProblemList({
   problems,
   onRefresh,
   studentPreview,
@@ -38,8 +37,8 @@ export function SentenceMakingProblemList({
   setIsEditing,
   onSaveAll,
   registerSaver,
-}: SentenceMakingProblemListProps) {
-  const [editedProblems, setEditedProblems] = useState<SentenceMakingProblem[]>(problems);
+}: TypeAnswerProblemListProps) {
+  const [editedProblems, setEditedProblems] = useState<TypeAnswerProblem[]>(problems);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { id: quizId } = useParams<{ id: string }>();
@@ -50,7 +49,7 @@ export function SentenceMakingProblemList({
     }
   }, [problems, isEditing]);
 
-  const handleUpdateProblem = (id: string, field: keyof SentenceMakingProblem, value: string) => {
+  const handleUpdateProblem = (id: string, field: keyof TypeAnswerProblem, value: string) => {
     setEditedProblems((prev) =>
       prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
     );
@@ -58,13 +57,12 @@ export function SentenceMakingProblemList({
 
   const handleAddProblem = () => {
     const newId = `temp-${crypto.randomUUID()}`;
-    const newProblem: SentenceMakingProblem = {
+    const newProblem: TypeAnswerProblem = {
       id: newId,
       quiz_id: quizId || '',
-      problem_id: `sm-${crypto.randomUUID().slice(0, 8)}`,
-      word: '',
-      word_meaning: '',
-      model_answer: '',
+      problem_id: `ta-${crypto.randomUUID().slice(0, 8)}`,
+      prompt: '',
+      answer: '',
       created_at: new Date().toISOString()
     };
     setEditedProblems(prev => [...prev, newProblem]);
@@ -77,20 +75,18 @@ export function SentenceMakingProblemList({
       await Promise.all(
         editedProblems.map((problem) => {
           if (problem.id.startsWith('temp-')) {
-            return supabase.from("sentence_making_problems").insert({
+            return supabase.from("type_answer_problems" as any).insert({
               quiz_id: problem.quiz_id,
               problem_id: problem.problem_id,
-              word: problem.word,
-              word_meaning: problem.word_meaning || null,
-              model_answer: problem.model_answer,
+              prompt: problem.prompt,
+              answer: problem.answer,
             });
           } else {
             return supabase
-              .from("sentence_making_problems")
+              .from("type_answer_problems" as any)
               .update({
-                word: problem.word,
-                word_meaning: problem.word_meaning || null,
-                model_answer: problem.model_answer,
+                prompt: problem.prompt,
+                answer: problem.answer,
               })
               .eq("id", problem.id);
           }
@@ -127,7 +123,7 @@ export function SentenceMakingProblemList({
     try {
       if (!problemId.startsWith("temp-")) {
         const { error } = await supabase
-          .from("sentence_making_problems")
+          .from("type_answer_problems" as any)
           .delete()
           .eq("id", problemId);
 
@@ -158,7 +154,7 @@ export function SentenceMakingProblemList({
       <div className="space-y-4">
         {toggleRow && <div className="flex justify-start">{toggleRow}</div>}
         <div className="text-center py-12 text-muted-foreground">
-          문장 만들기 문제가 없습니다.
+          뜻 보고 단어 쓰기 문제가 없습니다.
           <div className="flex justify-center mt-4">
             <Button
               variant="ghost"
@@ -173,6 +169,8 @@ export function SentenceMakingProblemList({
       </div>
     );
   }
+
+  const displayProblems = studentPreview ? problems : editedProblems;
 
   return (
     <div className="space-y-4">
@@ -212,8 +210,8 @@ export function SentenceMakingProblemList({
       </div>
 
       {/* 학생 화면 미리보기 */}
-      {studentPreview && problems.length > 0 ? (
-        <SentenceMakingStudentView problems={problems} />
+      {studentPreview && displayProblems.length > 0 ? (
+        <TypeAnswerStudentView problems={displayProblems} />
       ) : !studentPreview && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -221,11 +219,13 @@ export function SentenceMakingProblemList({
               <WordMeaningEditCard
                 key={problem.id}
                 index={index}
-                word={problem.word}
-                meaning={problem.word_meaning || ""}
+                word={problem.answer}
+                meaning={problem.prompt}
                 editable={isEditing}
-                onChangeWord={(v) => handleUpdateProblem(problem.id, "word", v)}
-                onChangeMeaning={(v) => handleUpdateProblem(problem.id, "word_meaning", v)}
+                wordPlaceholder="정답 한국어 단어"
+                meaningPlaceholder="단어 뜻"
+                onChangeWord={(v) => handleUpdateProblem(problem.id, "answer", v)}
+                onChangeMeaning={(v) => handleUpdateProblem(problem.id, "prompt", v)}
                 onDelete={() => handleDelete(problem.id)}
                 deleting={deletingId === problem.id}
               />

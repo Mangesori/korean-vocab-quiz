@@ -1,62 +1,84 @@
 import type { WordMagnetProblem } from "@/types/quiz";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus, Info } from "lucide-react";
+import { WordMagnetStudentView } from "@/components/quiz/shared/WordMagnetStudentView";
+import { WordMagnetEditCard } from "@/components/quiz/shared/WordMagnetEditCard";
 
 interface WordMagnetPreviewProps {
   problems: WordMagnetProblem[];
   studentPreview: boolean;
+  updateWordMagnetProblem: (id: string, field: "base_text" | "translation", value: string) => void;
+  updateWordMagnetItems: (id: string, items: { content: string; isParticle: boolean }[]) => void;
+  resegmentWordMagnetProblem: (id: string) => void;
+  resegmentingId: string | null;
+  deleteWordMagnetProblem: (id: string) => void;
+  addWordMagnetProblem: () => void;
+  /** problem_id → 출처 단어(빈칸 문제). 헤더 읽기전용 라벨용. */
+  sourceWords?: Record<string, string>;
 }
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-export function WordMagnetPreview({ problems, studentPreview }: WordMagnetPreviewProps) {
+export function WordMagnetPreview({
+  problems,
+  studentPreview,
+  updateWordMagnetProblem,
+  updateWordMagnetItems,
+  resegmentWordMagnetProblem,
+  resegmentingId,
+  deleteWordMagnetProblem,
+  addWordMagnetProblem,
+  sourceWords,
+}: WordMagnetPreviewProps) {
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold mb-2">워드 마그넷 (문장 조립)</h2>
+        <h2 className="text-2xl font-bold mb-2">문장 순서 맞추기</h2>
         <p className="text-muted-foreground">
-          빈칸 채우기 문장에서 자동 생성됩니다. 문장을 수정하면 타일도 자동으로 다시 나뉩니다.
+          학생이 흩어진 단어 타일을 순서대로 배열해 문장을 완성합니다.
         </p>
       </div>
 
-      <div className="space-y-4 max-w-3xl mx-auto">
-        {problems.map((p, idx) => {
-          const tiles = studentPreview ? shuffle(p.items) : p.items;
-          return (
-            <Card key={p.problem_id} className="sm:rounded-2xl">
-              <CardContent className="p-4 sm:p-6 space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">#{idx + 1}</span>
-                  <span className="text-sm sm:text-base font-medium text-foreground break-keep">{p.translation}</span>
-                </div>
-                {!studentPreview && (
-                  <p className="text-xs text-muted-foreground">정답: {p.base_text}</p>
-                )}
-                <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-slate-50/60 p-3">
-                  {tiles.map((t, i) => (
-                    <span
-                      key={i}
-                      className={`rounded-xl px-3 py-2 text-base shadow-sm border whitespace-nowrap ${
-                        t.isParticle
-                          ? "bg-slate-100 text-slate-500 border-slate-200"
-                          : "bg-white text-foreground border-slate-200"
-                      }`}
-                    >
-                      {t.content}
-                    </span>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      {studentPreview ? (
+        <div className="max-w-3xl mx-auto">
+          <WordMagnetStudentView problems={problems} />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary/80">
+            <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>조사·어미는 노란색 타일입니다. 'AI 재분절'로 다시 나누거나 칩을 직접 편집할 수 있어요.</span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            {problems.map((problem, index) => (
+              <WordMagnetEditCard
+                key={problem.problem_id}
+                index={index}
+                baseText={problem.base_text}
+                translation={problem.translation}
+                items={problem.items || []}
+                word={sourceWords?.[problem.problem_id]}
+                onChangeBaseText={(v) => updateWordMagnetProblem(problem.problem_id, "base_text", v)}
+                onChangeTranslation={(v) => updateWordMagnetProblem(problem.problem_id, "translation", v)}
+                onChangeItems={(items) => updateWordMagnetItems(problem.problem_id, items)}
+                onResegment={() => resegmentWordMagnetProblem(problem.problem_id)}
+                resegmenting={resegmentingId === problem.problem_id}
+                onDelete={() => deleteWordMagnetProblem(problem.problem_id)}
+              />
+            ))}
+          </div>
+
+          <div className="flex justify-center mt-4">
+            <Button
+              variant="ghost"
+              className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
+              onClick={addWordMagnetProblem}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              문장 추가하기
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

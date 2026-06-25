@@ -1,6 +1,6 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, ChevronRight, ChevronLeft } from "lucide-react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
+import { WordPairResultCard } from "@/components/quiz/shared/WordPairResultCard";
 import type { MatchUpProblemData, MatchUpResult } from "./MatchUpStage";
 
 interface MatchUpResultStageProps {
@@ -9,9 +9,10 @@ interface MatchUpResultStageProps {
   onNext: () => void;
   nextLabel: string;
   onBack?: () => void;
+  backLabel?: string;
 }
 
-export function MatchUpResultStage({ problems, results, onNext, nextLabel, onBack }: MatchUpResultStageProps) {
+export function MatchUpResultStage({ problems, results, onNext, nextLabel, onBack, backLabel }: MatchUpResultStageProps) {
   const correctCount = problems.filter((p) => results[p.id]?.isCorrect).length;
   const total = problems.length;
   const score = total > 0 ? Math.round((correctCount / total) * 100) : 0;
@@ -25,38 +26,21 @@ export function MatchUpResultStage({ problems, results, onNext, nextLabel, onBac
         </p>
       </div>
 
-      <Card className="border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl bg-transparent sm:bg-white">
-        <CardContent className="p-0 sm:p-4 md:p-6 space-y-2.5">
-          {problems.map((p) => {
-            const r = results[p.id];
-            const isCorrect = r?.isCorrect;
-            return (
-              <div
-                key={p.id}
-                className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-3 ${
-                  isCorrect ? "border-primary/30 bg-accent/50" : "border-destructive/30 bg-destructive/5"
-                }`}
-              >
-                {isCorrect ? (
-                  <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
-                ) : (
-                  <XCircle className="w-5 h-5 text-destructive flex-shrink-0" />
-                )}
-                <span className="font-bold text-foreground break-keep">{p.korean_text}</span>
-                <span className="text-muted-foreground">→</span>
-                {isCorrect ? (
-                  <span className="text-foreground break-keep">{p.meaning_text}</span>
-                ) : (
-                  <span className="flex flex-col sm:flex-row sm:items-center sm:gap-2 break-keep">
-                    <span className="text-destructive line-through">{r?.selectedMeaning || "—"}</span>
-                    <span className="text-primary font-medium">{p.meaning_text}</span>
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        {problems.map((p, idx) => {
+          const r = results[p.id];
+          return (
+            <WordPairResultCard
+              key={p.id}
+              number={idx + 1}
+              prompt={p.korean_text}
+              correctAnswer={p.meaning_text}
+              userAnswer={r?.selectedMeaning || ""}
+              isCorrect={!!r?.isCorrect}
+            />
+          );
+        })}
+      </div>
 
       <div className="flex justify-between items-center">
         {onBack ? (
@@ -65,7 +49,7 @@ export function MatchUpResultStage({ problems, results, onNext, nextLabel, onBac
             onClick={onBack}
             className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
           >
-            <ChevronLeft className="w-4 h-4 mr-2" /> 이전
+            <ChevronLeft className="w-4 h-4 mr-2" /> {backLabel ?? "이전"}
           </Button>
         ) : (
           <span />

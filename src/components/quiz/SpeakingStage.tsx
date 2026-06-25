@@ -47,6 +47,7 @@ interface SpeakingStageProps {
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (results: Record<string, SpeakingAttempt[]>) => void;
   onBack?: () => void;
+  backLabel?: string;
 }
 
 // WebM을 WAV로 변환하는 함수
@@ -132,7 +133,7 @@ function writeString(view: DataView, offset: number, str: string) {
   }
 }
 
-export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, onBack }: SpeakingStageProps) {
+export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, onBack, backLabel }: SpeakingStageProps) {
   const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [attempts, setAttempts] = useState<Record<string, SpeakingAttempt[]>>({});
@@ -521,7 +522,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
             className="h-12 px-4 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm text-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-1.5" />
-            문장 만들기 결과
+            {backLabel ?? "이전"}
           </Button>
         </div>
       )}

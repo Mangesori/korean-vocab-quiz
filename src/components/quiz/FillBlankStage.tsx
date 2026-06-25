@@ -193,7 +193,7 @@ export function FillBlankStage({
       <Card className="border shadow-sm rounded-2xl overflow-hidden mb-8 bg-white max-w-5xl mx-auto mt-4">
         <CardContent className="p-0">
           {/* Word Bank */}
-          <div className="bg-muted border-b px-6 py-5 flex flex-col items-center">
+          <div className="bg-[#F1ECE4] border-b border-[#D3CCC4] px-6 py-5 flex flex-col items-center">
             <p className="text-sm font-bold text-muted-foreground mb-4">보기</p>
             <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
               {shuffledWordBank.map((word, idx) => {
@@ -285,7 +285,7 @@ export function FillBlankStage({
                         </div>
                       </div>
                       {showTranslations[problem.id] && problem.translation && (
-                        <div className="mt-3 px-4 py-3 bg-sky-50 rounded-xl text-sm border border-sky-100 text-foreground">
+                        <div className="mt-3 px-4 py-3 bg-accent rounded-xl text-sm border border-primary/15 text-foreground">
                           {maskTranslation(problem.translation)}
                         </div>
                       )}
@@ -346,7 +346,7 @@ export function FillBlankStage({
                         </div>
                       </div>
                       {showTranslations[problem.id] && problem.translation && (
-                        <div className="mt-4 ml-8 px-4 py-3 bg-sky-50 rounded-xl text-sm border border-sky-100 text-foreground">
+                        <div className="mt-4 ml-8 px-4 py-3 bg-accent rounded-xl text-sm border border-primary/15 text-foreground">
                           {maskTranslation(problem.translation)}
                         </div>
                       )}

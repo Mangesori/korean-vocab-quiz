@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { RefreshCw, Loader2, Volume2, Lightbulb, Plus } from "lucide-react";
-import { maskTranslation } from "@/utils/maskTranslation";
+import { RefreshCw, Loader2, Plus, Trash2 } from "lucide-react";
+import { FillBlankStudentSet } from "@/components/quiz/shared/FillBlankStudentSet";
 
 interface FillBlankPreviewProps {
   problemSets: Problem[][];
@@ -18,6 +18,7 @@ interface FillBlankPreviewProps {
   updateProblem: (id: string, field: keyof Problem, value: string) => void;
   regenerateProblem: (problem: Problem) => void;
   addFillBlankProblem: () => void;
+  deleteFillBlankProblem: (id: string) => void;
 }
 
 export function FillBlankPreview({
@@ -31,6 +32,7 @@ export function FillBlankPreview({
   updateProblem,
   regenerateProblem,
   addFillBlankProblem,
+  deleteFillBlankProblem,
 }: FillBlankPreviewProps) {
   return (
     <>
@@ -43,114 +45,12 @@ export function FillBlankPreview({
           </div>
 
           {studentPreview ? (
-            <Card className="border shadow-sm rounded-2xl overflow-hidden bg-white">
-              <CardContent className="p-0">
-                <div className="bg-slate-50 border-b px-6 py-5 flex flex-col items-center">
-                  <p className="text-sm font-bold text-slate-500 mb-4">보기</p>
-                  <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
-                    {set.map((problem) => (
-                      <span
-                        key={problem.id}
-                        className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 shadow-sm"
-                      >
-                        {problem.word}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-6 sm:p-8">
-                <div className="space-y-0 divide-y">
-                  {set.map((problem, problemIndex) => {
-                    const problemNumber = setIndex * wordsPerSet + problemIndex + 1;
-                    let sentence = problem.sentence;
-                    sentence = sentence.replace(/([.?!])\s*\.+\s*$/, "$1");
-                    sentence = sentence.replace(/\.\s*\.$/, ".");
-                    const parts = sentence.split(/\(\s*\)|\(\)/);
-
-                    return (
-                      <div key={problem.id} className="py-4">
-                        <div className="flex flex-col gap-2 sm:hidden">
-                          <div className="flex items-start gap-2">
-                            <span className="text-primary font-bold">{problemNumber}.</span>
-                            <div className="flex-1">
-                              <p className="text-base leading-relaxed">
-                                {parts[0]}
-                                <span className="text-muted-foreground">( _____ )</span>
-                                {problem.hint && <span className="text-primary text-sm ml-1">{problem.hint}</span>}
-                                {parts[1]}
-                              </p>
-                            </div>
-                            <div className="flex gap-1 shrink-0">
-                              <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled>
-                                <Volume2 className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                                onClick={() => setShowTranslations((prev) => ({ ...prev, [problem.id]: !prev[problem.id] }))}
-                              >
-                                <Lightbulb className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          {showTranslations[problem.id] && problem.translation && (
-                            <div className="mt-2 px-3 py-2 bg-info/10 rounded-lg text-sm border border-info/30">
-                              {maskTranslation(problem.translation)}
-                            </div>
-                          )}
-                          <Input readOnly className="h-10 text-center bg-muted/30" placeholder="정답 입력" />
-                        </div>
-
-                        <div className="hidden sm:block">
-                          <div className="flex items-center gap-3">
-                            <span className="text-primary font-bold text-lg min-w-[24px]">{problemNumber}.</span>
-                            <div className="flex-1 flex items-center flex-wrap gap-1">
-                              {parts.map((part, partIdx, arr) => (
-                                <span key={partIdx} className="inline-flex items-center">
-                                  <span className="text-lg font-medium text-slate-800 whitespace-nowrap">{part}</span>
-                                  {partIdx < arr.length - 1 && (
-                                    <>
-                                      <Input
-                                        readOnly
-                                        className="w-48 h-10 mx-1 text-center text-base inline-block bg-muted/30"
-                                        placeholder="정답 입력"
-                                      />
-                                      {problem.hint && <span className="text-primary text-sm">{problem.hint}</span>}
-                                    </>
-                                  )}
-                                </span>
-                              ))}
-                            </div>
-                            <div className="flex gap-2 shrink-0">
-                              <Button variant="outline" size="sm" disabled>
-                                <Volume2 className="w-4 h-4 mr-1" />
-                                듣기
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setShowTranslations((prev) => ({ ...prev, [problem.id]: !prev[problem.id] }))}
-                              >
-                                <Lightbulb className="w-4 h-4 mr-1" />
-                                힌트
-                              </Button>
-                            </div>
-                          </div>
-                          {showTranslations[problem.id] && problem.translation && (
-                            <div className="mt-2 ml-8 px-3 py-2 bg-info/10 rounded-lg text-sm border border-info/30">
-                              {maskTranslation(problem.translation)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                </div>
-              </CardContent>
-            </Card>
+            <FillBlankStudentSet
+              set={set}
+              startNumber={setIndex * wordsPerSet + 1}
+              showTranslations={showTranslations}
+              onToggleTranslation={(id) => setShowTranslations((prev) => ({ ...prev, [id]: !prev[id] }))}
+            />
           ) : (
             <div className="space-y-4">
               {set.map((problem, problemIndex) => (
@@ -167,21 +67,31 @@ export function FillBlankPreview({
                           className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold text-center w-auto min-w-[80px] max-w-[200px] h-8 text-sm border-primary/30"
                         />
                       </div>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => regenerateProblem(problem)}
-                        disabled={regeneratingId === problem.id}
-                        className="bg-primary hover:bg-primary/90"
-                      >
-                        {regeneratingId === problem.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                        ) : (
-                          <RefreshCw className="w-4 h-4 mr-1" />
-                        )}
-                        <span className="hidden sm:inline">문제 재생성</span>
-                        <span className="sm:hidden">재생성</span>
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => regenerateProblem(problem)}
+                          disabled={regeneratingId === problem.id}
+                          className="bg-primary hover:bg-primary/90"
+                        >
+                          {regeneratingId === problem.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4 mr-1" />
+                          )}
+                          <span className="hidden sm:inline">문제 재생성</span>
+                          <span className="sm:hidden">재생성</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteFillBlankProblem(problem.id)}
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
 

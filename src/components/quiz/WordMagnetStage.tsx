@@ -35,6 +35,7 @@ interface WordMagnetStageProps {
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (answers: Record<string, string>) => void;
   onBack?: () => void;
+  backLabel?: string;
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -84,7 +85,7 @@ function DroppableArea({ id, className, children }: { id: string; className: str
   );
 }
 
-export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack }: WordMagnetStageProps) {
+export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack, backLabel }: WordMagnetStageProps) {
   // 문제별 타일 목록 (고유 id 부여)
   const tilesByProblem = useMemo(() => {
     const map: Record<string, Tile[]> = {};
@@ -239,21 +240,26 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
           onDragEnd={handleDragEnd}
         >
           {/* 답 영역 */}
+          <p className="text-xs font-semibold text-primary/70 mb-1.5">내 문장</p>
           <DroppableArea
             id="answer-area"
-            className="min-h-[72px] rounded-2xl border-2 border-dashed border-slate-200 p-3 flex flex-wrap items-center content-start gap-y-2"
+            className="min-h-[72px] rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-3 flex flex-wrap items-center content-start gap-y-2"
           >
+            {answerItems.length === 0 && (
+              <span className="text-sm text-muted-foreground px-1">아래 단어를 탭하거나 끌어다 놓으세요</span>
+            )}
             {answerItems.map((tile, idx) => (
-              <div key={tile.id} className={idx > 0 && !tile.isParticle ? "ml-2" : ""}>
+              <div key={tile.id} className={idx > 0 ? (tile.isParticle ? "ml-1" : "ml-3") : ""}>
                 <DraggableTile tile={tile} onTap={handleTap} />
               </div>
             ))}
           </DroppableArea>
 
           {/* 단어 은행 */}
+          <p className="text-xs font-semibold text-slate-400 mt-4 mb-1.5">단어 은행</p>
           <DroppableArea
             id="question-area"
-            className="mt-4 min-h-[72px] rounded-2xl bg-slate-50/60 p-3 flex flex-wrap items-start gap-2"
+            className="min-h-[72px] rounded-2xl border-2 border-slate-200 bg-slate-50/80 p-3 flex flex-wrap items-start gap-2"
           >
             {questionItems.map((tile) => (
               <DraggableTile key={tile.id} tile={tile} onTap={handleTap} />
@@ -272,7 +278,7 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
                 onClick={onBack}
                 className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
               >
-                <ChevronLeft className="w-4 h-4 mr-2" /> 이전
+                <ChevronLeft className="w-4 h-4 mr-2" /> {backLabel ?? "이전"}
               </Button>
             ) : (
               <span />

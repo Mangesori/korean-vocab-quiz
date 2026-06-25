@@ -3,11 +3,11 @@ import { useState } from "react";
 import { Eye, EyeOff, RefreshCw, Loader2, Save, Edit2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { ProblemCard } from "./ProblemCard";
+import { FillBlankStudentSet } from "@/components/quiz/shared/FillBlankStudentSet";
 import { Problem } from "@/hooks/useQuizData";
 
-interface ProblemListProps {
+interface FillBlankProblemListProps {
   problems: Problem[];
   isEditing: boolean;
   onUpdateProblem: (id: string, field: keyof Problem, value: string) => void;
@@ -34,7 +34,7 @@ interface ProblemListProps {
   onAddProblem?: () => void;
 }
 
-export function ProblemList({
+export function FillBlankProblemList({
   problems,
   isEditing,
   onUpdateProblem,
@@ -59,7 +59,7 @@ export function ProblemList({
   onDeleteProblem,
   deletingProblemId,
   onAddProblem,
-}: ProblemListProps) {
+}: FillBlankProblemListProps) {
   const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
 
   // Group problems into sets
@@ -98,16 +98,13 @@ export function ProblemList({
         <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start sm:gap-4">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">문제 목록</h2>
-            <span className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground font-medium">
-              {problems.length}개
-            </span>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Label htmlFor="student-preview" className="text-sm cursor-pointer whitespace-nowrap">
-              학생 화면
-            </Label>
-            <Switch id="student-preview" checked={studentPreview} onCheckedChange={onToggleStudentPreview} />
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-sm text-muted-foreground flex items-center gap-1">
+              <Eye className="w-4 h-4" /> 학생 화면
+            </span>
+            <Switch checked={!!studentPreview} onCheckedChange={onToggleStudentPreview} />
           </div>
         </div>
 
@@ -151,7 +148,14 @@ export function ProblemList({
           <Button
             variant={isEditing ? "secondary" : "outline"}
             size="sm"
-            onClick={() => isEditing ? onCancelEdit() : setIsEditing(true)}
+            onClick={() => {
+              if (isEditing) {
+                onCancelEdit();
+              } else {
+                onToggleStudentPreview(false);
+                setIsEditing(true);
+              }
+            }}
             className="w-full sm:w-auto"
           >
             <Edit2 className="w-4 h-4 mr-2" />
@@ -160,7 +164,7 @@ export function ProblemList({
 
           <Button
             onClick={onSaveChanges}
-            disabled={isSaving || !hasChanges}
+            disabled={isSaving || !isEditing}
             size="sm"
             className="w-full sm:w-auto"
             variant="default"
@@ -182,50 +186,14 @@ export function ProblemList({
             </div>
 
             {studentPreview ? (
-              <div className="border shadow-sm rounded-2xl overflow-hidden bg-white">
-                    {/* Word Bank for the Set */}
-                    <div className="bg-slate-50 border-b px-6 py-5 flex flex-col items-center">
-                      <p className="text-sm font-bold text-slate-500 mb-4">보기</p>
-                      <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
-                        {set.map((problem) => (
-                          <span
-                            key={problem.id}
-                            className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-slate-200 text-slate-700 shadow-sm"
-                          >
-                            {problem.word}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="p-6 sm:p-8">
-                    <div className="space-y-0 divide-y">
-                      {set.map((problem) => {
-                        const globalIndex = setIndex * wordsPerSet + set.indexOf(problem);
-                        return (
-                          <ProblemCard
-                            key={problem.id}
-                            problem={problem}
-                            index={globalIndex}
-                            isEditing={isEditing}
-                            onUpdateProblem={onUpdateProblem}
-                            audioUrl={audioUrls[problem.id]}
-                            onPlayAudio={onPlayAudio}
-                            onRegenerateAudio={() => onRegenerateSingleAudio(problem)}
-                            onRegenerateProblem={() => onRegenerateProblem(problem)}
-                            regeneratingId={regeneratingProblemId}
-                            showTranslation={!!showTranslations[problem.id]}
-                            onToggleTranslation={toggleTranslation}
-                            studentPreview={studentPreview}
-                            renderStudentSentence={renderStudentSentence}
-                            onDeleteProblem={onDeleteProblem ? () => onDeleteProblem(problem) : undefined}
-                            isDeletingProblem={deletingProblemId === problem.id}
-                          />
-                        );
-                      })}
-                    </div>
-                    </div>
-              </div>
+              <FillBlankStudentSet
+                set={set}
+                startNumber={setIndex * wordsPerSet + 1}
+                showTranslations={showTranslations}
+                onToggleTranslation={toggleTranslation}
+                audioUrls={audioUrls}
+                onPlayAudio={onPlayAudio}
+              />
             ) : (
               <div className="space-y-4">
                 {set.map((problem) => {
@@ -272,7 +240,7 @@ export function ProblemList({
 
       {isEditing && (
         <div className="mt-8 flex justify-center">
-          <Button onClick={onSaveChanges} disabled={isSaving || !hasChanges} size="lg">
+          <Button onClick={onSaveChanges} disabled={isSaving || !isEditing} size="lg">
             {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
             저장하기
           </Button>

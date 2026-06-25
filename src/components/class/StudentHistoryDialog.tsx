@@ -73,9 +73,9 @@ export function StudentHistoryDialog({
                     <TableHead>퀴즈 제목</TableHead>
                     <TableHead className="whitespace-nowrap">배정일</TableHead>
                     <TableHead className="whitespace-nowrap">빈칸 채우기</TableHead>
-                    <TableHead className="whitespace-nowrap">매치업</TableHead>
-                    <TableHead className="whitespace-nowrap">답 입력</TableHead>
-                    <TableHead className="whitespace-nowrap">워드 마그넷</TableHead>
+                    <TableHead className="whitespace-nowrap">짝 맞추기</TableHead>
+                    <TableHead className="whitespace-nowrap">뜻 보고 단어 쓰기</TableHead>
+                    <TableHead className="whitespace-nowrap">문장 순서 맞추기</TableHead>
                     <TableHead className="whitespace-nowrap">문장 만들기</TableHead>
                     <TableHead className="whitespace-nowrap">말하기 연습</TableHead>
                     <TableHead className="whitespace-nowrap text-center">상세보기</TableHead>

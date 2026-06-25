@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, TextCursorInput, PenLine, Mic } from "lucide-react";
+import { Loader2, ArrowLeft, TextCursorInput, PenLine, Mic, Link2, Keyboard, Magnet } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Dialog } from "@/components/ui/dialog";
 import {
@@ -31,12 +31,16 @@ import { PERMISSIONS } from "@/lib/rbac/roles";
 // Components
 import { QuizHeader } from "@/components/quiz/QuizHeader";
 import { QuizWords } from "@/components/quiz/QuizWords";
-import { ProblemList } from "@/components/quiz/ProblemList";
+import { FillBlankProblemList } from "@/components/quiz/FillBlankProblemList";
 import { ShareQuizDialogContent } from "@/components/quiz/ShareQuizDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuizResultsList } from "@/components/quiz/QuizResultsList";
 import { SentenceMakingProblemList, SentenceMakingProblem } from "@/components/quiz/SentenceMakingProblemList";
 import { RecordingProblemList, RecordingProblem } from "@/components/quiz/RecordingProblemList";
+import { MatchupProblemList, MatchupProblem } from "@/components/quiz/MatchupProblemList";
+import { TypeAnswerProblemList, TypeAnswerProblem } from "@/components/quiz/TypeAnswerProblemList";
+import { WordMagnetProblemList, WordMagnetProblem } from "@/components/quiz/WordMagnetProblemList";
+import { parseSentenceToItems } from "@/lib/korean/wordMagnet";
 
 export default function QuizDetail() {
   const { id } = useParams<{ id: string }>();
@@ -51,8 +55,8 @@ export default function QuizDetail() {
   
   // Tab State
   const [currentTab, setCurrentTab] = useState("problems");
-  const [problemTab, setProblemTab] = useState<"fill_blank" | "sentence_making" | "recording">("fill_blank");
-  const [confirmDialog, setConfirmDialog] = useState<"sentence_making" | "recording" | null>(null);
+  const [problemTab, setProblemTab] = useState<"fill_blank" | "sentence_making" | "recording" | "matchup" | "type_answer" | "word_magnet">("fill_blank");
+  const [confirmDialog, setConfirmDialog] = useState<"sentence_making" | "recording" | "matchup" | "type_answer" | "word_magnet" | null>(null);
   const queryClient = useQueryClient();
 
   // Sync tab with URL
@@ -81,6 +85,80 @@ export default function QuizDetail() {
     updateQuizProblems,
     refetchQuiz,
   } = useQuizData(id, user?.id);
+
+  // 빈칸 문제 id → 단어. 문장순서·말하기 카드 헤더 출처 단어 라벨용(파생 시 problem_id가 빈칸 id와 동일).
+  const sourceWordById = useMemo(() => {
+    const map: Record<string, string> = {};
+    ((quiz?.problems as any[]) || []).forEach((p) => {
+      if (p?.id && p?.word) map[p.id] = p.word;
+    });
+    return map;
+  }, [quiz?.problems]);
+
+  // 기본 탭: 퀴즈 로드 시 정규 순서상 첫 활성 유형으로 1회 초기화 (빈칸은 항상 유효)
+  const tabInitRef = useRef(false);
+  useEffect(() => {
+    if (!quiz || tabInitRef.current) return;
+    tabInitRef.current = true;
+    const order: Array<["fill_blank" | "sentence_making" | "recording" | "matchup" | "type_answer" | "word_magnet", boolean]> = [
+      ["matchup", !!quiz.matchup_enabled],
+      ["type_answer", !!quiz.type_answer_enabled],
+      ["fill_blank", true],
+      ["word_magnet", !!quiz.word_magnet_enabled],
+      ["sentence_making", !!quiz.sentence_making_enabled],
+      ["recording", !!quiz.recording_enabled],
+    ];
+    const first = order.find(([, enabled]) => enabled)?.[0];
+    if (first) setProblemTab(first);
+  }, [quiz]);
+
+  // 짝 맞추기 문제 조회
+  const { data: matchupProblems = [], refetch: refetchMatchup } = useQuery({
+    queryKey: ['matchupProblems', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("matchup_problems" as any)
+        .select("*")
+        .eq("quiz_id", id)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as MatchupProblem[];
+    },
+    enabled: !!id && !!quiz?.matchup_enabled,
+  });
+
+  // 뜻 보고 단어 쓰기 문제 조회
+  const { data: typeAnswerProblems = [], refetch: refetchTypeAnswer } = useQuery({
+    queryKey: ['typeAnswerProblems', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("type_answer_problems" as any)
+        .select("*")
+        .eq("quiz_id", id)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as TypeAnswerProblem[];
+    },
+    enabled: !!id && !!quiz?.type_answer_enabled,
+  });
+
+  // 문장 순서 맞추기 문제 조회
+  const { data: wordMagnetProblems = [], refetch: refetchWordMagnet } = useQuery({
+    queryKey: ['wordMagnetProblems', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("word_magnet_problems" as any)
+        .select("*")
+        .eq("quiz_id", id)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as WordMagnetProblem[];
+    },
+    enabled: !!id && !!quiz?.word_magnet_enabled,
+  });
 
   // 문장 만들기 문제 조회
   const { data: sentenceMakingProblems = [], refetch: refetchSentenceMaking } = useQuery({
@@ -161,6 +239,24 @@ export default function QuizDetail() {
 
   const [isRegeneratingProblems, setIsRegeneratingProblems] = useState(false);
   const [deletingProblemId, setDeletingProblemId] = useState<string | null>(null);
+
+  // 전체 저장(save-all): 각 유형 탭이 자기 저장 함수를 등록하고, "저장하기"가 모두 실행한다.
+  const tabSaversRef = useRef<Map<string, () => Promise<void>>>(new Map());
+  const registerTabSaver = useCallback((key: string, fn: (() => Promise<void>) | null) => {
+    if (fn) tabSaversRef.current.set(key, fn);
+    else tabSaversRef.current.delete(key);
+  }, []);
+  const registerMatchupSaver = useCallback((fn: (() => Promise<void>) | null) => registerTabSaver("matchup", fn), [registerTabSaver]);
+  const registerTypeAnswerSaver = useCallback((fn: (() => Promise<void>) | null) => registerTabSaver("type_answer", fn), [registerTabSaver]);
+  const registerWordMagnetSaver = useCallback((fn: (() => Promise<void>) | null) => registerTabSaver("word_magnet", fn), [registerTabSaver]);
+  const registerSentenceMakingSaver = useCallback((fn: (() => Promise<void>) | null) => registerTabSaver("sentence_making", fn), [registerTabSaver]);
+  const registerRecordingSaver = useCallback((fn: (() => Promise<void>) | null) => registerTabSaver("recording", fn), [registerTabSaver]);
+
+  const saveAllTabs = useCallback(async () => {
+    if (hasChanges) await saveChanges();
+    await Promise.all([...tabSaversRef.current.values()].map((fn) => fn()));
+    setIsEditing(false);
+  }, [hasChanges, saveChanges, setIsEditing]);
 
   const handleAddFillBlankProblem = () => {
     const newProblem = {
@@ -441,6 +537,149 @@ export default function QuizDetail() {
     }
   };
 
+  // 짝 맞추기 추가 핸들러
+  const handleAddMatchup = async () => {
+    if (!quiz) return;
+
+    try {
+      if (!quiz.problems || quiz.problems.length === 0) {
+        throw new Error("빈칸 채우기 문제가 없습니다. 먼저 빈칸 채우기 퀴즈를 생성해주세요.");
+      }
+
+      const muProblemsToInsert = quiz.problems.map((p) => ({
+        quiz_id: quiz.id,
+        problem_id: p.id,
+        korean_text: p.word,
+        meaning_text: p.meaning || "",
+      }));
+
+      const { error: insertError } = await supabase
+        .from("matchup_problems" as any)
+        .insert(muProblemsToInsert);
+
+      if (insertError) {
+        throw new Error("짝 맞추기 문제 저장 실패: " + insertError.message);
+      }
+
+      // quizzes 테이블 업데이트
+      const { error: updateError } = await supabase
+        .from("quizzes")
+        .update({ matchup_enabled: true })
+        .eq("id", quiz.id);
+
+      if (updateError) {
+        throw new Error("퀴즈 설정 업데이트 실패: " + updateError.message);
+      }
+
+      toast.success("짝 맞추기가 추가되었습니다!");
+      refetchQuiz();
+      refetchMatchup();
+      setProblemTab("matchup");
+    } catch (error: any) {
+      console.error("Add matchup error:", error);
+      toast.error(error.message || "짝 맞추기 추가에 실패했습니다");
+    }
+  };
+
+  // 뜻 보고 단어 쓰기 추가 핸들러
+  const handleAddTypeAnswer = async () => {
+    if (!quiz) return;
+
+    try {
+      if (!quiz.problems || quiz.problems.length === 0) {
+        throw new Error("빈칸 채우기 문제가 없습니다. 먼저 빈칸 채우기 퀴즈를 생성해주세요.");
+      }
+
+      const taProblemsToInsert = quiz.problems.map((p) => ({
+        quiz_id: quiz.id,
+        problem_id: p.id,
+        prompt: p.meaning || "",
+        answer: p.word,
+      }));
+
+      const { error: insertError } = await supabase
+        .from("type_answer_problems" as any)
+        .insert(taProblemsToInsert);
+
+      if (insertError) {
+        throw new Error("뜻 보고 단어 쓰기 문제 저장 실패: " + insertError.message);
+      }
+
+      // quizzes 테이블 업데이트
+      const { error: updateError } = await supabase
+        .from("quizzes")
+        .update({ type_answer_enabled: true })
+        .eq("id", quiz.id);
+
+      if (updateError) {
+        throw new Error("퀴즈 설정 업데이트 실패: " + updateError.message);
+      }
+
+      toast.success("뜻 보고 단어 쓰기가 추가되었습니다!");
+      refetchQuiz();
+      refetchTypeAnswer();
+      setProblemTab("type_answer");
+    } catch (error: any) {
+      console.error("Add type answer error:", error);
+      toast.error(error.message || "뜻 보고 단어 쓰기 추가에 실패했습니다");
+    }
+  };
+
+  // 문장 순서 맞추기 추가 핸들러
+  const handleAddWordMagnet = async () => {
+    if (!quiz) return;
+
+    try {
+      if (!quiz.problems || quiz.problems.length === 0) {
+        throw new Error("빈칸 채우기 문제가 없습니다. 먼저 빈칸 채우기 퀴즈를 생성해주세요.");
+      }
+
+      const wmProblemsToInsert = quiz.problems.map((p) => {
+        const baseText = p.sentence
+          .replace(/\(\s*\)|\(\)/g, p.answer)
+          .replace(/([.?!])\s*\.+\s*$/, "$1")
+          .trim();
+        const items = parseSentenceToItems(baseText).map((it) => ({
+          content: it.content,
+          isParticle: it.isParticle,
+        }));
+        return {
+          quiz_id: quiz.id,
+          problem_id: p.id,
+          base_text: baseText,
+          translation: (p.translation || "").replace(/[[\]]/g, ""),
+          items,
+        };
+      }).filter((p) => p.items.length > 0);
+
+      const { error: insertError } = await supabase
+        .from("word_magnet_problems" as any)
+        .insert(wmProblemsToInsert);
+
+      if (insertError) {
+        throw new Error("문장 순서 맞추기 문제 저장 실패: " + insertError.message);
+      }
+
+      // quizzes 테이블 업데이트
+      const { error: updateError } = await supabase
+        .from("quizzes")
+        .update({ word_magnet_enabled: true })
+        .eq("id", quiz.id);
+
+      if (updateError) {
+        throw new Error("퀴즈 설정 업데이트 실패: " + updateError.message);
+      }
+
+      toast.success("문장 순서 맞추기가 추가되었습니다!");
+      refetchQuiz();
+      refetchWordMagnet();
+      setProblemTab("word_magnet");
+    } catch (error: any) {
+      console.error("Add word magnet error:", error);
+      toast.error(error.message || "문장 순서 맞추기 추가에 실패했습니다");
+    }
+  };
+
   // Actions
   const handleUpdateTitle = async (newTitle: string) => {
     if (!quiz) return;
@@ -548,12 +787,18 @@ export default function QuizDetail() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {confirmDialog === "sentence_making" ? "문장 만들기 문제를 추가하시겠습니까?" : "말하기 연습 문제를 추가하시겠습니까?"}
+                {confirmDialog === "sentence_making" && "문장 만들기 문제를 추가하시겠습니까?"}
+                {confirmDialog === "recording" && "말하기 연습 문제를 추가하시겠습니까?"}
+                {confirmDialog === "matchup" && "짝 맞추기 문제를 추가하시겠습니까?"}
+                {confirmDialog === "type_answer" && "뜻 보고 단어 쓰기 문제를 추가하시겠습니까?"}
+                {confirmDialog === "word_magnet" && "문장 순서 맞추기 문제를 추가하시겠습니까?"}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {confirmDialog === "sentence_making"
-                  ? "각 단어로 문장을 직접 만들어 보는 문제가 추가됩니다."
-                  : "빈칸 채우기와 같은 문장으로 문제가 생성됩니다. 생성 후에는 개별 수정이 가능합니다."}
+                {confirmDialog === "sentence_making" && "각 단어로 문장을 직접 만들어 보는 문제가 추가됩니다."}
+                {confirmDialog === "recording" && "빈칸 채우기와 같은 문장으로 문제가 생성됩니다. 생성 후에는 개별 수정이 가능합니다."}
+                {confirmDialog === "matchup" && "단어와 뜻을 연결하는 짝 맞추기 문제가 추가됩니다."}
+                {confirmDialog === "type_answer" && "단어 뜻을 보고 단어를 직접 쓰는 문제가 추가됩니다."}
+                {confirmDialog === "word_magnet" && "어절 단위 타일들을 끌어서 문장을 완성하는 문장 순서 맞추기 문제가 추가됩니다."}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -561,7 +806,10 @@ export default function QuizDetail() {
               <AlertDialogAction
                 onClick={() => {
                   if (confirmDialog === "sentence_making") handleAddSentenceMaking();
-                  else handleAddRecording();
+                  else if (confirmDialog === "recording") handleAddRecording();
+                  else if (confirmDialog === "matchup") handleAddMatchup();
+                  else if (confirmDialog === "type_answer") handleAddTypeAnswer();
+                  else if (confirmDialog === "word_magnet") handleAddWordMagnet();
                   setConfirmDialog(null);
                 }}
               >
@@ -582,10 +830,36 @@ export default function QuizDetail() {
 
             {/* 문제 유형 서브 탭 */}
             <div className="flex justify-center mb-6">
-              <div className="inline-flex items-center bg-muted border border-border/50 p-1 rounded-lg gap-1">
+              <div className="inline-flex items-center bg-muted border border-border/50 p-1 rounded-lg gap-1 flex-wrap justify-center">
+                <button
+                  onClick={() => quiz.matchup_enabled ? setProblemTab("matchup") : setConfirmDialog("matchup")}
+                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    quiz.matchup_enabled
+                      ? problemTab === "matchup"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground/50 border border-dashed border-muted-foreground/30 hover:text-muted-foreground"
+                  }`}
+                >
+                  <Link2 className="w-4 h-4" />
+                  짝 맞추기 {quiz.matchup_enabled && `(${matchupProblems.length})`}
+                </button>
+                <button
+                  onClick={() => quiz.type_answer_enabled ? setProblemTab("type_answer") : setConfirmDialog("type_answer")}
+                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    quiz.type_answer_enabled
+                      ? problemTab === "type_answer"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground/50 border border-dashed border-muted-foreground/30 hover:text-muted-foreground"
+                  }`}
+                >
+                  <Keyboard className="w-4 h-4" />
+                  뜻 보고 단어 쓰기 {quiz.type_answer_enabled && `(${typeAnswerProblems.length})`}
+                </button>
                 <button
                   onClick={() => setProblemTab("fill_blank")}
-                  className={`inline-flex items-center gap-2 px-5 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
                     problemTab === "fill_blank"
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
@@ -595,8 +869,21 @@ export default function QuizDetail() {
                   빈칸 채우기 ({quiz.problems.length})
                 </button>
                 <button
+                  onClick={() => quiz.word_magnet_enabled ? setProblemTab("word_magnet") : setConfirmDialog("word_magnet")}
+                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    quiz.word_magnet_enabled
+                      ? problemTab === "word_magnet"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground/50 border border-dashed border-muted-foreground/30 hover:text-muted-foreground"
+                  }`}
+                >
+                  <Magnet className="w-4 h-4" />
+                  문장 순서 맞추기 {quiz.word_magnet_enabled && `(${wordMagnetProblems.length})`}
+                </button>
+                <button
                   onClick={() => quiz.sentence_making_enabled ? setProblemTab("sentence_making") : setConfirmDialog("sentence_making")}
-                  className={`inline-flex items-center gap-2 px-5 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
                     quiz.sentence_making_enabled
                       ? problemTab === "sentence_making"
                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -609,7 +896,7 @@ export default function QuizDetail() {
                 </button>
                 <button
                   onClick={() => quiz.recording_enabled ? setProblemTab("recording") : setConfirmDialog("recording")}
-                  className={`inline-flex items-center gap-2 px-5 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
                     quiz.recording_enabled
                       ? problemTab === "recording"
                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -624,8 +911,8 @@ export default function QuizDetail() {
             </div>
 
             {/* 빈칸 채우기 문제 목록 */}
-            {problemTab === "fill_blank" && (
-              <ProblemList
+            <div className={problemTab === "fill_blank" ? "" : "hidden"}>
+              <FillBlankProblemList
                 problems={hasChanges ? editedProblems : quiz.problems}
                 isEditing={isEditing}
                 onUpdateProblem={updateProblem}
@@ -648,30 +935,96 @@ export default function QuizDetail() {
                 onToggleStudentPreview={setStudentPreview}
                 setIsEditing={setIsEditing}
                 onCancelEdit={cancelEdit}
-                onSaveChanges={saveChanges}
+                onSaveChanges={saveAllTabs}
                 isSaving={isSaving}
                 hasChanges={hasChanges}
                 wordsPerSet={quiz.words_per_set}
               />
+            </div>
+
+            {/* 짝 맞추기 문제 목록 */}
+            {quiz.matchup_enabled && (
+              <div className={problemTab === "matchup" ? "" : "hidden"}>
+                <MatchupProblemList
+                  problems={matchupProblems}
+                  onRefresh={refetchMatchup}
+                  studentPreview={studentPreview}
+                  onToggleStudentPreview={setStudentPreview}
+                  isEditing={isEditing}
+                  setIsEditing={setIsEditing}
+                  onSaveAll={saveAllTabs}
+                  registerSaver={registerMatchupSaver}
+                />
+              </div>
+            )}
+
+            {/* 뜻 보고 단어 쓰기 문제 목록 */}
+            {quiz.type_answer_enabled && (
+              <div className={problemTab === "type_answer" ? "" : "hidden"}>
+                <TypeAnswerProblemList
+                  problems={typeAnswerProblems}
+                  onRefresh={refetchTypeAnswer}
+                  studentPreview={studentPreview}
+                  onToggleStudentPreview={setStudentPreview}
+                  isEditing={isEditing}
+                  setIsEditing={setIsEditing}
+                  onSaveAll={saveAllTabs}
+                  registerSaver={registerTypeAnswerSaver}
+                />
+              </div>
+            )}
+
+            {/* 문장 순서 맞추기 문제 목록 */}
+            {quiz.word_magnet_enabled && (
+              <div className={problemTab === "word_magnet" ? "" : "hidden"}>
+                <WordMagnetProblemList
+                  problems={wordMagnetProblems}
+                  onRefresh={refetchWordMagnet}
+                  studentPreview={studentPreview}
+                  onToggleStudentPreview={setStudentPreview}
+                  isEditing={isEditing}
+                  setIsEditing={setIsEditing}
+                  onSaveAll={saveAllTabs}
+                  registerSaver={registerWordMagnetSaver}
+                  sourceWords={sourceWordById}
+                />
+              </div>
             )}
 
             {/* 문장 만들기 문제 목록 */}
-            {problemTab === "sentence_making" && quiz.sentence_making_enabled && (
-              <SentenceMakingProblemList
-                problems={sentenceMakingProblems}
-                onRefresh={refetchSentenceMaking}
-              />
+            {quiz.sentence_making_enabled && (
+              <div className={problemTab === "sentence_making" ? "" : "hidden"}>
+                <SentenceMakingProblemList
+                  problems={sentenceMakingProblems}
+                  onRefresh={refetchSentenceMaking}
+                  studentPreview={studentPreview}
+                  onToggleStudentPreview={setStudentPreview}
+                  isEditing={isEditing}
+                  setIsEditing={setIsEditing}
+                  onSaveAll={saveAllTabs}
+                  registerSaver={registerSentenceMakingSaver}
+                />
+              </div>
             )}
 
             {/* 말하기 연습 문제 목록 */}
-            {problemTab === "recording" && quiz.recording_enabled && (
-              <RecordingProblemList
-                problems={[...recordingProblems].sort((a, b) => {
-                  const order = quiz.problems.map((p: any) => p.id);
-                  return order.indexOf(a.problem_id) - order.indexOf(b.problem_id);
-                })}
-                onRefresh={refetchRecording}
-              />
+            {quiz.recording_enabled && (
+              <div className={problemTab === "recording" ? "" : "hidden"}>
+                <RecordingProblemList
+                  problems={[...recordingProblems].sort((a, b) => {
+                    const order = quiz.problems.map((p: any) => p.id);
+                    return order.indexOf(a.problem_id) - order.indexOf(b.problem_id);
+                  })}
+                  onRefresh={refetchRecording}
+                  studentPreview={studentPreview}
+                  onToggleStudentPreview={setStudentPreview}
+                  isEditing={isEditing}
+                  setIsEditing={setIsEditing}
+                  onSaveAll={saveAllTabs}
+                  registerSaver={registerRecordingSaver}
+                  sourceWords={sourceWordById}
+                />
+              </div>
             )}
           </TabsContent>
           

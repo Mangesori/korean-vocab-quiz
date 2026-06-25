@@ -45,7 +45,7 @@ export default function QuizCreate() {
 
   const [wordsText, setWordsText] = useState("");
   const [title, setTitle] = useState("");
-  const [difficulty, setDifficulty] = useState<string>("B1");
+  const [difficulty, setDifficulty] = useState<string>("A1");
   const [translationLanguage, setTranslationLanguage] = useState("en");
   const [wordsPerSet, setWordsPerSet] = useState(5);
   const [timerEnabled, setTimerEnabled] = useState(false);
@@ -261,23 +261,6 @@ export default function QuizCreate() {
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setFillBlankEnabled(!fillBlankEnabled)}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${fillBlankEnabled
-                    ? "border-primary bg-accent"
-                    : "border-border hover:border-primary/40"
-                  }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <Type className={`w-4 h-4 ${fillBlankEnabled ? "text-primary" : "text-muted-foreground"}`} />
-                  <span className="font-bold text-sm text-foreground">빈칸 채우기</span>
-                </div>
-                <div className={`text-xs ${fillBlankEnabled ? "text-primary" : "text-muted-foreground"}`}>
-                  {fillBlankEnabled ? "선택됨" : "빈칸 채우기"}
-                </div>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => setMatchupEnabled(!matchupEnabled)}
                 className={`p-4 rounded-xl border-2 text-left transition-all ${matchupEnabled
                     ? "border-primary bg-accent"
@@ -286,7 +269,7 @@ export default function QuizCreate() {
               >
                 <div className="flex items-center gap-2 mb-1">
                   <Link2 className={`w-4 h-4 ${matchupEnabled ? "text-primary" : "text-muted-foreground"}`} />
-                  <span className="font-bold text-sm text-foreground">매치업</span>
+                  <span className="font-bold text-sm text-foreground">짝 맞추기</span>
                 </div>
                 <div className={`text-xs ${matchupEnabled ? "text-primary" : "text-muted-foreground"}`}>
                   {matchupEnabled ? "선택됨" : "단어 ↔ 뜻"}
@@ -303,10 +286,27 @@ export default function QuizCreate() {
               >
                 <div className="flex items-center gap-2 mb-1">
                   <Keyboard className={`w-4 h-4 ${typeAnswerEnabled ? "text-primary" : "text-muted-foreground"}`} />
-                  <span className="font-bold text-sm text-foreground">답 입력</span>
+                  <span className="font-bold text-sm text-foreground">뜻 보고 단어 쓰기</span>
                 </div>
                 <div className={`text-xs ${typeAnswerEnabled ? "text-primary" : "text-muted-foreground"}`}>
                   {typeAnswerEnabled ? "선택됨" : "뜻 → 한국어"}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFillBlankEnabled(!fillBlankEnabled)}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${fillBlankEnabled
+                    ? "border-primary bg-accent"
+                    : "border-border hover:border-primary/40"
+                  }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Type className={`w-4 h-4 ${fillBlankEnabled ? "text-primary" : "text-muted-foreground"}`} />
+                  <span className="font-bold text-sm text-foreground">빈칸 채우기</span>
+                </div>
+                <div className={`text-xs ${fillBlankEnabled ? "text-primary" : "text-muted-foreground"}`}>
+                  {fillBlankEnabled ? "선택됨" : "문장 빈칸"}
                 </div>
               </button>
 
@@ -320,7 +320,7 @@ export default function QuizCreate() {
               >
                 <div className="flex items-center gap-2 mb-1">
                   <Magnet className={`w-4 h-4 ${wordMagnetEnabled ? "text-primary" : "text-muted-foreground"}`} />
-                  <span className="font-bold text-sm text-foreground">워드 마그넷</span>
+                  <span className="font-bold text-sm text-foreground">문장 순서 맞추기</span>
                 </div>
                 <div className={`text-xs ${wordMagnetEnabled ? "text-primary" : "text-muted-foreground"}`}>
                   {wordMagnetEnabled ? "선택됨" : "문장 조립"}

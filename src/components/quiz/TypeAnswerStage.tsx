@@ -22,9 +22,10 @@ interface TypeAnswerStageProps {
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (answers: Record<string, string>) => void;
   onBack?: () => void;
+  backLabel?: string;
 }
 
-export function TypeAnswerStage({ problems, onProgressUpdate, onComplete, onBack }: TypeAnswerStageProps) {
+export function TypeAnswerStage({ problems, onProgressUpdate, onComplete, onBack, backLabel }: TypeAnswerStageProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
   const filledCount = problems.filter((p) => answers[p.id]?.trim()).length;
@@ -38,9 +39,7 @@ export function TypeAnswerStage({ problems, onProgressUpdate, onComplete, onBack
   const handleSubmit = () => {
     if (!allFilled) return;
     const trimmed: Record<string, string> = {};
-    problems.forEach((p) => {
-      trimmed[p.id] = (answers[p.id] || "").trim();
-    });
+    problems.forEach((p) => { trimmed[p.id] = (answers[p.id] || "").trim(); });
     onComplete(trimmed);
   };
 
@@ -51,24 +50,31 @@ export function TypeAnswerStage({ problems, onProgressUpdate, onComplete, onBack
           뜻을 보고 알맞은 한국어 단어를 입력하세요
         </p>
 
-        <div className="space-y-3">
-          {problems.map((p, idx) => (
-            <div
-              key={p.id}
-              className="flex items-center gap-3 rounded-2xl border-2 border-border bg-white px-3 py-3 sm:px-4 sm:py-3.5"
-            >
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-muted text-muted-foreground text-xs font-bold flex items-center justify-center">
-                {idx + 1}
-              </span>
-              <span className="flex-1 text-sm sm:text-base text-foreground break-keep">{p.prompt}</span>
-              <Input
-                value={answers[p.id] || ""}
-                onChange={(e) => setAnswers((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                placeholder="한국어 단어"
-                className="w-32 sm:w-44 rounded-xl border-slate-200 focus-visible:ring-primary/20"
-              />
-            </div>
-          ))}
+        {/* 받아쓰기 라인 — 번호 · 뜻 · 밑줄 입력 */}
+        <div className="divide-y divide-border">
+          {problems.map((p, idx) => {
+            const filled = !!answers[p.id]?.trim();
+            return (
+              <div key={p.id} className="flex items-center gap-3 sm:gap-5 py-3.5">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                  {idx + 1}
+                </span>
+                <span className="flex-shrink-0 w-28 sm:w-44 text-sm sm:text-base text-muted-foreground break-keep">
+                  {p.prompt}
+                </span>
+                <Input
+                  value={answers[p.id] || ""}
+                  onChange={(e) => setAnswers((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                  placeholder="여기에 입력"
+                  className={`flex-1 h-10 px-1 rounded-none border-0 border-b-2 bg-transparent text-lg font-semibold shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-base placeholder:font-normal placeholder:text-muted-foreground/60 ${
+                    filled
+                      ? "border-primary text-foreground"
+                      : "border-border focus-visible:border-primary"
+                  }`}
+                />
+              </div>
+            );
+          })}
         </div>
 
         <div className="flex justify-between items-center pt-2">
@@ -78,7 +84,7 @@ export function TypeAnswerStage({ problems, onProgressUpdate, onComplete, onBack
               onClick={onBack}
               className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
             >
-              <ChevronLeft className="w-4 h-4 mr-2" /> 이전
+              <ChevronLeft className="w-4 h-4 mr-2" /> {backLabel ?? "이전"}
             </Button>
           ) : (
             <span />

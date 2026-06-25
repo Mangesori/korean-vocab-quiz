@@ -1,13 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Edit2, Save, Loader2, Trash2, Volume2, Eye, EyeOff, Plus, RefreshCw } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { RecordingStudentView } from "@/components/quiz/shared/RecordingStudentView";
 
 export interface RecordingProblem {
   id: string;
@@ -24,14 +26,28 @@ export interface RecordingProblem {
 interface RecordingProblemListProps {
   problems: RecordingProblem[];
   onRefresh: () => void;
+  studentPreview?: boolean;
+  onToggleStudentPreview?: (v: boolean) => void;
+  isEditing: boolean;
+  setIsEditing: (v: boolean) => void;
+  onSaveAll: () => void | Promise<void>;
+  registerSaver: (fn: (() => Promise<void>) | null) => void;
+  /** problem_id → 출처 단어(빈칸 문제). 헤더 읽기전용 라벨용. */
+  sourceWords?: Record<string, string>;
 }
 
 export function RecordingProblemList({
   problems,
   onRefresh,
+  studentPreview,
+  onToggleStudentPreview,
+  isEditing,
+  setIsEditing,
+  onSaveAll,
+  registerSaver,
+  sourceWords,
 }: RecordingProblemListProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedProblems, setEditedProblems] = useState<RecordingProblem[]>([]);
+  const [editedProblems, setEditedProblems] = useState<RecordingProblem[]>(problems);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
@@ -131,7 +147,6 @@ export function RecordingProblemList({
       );
 
       toast.success("전체 문제가 저장되었습니다");
-      setIsEditing(false);
       onRefresh();
     } catch (error: any) {
       console.error("Save error:", error);
@@ -140,6 +155,17 @@ export function RecordingProblemList({
       setIsSaving(false);
     }
   };
+
+  // 전체 저장(save-all)용: 변경된 경우에만 자기 자신을 저장하는 함수를 부모에 등록
+  const saveSelfIfDirty = useCallback(async () => {
+    if (JSON.stringify(editedProblems) === JSON.stringify(problems)) return;
+    await handleSaveAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editedProblems, problems]);
+  useEffect(() => {
+    registerSaver(saveSelfIfDirty);
+    return () => registerSaver(null);
+  }, [registerSaver, saveSelfIfDirty]);
 
   const handleRegenerateAudio = async (problem: RecordingProblem) => {
     if (!quizId) return;
@@ -225,19 +251,31 @@ export function RecordingProblemList({
     }
   };
 
+  const toggleRow = onToggleStudentPreview && (
+    <div className="flex items-center gap-2 shrink-0">
+      <span className="text-sm text-muted-foreground flex items-center gap-1">
+        <Eye className="w-4 h-4" /> 학생 화면
+      </span>
+      <Switch checked={!!studentPreview} onCheckedChange={onToggleStudentPreview} />
+    </div>
+  );
+
   if (problems.length === 0 && editedProblems.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        말하기 연습 문제가 없습니다.
-        <div className="flex justify-center mt-4">
-          <Button
-            variant="ghost"
-            className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
-            onClick={handleAddProblem}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            문제 추가하기
-          </Button>
+      <div className="space-y-4">
+        {toggleRow && <div className="flex justify-start">{toggleRow}</div>}
+        <div className="text-center py-12 text-muted-foreground">
+          말하기 연습 문제가 없습니다.
+          <div className="flex justify-center mt-4">
+            <Button
+              variant="ghost"
+              className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
+              onClick={handleAddProblem}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              문장 추가하기
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -246,27 +284,30 @@ export function RecordingProblemList({
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">문제 목록</h2>
-          <span className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground font-medium">
-            {problems.length}개
-          </span>
+        <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start sm:gap-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">문제 목록</h2>
+          </div>
+          {toggleRow}
         </div>
-        
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <Button
             variant={isEditing ? "secondary" : "outline"}
             size="sm"
-            onClick={() => setIsEditing(!isEditing)}
+            onClick={() => {
+              if (!isEditing) onToggleStudentPreview?.(false);
+              setIsEditing(!isEditing);
+            }}
             className="w-full sm:w-auto"
           >
             <Edit2 className="w-4 h-4 mr-2" />
             <span>{isEditing ? "수정 취소" : "수정하기"}</span>
           </Button>
-          
+
           <Button
-            onClick={handleSaveAll}
-            disabled={isSaving || !isEditing || editedProblems.length === 0}
+            onClick={onSaveAll}
+            disabled={isSaving || !isEditing}
             size="sm"
             className="w-full sm:w-auto"
             variant="default"
@@ -277,6 +318,10 @@ export function RecordingProblemList({
         </div>
       </div>
 
+      {studentPreview && problems.length > 0 ? (
+        <RecordingStudentView problems={problems} />
+      ) : !studentPreview && (
+      <>
       {editedProblems.map((problem, index) => {
         const editedData = problem;
 
@@ -284,10 +329,15 @@ export function RecordingProblemList({
           <Card key={problem.id} className="overflow-hidden">
             <CardHeader className="py-3 px-4 bg-muted/30">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex-shrink-0">
                     {index + 1}
                   </span>
+                  {sourceWords?.[problem.problem_id] && (
+                    <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold truncate hidden sm:inline-block">
+                      {sourceWords[problem.problem_id]}
+                    </span>
+                  )}
                   {isEditing ? (
                     <Select
                       value={editedData.mode}
@@ -330,37 +380,33 @@ export function RecordingProblemList({
                   )}
                 </div>
                 <div className="flex gap-1">
-                  {!isEditing && (
-                    <>
-                      {(problem.sentence_audio_url || audioUrlMap[problem.problem_id]) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            const url = problem.sentence_audio_url || audioUrlMap[problem.problem_id];
-                            if (url) new Audio(url).play();
-                          }}
-                          className="text-muted-foreground hover:!bg-accent/30 hover:text-foreground"
-                        >
-                          <Volume2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleRegenerateAudio(problem)}
-                        disabled={regeneratingId === problem.id || deletingId === problem.id}
-                        className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                      >
-                        {regeneratingId === problem.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-4 h-4 mr-1" />
-                        )}
-                        <span className="hidden sm:inline">음성 재생성</span>
-                      </Button>
-                    </>
+                  {(problem.sentence_audio_url || audioUrlMap[problem.problem_id]) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const url = problem.sentence_audio_url || audioUrlMap[problem.problem_id];
+                        if (url) new Audio(url).play();
+                      }}
+                      className="text-muted-foreground hover:!bg-accent/30 hover:text-foreground"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </Button>
                   )}
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handleRegenerateAudio(problem)}
+                    disabled={regeneratingId === problem.id || deletingId === problem.id}
+                    className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                  >
+                    {regeneratingId === problem.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-1" />
+                    )}
+                    <span className="hidden sm:inline">음성 재생성</span>
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -430,17 +476,19 @@ export function RecordingProblemList({
           onClick={handleAddProblem}
         >
           <Plus className="w-4 h-4 mr-2" />
-          문제 추가
+          문장 추가하기
         </Button>
       </div>
 
       {isEditing && (
         <div className="mt-4 flex justify-center">
-          <Button onClick={handleSaveAll} disabled={isSaving || editedProblems.length === 0} size="lg">
+          <Button onClick={onSaveAll} disabled={isSaving} size="lg">
             {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
             저장하기
           </Button>
         </div>
+      )}
+      </>
       )}
     </div>
   );

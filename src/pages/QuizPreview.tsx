@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,16 +19,9 @@ import { MatchUpPreview } from "@/components/quiz/MatchUpPreview";
 import { TypeAnswerPreview } from "@/components/quiz/TypeAnswerPreview";
 import { WordMagnetPreview } from "@/components/quiz/WordMagnetPreview";
 import { parseSentenceToItems } from "@/lib/korean/wordMagnet";
+import { segmentSentences } from "@/lib/korean/segment";
+import { STAGE_ORDER, STAGE_LABELS, type BaseStage } from "@/types/quiz";
 import type { Problem, SentenceMakingProblem, RecordingProblem, MatchupProblem, TypeAnswerProblem, WordMagnetProblem, QuizDraft } from "@/types/quiz";
-
-const STAGE_LABELS: Record<string, string> = {
-  fill_blank: "빈칸 채우기",
-  matchup: "매치업",
-  type_answer: "답 입력",
-  word_magnet: "워드 마그넷",
-  sentence_making: "문장 만들기",
-  recording: "말하기 연습",
-};
 
 const LANGUAGE_LABELS: Record<string, string> = {
   en: "영어",
@@ -53,23 +46,38 @@ export default function QuizPreview() {
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [studentPreview, setStudentPreview] = useState(false);
+  const [isSegmenting, setIsSegmenting] = useState(false);
+  const [resegmentingId, setResegmentingId] = useState<string | null>(null);
   const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
 
-  type PreviewStage = "fill_blank" | "matchup" | "type_answer" | "word_magnet" | "sentence_making" | "recording";
-  const [previewStage, setPreviewStage] = useState<PreviewStage>("fill_blank");
+  type PreviewStage = BaseStage;
+  const [previewStage, setPreviewStage] = useState<PreviewStage>(STAGE_ORDER[0]);
 
   const enabledStages = useMemo(() => {
-    const stages: PreviewStage[] = [];
-    if (draft?.fillBlankEnabled !== false) stages.push("fill_blank");
-    if (draft?.matchupEnabled) stages.push("matchup");
-    if (draft?.typeAnswerEnabled) stages.push("type_answer");
-    if (draft?.wordMagnetEnabled) stages.push("word_magnet");
-    if (draft?.sentenceMakingEnabled) stages.push("sentence_making");
-    if (draft?.recordingEnabled) stages.push("recording");
-    return stages;
+    const isEnabled: Record<BaseStage, boolean> = {
+      matchup: !!draft?.matchupEnabled,
+      type_answer: !!draft?.typeAnswerEnabled,
+      fill_blank: draft?.fillBlankEnabled !== false,
+      word_magnet: !!draft?.wordMagnetEnabled,
+      sentence_making: !!draft?.sentenceMakingEnabled,
+      recording: !!draft?.recordingEnabled,
+    };
+    return STAGE_ORDER.filter((s) => isEnabled[s]);
   }, [draft?.fillBlankEnabled, draft?.matchupEnabled, draft?.typeAnswerEnabled, draft?.wordMagnetEnabled, draft?.sentenceMakingEnabled, draft?.recordingEnabled]);
 
-  // 빈칸 OFF면 첫 활성 스테이지에서 미리보기 시작
+  // draft 로드 시 정규 순서상 첫 활성 스테이지에서 시작 (1회 초기화)
+  // draft가 null인 초기엔 enabledStages가 ["fill_blank"]로만 계산되므로,
+  // 로드 후 첫 활성 스테이지(보통 짝 맞추기)로 강제 초기화해야 한다.
+  const stageInitRef = useRef(false);
+  useEffect(() => {
+    if (draft && !stageInitRef.current && enabledStages.length > 0) {
+      stageInitRef.current = true;
+      setPreviewStage(enabledStages[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, enabledStages]);
+
+  // 현재 스테이지가 비활성화되면(미리보기 중 토글 등) 첫 활성 스테이지로 보정
   useEffect(() => {
     if (enabledStages.length > 0 && !enabledStages.includes(previewStage)) {
       setPreviewStage(enabledStages[0]);
@@ -81,6 +89,15 @@ export default function QuizPreview() {
   const isLastStage = currentStageIndex === enabledStages.length - 1;
   const nextStage = enabledStages[currentStageIndex + 1];
   const prevStage = enabledStages[currentStageIndex - 1];
+
+  // 빈칸 문제 id → 단어. 문장순서·말하기 카드 헤더에 출처 단어 라벨로 표시(파생 시 problem_id가 빈칸 id와 동일).
+  const sourceWordById = useMemo(() => {
+    const map: Record<string, string> = {};
+    (draft?.problems || []).forEach((p) => {
+      if (p.word) map[p.id] = p.word;
+    });
+    return map;
+  }, [draft?.problems]);
 
   const generateRecordingProblems = useCallback(() => {
     if (!draft?.recordingEnabled || !draft.problems) return;
@@ -118,39 +135,85 @@ export default function QuizPreview() {
     setDraft((prev) => (prev ? { ...prev, typeAnswerProblems: taProblems } : null));
   }, [draft?.typeAnswerEnabled, draft?.problems, draft?.typeAnswerProblems]);
 
-  const generateWordMagnetProblems = useCallback(() => {
+  const generateWordMagnetProblems = useCallback(async () => {
     if (!draft?.wordMagnetEnabled || !draft.problems) return;
 
-    const wmProblems: WordMagnetProblem[] = draft.problems
+    const base = draft.problems
       .map((problem) => {
         const baseText = problem.sentence
           .replace(/\(\s*\)|\(\)/g, problem.answer)
           .replace(/([.?!])\s*\.+\s*$/, "$1")
           .trim();
-        const items = parseSentenceToItems(baseText).map((it) => ({
-          content: it.content,
-          isParticle: it.isParticle,
-        }));
         return {
           problem_id: problem.id,
           base_text: baseText,
           translation: (problem.translation || "").replace(/[[\]]/g, ""),
-          items,
         };
       })
-      .filter((p) => p.items.length > 0);
+      .filter((p) => p.base_text.length > 0);
 
-    setDraft((prev) => {
-      if (!prev) return null;
-      return { ...prev, wordMagnetProblems: wmProblems };
-    });
+    const heuristic = (text: string) =>
+      parseSentenceToItems(text).map((it) => ({ content: it.content, isParticle: it.isParticle }));
+
+    // 1) 즉시 휴리스틱으로 채워 표시
+    setIsSegmenting(true);
+    setDraft((prev) =>
+      prev ? { ...prev, wordMagnetProblems: base.map((b) => ({ ...b, items: heuristic(b.base_text) })) } : null
+    );
+
+    // 2) AI 분절로 업그레이드(실패 시 휴리스틱 유지)
+    try {
+      const map = await segmentSentences(base.map((b) => ({ id: b.problem_id, text: b.base_text })));
+      setDraft((prev) =>
+        prev
+          ? {
+              ...prev,
+              wordMagnetProblems: base.map((b) => ({
+                ...b,
+                items: map[b.problem_id] && map[b.problem_id].length > 0 ? map[b.problem_id] : heuristic(b.base_text),
+              })),
+            }
+          : null
+      );
+    } finally {
+      setIsSegmenting(false);
+    }
   }, [draft?.wordMagnetEnabled, draft?.problems]);
 
-  // 스테이지 진입 시 해당 유형 문제 파생 (매치업·답입력은 비었을 때만, 워드마그넷은 매번 재파생)
+  const updateWordMagnetItems = (
+    problemId: string,
+    items: { content: string; isParticle: boolean }[]
+  ) => {
+    setDraft((prev) => {
+      if (!prev || !prev.wordMagnetProblems) return prev;
+      return {
+        ...prev,
+        wordMagnetProblems: prev.wordMagnetProblems.map((p) =>
+          p.problem_id === problemId ? { ...p, items } : p
+        ),
+      };
+    });
+  };
+
+  const resegmentWordMagnetProblem = async (problemId: string) => {
+    const target = draft?.wordMagnetProblems?.find((p) => p.problem_id === problemId);
+    if (!target || !target.base_text.trim()) return;
+    setResegmentingId(problemId);
+    try {
+      const map = await segmentSentences([{ id: problemId, text: target.base_text }]);
+      updateWordMagnetItems(problemId, map[problemId] || []);
+    } finally {
+      setResegmentingId(null);
+    }
+  };
+
+  // 스테이지 진입 시 해당 유형 문제 파생 (모두 비었을 때만 — 교사 수정 보존)
   useEffect(() => {
     if (previewStage === "matchup") generateMatchupProblems();
     if (previewStage === "type_answer") generateTypeAnswerProblems();
-    if (previewStage === "word_magnet") generateWordMagnetProblems();
+    if (previewStage === "word_magnet" && (!draft?.wordMagnetProblems || draft.wordMagnetProblems.length === 0)) {
+      generateWordMagnetProblems();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewStage]);
 
@@ -213,6 +276,14 @@ export default function QuizPreview() {
         translation: "",
       };
       return { ...prev, problems: [...prev.problems, newProblem], words: [...prev.words, ""] };
+    });
+  };
+
+  const deleteFillBlankProblem = (problemId: string) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const updated = prev.problems.filter((p) => p.id !== problemId);
+      return { ...prev, problems: updated, words: updated.map((p) => p.word) };
     });
   };
 
@@ -310,6 +381,52 @@ export default function QuizPreview() {
         answer: "",
       };
       return { ...prev, typeAnswerProblems: [...(prev.typeAnswerProblems || []), newProblem] };
+    });
+  };
+
+  // 워드마그넷: base_text 수정 시 타일(items) 자동 재파생, translation은 그대로 반영
+  const updateWordMagnetProblem = (
+    problemId: string,
+    field: "base_text" | "translation",
+    value: string
+  ) => {
+    setDraft((prev) => {
+      if (!prev || !prev.wordMagnetProblems) return prev;
+      const updated = prev.wordMagnetProblems.map((p) => {
+        if (p.problem_id !== problemId) return p;
+        if (field === "base_text") {
+          const items = parseSentenceToItems(value).map((it) => ({
+            content: it.content,
+            isParticle: it.isParticle,
+          }));
+          return { ...p, base_text: value, items };
+        }
+        return { ...p, translation: value };
+      });
+      return { ...prev, wordMagnetProblems: updated };
+    });
+  };
+
+  const deleteWordMagnetProblem = (problemId: string) => {
+    setDraft((prev) => {
+      if (!prev || !prev.wordMagnetProblems) return prev;
+      return {
+        ...prev,
+        wordMagnetProblems: prev.wordMagnetProblems.filter((p) => p.problem_id !== problemId),
+      };
+    });
+  };
+
+  const addWordMagnetProblem = () => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const newProblem: WordMagnetProblem = {
+        problem_id: `wm-${Date.now()}`,
+        base_text: "",
+        translation: "",
+        items: [],
+      };
+      return { ...prev, wordMagnetProblems: [...(prev.wordMagnetProblems || []), newProblem] };
     });
   };
 
@@ -731,15 +848,23 @@ export default function QuizPreview() {
             {enabledStages.map((stage, index) => (
               <div key={stage} className="flex items-center gap-2">
                 <div
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-colors ${
                     previewStage === stage
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-primary-foreground border-primary"
                       : index < currentStageIndex
-                        ? "bg-success/20 text-success-foreground"
-                        : "bg-muted text-muted-foreground"
+                        ? "bg-success/15 text-success-foreground border-success/30"
+                        : "bg-white text-slate-500 border-slate-200"
                   }`}
                 >
-                  <span className="w-6 h-6 rounded-full bg-background/20 flex items-center justify-center text-sm font-bold">
+                  <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
+                      previewStage === stage
+                        ? "bg-white/20"
+                        : index < currentStageIndex
+                          ? "bg-success/20"
+                          : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
                     {index + 1}
                   </span>
                   <span className="text-sm font-medium whitespace-nowrap">
@@ -764,6 +889,7 @@ export default function QuizPreview() {
             updateProblem={updateProblem}
             regenerateProblem={regenerateProblem}
             addFillBlankProblem={addFillBlankProblem}
+            deleteFillBlankProblem={deleteFillBlankProblem}
           />
         )}
 
@@ -788,7 +914,25 @@ export default function QuizPreview() {
         )}
 
         {previewStage === "word_magnet" && draft.wordMagnetProblems && draft.wordMagnetProblems.length > 0 && (
-          <WordMagnetPreview problems={draft.wordMagnetProblems} studentPreview={studentPreview} />
+          <>
+            {isSegmenting && !studentPreview && (
+              <div className="max-w-3xl mx-auto mb-3 flex items-center gap-2 text-sm text-primary/80">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                AI가 타일을 분절하는 중...
+              </div>
+            )}
+            <WordMagnetPreview
+              problems={draft.wordMagnetProblems}
+              studentPreview={studentPreview}
+              updateWordMagnetProblem={updateWordMagnetProblem}
+              updateWordMagnetItems={updateWordMagnetItems}
+              resegmentWordMagnetProblem={resegmentWordMagnetProblem}
+              resegmentingId={resegmentingId}
+              deleteWordMagnetProblem={deleteWordMagnetProblem}
+              addWordMagnetProblem={addWordMagnetProblem}
+              sourceWords={sourceWordById}
+            />
+          </>
         )}
 
         {previewStage === "sentence_making" &&
@@ -811,6 +955,7 @@ export default function QuizPreview() {
             deleteRecordingProblem={deleteRecordingProblem}
             regenerateRecordingProblem={regenerateRecordingProblem}
             addRecordingProblem={addRecordingProblem}
+            sourceWords={sourceWordById}
           />
         )}
 

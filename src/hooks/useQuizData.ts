@@ -13,6 +13,7 @@ export interface Problem {
   sentence: string;
   hint: string;
   translation: string;
+  meaning?: string;
 }
 
 export interface Quiz {
@@ -30,6 +31,9 @@ export interface Quiz {
   api_provider?: "openai" | "gemini" | "gemini-pro";
   sentence_making_enabled?: boolean;
   recording_enabled?: boolean;
+  matchup_enabled?: boolean;
+  type_answer_enabled?: boolean;
+  word_magnet_enabled?: boolean;
 }
 
 export type Class = ClassModel;

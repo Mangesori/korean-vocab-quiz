@@ -26,6 +26,7 @@ interface SentenceMakingResultStageProps {
   onNext: () => void;
   nextLabel: string;
   onBack?: () => void;
+  backLabel?: string;
 }
 
 export function SentenceMakingResultStage({
@@ -34,6 +35,7 @@ export function SentenceMakingResultStage({
   onNext,
   nextLabel,
   onBack,
+  backLabel,
 }: SentenceMakingResultStageProps) {
   const totalScore = problems.reduce((sum, p) => {
     const attempt = results[p.id]?.[0];
@@ -132,7 +134,7 @@ export function SentenceMakingResultStage({
             className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
-            빈칸 채우기 결과
+            {backLabel ?? "이전"}
           </Button>
         ) : (
           <div />

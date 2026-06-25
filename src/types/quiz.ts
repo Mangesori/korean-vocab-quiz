@@ -46,6 +46,34 @@ export interface RecordingProblem {
   translation: string;
 }
 
+// 퀴즈 스테이지 정규 순서 — QuizCreate 카드, QuizPreview 스테퍼, QuizTake 진행 모두 이 순서를 따른다.
+// 내부 키는 그대로 두고 표시 이름만 STAGE_LABELS로 관리.
+export type BaseStage =
+  | "matchup"
+  | "type_answer"
+  | "fill_blank"
+  | "word_magnet"
+  | "sentence_making"
+  | "recording";
+
+export const STAGE_ORDER: BaseStage[] = [
+  "matchup",
+  "type_answer",
+  "fill_blank",
+  "word_magnet",
+  "sentence_making",
+  "recording",
+];
+
+export const STAGE_LABELS: Record<BaseStage, string> = {
+  matchup: "짝 맞추기",
+  type_answer: "뜻 보고 단어 쓰기",
+  fill_blank: "빈칸 채우기",
+  word_magnet: "문장 순서 맞추기",
+  sentence_making: "문장 만들기",
+  recording: "말하기 연습",
+};
+
 export interface QuizDraft {
   title: string;
   words: string[];

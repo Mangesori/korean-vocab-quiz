@@ -34,6 +34,7 @@ interface SentenceMakingStageProps {
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (results: Record<string, SentenceAttempt[]>) => void;
   onBack?: () => void;
+  backLabel?: string;
 }
 
 type Phase = "input" | "grading" | "results";
@@ -46,6 +47,7 @@ export function SentenceMakingStage({
   onProgressUpdate,
   onComplete,
   onBack,
+  backLabel,
 }: SentenceMakingStageProps) {
   const [phase, setPhase] = useState<Phase>("input");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -264,7 +266,7 @@ export function SentenceMakingStage({
               onClick={onBack}
               className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
             >
-              <ChevronLeft className="w-4 h-4 mr-2" /> 빈칸 채우기 결과
+              <ChevronLeft className="w-4 h-4 mr-2" /> {backLabel ?? "이전"}
             </Button>
           ) : (
             <Button
