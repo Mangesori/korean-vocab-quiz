@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -38,7 +38,6 @@ export default function Classes() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const location = useLocation();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -273,10 +272,9 @@ export default function Classes() {
                 );
               })
               .map((cls) => (
-              <Card 
-                key={cls.id} 
-                className="hover:shadow-lg transition-all cursor-pointer hover:border-primary/50" // Updated className
-                onClick={() => navigate(`/class/${cls.id}`)}
+              <Link key={cls.id} to={`/class/${cls.id}`} className="block h-full">
+              <Card
+                className="hover:shadow-lg transition-all cursor-pointer hover:border-primary/50 h-full"
               >
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -300,6 +298,7 @@ export default function Classes() {
                       variant="ghost"
                       size="icon"
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         copyInviteCode(cls.invite_code);
                       }}
@@ -319,6 +318,7 @@ export default function Classes() {
                   </div>
                 </CardContent>
               </Card>
+              </Link>
             ))}
           </div>
         )}
