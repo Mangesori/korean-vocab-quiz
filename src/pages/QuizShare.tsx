@@ -18,6 +18,9 @@ export default function QuizShare() {
   const [anonymousName, setAnonymousName] = useState("");
   const [sentenceCount, setSentenceCount] = useState(0);
   const [recordingCount, setRecordingCount] = useState(0);
+  const [matchupCount, setMatchupCount] = useState(0);
+  const [typeAnswerCount, setTypeAnswerCount] = useState(0);
+  const [wordMagnetCount, setWordMagnetCount] = useState(0);
 
 
   useEffect(() => {
@@ -91,12 +94,21 @@ export default function QuizShare() {
         .eq("user_id", quizData.teacher_id)
         .single();
 
-      const [{ count: sc }, { count: rc }] = await Promise.all([
+      // 주의: type_answer_problems·word_magnet_problems는 익명(공유 링크) 직접 SELECT가
+      // RLS로 막혀 있다(정답 노출 방지 설계). 익명은 정답을 뺀 학생용 RPC로만 접근 가능하므로
+      // 개수도 그 RPC의 배열 길이로 센다. (matchup·sentence·recording은 익명 SELECT 정책이 있어 직접 count 사용)
+      const [{ count: sc }, { count: rc }, { count: muc }, { data: taData }, { data: wmData }] = await Promise.all([
         supabase.from("sentence_making_problems").select("*", { count: "exact", head: true }).eq("quiz_id", shareData.quiz_id),
         supabase.from("recording_problems").select("*", { count: "exact", head: true }).eq("quiz_id", shareData.quiz_id),
+        supabase.from("matchup_problems" as any).select("*", { count: "exact", head: true }).eq("quiz_id", shareData.quiz_id),
+        (supabase as any).rpc("get_type_answer_problems_for_student", { _quiz_id: shareData.quiz_id }),
+        (supabase as any).rpc("get_word_magnet_problems_for_student", { _quiz_id: shareData.quiz_id }),
       ]);
       setSentenceCount(sc ?? 0);
       setRecordingCount(rc ?? 0);
+      setMatchupCount(muc ?? 0);
+      setTypeAnswerCount(Array.isArray(taData) ? taData.length : 0);
+      setWordMagnetCount(Array.isArray(wmData) ? wmData.length : 0);
 
       setQuiz(quizData);
       setTeacherName(profileData?.name || "선생님");
@@ -137,10 +149,21 @@ export default function QuizShare() {
   }
 
   const typeChips = [
-    { label: "빈칸 채우기", count: `${quiz.problems.length}문제`, show: true },
+    { label: "짝 맞추기", count: `${matchupCount}문제`, show: !!quiz.matchup_enabled },
+    { label: "뜻 보고 단어 쓰기", count: `${typeAnswerCount}문제`, show: !!quiz.type_answer_enabled },
+    { label: "빈칸 채우기", count: `${quiz.problems.length}문제`, show: quiz.fill_blank_enabled !== false },
+    { label: "문장 순서 맞추기", count: `${wordMagnetCount}문제`, show: !!quiz.word_magnet_enabled },
     { label: "문장 만들기", count: `${sentenceCount}문제`, show: !!quiz.sentence_making_enabled },
     { label: "말하기 연습", count: `${recordingCount}문제`, show: !!quiz.recording_enabled },
   ].filter((t) => t.show);
+
+  const totalProblems =
+    (quiz.fill_blank_enabled !== false ? quiz.problems.length : 0) +
+    (quiz.matchup_enabled ? matchupCount : 0) +
+    (quiz.type_answer_enabled ? typeAnswerCount : 0) +
+    (quiz.word_magnet_enabled ? wordMagnetCount : 0) +
+    (quiz.sentence_making_enabled ? sentenceCount : 0) +
+    (quiz.recording_enabled ? recordingCount : 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8F5F0]">
@@ -165,7 +188,7 @@ export default function QuizShare() {
                   {quiz.difficulty}
                 </span>
                 <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold">
-                  문제 {quiz.problems.length + (quiz.sentence_making_enabled ? sentenceCount : 0) + (quiz.recording_enabled ? recordingCount : 0)}개
+                  문제 {totalProblems}개
                 </span>
                 <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-xs font-semibold">
                   남은 응시 {remainingAttempts}회
@@ -176,10 +199,10 @@ export default function QuizShare() {
             {/* 본문 */}
             <div className="px-7 pt-6 pb-7">
               {typeChips.length > 1 && (
-                <div className="flex gap-2 mb-5">
+                <div className="grid grid-cols-3 gap-2 mb-5">
                   {typeChips.map((t) => (
-                    <div key={t.label} className="flex-1 flex flex-col items-center gap-1.5 py-3 px-2 border border-border rounded-xl text-center">
-                      <div className="text-[13px] font-bold text-foreground whitespace-nowrap">{t.label}</div>
+                    <div key={t.label} className="flex flex-col items-center justify-center gap-1.5 py-3 px-2 border border-border rounded-xl text-center">
+                      <div className="text-[13px] font-bold text-foreground break-keep leading-tight">{t.label}</div>
                       <div className="font-mono text-[11px] text-muted-foreground">{t.count}</div>
                     </div>
                   ))}

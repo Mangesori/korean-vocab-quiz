@@ -55,6 +55,7 @@ export function MatchUpStage({ problems, onProgressUpdate, onComplete, onBack, b
   // leftId → 짝 번호. 매칭 시점에 고정 할당되어 이후 다른 매칭에 영향받지 않는다.
   const [pairNo, setPairNo] = useState<Record<string, number>>({});
   const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
+  const [selectedRight, setSelectedRight] = useState<string | null>(null);
 
   // 현재 사용 중이 아닌 가장 작은 양의 정수(해제 시 빈 번호 재사용 → 1..n 유지)
   const nextFreeNumber = (used: number[]) => {
@@ -91,28 +92,48 @@ export function MatchUpStage({ problems, onProgressUpdate, onComplete, onBack, b
     return num;
   }, [matches, pairNo]);
 
+  const linkPair = (leftId: string, rightId: string) => {
+    setMatches((prev) => ({ ...prev, [leftId]: rightId }));
+    setPairNo((prev) => ({ ...prev, [leftId]: nextFreeNumber(Object.values(prev)) }));
+    setSelectedLeft(null);
+    setSelectedRight(null);
+  };
+
   const handleLeftClick = (leftId: string) => {
+    // 이미 매칭된 단어 → 해제
     if (matches[leftId]) {
       setMatches((prev) => { const next = { ...prev }; delete next[leftId]; return next; });
       setPairNo((prev) => { const next = { ...prev }; delete next[leftId]; return next; });
       setSelectedLeft(null);
+      setSelectedRight(null);
       return;
     }
+    // 뜻이 먼저 선택돼 있으면 연결
+    if (selectedRight) {
+      linkPair(leftId, selectedRight);
+      return;
+    }
+    setSelectedRight(null);
     setSelectedLeft((prev) => (prev === leftId ? null : leftId));
   };
 
   const handleRightClick = (rightId: string) => {
+    // 이미 사용 중인 뜻 → 해제
     const usedBy = rightUsedBy[rightId];
     if (usedBy) {
       setMatches((prev) => { const next = { ...prev }; delete next[usedBy]; return next; });
       setPairNo((prev) => { const next = { ...prev }; delete next[usedBy]; return next; });
+      setSelectedLeft(null);
+      setSelectedRight(null);
       return;
     }
-    if (!selectedLeft) return;
-    const leftId = selectedLeft;
-    setMatches((prev) => ({ ...prev, [leftId]: rightId }));
-    setPairNo((prev) => ({ ...prev, [leftId]: nextFreeNumber(Object.values(prev)) }));
+    // 단어가 먼저 선택돼 있으면 연결
+    if (selectedLeft) {
+      linkPair(selectedLeft, rightId);
+      return;
+    }
     setSelectedLeft(null);
+    setSelectedRight((prev) => (prev === rightId ? null : rightId));
   };
 
   const handleSubmit = () => {
@@ -179,6 +200,7 @@ export function MatchUpStage({ problems, onProgressUpdate, onComplete, onBack, b
             {rightItems.map((p) => {
               const usedBy = rightUsedBy[p.id];
               const isMatched = !!usedBy;
+              const isSelected = selectedRight === p.id;
               const tone = isMatched ? toneFor(pairNumber[p.id]) : null;
               return (
                 <button
@@ -187,7 +209,11 @@ export function MatchUpStage({ problems, onProgressUpdate, onComplete, onBack, b
                   onClick={() => handleRightClick(p.id)}
                   style={tone ? { backgroundColor: tone.bg, borderColor: tone.border } : undefined}
                   className={`w-full flex items-center gap-2 rounded-2xl border-2 px-3 py-3 sm:px-4 sm:py-4 min-h-[3rem] sm:min-h-[4rem] text-left transition-all ${
-                    isMatched ? "" : "border-slate-200 bg-slate-50/80 hover:border-primary/40"
+                    isMatched
+                      ? ""
+                      : isSelected
+                        ? "border-primary ring-2 ring-primary/40 bg-primary/10 shadow-sm"
+                        : "border-slate-200 bg-slate-50/80 hover:border-primary/40"
                   }`}
                 >
                   {isMatched && tone && (

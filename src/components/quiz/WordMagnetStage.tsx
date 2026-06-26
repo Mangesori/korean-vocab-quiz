@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { assembleForDisplay } from "@/lib/korean/wordMagnet";
+import { WordMagnetTile } from "@/components/quiz/shared/WordMagnetTile";
 
 interface Tile {
   id: string;
@@ -48,17 +49,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 function TileBox({ tile, faded }: { tile: Tile; faded?: boolean }) {
-  return (
-    <div
-      className={`select-none rounded-xl px-3 py-2 text-base sm:text-lg shadow-sm border whitespace-nowrap ${
-        tile.isParticle
-          ? "bg-slate-100 text-slate-500 border-slate-200"
-          : "bg-white text-foreground border-slate-200"
-      } ${faded ? "opacity-50" : ""}`}
-    >
-      {tile.content}
-    </div>
-  );
+  return <WordMagnetTile content={tile.content} isParticle={tile.isParticle} faded={faded} />;
 }
 
 function DraggableTile({ tile, onTap }: { tile: Tile; onTap: (t: Tile) => void }) {

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { WordMagnetTile } from "@/components/quiz/shared/WordMagnetTile";
 
 export interface WordMagnetStudentItem {
   translation: string | null;
@@ -9,8 +10,9 @@ export interface WordMagnetStudentItem {
 }
 
 /**
- * 문장 순서 맞추기 학생 미리보기(한 문제씩 캐러셀, 타일 셔플).
- * QuizPreview·QuizDetail이 동일하게 사용한다(캐러셀 디자인으로 통일).
+ * 문장 순서 맞추기 학생 미리보기(한 문제씩 캐러셀).
+ * 실제 퀴즈(WordMagnetStage)의 "연결 전" idle 화면과 동일하게 — "내 문장"(빈 영역) +
+ * "단어 은행"(셔플 타일). 타일은 공유 컴포넌트(WordMagnetTile)로 모양 일치.
  */
 export function WordMagnetStudentView({ problems }: { problems: WordMagnetStudentItem[] }) {
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -42,39 +44,41 @@ export function WordMagnetStudentView({ problems }: { problems: WordMagnetStuden
   if (!problem) return null;
 
   return (
-    <Card className="w-full border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl overflow-hidden bg-transparent sm:bg-white">
-      <CardContent className="p-0 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
-        <div className="p-5 sm:p-10 bg-transparent sm:bg-slate-50 border-none rounded-2xl flex flex-col min-h-[160px] items-center justify-center">
-          <p className="text-sm sm:text-base lg:text-lg text-muted-foreground font-medium mb-3 sm:mb-5 text-center">
-            주어진 타일을 끌어 알맞은 문장을 만드세요
-          </p>
-          <p className="text-xl sm:text-2xl font-bold text-slate-800 text-center break-keep">
-            {problem.translation}
-          </p>
+    <Card className="w-full max-w-3xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl bg-transparent sm:bg-white">
+      <CardContent className="p-0 sm:p-6 md:p-8 space-y-5">
+        <p className="text-center text-sm sm:text-base text-muted-foreground font-medium">
+          단어를 끌거나 탭해서 문장을 완성하세요
+        </p>
+
+        {/* 프롬프트(번역) */}
+        <div className="p-5 sm:p-6 bg-slate-50 rounded-2xl text-center">
+          <p className="text-lg sm:text-xl font-semibold text-foreground break-keep">{problem.translation}</p>
         </div>
 
-        {/* 셔플된 단어 마그넷 타일 목록 */}
-        <div className="flex flex-wrap gap-2.5 justify-center py-4 bg-muted/20 rounded-xl px-4 min-h-[80px] items-center">
-          {shuffledItems.map((item, idx) => (
-            <div
-              key={idx}
-              className={`px-4 py-2 text-md font-semibold rounded-xl border-2 select-none shadow-sm cursor-default ${
-                item.isParticle
-                  ? "bg-amber-50 border-amber-300/80 text-amber-800"
-                  : "bg-white border-slate-200 text-slate-700"
-              }`}
-            >
-              {item.content}
-            </div>
-          ))}
+        {/* 내 문장 (빈 영역) */}
+        <div>
+          <p className="text-xs font-semibold text-primary/70 mb-1.5">내 문장</p>
+          <div className="min-h-[72px] rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-3 flex flex-wrap items-center content-start gap-y-2">
+            <span className="text-sm text-muted-foreground px-1">아래 단어를 탭하거나 끌어다 놓으세요</span>
+          </div>
         </div>
 
-        <div className="flex justify-between items-center mt-6">
+        {/* 단어 은행 */}
+        <div>
+          <p className="text-xs font-semibold text-slate-400 mt-4 mb-1.5">단어 은행</p>
+          <div className="min-h-[72px] rounded-2xl border-2 border-slate-200 bg-slate-50/80 p-3 flex flex-wrap items-start gap-2">
+            {shuffledItems.map((item, idx) => (
+              <WordMagnetTile key={idx} content={item.content} isParticle={item.isParticle} />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center pt-2">
           <Button
             variant="outline"
             onClick={() => setPreviewIndex((prev) => Math.max(0, prev - 1))}
             disabled={previewIndex === 0}
-            className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-2" /> 이전
           </Button>

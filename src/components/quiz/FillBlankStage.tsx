@@ -252,6 +252,7 @@ export function FillBlankStage({
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="outline"
+                                  tabIndex={-1}
                                   onClick={() => {
                                     if (isAnonymous) {
                                       toast.info("회원가입하고 듣기 기능을 사용하세요!", {
@@ -276,6 +277,7 @@ export function FillBlankStage({
                           </TooltipProvider>
                           <Button
                             variant="outline"
+                            tabIndex={-1}
                             onClick={() => toggleTranslation(problem.id)}
                             className={`flex-1 h-10 rounded-xl font-medium transition-all ${showTranslations[problem.id] ? "bg-amber-50 text-amber-600 border-amber-200" : "text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30"}`}
                             size="sm"
@@ -314,6 +316,7 @@ export function FillBlankStage({
                                 <Button
                                   variant="outline"
                                   size="sm"
+                                  tabIndex={-1}
                                   onClick={() => {
                                     if (isAnonymous) {
                                       toast.info("회원가입하고 듣기 기능을 사용하세요!", {
@@ -338,6 +341,7 @@ export function FillBlankStage({
                           <Button
                             variant="outline"
                             size="sm"
+                            tabIndex={-1}
                             onClick={() => toggleTranslation(problem.id)}
                             className={`h-9 px-3 rounded-xl text-sm font-medium transition-all ${showTranslations[problem.id] ? "bg-amber-50 text-amber-600 border-amber-200" : "text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30"}`}
                           >
