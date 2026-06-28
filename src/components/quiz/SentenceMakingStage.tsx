@@ -293,7 +293,7 @@ export function SentenceMakingStage({
               disabled={!allFilled}
               className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
             >
-              다음 단계로 <ChevronRight className="w-5 h-5 ml-2" />
+              결과 확인 <ChevronRight className="w-5 h-5 ml-2" />
             </Button>
           )}
         </div>

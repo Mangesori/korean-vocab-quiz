@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Loader2, Volume2, Lightbulb, Lock, ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
+import { Loader2, Volume2, Lightbulb, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { maskTranslation } from "@/utils/maskTranslation";
 
@@ -390,10 +390,8 @@ export function FillBlankStage({
           >
             {isSubmitting ? (
               <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> 제출 중...</>
-            ) : hasNextStage ? (
-              <>다음 단계로 <ChevronRight className="w-5 h-5 ml-2" /></>
             ) : (
-              <><CheckCircle className="w-5 h-5 mr-2" /> 결과 제출</>
+              <>결과 확인 <ChevronRight className="w-5 h-5 ml-2" /></>
             )}
           </Button>
         )}

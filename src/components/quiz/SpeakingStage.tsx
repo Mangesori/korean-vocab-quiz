@@ -505,8 +505,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    결과보기
+                    결과 확인 <ChevronRight className="w-5 h-5 ml-2" />
                   </>
                 )}
               </Button>

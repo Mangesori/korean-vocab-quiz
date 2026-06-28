@@ -9,10 +9,12 @@ export interface WordMagnetStudentItem {
   items: Array<{ content: string; isParticle: boolean }>;
 }
 
+const RULED_LINES =
+  "repeating-linear-gradient(to bottom, transparent 0, transparent 51px, hsl(var(--border)) 51px, hsl(var(--border)) 52px)";
+
 /**
  * 문장 순서 맞추기 학생 미리보기(한 문제씩 캐러셀).
- * 실제 퀴즈(WordMagnetStage)의 "연결 전" idle 화면과 동일하게 — "내 문장"(빈 영역) +
- * "단어 은행"(셔플 타일). 타일은 공유 컴포넌트(WordMagnetTile)로 모양 일치.
+ * 실제 퀴즈(WordMagnetStage)의 듀오링고 word-bank 스타일과 동일 — 밑줄 라인 답 영역 + 단어 은행.
  */
 export function WordMagnetStudentView({ problems }: { problems: WordMagnetStudentItem[] }) {
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -55,22 +57,14 @@ export function WordMagnetStudentView({ problems }: { problems: WordMagnetStuden
           <p className="text-lg sm:text-xl font-semibold text-foreground break-keep">{problem.translation}</p>
         </div>
 
-        {/* 내 문장 (빈 영역) */}
-        <div>
-          <p className="text-xs font-semibold text-primary/70 mb-1.5">내 문장</p>
-          <div className="min-h-[72px] rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-3 flex flex-wrap items-center content-start gap-y-2">
-            <span className="text-sm text-muted-foreground px-1">아래 단어를 탭하거나 끌어다 놓으세요</span>
-          </div>
-        </div>
+        {/* 답 영역 — 밑줄 라인(비어 있음) */}
+        <div className="min-h-[108px] px-1 pb-1" style={{ backgroundImage: RULED_LINES }} />
 
         {/* 단어 은행 */}
-        <div>
-          <p className="text-xs font-semibold text-slate-400 mt-4 mb-1.5">단어 은행</p>
-          <div className="min-h-[72px] rounded-2xl border-2 border-slate-200 bg-slate-50/80 p-3 flex flex-wrap items-start gap-2">
-            {shuffledItems.map((item, idx) => (
-              <WordMagnetTile key={idx} content={item.content} isParticle={item.isParticle} />
-            ))}
-          </div>
+        <div className="mt-10 min-h-[64px] flex flex-wrap items-start gap-2.5">
+          {shuffledItems.map((item, idx) => (
+            <WordMagnetTile key={idx} content={item.content} isParticle={item.isParticle} />
+          ))}
         </div>
 
         <div className="flex justify-between items-center pt-2">

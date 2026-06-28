@@ -262,8 +262,7 @@ export default function TeacherDashboard() {
                             <div className="flex gap-1">
                               <Button
                                 size="sm"
-                                variant="outline"
-                                className="h-6 text-xs px-[7px]"
+                                className="h-6 text-xs px-[7px] bg-accent text-accent-foreground hover:bg-primary/15 transition-colors"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();

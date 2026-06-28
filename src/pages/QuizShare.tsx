@@ -218,13 +218,14 @@ export default function QuizShare() {
                 </div>
               ) : (
                 <div>
-                  <label className="block text-[12.5px] font-semibold text-foreground mb-1.5">
-                    이름을 입력하고 시작하세요
+                  <label className="block text-[12.5px] font-semibold text-foreground mb-2 ml-1">
+                    이름을 입력하세요
                   </label>
                   <input
                     type="text"
                     value={anonymousName}
                     onChange={(e) => setAnonymousName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && anonymousName.trim().length >= 2) startQuiz(); }}
                     placeholder="예) 이서연"
                     className="w-full h-[46px] px-3.5 rounded-[10px] border border-border bg-card text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
                   />

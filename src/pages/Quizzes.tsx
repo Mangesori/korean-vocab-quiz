@@ -237,7 +237,7 @@ export default function Quizzes() {
                       <div className="flex gap-1">
                         <Button
                           size="sm"
-                          className="h-8 text-xs bg-accent hover:bg-accent/90 text-accent-foreground"
+                          className="h-8 text-xs bg-accent text-accent-foreground hover:bg-primary/15 transition-colors"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();

@@ -13,6 +13,8 @@ import {
   type DragEndEvent,
   type UniqueIdentifier,
 } from "@dnd-kit/core";
+import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft } from "lucide-react";
@@ -38,6 +40,10 @@ interface WordMagnetStageProps {
   onBack?: () => void;
   backLabel?: string;
 }
+
+// 답 영역 밑줄 라인(노트 라인) 배경
+const RULED_LINES =
+  "repeating-linear-gradient(to bottom, transparent 0, transparent 51px, hsl(var(--border)) 51px, hsl(var(--border)) 52px)";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -67,10 +73,52 @@ function DraggableTile({ tile, onTap }: { tile: Tile; onTap: (t: Tile) => void }
   );
 }
 
-function DroppableArea({ id, className, children }: { id: string; className: string; children: React.ReactNode }) {
+// 답 영역 타일 — sortable. 드래그하면 같은 SortableContext 안의 다른 타일이
+// 실시간으로 비켜주고(auto-shift), 드롭 시 순서가 확정된다.
+function SortableAnswerTile({ tile, marginClass, onTap }: { tile: Tile; marginClass: string; onTap: (t: Tile) => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tile.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      onClick={() => { if (!isDragging) onTap(tile); }}
+      className={`cursor-pointer touch-none ${marginClass}`}
+    >
+      <TileBox tile={tile} />
+    </div>
+  );
+}
+
+// 단어 은행에서 사용된 타일 자리에 남는 회색 빈칸(레이아웃 고정)
+function TilePlaceholder({ content }: { content: string }) {
+  return (
+    <div className="rounded-xl px-3 py-2 text-base sm:text-lg border border-slate-200 bg-slate-100 whitespace-nowrap" aria-hidden>
+      <span className="invisible">{content}</span>
+    </div>
+  );
+}
+
+function DroppableArea({
+  id,
+  className,
+  style,
+  children,
+}: {
+  id: string;
+  className: string;
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <div ref={setNodeRef} className={`${className} ${isOver ? "ring-2 ring-primary/30" : ""}`}>
+    <div ref={setNodeRef} style={style} className={`${className} ${isOver ? "ring-2 ring-primary/30 rounded-xl" : ""}`}>
       {children}
     </div>
   );
@@ -88,7 +136,8 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answerItems, setAnswerItems] = useState<Tile[]>([]);
-  const [questionItems, setQuestionItems] = useState<Tile[]>([]);
+  // 단어 은행 표시 순서(불변). 사용된 타일은 placeholder로 남는다.
+  const [bankOrder, setBankOrder] = useState<Tile[]>([]);
   // 문제별로 배치한 답(타일 배열) 저장
   const [savedAnswers, setSavedAnswers] = useState<Record<string, Tile[]>>({});
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
@@ -101,14 +150,8 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
     if (!currentProblem) return;
     const all = tilesByProblem[currentProblem.id] || [];
     const saved = savedAnswers[currentProblem.id];
-    if (saved && saved.length > 0) {
-      const usedIds = new Set(saved.map((t) => t.id));
-      setAnswerItems(saved);
-      setQuestionItems(shuffle(all.filter((t) => !usedIds.has(t.id))));
-    } else {
-      setAnswerItems([]);
-      setQuestionItems(shuffle(all));
-    }
+    setBankOrder(shuffle(all));
+    setAnswerItems(saved && saved.length > 0 ? saved : []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, currentProblem?.id]);
 
@@ -127,17 +170,11 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
 
   const handleTap = (tile: Tile) => {
     const inAnswer = answerItems.some((t) => t.id === tile.id);
-    if (inAnswer) {
-      const newA = answerItems.filter((t) => t.id !== tile.id);
-      setAnswerItems(newA);
-      setQuestionItems((q) => [...q, tile]);
-      persistCurrent(newA);
-    } else {
-      const newA = [...answerItems, tile];
-      setQuestionItems((q) => q.filter((t) => t.id !== tile.id));
-      setAnswerItems(newA);
-      persistCurrent(newA);
-    }
+    const newA = inAnswer
+      ? answerItems.filter((t) => t.id !== tile.id)
+      : [...answerItems, tile];
+    setAnswerItems(newA);
+    persistCurrent(newA);
   };
 
   const handleDragStart = (e: DragStartEvent) => setActiveId(e.active.id);
@@ -155,9 +192,8 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
     if (!fromAnswer) {
       // 은행 → 답 영역
       if (overId === "answer-area" || overItemInAnswer) {
-        const tile = questionItems.find((t) => t.id === activeIdStr);
+        const tile = bankOrder.find((t) => t.id === activeIdStr);
         if (!tile) return;
-        const newQ = questionItems.filter((t) => t.id !== activeIdStr);
         const newA = [...answerItems];
         if (overItemInAnswer) {
           const idx = newA.findIndex((t) => t.id === overId);
@@ -165,24 +201,19 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
         } else {
           newA.push(tile);
         }
-        setQuestionItems(newQ);
         setAnswerItems(newA);
         persistCurrent(newA);
       }
     } else {
       // 답 영역에서
       if (overId === "question-area") {
-        const tile = answerItems.find((t) => t.id === activeIdStr)!;
         const newA = answerItems.filter((t) => t.id !== activeIdStr);
         setAnswerItems(newA);
-        setQuestionItems((q) => [...q, tile]);
         persistCurrent(newA);
       } else if (overItemInAnswer && activeIdStr !== overId) {
         const oldIdx = answerItems.findIndex((t) => t.id === activeIdStr);
         const newIdx = answerItems.findIndex((t) => t.id === overId);
-        const arr = [...answerItems];
-        const [m] = arr.splice(oldIdx, 1);
-        arr.splice(newIdx, 0, m);
+        const arr = arrayMove(answerItems, oldIdx, newIdx);
         setAnswerItems(arr);
         persistCurrent(arr);
       }
@@ -207,7 +238,7 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
     onComplete(answers);
   };
 
-  const activeTile = [...questionItems, ...answerItems].find((t) => t.id === activeId);
+  const activeTile = bankOrder.find((t) => t.id === activeId);
   const currentAnswered = answerItems.length > 0;
 
   if (!currentProblem) return null;
@@ -230,31 +261,36 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          {/* 답 영역 */}
-          <p className="text-xs font-semibold text-primary/70 mb-1.5">내 문장</p>
+          {/* 답 영역 — 밑줄 라인 */}
           <DroppableArea
             id="answer-area"
-            className="min-h-[72px] rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-3 flex flex-wrap items-center content-start gap-y-2"
+            className="min-h-[108px] px-1 pb-1 flex flex-wrap content-start items-end gap-y-3"
+            style={{ backgroundImage: RULED_LINES }}
           >
-            {answerItems.length === 0 && (
-              <span className="text-sm text-muted-foreground px-1">아래 단어를 탭하거나 끌어다 놓으세요</span>
-            )}
-            {answerItems.map((tile, idx) => (
-              <div key={tile.id} className={idx > 0 ? (tile.isParticle ? "ml-1" : "ml-3") : ""}>
-                <DraggableTile tile={tile} onTap={handleTap} />
-              </div>
-            ))}
+            <SortableContext items={answerItems.map((t) => t.id)} strategy={horizontalListSortingStrategy}>
+              {answerItems.map((tile, idx) => (
+                <SortableAnswerTile
+                  key={tile.id}
+                  tile={tile}
+                  marginClass={idx > 0 ? (tile.isParticle ? "ml-1" : "ml-3") : ""}
+                  onTap={handleTap}
+                />
+              ))}
+            </SortableContext>
           </DroppableArea>
 
-          {/* 단어 은행 */}
-          <p className="text-xs font-semibold text-slate-400 mt-4 mb-1.5">단어 은행</p>
+          {/* 단어 은행 — 사용한 타일은 회색 빈칸으로 */}
           <DroppableArea
             id="question-area"
-            className="min-h-[72px] rounded-2xl border-2 border-slate-200 bg-slate-50/80 p-3 flex flex-wrap items-start gap-2"
+            className="mt-10 min-h-[64px] flex flex-wrap items-start gap-2.5"
           >
-            {questionItems.map((tile) => (
-              <DraggableTile key={tile.id} tile={tile} onTap={handleTap} />
-            ))}
+            {bankOrder.map((tile) =>
+              answerItems.some((a) => a.id === tile.id) ? (
+                <TilePlaceholder key={tile.id} content={tile.content} />
+              ) : (
+                <DraggableTile key={tile.id} tile={tile} onTap={handleTap} />
+              )
+            )}
           </DroppableArea>
 
           <DragOverlay>{activeTile ? <TileBox tile={activeTile} /> : null}</DragOverlay>
@@ -298,7 +334,7 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
               disabled={!allAnswered}
               className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
             >
-              확인 <ChevronRight className="w-5 h-5 ml-2" />
+              결과 확인 <ChevronRight className="w-5 h-5 ml-2" />
             </Button>
           )}
         </div>
