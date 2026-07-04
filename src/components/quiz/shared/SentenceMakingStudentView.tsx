@@ -45,7 +45,7 @@ export function SentenceMakingStudentView({ problems }: { problems: SentenceMaki
             </Button>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center w-full">
-            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground font-medium mb-3 sm:mb-5 text-center">
+            <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold mb-3 sm:mb-5">
               이 단어를 사용하여 문장을 만드세요
             </p>
             <Badge variant="outline" className="text-lg sm:text-xl lg:text-2xl px-6 py-2 sm:py-3 font-bold bg-white shadow-sm border-slate-200 rounded-2xl text-slate-800">
@@ -59,7 +59,7 @@ export function SentenceMakingStudentView({ problems }: { problems: SentenceMaki
         <div className="px-1">
           <Textarea
             disabled
-            placeholder={`"${problem.word}"을(를) 사용하여 문장을 작성하세요...`}
+            placeholder={`"${problem.word}"을(를) 사용하여 문장을 만드세요.`}
             className="min-h-[100px] text-md rounded-xl border-slate-200 opacity-60"
           />
         </div>

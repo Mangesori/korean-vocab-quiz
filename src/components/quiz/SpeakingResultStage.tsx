@@ -8,9 +8,6 @@ interface SpeakingAttempt {
   attemptNumber: number;
   recordingUrl: string;
   overallScore: number;
-  fluencyScore: number;
-  prosodyScore: number;
-  completenessScore: number;
   isPassed: boolean;
   wordLevelFeedback?: { word: string; accuracyScore: number; errorType?: string }[];
 }

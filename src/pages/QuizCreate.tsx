@@ -272,7 +272,7 @@ export default function QuizCreate() {
                   <span className="font-bold text-sm text-foreground">짝 맞추기</span>
                 </div>
                 <div className={`text-xs ${matchupEnabled ? "text-primary" : "text-muted-foreground"}`}>
-                  {matchupEnabled ? "선택됨" : "단어 ↔ 뜻"}
+                  {matchupEnabled ? "선택됨" : "단어 매칭"}
                 </div>
               </button>
 
@@ -286,10 +286,10 @@ export default function QuizCreate() {
               >
                 <div className="flex items-center gap-2 mb-1">
                   <Keyboard className={`w-4 h-4 ${typeAnswerEnabled ? "text-primary" : "text-muted-foreground"}`} />
-                  <span className="font-bold text-sm text-foreground">뜻 보고 단어 쓰기</span>
+                  <span className="font-bold text-sm text-foreground">단어 받아쓰기</span>
                 </div>
                 <div className={`text-xs ${typeAnswerEnabled ? "text-primary" : "text-muted-foreground"}`}>
-                  {typeAnswerEnabled ? "선택됨" : "뜻 → 한국어"}
+                  {typeAnswerEnabled ? "선택됨" : "뜻 보고 단어 쓰기"}
                 </div>
               </button>
 
@@ -306,7 +306,7 @@ export default function QuizCreate() {
                   <span className="font-bold text-sm text-foreground">빈칸 채우기</span>
                 </div>
                 <div className={`text-xs ${fillBlankEnabled ? "text-primary" : "text-muted-foreground"}`}>
-                  {fillBlankEnabled ? "선택됨" : "문장 빈칸"}
+                  {fillBlankEnabled ? "선택됨" : "문장 완성하기"}
                 </div>
               </button>
 
@@ -323,7 +323,7 @@ export default function QuizCreate() {
                   <span className="font-bold text-sm text-foreground">문장 순서 맞추기</span>
                 </div>
                 <div className={`text-xs ${wordMagnetEnabled ? "text-primary" : "text-muted-foreground"}`}>
-                  {wordMagnetEnabled ? "선택됨" : "문장 조립"}
+                  {wordMagnetEnabled ? "선택됨" : "순서대로 단어 배치"}
                 </div>
               </button>
 
@@ -340,7 +340,7 @@ export default function QuizCreate() {
                   <span className="font-bold text-sm text-foreground">문장 만들기</span>
                 </div>
                 <div className={`text-xs ${sentenceMakingEnabled ? "text-primary" : "text-muted-foreground"}`}>
-                  {sentenceMakingEnabled ? "선택됨" : "AI 채점"}
+                  {sentenceMakingEnabled ? "선택됨" : "단어 보고 문장 쓰기"}
                 </div>
               </button>
 
@@ -357,7 +357,7 @@ export default function QuizCreate() {
                   <span className="font-bold text-sm text-foreground">말하기 연습</span>
                 </div>
                 <div className={`text-xs ${recordingEnabled ? "text-primary" : "text-muted-foreground"}`}>
-                  {recordingEnabled ? "선택됨" : "발음 평가"}
+                  {recordingEnabled ? "선택됨" : "읽거나 듣고 따라 말하기"}
                 </div>
               </button>
             </div>

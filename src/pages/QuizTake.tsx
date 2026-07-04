@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef, Fragment } from "react";
 import { SentenceMakingStage } from "@/components/quiz/SentenceMakingStage";
 import { SpeakingStage } from "@/components/quiz/SpeakingStage";
 import { FillBlankStage } from "@/components/quiz/FillBlankStage";
@@ -59,6 +59,7 @@ interface Quiz {
 interface SentenceMakingProblemData {
   id: string;
   word: string;
+  word_meaning?: string | null;
 }
 
 interface RecordingProblemData {
@@ -77,7 +78,21 @@ interface UserAnswer {
   isCorrect: boolean;
 }
 
-
+// recording_answers insert 실패는 quiz_results.recording_score(집계 점수)와
+// 무관하게 계속 진행되므로, 실패한 채 넘어가면 점수는 저장되고 상세 기록만
+// 유실된다. 일시적 네트워크 문제로 인한 실패를 흡수하기 위해 재시도한다.
+async function insertRecordingAnswersWithRetry(
+  recAnswers: Record<string, unknown>[],
+  retries = 3
+): Promise<boolean> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const { error } = await (supabase as any).from("recording_answers").insert(recAnswers);
+    if (!error) return true;
+    console.error(`Failed to save recording answers (attempt ${attempt}/${retries}):`, error);
+    if (attempt < retries) await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+  }
+  return false;
+}
 
 export default function QuizTake() {
   const { id } = useParams<{ id: string }>();
@@ -115,6 +130,9 @@ export default function QuizTake() {
   const [savedMatchupScore, setSavedMatchupScore] = useState<{ score: number; total: number } | null>(null);
   const [savedTypeAnswerScore, setSavedTypeAnswerScore] = useState<{ score: number; total: number } | null>(null);
   const [savedWordMagnetScore, setSavedWordMagnetScore] = useState<{ score: number; total: number } | null>(null);
+  // '모르겠어요'로 건너뛴 문제 id — 여러 저장 경로(공유 링크/일반 제출)에서 함께 참조한다.
+  const [typeAnswerSkippedIds, setTypeAnswerSkippedIds] = useState<Set<string>>(new Set());
+  const [wordMagnetSkippedIds, setWordMagnetSkippedIds] = useState<Set<string>>(new Set());
   const [isRedo, setIsRedo] = useState(false);
   
   const [stageProgress, setStageProgress] = useState({ current: 0, total: 0, label: "" });
@@ -142,6 +160,45 @@ export default function QuizTake() {
     () => enabledBases.map((id) => ({ id, label: STAGE_LABELS[id] })),
     [enabledBases]
   );
+
+  // 스테이지별 완료 여부 — 현재 세션에서 막 채점한 결과뿐 아니라, 이전 세션에서
+  // 이미 제출해 DB에서 복원된 savedXScore도 함께 봐야 한다. 스테퍼 클릭 가능 여부와
+  // 제출 전 완료 강제 검사가 모두 이 값을 기준으로 삼아 재제출(유니크 제약 충돌)을 막는다.
+  const doneMap = useMemo<Record<BaseStage, boolean>>(
+    () => ({
+      fill_blank: fillBlankAnswers.length > 0 || !!savedFillBlankScore,
+      matchup: Object.keys(matchupResults).length > 0 || !!savedMatchupScore,
+      type_answer: typeAnswerResults.length > 0 || !!savedTypeAnswerScore,
+      word_magnet: wordMagnetResults.length > 0 || !!savedWordMagnetScore,
+      sentence_making: Object.keys(sentenceMakingResults).length > 0 || !!savedSentenceMakingScore,
+      recording: !!stageResults.recording,
+    }),
+    [
+      fillBlankAnswers,
+      savedFillBlankScore,
+      matchupResults,
+      savedMatchupScore,
+      typeAnswerResults,
+      savedTypeAnswerScore,
+      wordMagnetResults,
+      savedWordMagnetScore,
+      sentenceMakingResults,
+      savedSentenceMakingScore,
+      stageResults,
+    ]
+  );
+
+  // 완료 강제 배너용 — 유형별 총 문제 수(진행률 표시)
+  const stageTotal = (base: BaseStage): number => {
+    switch (base) {
+      case "fill_blank": return quiz?.problems.length ?? 0;
+      case "matchup": return matchupProblems.length;
+      case "type_answer": return typeAnswerProblems.length;
+      case "word_magnet": return wordMagnetProblems.length;
+      case "sentence_making": return sentenceMakingProblems.length;
+      case "recording": return recordingProblems.length;
+    }
+  };
 
   const getCurrentGlobalStageIndex = () => {
     if (currentStage.includes("recording")) return globalStages.findIndex(s => s.id === "recording");
@@ -392,7 +449,7 @@ export default function QuizTake() {
       if (quizData.sentence_making_enabled) {
         const { data: smProblems } = await supabase
           .from("sentence_making_problems")
-          .select("id, word")
+          .select("id, word, word_meaning")
           .eq("quiz_id", id);
 
         if (smProblems && smProblems.length > 0) {
@@ -500,7 +557,16 @@ export default function QuizTake() {
 
   const handleSubmit = useCallback(async () => {
     if (!quiz || isSubmitting) return;
-    
+
+    // 아직 안 푼 유형이 있으면 제출을 막고 그 유형으로 돌려보낸다 — "마저 풀러 가기"만 가능,
+    // 제출 강행 옵션은 두지 않는다(스킵으로 방치되는 유형이 생기지 않도록).
+    const firstUnfinished = enabledBases.find((base) => !doneMap[base]);
+    if (firstUnfinished) {
+      toast.error(`아직 안 푼 퀴즈가 있어요 — ${STAGE_LABELS[firstUnfinished]}(0/${stageTotal(firstUnfinished)})`);
+      setCurrentStage(firstUnfinished as QuizStage);
+      return;
+    }
+
     // Shared Link users (Anonymous OR Logged-in): direct submission
     if (shareToken) {
       setIsSubmitting(true);
@@ -553,6 +619,9 @@ export default function QuizTake() {
           score: correctCount,
           total: quiz.problems.length,
           answers: detailedAnswers,
+          matchupResults: quiz.matchup_enabled ? matchupResults : undefined,
+          typeAnswerResults: quiz.type_answer_enabled ? typeAnswerResults : undefined,
+          wordMagnetResults: quiz.word_magnet_enabled ? wordMagnetResults : undefined,
           sentenceMakingResults: quiz.sentence_making_enabled ? sentenceMakingResults : undefined,
           speakingResults: quiz.recording_enabled ? stageResults.recording : undefined,
         };
@@ -657,6 +726,7 @@ export default function QuizTake() {
               attempt_number: 1,
               student_sentence: r.userSentence,
               is_correct: r.isCorrect,
+              is_skipped: wordMagnetSkippedIds.has(r.problemId),
             }));
             const { error: wmError } = await (supabase as any).from("word_magnet_answers").insert(wmAnswers);
             if (wmError) console.error("Failed to save word magnet answers:", wmError);
@@ -672,6 +742,7 @@ export default function QuizTake() {
               attempt_number: 1,
               student_answer: r.userAnswer,
               is_correct: r.isCorrect,
+              is_skipped: typeAnswerSkippedIds.has(r.problemId),
             }));
             const { error: taError } = await (supabase as any).from("type_answer_answers").insert(taAnswers);
             if (taError) console.error("Failed to save type answer answers:", taError);
@@ -696,6 +767,7 @@ export default function QuizTake() {
                   ai_feedback: attempt.feedback,
                   model_answer: attempt.modelAnswer,
                   is_passed: attempt.isPassed,
+                  is_skipped: !!attempt.skipped,
                 });
               }
             }
@@ -715,19 +787,17 @@ export default function QuizTake() {
                   student_id: user ? user.id : null,
                   attempt_number: attempt.attemptNumber,
                   recording_url: attempt.recordingUrl,
-                  pronunciation_score: attempt.pronunciationScore,
                   accuracy_score: attempt.accuracyScore,
-                  fluency_score: attempt.fluencyScore,
-                  completeness_score: attempt.completenessScore,
-                  prosody_score: attempt.prosodyScore,
                   overall_score: attempt.overallScore,
                   word_level_feedback: attempt.wordLevelFeedback,
                   is_passed: attempt.isPassed,
                 });
               }
             }
-            const { error: recError } = await (supabase as any).from("recording_answers").insert(recAnswers);
-            if (recError) console.error("Failed to save recording answers:", recError);
+            const saved = await insertRecordingAnswersWithRetry(recAnswers);
+            if (!saved) {
+              toast.error("녹음 결과 저장에 실패했습니다. 선생님에게 문의해주세요.", { duration: 8000 });
+            }
           }
 
           // Increment completion count for the share link
@@ -843,6 +913,7 @@ export default function QuizTake() {
               ai_feedback: attempt.feedback,
               model_answer: attempt.modelAnswer,
               is_passed: attempt.isPassed,
+              is_skipped: !!attempt.skipped,
             });
           }
         }
@@ -872,19 +943,17 @@ export default function QuizTake() {
               student_id: user!.id,
               attempt_number: attempt.attemptNumber,
               recording_url: attempt.recordingUrl,
-              pronunciation_score: attempt.pronunciationScore,
               accuracy_score: attempt.accuracyScore,
-              fluency_score: attempt.fluencyScore,
-              completeness_score: attempt.completenessScore,
-              prosody_score: attempt.prosodyScore,
               overall_score: attempt.overallScore,
               word_level_feedback: attempt.wordLevelFeedback,
               is_passed: attempt.isPassed,
             });
           }
         }
-        const { error: recError } = await (supabase as any).from("recording_answers").insert(recAnswers);
-        if (recError) console.error("Failed to save recording answers:", recError);
+        const saved = await insertRecordingAnswersWithRetry(recAnswers);
+        if (!saved) {
+          toast.error("녹음 결과 저장에 실패했습니다. 선생님에게 문의해주세요.", { duration: 8000 });
+        }
       }
 
       if (quiz.recording_enabled && stageResults.recording) {
@@ -918,7 +987,7 @@ export default function QuizTake() {
       toast.error("제출에 실패했습니다");
       setIsSubmitting(false);
     }
-  }, [quiz, user, userAnswers, navigate, isSubmitting, isAnonymous, shareToken, anonymousName, sentenceMakingResults, stageResults, sentenceMakingProblems, recordingProblems, quizResultId, savedFillBlankScore]);
+  }, [quiz, user, userAnswers, navigate, isSubmitting, isAnonymous, shareToken, anonymousName, sentenceMakingResults, stageResults, sentenceMakingProblems, recordingProblems, quizResultId, savedFillBlankScore, matchupProblems, matchupResults, typeAnswerResults, wordMagnetResults, typeAnswerSkippedIds, wordMagnetSkippedIds, enabledBases, doneMap, typeAnswerProblems, wordMagnetProblems]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -1122,7 +1191,8 @@ export default function QuizTake() {
   };
 
   // 답 입력 완료 핸들러 → 서버 채점 후 결과 페이지로
-  const handleTypeAnswerComplete = async (answers: Record<string, string>) => {
+  const handleTypeAnswerComplete = async (answers: Record<string, string>, skippedIds: string[] = []) => {
+    const skippedSet = new Set(skippedIds);
     // 서버 채점 (정답 노출 방지)
     let graded: TypeAnswerGradeResult[] = [];
     try {
@@ -1137,6 +1207,7 @@ export default function QuizTake() {
         correctAnswer: r.correctAnswer,
         userAnswer: r.userAnswer,
         isCorrect: r.isCorrect,
+        skipped: skippedSet.has(r.problemId),
       }));
     } catch (err) {
       console.error("Type answer grading error:", err);
@@ -1145,7 +1216,7 @@ export default function QuizTake() {
     }
 
     setTypeAnswerResults(graded);
-
+    setTypeAnswerSkippedIds(skippedSet);
     const taTotal = graded.length;
     const taScore = graded.filter((r) => r.isCorrect).length;
     setSavedTypeAnswerScore({ score: taScore, total: taTotal });
@@ -1160,6 +1231,7 @@ export default function QuizTake() {
         attempt_number: 1,
         student_answer: r.userAnswer,
         is_correct: r.isCorrect,
+        is_skipped: skippedSet.has(r.problemId),
       }));
       const { error: taError } = await (supabase as any).from("type_answer_answers").insert(taAnswers);
       if (taError) console.error("Failed to save type answer answers:", taError);
@@ -1173,8 +1245,8 @@ export default function QuizTake() {
       const fbScore = savedFillBlankScore?.score ?? 0;
       const fbTotal = savedFillBlankScore?.total ?? 0;
       await updateProgressNotification(
-        "뜻 보고 단어 쓰기",
-        `${quiz!.title} — 빈칸 채우기: ${fbScore}/${fbTotal}, 뜻 보고 단어 쓰기: ${taScore}/${taTotal}`
+        "단어 받아쓰기",
+        `${quiz!.title} — 빈칸 채우기: ${fbScore}/${fbTotal}, 단어 받아쓰기: ${taScore}/${taTotal}`
       );
     }
 
@@ -1192,7 +1264,8 @@ export default function QuizTake() {
   };
 
   // 워드 마그넷 완료 핸들러 → 서버 채점 후 결과 페이지로
-  const handleWordMagnetComplete = async (answers: Record<string, string>) => {
+  const handleWordMagnetComplete = async (answers: Record<string, string>, skippedIds: string[] = []) => {
+    const skippedSet = new Set(skippedIds);
     let graded: WordMagnetGradeResult[] = [];
     try {
       const { data, error } = await (supabase as any).rpc("grade_word_magnets", {
@@ -1206,6 +1279,7 @@ export default function QuizTake() {
         correctSentence: r.correctSentence,
         userSentence: r.userSentence,
         isCorrect: r.isCorrect,
+        skipped: skippedSet.has(r.problemId),
       }));
     } catch (err) {
       console.error("Word magnet grading error:", err);
@@ -1214,7 +1288,7 @@ export default function QuizTake() {
     }
 
     setWordMagnetResults(graded);
-
+    setWordMagnetSkippedIds(skippedSet);
     const wmTotal = graded.length;
     const wmScore = graded.filter((r) => r.isCorrect).length;
     setSavedWordMagnetScore({ score: wmScore, total: wmTotal });
@@ -1229,6 +1303,7 @@ export default function QuizTake() {
         attempt_number: 1,
         student_sentence: r.userSentence,
         is_correct: r.isCorrect,
+        is_skipped: skippedSet.has(r.problemId),
       }));
       const { error: wmError } = await (supabase as any).from("word_magnet_answers").insert(wmAnswers);
       if (wmError) console.error("Failed to save word magnet answers:", wmError);
@@ -1284,6 +1359,7 @@ export default function QuizTake() {
             ai_feedback: attempt.feedback,
             model_answer: attempt.modelAnswer,
             is_passed: attempt.isPassed,
+            is_skipped: !!attempt.skipped,
           });
         }
       }
@@ -1340,11 +1416,7 @@ export default function QuizTake() {
             student_id: user.id,
             attempt_number: attempt.attemptNumber,
             recording_url: attempt.recordingUrl,
-            pronunciation_score: attempt.pronunciationScore,
             accuracy_score: attempt.accuracyScore,
-            fluency_score: attempt.fluencyScore,
-            completeness_score: attempt.completenessScore,
-            prosody_score: attempt.prosodyScore,
             overall_score: attempt.overallScore,
             word_level_feedback: attempt.wordLevelFeedback,
             is_passed: attempt.isPassed,
@@ -1352,8 +1424,10 @@ export default function QuizTake() {
         }
       }
       if (recAnswers.length > 0) {
-        const { error: recError } = await (supabase as any).from("recording_answers").insert(recAnswers);
-        if (recError) console.error("Failed to save recording answers:", recError);
+        const saved = await insertRecordingAnswersWithRetry(recAnswers);
+        if (!saved) {
+          toast.error("녹음 결과 저장에 실패했습니다. 선생님에게 문의해주세요.", { duration: 8000 });
+        }
       }
       const recTotal = recordingProblems.length;
       const recScore = recordingProblems.filter((p: any) =>
@@ -1478,7 +1552,7 @@ export default function QuizTake() {
       return (
         <div className="container mx-auto px-4 py-8">
           <div className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-foreground">뜻 보고 단어 쓰기 결과</h2>
+            <h2 className="text-2xl font-bold text-foreground">단어 받아쓰기 결과</h2>
           </div>
           <TypeAnswerResultStage
             results={typeAnswerResults}
@@ -1616,7 +1690,7 @@ export default function QuizTake() {
 
     // 기본: 빈칸 채우기 (fill_blank)
     return (
-      <div className="container w-full max-w-5xl mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8">
         <FillBlankStage
           problems={quiz.problems as any}
           wordsPerSet={wordsPerSet}
@@ -1652,14 +1726,21 @@ export default function QuizTake() {
               {/* 중앙: Global Stepper UI (모바일에선 숨김) */}
               {globalStages.length > 1 && (
                 <div className="hidden sm:flex flex-1 justify-center items-center gap-1 lg:gap-2">
-                  {globalStages.map((stage, idx) => (
-                    <div key={stage.id} className="flex items-center">
-                      <div className={`flex items-center gap-1.5 px-2 py-1 text-xs sm:text-sm font-semibold rounded-full transition-all ${
+                  {globalStages.map((stage, idx) => {
+                    // 완료되지 않은 다른 스테이지로는 자유롭게 이동 가능 — 어려운 유형을 건너뛰고
+                    // 나중에 이어서 풀 수 있게 하기 위함. 이미 완료된 스테이지는 재제출 시
+                    // DB unique 제약(attempt_number) 충돌이 나므로 클릭 대상에서 제외.
+                    const clickable = idx !== currentGlobalIndex && !doneMap[stage.id];
+                    return (
+                    <Fragment key={stage.id}>
+                      <div
+                        onClick={clickable ? () => setCurrentStage(stage.id as QuizStage) : undefined}
+                        className={`flex items-center gap-1.5 px-2 py-1 text-xs sm:text-sm font-semibold rounded-full transition-all ${clickable ? "cursor-pointer hover:bg-primary/10" : ""} ${
                         idx === currentGlobalIndex
                           ? "bg-primary text-primary-foreground shadow-md"
                           : idx < currentGlobalIndex
                           ? "bg-primary/20 text-primary"
-                          : "text-muted-foreground bg-card border border-border"
+                          : "text-muted-foreground bg-card ring-1 ring-inset ring-border"
                       }`}>
                         {/* 활성화된 뱃지의 숫자 배경을 눈에 잘 띄게 흰색으로 적용 */}
                         <span className={`flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full text-[10px] sm:text-xs shadow-sm font-bold ${
@@ -1674,10 +1755,11 @@ export default function QuizTake() {
                         <span className="hidden md:inline-block px-1">{stage.label}</span>
                       </div>
                       {idx < globalStages.length - 1 && (
-                        <div className="w-2 sm:w-6 lg:w-8 h-px bg-border mx-1" />
+                        <div className="w-2 sm:w-6 lg:w-8 h-px bg-border" />
                       )}
-                    </div>
-                  ))}
+                    </Fragment>
+                    );
+                  })}
                 </div>
               )}
 

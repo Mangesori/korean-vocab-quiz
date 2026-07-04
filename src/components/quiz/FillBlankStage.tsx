@@ -192,8 +192,11 @@ export function FillBlankStage({
       {/* Main Card */}
       <Card className="border shadow-sm rounded-2xl overflow-hidden mb-8 bg-white max-w-5xl mx-auto mt-4">
         <CardContent className="p-0">
+          <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold bg-[#F1ECE4] px-6 pt-5 pb-3">
+            빈칸에 알맞은 단어를 입력하세요
+          </p>
           {/* Word Bank */}
-          <div className="bg-[#F1ECE4] border-b border-[#D3CCC4] px-6 py-5 flex flex-col items-center">
+          <div className="bg-[#F1ECE4] border-b border-[#D3CCC4] px-6 pb-5 flex flex-col items-center">
             <p className="text-sm font-bold text-muted-foreground mb-4">보기</p>
             <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
               {shuffledWordBank.map((word, idx) => {
@@ -242,7 +245,7 @@ export function FillBlankStage({
                         <Input
                           value={userAnswers[problem.id] || ""}
                           onChange={(e) => onAnswerChange(problem.id, e.target.value)}
-                          className="h-11 w-full text-center text-sm rounded-xl border-border bg-muted/30"
+                          className="h-11 w-full text-center text-sm rounded-xl border-border bg-slate-50"
                           placeholder="정답 입력"
                           autoComplete="off"
                         />
@@ -302,7 +305,7 @@ export function FillBlankStage({
                           <Input
                             value={userAnswers[problem.id] || ""}
                             onChange={(e) => onAnswerChange(problem.id, e.target.value)}
-                            className="w-48 h-10 mx-1 text-center text-base inline-block rounded-xl border-border bg-muted/30"
+                            className="w-48 h-10 mx-1 text-center text-base inline-block rounded-xl border-border bg-slate-50"
                             placeholder="정답 입력"
                             autoComplete="off"
                           />

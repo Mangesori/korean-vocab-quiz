@@ -9,10 +9,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { UserCircle, CheckCircle, XCircle, Volume2, Lightbulb, Loader2, TextCursorInput, PenLine, Mic, Pencil } from "lucide-react";
+import { UserCircle, CheckCircle, XCircle, HelpCircle, Volume2, Lightbulb, Loader2, TextCursorInput, PenLine, Mic, Pencil, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QuizReviewCard } from "@/components/quiz/QuizReviewCard";
 import { useQuizResultDetail } from "@/hooks/useQuizResultDetail";
@@ -44,22 +45,50 @@ interface QuizResultDialogProps {
   studentName: string;
   isAnonymous?: boolean;
   quizId: string;
+  // 점수 수정/재채점 후 부모 목록에 실시간 구독이 없는 경우(예: StudentHistoryDialog)
+  // 최신 데이터를 다시 불러오도록 알려주는 콜백. 실시간 구독이 있는 목록(QuizResultsList)은
+  // 넘기지 않아도 무방하다.
+  onDataChanged?: () => void;
 }
 
+
+// 채점 실패 시 남는 표식 문구 — SentenceMakingStage.tsx / grade-sentence 에서 동일 문구 사용
+const GRADING_FAILURE_MARKER = "채점에 실패했습니다";
+const isFailedAttempt = (a: SentenceMakingAnswerDetail) =>
+  !!a.ai_feedback?.includes(GRADING_FAILURE_MARKER);
+
+interface BatchGradeResult {
+  problemId: string;
+  wordUsageScore: number;
+  grammarScore: number;
+  naturalnessScore: number;
+  totalScore: number;
+  feedback: string;
+  modelAnswer: string;
+  isPassed: boolean;
+}
 
 function SentenceMakingView({
   problems,
   answers,
   resultId,
+  difficulty,
+  translationLanguage,
+  onDataChanged,
 }: {
   problems: SentenceMakingProblemDetail[];
   answers: SentenceMakingAnswerDetail[];
   resultId: string;
+  difficulty: string;
+  translationLanguage: string;
+  onDataChanged?: () => void;
 }) {
   const [localAnswers, setLocalAnswers] = useState<SentenceMakingAnswerDetail[]>(answers);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<{ model_answer: string; ai_feedback: string }>({ model_answer: "", ai_feedback: "" });
   const [isSaving, setIsSaving] = useState(false);
+  const [isRegrading, setIsRegrading] = useState(false);
+  const [regradeProgress, setRegradeProgress] = useState({ current: 0, total: 0 });
 
   const startCardEdit = (id: string, modelAnswer: string | null, aiFeedback: string, studentSentence: string) => {
     setEditingCardId(id);
@@ -133,7 +162,101 @@ function SentenceMakingView({
           _score: passedCount,
           _total: problems.length,
         });
+        onDataChanged?.();
       }
+    }
+  };
+
+  // 채점 실패("채점에 실패했습니다" 표식이 남은 attempt)를 일괄 재채점
+  const handleRegradeFailed = async () => {
+    const latestByProblem: Record<string, SentenceMakingAnswerDetail> = {};
+    for (const a of localAnswers) {
+      const existing = latestByProblem[a.problem_id];
+      if (!existing || a.attempt_number > existing.attempt_number) {
+        latestByProblem[a.problem_id] = a;
+      }
+    }
+    const wordByProblemId: Record<string, string> = {};
+    for (const p of problems) wordByProblemId[p.id] = p.word;
+
+    const targets = Object.values(latestByProblem).filter(isFailedAttempt);
+    if (targets.length === 0) return;
+
+    setIsRegrading(true);
+    setRegradeProgress({ current: 0, total: targets.length });
+
+    let updatedAnswers = localAnswers;
+    const BATCH_SIZE = 5;
+    let completed = 0;
+    let hadError = false;
+
+    for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+      const chunk = targets.slice(i, i + BATCH_SIZE);
+      const { data, error } = await supabase.functions.invoke("grade-sentence", {
+        body: {
+          problems: chunk.map((a) => ({
+            word: wordByProblemId[a.problem_id] || "",
+            studentSentence: a.student_sentence,
+            problemId: a.id,
+          })),
+          difficulty,
+          translationLanguage,
+        },
+      });
+
+      if (error || data?.error || !data?.results) {
+        console.error("Regrade batch failed:", error || data?.error);
+        hadError = true;
+      } else {
+        for (const r of data.results as BatchGradeResult[]) {
+          const attempt = chunk.find((a) => a.id === r.problemId);
+          if (!attempt) continue;
+          const payload = {
+            word_usage_score: r.wordUsageScore,
+            grammar_score: r.grammarScore,
+            naturalness_score: r.naturalnessScore,
+            total_score: r.totalScore,
+            ai_feedback: r.feedback,
+            model_answer: r.modelAnswer,
+            is_passed: r.isPassed,
+          };
+          const { error: updateError } = await supabase
+            .from("sentence_making_answers")
+            .update(payload)
+            .eq("id", attempt.id);
+          if (updateError) {
+            console.error("Failed to persist regrade result:", updateError);
+            hadError = true;
+            continue;
+          }
+          updatedAnswers = updatedAnswers.map((a) => (a.id === attempt.id ? { ...a, ...payload } : a));
+        }
+      }
+
+      completed += chunk.length;
+      setRegradeProgress({ current: Math.min(completed, targets.length), total: targets.length });
+      setLocalAnswers(updatedAnswers);
+    }
+
+    // 집계 점수 재계산: problem별 최고 attempt의 is_passed 카운트
+    const bestByProblem: Record<string, SentenceMakingAnswerDetail> = {};
+    for (const a of updatedAnswers) {
+      const ex = bestByProblem[a.problem_id];
+      if (!ex || a.attempt_number > ex.attempt_number) bestByProblem[a.problem_id] = a;
+    }
+    const passedCount = Object.values(bestByProblem).filter((a) => a.is_passed).length;
+    await supabase.rpc("update_quiz_result_sentence_score" as any, {
+      _result_id: resultId,
+      _score: passedCount,
+      _total: problems.length,
+    });
+    onDataChanged?.();
+
+    setIsRegrading(false);
+    if (hadError) {
+      toast.error("일부 문제 재채점에 실패했습니다. 다시 시도해주세요.");
+    } else {
+      toast.success("재채점이 완료되었습니다.");
     }
   };
 
@@ -163,11 +286,34 @@ function SentenceMakingView({
     );
   }
 
+  const failedCount = Object.values(answersByProblem).filter(isFailedAttempt).length;
+
   return (
     <div className="space-y-4">
+      {failedCount > 0 && (
+        <div className="flex items-center justify-between p-4 bg-warning/10 border border-warning/30 rounded-xl">
+          <p className="text-sm text-slate-700">
+            채점에 실패한 문제 {failedCount}건이 있습니다.
+          </p>
+          <Button size="sm" onClick={handleRegradeFailed} disabled={isRegrading}>
+            {isRegrading ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                재채점 중... ({regradeProgress.current}/{regradeProgress.total})
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                실패한 문제 재채점
+              </>
+            )}
+          </Button>
+        </div>
+      )}
       {problems.map((problem, idx) => {
         const attempt = answersByProblem[problem.id];
         if (!attempt) return null;
+        const isSkipped = !!attempt.is_skipped;
         const isPerfect = attempt.total_score === 100;
         const isGood = isPerfect || attempt.is_passed;
         const hasCorrections = !!attempt.model_answer &&
@@ -178,7 +324,7 @@ function SentenceMakingView({
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <span className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${isGood ? "bg-success" : "bg-primary"}`}>
+                  <span className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${isSkipped ? "bg-muted-foreground" : isGood ? "bg-success" : "bg-primary"}`}>
                     {idx + 1}
                   </span>
                   <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-slate-50 border-slate-200 text-slate-700">
@@ -186,11 +332,20 @@ function SentenceMakingView({
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-slate-500">{attempt.total_score}점</span>
-                  {attempt.is_passed ? (
-                    <CheckCircle className="w-5 h-5 text-success" />
+                  {isSkipped ? (
+                    <>
+                      <span className="text-sm font-semibold text-muted-foreground">모름</span>
+                      <HelpCircle className="w-5 h-5 text-muted-foreground" />
+                    </>
                   ) : (
-                    <XCircle className="w-5 h-5 text-warning" />
+                    <>
+                      <span className="text-sm font-semibold text-slate-500">{attempt.total_score}점</span>
+                      {attempt.is_passed ? (
+                        <CheckCircle className="w-5 h-5 text-success" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-warning" />
+                      )}
+                    </>
                   )}
                   {editingCardId !== attempt.id && (
                     <Button
@@ -245,6 +400,23 @@ function SentenceMakingView({
                     </Button>
                   </div>
                 </div>
+              ) : isSkipped ? (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-muted text-muted-foreground">
+                      모름
+                    </span>
+                    <h3 className="text-lg font-bold leading-relaxed text-muted-foreground">문제를 건너뛰었어요</h3>
+                  </div>
+                  {attempt.model_answer && (
+                    <div className="flex items-start gap-3">
+                      <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-primary/10 text-primary">
+                        추천 문장
+                      </span>
+                      <h3 className="text-lg leading-relaxed">{attempt.model_answer}</h3>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <>
                   <div className="mb-6 space-y-3">
@@ -289,9 +461,13 @@ function SentenceMakingView({
 function RecordingView({
   problems,
   answers,
+  recordingScore,
+  recordingTotal,
 }: {
   problems: RecordingProblemDetail[];
   answers: RecordingAnswerDetail[];
+  recordingScore?: number | null;
+  recordingTotal?: number | null;
 }) {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [showTrans, setShowTrans] = useState<Record<string, boolean>>({});
@@ -316,21 +492,34 @@ function RecordingView({
     audio.play();
   };
 
+  // 점수(recording_score)는 저장돼 있는데 상세 기록(recording_answers)이 없는 경우 —
+  // 학생은 실제로 완료했지만 저장 단계에서 오류가 나서 상세 데이터만 유실된 상태.
+  // "완료하지 않았습니다"라고 하면 사실과 다르므로 문구를 구분한다.
+  const scoreExistsButDetailMissing =
+    recordingScore !== null && recordingScore !== undefined &&
+    recordingTotal !== null && recordingTotal !== undefined &&
+    recordingTotal > 0;
+
+  const notCompletedMessage = scoreExistsButDetailMissing ? (
+    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2 text-center">
+      <p className="text-sm font-medium text-slate-700">
+        점수({recordingScore}/{recordingTotal})는 저장되어 있지만, 문제별 상세 녹음 기록을 불러올 수 없습니다.
+      </p>
+      <p className="text-xs">저장 중 오류가 발생해 상세 기록이 유실되었을 수 있습니다. 학생에게 말하기 연습 재응시를 요청해주세요.</p>
+    </div>
+  ) : (
+    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+      <p className="text-sm">이 학생은 말하기 연습을 완료하지 않았습니다.</p>
+    </div>
+  );
+
   if (problems.length === 0 || answers.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-        <p className="text-sm">이 학생은 말하기 연습을 완료하지 않았습니다.</p>
-      </div>
-    );
+    return notCompletedMessage;
   }
 
   const hasAnyBest = problems.some((p) => bestByProblem[p.id]);
   if (!hasAnyBest) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-        <p className="text-sm">이 학생은 말하기 연습을 완료하지 않았습니다.</p>
-      </div>
-    );
+    return notCompletedMessage;
   }
 
   return (
@@ -434,6 +623,7 @@ export function QuizResultDialog({
   studentName,
   isAnonymous = false,
   quizId,
+  onDataChanged,
 }: QuizResultDialogProps) {
   const { detail, isLoading: detailLoading } = useQuizResultDetail(
     isOpen && result ? result.id : null,
@@ -581,6 +771,9 @@ export function QuizResultDialog({
                     problems={detail.sentenceMakingProblems}
                     answers={detail.sentenceMakingAnswers}
                     resultId={result.id}
+                    difficulty={detail.difficulty}
+                    translationLanguage={detail.translationLanguage}
+                    onDataChanged={onDataChanged}
                   />
                 </TabsContent>
               )}
@@ -589,6 +782,8 @@ export function QuizResultDialog({
                   <RecordingView
                     problems={detail.recordingProblems}
                     answers={detail.recordingAnswers}
+                    recordingScore={result.recording_score}
+                    recordingTotal={result.recording_total}
                   />
                 </TabsContent>
               )}
@@ -600,12 +795,18 @@ export function QuizResultDialog({
                 <SentenceMakingView
                   problems={detail.sentenceMakingProblems}
                   answers={detail.sentenceMakingAnswers}
+                  resultId={result.id}
+                  difficulty={detail.difficulty}
+                  translationLanguage={detail.translationLanguage}
+                  onDataChanged={onDataChanged}
                 />
               )}
               {hasRecording && detail && (
                 <RecordingView
                   problems={detail.recordingProblems}
                   answers={detail.recordingAnswers}
+                  recordingScore={result.recording_score}
+                  recordingTotal={result.recording_total}
                 />
               )}
             </div>

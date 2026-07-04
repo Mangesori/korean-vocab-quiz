@@ -1,15 +1,23 @@
-import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useState, useEffect, useCallback, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Edit2, Save, Loader2, Trash2, Volume2, Eye, EyeOff, Plus, RefreshCw } from "lucide-react";
+import { Edit2, Save, Loader2, Eye, Plus, RefreshCw, Info } from "lucide-react";
 import { useParams } from "react-router-dom";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RecordingStudentView } from "@/components/quiz/shared/RecordingStudentView";
+import { RecordingEditCard } from "@/components/quiz/shared/RecordingEditCard";
 
 export interface RecordingProblem {
   id: string;
@@ -21,6 +29,23 @@ export interface RecordingProblem {
   translation: string | null;
   source_type: string;
   created_at: string;
+  sort_order: number;
+  label?: string | null;
+}
+
+// 드래그로 순서를 바꿀 수 있는 카드 래퍼 — 편집 모드에서만 사용.
+function SortableRecordingCard({ id, children }: { id: string; children: (dragHandleProps: { attributes: any; listeners: any }) => ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ attributes, listeners })}
+    </div>
+  );
 }
 
 interface RecordingProblemListProps {
@@ -34,6 +59,8 @@ interface RecordingProblemListProps {
   registerSaver: (fn: (() => Promise<void>) | null) => void;
   /** problem_id → 출처 단어(빈칸 문제). 헤더 읽기전용 라벨용. */
   sourceWords?: Record<string, string>;
+  /** "전체 문장 재생성"용 — 빈칸 채우기 원본 문제(problem_id가 이 id와 같은 문제만 대상). */
+  fillBlankProblems?: { id: string; sentence: string; answer: string; translation: string }[];
 }
 
 export function RecordingProblemList({
@@ -46,11 +73,13 @@ export function RecordingProblemList({
   onSaveAll,
   registerSaver,
   sourceWords,
+  fillBlankProblems,
 }: RecordingProblemListProps) {
   const [editedProblems, setEditedProblems] = useState<RecordingProblem[]>(problems);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [isRegeneratingAllAudio, setIsRegeneratingAllAudio] = useState(false);
   const [audioUrlMap, setAudioUrlMap] = useState<Record<string, string>>({});
   const { id: quizId } = useParams<{ id: string }>();
 
@@ -102,20 +131,40 @@ export function RecordingProblemList({
 
   const handleAddProblem = () => {
     const newId = `temp-${crypto.randomUUID()}`;
-    const newProblem: RecordingProblem = {
-      id: newId,
-      quiz_id: quizId || '',
-      problem_id: `rec-${crypto.randomUUID().slice(0, 8)}`,
-      sentence: '',
-      mode: 'read',
-      sentence_audio_url: null,
-      translation: '',
-      source_type: 'teacher_input',
-      created_at: new Date().toISOString()
-    };
-    setEditedProblems(prev => [...prev, newProblem]);
+    setEditedProblems(prev => {
+      const newProblem: RecordingProblem = {
+        id: newId,
+        quiz_id: quizId || '',
+        problem_id: `rec-${crypto.randomUUID().slice(0, 8)}`,
+        sentence: '',
+        mode: 'read',
+        sentence_audio_url: null,
+        translation: '',
+        source_type: 'teacher_input',
+        created_at: new Date().toISOString(),
+        sort_order: prev.length,
+        label: '',
+      };
+      return [...prev, newProblem];
+    });
     if (!isEditing) setIsEditing(true);
   };
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setEditedProblems((prev) => {
+      const oldIndex = prev.findIndex((p) => p.id === active.id);
+      const newIndex = prev.findIndex((p) => p.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex).map((p, idx) => ({ ...p, sort_order: idx }));
+    });
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
 
   const handleSaveAll = async () => {
     setIsSaving(true);
@@ -123,23 +172,27 @@ export function RecordingProblemList({
       await Promise.all(
         editedProblems.map((problem) => {
           if (problem.id.startsWith('temp-')) {
-            return supabase.from("recording_problems").insert({
+            return (supabase as any).from("recording_problems").insert({
               quiz_id: problem.quiz_id,
               problem_id: problem.problem_id,
               sentence: problem.sentence,
               mode: problem.mode,
               sentence_audio_url: problem.sentence_audio_url || null,
               translation: problem.translation || null,
-              source_type: (problem.source_type || 'teacher_input') as "reuse" | "ai_generated" | "teacher_input"
+              source_type: (problem.source_type || 'teacher_input') as "reuse" | "ai_generated" | "teacher_input",
+              sort_order: problem.sort_order,
+              label: problem.label || null,
             });
           } else {
-            return supabase
+            return (supabase as any)
               .from("recording_problems")
               .update({
                 sentence: problem.sentence,
                 mode: problem.mode,
                 sentence_audio_url: problem.sentence_audio_url || null,
                 translation: problem.translation || null,
+                sort_order: problem.sort_order,
+                label: problem.label || null,
               })
               .eq("id", problem.id);
           }
@@ -223,6 +276,46 @@ export function RecordingProblemList({
     }
   };
 
+  // 전체 음성 재생성 — 기존 개별 음성 재생성을 문제 수만큼 반복 적용(각 성공 시 바로 DB 반영).
+  const handleRegenerateAllAudio = async () => {
+    if (!confirm("모든 문제의 음성이 재생성됩니다. 계속하시겠습니까?")) return;
+    setIsRegeneratingAllAudio(true);
+    try {
+      for (const problem of editedProblems) {
+        if (!problem.sentence?.trim() || problem.id.startsWith("temp-")) continue;
+        await handleRegenerateAudio(problem);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    } finally {
+      setIsRegeneratingAllAudio(false);
+    }
+  };
+
+  // 전체 문장 재생성 — 빈칸 채우기 문장에서 다시 계산(문장 만들 때 쓰는 것과 동일한 공식).
+  // 빈칸 채우기와 연결 안 된(선생님이 직접 추가한) 문제는 대상에서 제외.
+  // 즉시 저장하지 않고 화면에만 반영 — "저장하기"를 눌러야 최종 반영(문장 수정과 동일한 방식).
+  const handleRegenerateAllSentences = () => {
+    if (!fillBlankProblems || fillBlankProblems.length === 0) return;
+    if (!confirm("모든 문제의 문장이 빈칸 채우기 문장 기준으로 다시 계산됩니다. 계속하시겠습니까?")) return;
+
+    const fillBlankById = new Map(fillBlankProblems.map((p) => [p.id, p]));
+
+    setEditedProblems((prev) =>
+      prev.map((problem) => {
+        const source = fillBlankById.get(problem.problem_id);
+        if (!source) return problem;
+        const sentence = source.sentence
+          .replace(/\(\s*\)|\(\)/g, source.answer)
+          .replace(/([.?!])\s*\.+\s*$/, "$1")
+          .trim();
+        const translation = (source.translation || "").replace(/[[\]]/g, "");
+        return { ...problem, sentence, translation };
+      })
+    );
+    if (!isEditing) setIsEditing(true);
+    toast.success("문장이 새로 계산되었습니다. 저장하기를 눌러 반영하세요.");
+  };
+
   const handleDelete = async (problemId: string) => {
     if (!confirm("이 문제를 삭제하시겠습니까?")) return;
 
@@ -293,6 +386,32 @@ export function RecordingProblemList({
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <Button
+            variant="default"
+            size="sm"
+            onClick={handleRegenerateAllAudio}
+            disabled={isRegeneratingAllAudio}
+            className="bg-accent hover:bg-accent/90 text-accent-foreground w-full sm:w-auto"
+          >
+            {isRegeneratingAllAudio ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            <span>전체 음성 재생성</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRegenerateAllSentences}
+            disabled={!fillBlankProblems || fillBlankProblems.length === 0}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            <span>전체 문제 재생성</span>
+          </Button>
+
+          <Button
             variant={isEditing ? "secondary" : "outline"}
             size="sm"
             onClick={() => {
@@ -322,152 +441,77 @@ export function RecordingProblemList({
         <RecordingStudentView problems={problems} />
       ) : !studentPreview && (
       <>
-      {editedProblems.map((problem, index) => {
-        const editedData = problem;
-
-        return (
-          <Card key={problem.id} className="overflow-hidden">
-            <CardHeader className="py-3 px-4 bg-muted/30">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex-shrink-0">
-                    {index + 1}
-                  </span>
-                  {sourceWords?.[problem.problem_id] && (
-                    <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold truncate hidden sm:inline-block">
-                      {sourceWords[problem.problem_id]}
-                    </span>
-                  )}
-                  {isEditing ? (
-                    <Select
-                      value={editedData.mode}
-                      onValueChange={(value: "read" | "listen") =>
-                        handleModeChange(problem.id, value)
-                      }
-                    >
-                      <SelectTrigger className="w-[140px] sm:w-[160px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="read">
-                          <div className="flex items-center gap-2">
-                            <Eye className="w-4 h-4" />
-                            보고 말하기
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="listen">
-                          <div className="flex items-center gap-2">
-                            <EyeOff className="w-4 h-4" />
-                            듣고 말하기
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground text-sm font-medium flex items-center gap-1">
-                      {editedData.mode === "read" ? (
-                        <>
-                          <Eye className="w-3.5 h-3.5" />
-                          보고 말하기
-                        </>
-                      ) : (
-                        <>
-                          <EyeOff className="w-3.5 h-3.5" />
-                          듣고 말하기
-                        </>
-                      )}
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-1">
-                  {(problem.sentence_audio_url || audioUrlMap[problem.problem_id]) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const url = problem.sentence_audio_url || audioUrlMap[problem.problem_id];
-                        if (url) new Audio(url).play();
-                      }}
-                      className="text-muted-foreground hover:!bg-accent/30 hover:text-foreground"
-                    >
-                      <Volume2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => handleRegenerateAudio(problem)}
-                    disabled={regeneratingId === problem.id || deletingId === problem.id}
-                    className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                  >
-                    {regeneratingId === problem.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4 mr-1" />
+      {isEditing && (
+        <div className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary/80 mb-4">
+          <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span>'보고 말하기'는 문장을 보면서 소리 내어 읽고, '듣고 말하기'는 문장 없이 음성만 듣고 따라 말합니다.</span>
+        </div>
+      )}
+      {isEditing ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={editedProblems.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-4">
+              {editedProblems.map((problem, index) => {
+                const audioUrl = problem.sentence_audio_url || audioUrlMap[problem.problem_id];
+                return (
+                  <SortableRecordingCard key={problem.id} id={problem.id}>
+                    {(dragHandleProps) => (
+                      <RecordingEditCard
+                        index={index}
+                        sentence={problem.sentence || ""}
+                        translation={problem.translation || ""}
+                        mode={problem.mode}
+                        isEditing={isEditing}
+                        sourceWord={sourceWords?.[problem.problem_id]}
+                        label={problem.label || ""}
+                        onChangeLabel={(value) => handleUpdateProblem(problem.id, "label", value)}
+                        onChangeSentence={(value) => handleUpdateProblem(problem.id, "sentence", value)}
+                        onChangeTranslation={(value) => handleUpdateProblem(problem.id, "translation", value)}
+                        onChangeMode={(mode) => handleModeChange(problem.id, mode)}
+                        audioUrl={audioUrl}
+                        onPlayAudio={audioUrl ? () => new Audio(audioUrl).play() : undefined}
+                        onRegenerateAudio={() => handleRegenerateAudio(problem)}
+                        regeneratingAudio={regeneratingId === problem.id}
+                        onDelete={() => handleDelete(problem.id)}
+                        deleting={deletingId === problem.id}
+                        dragHandleProps={dragHandleProps}
+                      />
                     )}
-                    <span className="hidden sm:inline">음성 재생성</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(problem.id)}
-                    disabled={deletingId === problem.id || regeneratingId === problem.id}
-                    className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    {deletingId === problem.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="pt-4 pb-5 space-y-4">
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs uppercase tracking-wide">
-                  문장
-                </Label>
-                {isEditing ? (
-                  <Textarea
-                    value={editedData.sentence || ""}
-                    onChange={(e) =>
-                      handleUpdateProblem(problem.id, "sentence", e.target.value)
-                    }
-                    placeholder="말하기 연습할 문장을 입력하세요"
-                    className="bg-muted/30 min-h-[80px]"
-                  />
-                ) : (
-                  <p className="px-3 py-2 rounded-md bg-muted/30 text-lg">
-                    {editedData.sentence}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs uppercase tracking-wide">
-                  번역
-                </Label>
-                {isEditing ? (
-                  <Textarea
-                    value={editedData.translation || ""}
-                    onChange={(e) =>
-                      handleUpdateProblem(problem.id, "translation", e.target.value)
-                    }
-                    placeholder="번역을 입력하세요"
-                    className="bg-muted/30 min-h-[60px]"
-                  />
-                ) : (
-                  <p className="px-3 py-2 rounded-md bg-muted/30 text-sm text-muted-foreground">
-                    {editedData.translation || "(없음)"}
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+                  </SortableRecordingCard>
+                );
+              })}
+            </div>
+          </SortableContext>
+        </DndContext>
+      ) : (
+        <div className="space-y-4">
+          {editedProblems.map((problem, index) => {
+            const audioUrl = problem.sentence_audio_url || audioUrlMap[problem.problem_id];
+            return (
+              <RecordingEditCard
+                key={problem.id}
+                index={index}
+                sentence={problem.sentence || ""}
+                translation={problem.translation || ""}
+                mode={problem.mode}
+                isEditing={isEditing}
+                sourceWord={sourceWords?.[problem.problem_id]}
+                label={problem.label || ""}
+                onChangeLabel={(value) => handleUpdateProblem(problem.id, "label", value)}
+                onChangeSentence={(value) => handleUpdateProblem(problem.id, "sentence", value)}
+                onChangeTranslation={(value) => handleUpdateProblem(problem.id, "translation", value)}
+                onChangeMode={(mode) => handleModeChange(problem.id, mode)}
+                audioUrl={audioUrl}
+                onPlayAudio={audioUrl ? () => new Audio(audioUrl).play() : undefined}
+                onRegenerateAudio={() => handleRegenerateAudio(problem)}
+                regeneratingAudio={regeneratingId === problem.id}
+                onDelete={() => handleDelete(problem.id)}
+                deleting={deletingId === problem.id}
+              />
+            );
+          })}
+        </div>
+      )}
 
       <div className="flex justify-center mt-4">
         <Button

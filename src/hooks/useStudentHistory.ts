@@ -226,5 +226,5 @@ export function useStudentHistory(studentId: string, classId: string) {
     }
   };
 
-  return { activities, isLoading };
+  return { activities, isLoading, refetch: fetchHistory };
 }

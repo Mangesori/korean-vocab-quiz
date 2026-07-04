@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -75,6 +75,7 @@ export default function ClassDetail() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -279,8 +280,12 @@ export default function ClassDetail() {
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate('/classes')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> 클래스 목록
+        <Button
+          variant="ghost"
+          onClick={() => (location.key !== 'default' ? navigate(-1) : navigate('/classes'))}
+          className="mb-4"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" /> 뒤로
         </Button>
 
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
@@ -383,7 +388,8 @@ export default function ClassDetail() {
                 <>
                   <div className="grid gap-4 sm:grid-cols-1 xl:grid-cols-2">
                     {assignments.slice(0, 6).map((assignment) => (
-                      <Card key={assignment.id} className="hover:shadow-lg transition-all hover:border-primary/50 h-full cursor-pointer" onClick={() => navigate(`/quiz/${assignment.quiz_id}`)}>
+                      <Link key={assignment.id} to={`/quiz/${assignment.quiz_id}`} className="block h-full">
+                      <Card className="hover:shadow-lg transition-all hover:border-primary/50 h-full cursor-pointer">
                         <CardContent className="p-5">
                           {/* Icon + Badge */}
                           <div className="flex items-start justify-between mb-3">
@@ -430,7 +436,7 @@ export default function ClassDetail() {
                               <Button
                                 size="sm"
                                 className="h-8 text-xs"
-                                onClick={(e) => { e.stopPropagation(); navigate(`/quiz/${assignment.quiz_id}?tab=results`); }}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/quiz/${assignment.quiz_id}?tab=results`); }}
                               >
                                 결과 확인
                               </Button>
@@ -438,7 +444,7 @@ export default function ClassDetail() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                onClick={(e) => { e.stopPropagation(); handleDeleteClick(assignment); }}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteClick(assignment); }}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -446,6 +452,7 @@ export default function ClassDetail() {
                           </div>
                         </CardContent>
                       </Card>
+                      </Link>
                     ))}
                   </div>
                 </>
@@ -481,7 +488,7 @@ export default function ClassDetail() {
                   {members.slice(0, 10).map((member) => (
                     <div 
                       key={member.id} 
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted hover:bg-border/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">

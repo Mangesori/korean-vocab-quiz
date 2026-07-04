@@ -17,7 +17,7 @@ export default function Index() {
         {/* ── Hero (split) ── */}
         <section className="bg-background">
           <div className="container py-16 lg:py-24">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-[9fr_11fr] gap-16 items-center">
               {/* Left: copy + CTA */}
               <div>
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent text-accent-foreground text-sm font-semibold mb-6">

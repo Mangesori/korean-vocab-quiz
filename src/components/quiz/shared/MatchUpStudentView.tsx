@@ -26,7 +26,7 @@ export function MatchUpStudentView({ problems }: { problems: MatchUpStudentItem[
   return (
     <Card className="w-full max-w-3xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl overflow-hidden bg-transparent sm:bg-white">
       <CardContent className="p-4 sm:p-8">
-        <p className="text-center text-sm text-muted-foreground font-medium mb-5">단어와 뜻을 짝지어 보세요</p>
+        <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold mb-5">단어와 뜻을 짝지어 보세요</p>
         <div className="grid grid-cols-2 gap-3 sm:gap-6">
           <div className="space-y-2.5">
             {problems.map((p, i) => (

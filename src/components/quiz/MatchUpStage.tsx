@@ -127,9 +127,9 @@ export function MatchUpStage({ problems, onProgressUpdate, onComplete, onBack, b
   };
 
   return (
-    <Card className="w-full max-w-3xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl bg-transparent sm:bg-white">
+    <Card className="w-full max-w-3xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl bg-transparent sm:bg-white mt-4">
       <CardContent className="p-0 sm:p-6 md:p-8 space-y-5">
-        <p className="text-center text-sm sm:text-base text-muted-foreground font-medium">
+        <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold">
           단어와 뜻을 짝지어 보세요
         </p>
 
@@ -172,17 +172,14 @@ export function MatchUpStage({ problems, onProgressUpdate, onComplete, onBack, b
         </div>
 
         <div className="flex justify-between items-center pt-2">
-          {onBack ? (
-            <Button
-              variant="outline"
-              onClick={onBack}
-              className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
-            >
-              <ChevronLeft className="w-4 h-4 mr-2" /> {backLabel ?? "이전"}
-            </Button>
-          ) : (
-            <span />
-          )}
+          <Button
+            variant="outline"
+            onClick={onBack}
+            disabled={!onBack}
+            className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" /> {backLabel ?? "이전"}
+          </Button>
           <Button
             onClick={handleSubmit}
             disabled={!allMatched}

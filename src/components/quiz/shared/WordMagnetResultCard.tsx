@@ -1,62 +1,44 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, HelpCircle } from "lucide-react";
+import type { WordMagnetGradeResult } from "@/components/quiz/WordMagnetResultStage";
 
-/**
- * 단어↔뜻 쌍 결과 카드. 짝 맞추기·단어 받아쓰기가 구조가 동일하므로 공유한다.
- * 빈칸 채우기·문장 순서 맞추기·문장 만들기 결과와 동일한 카드 패턴으로 통일:
- * 번호 배지(정답=success/오답=destructive) + 제시어 배지 + 우측 상태 아이콘,
- * 아래 정답(/오답 시 내 답변) 라벨 행.
- * - prompt: 학생에게 제시된 것(헤더 알약). MatchUp=한국어 단어, TypeAnswer=뜻.
- * - correctAnswer: 정답(본문). MatchUp=뜻, TypeAnswer=한국어 단어.
- * - userAnswer: 학생 답(오답일 때만 본문 표시).
- */
-interface WordPairResultCardProps {
-  number: number;
-  prompt: string;
-  correctAnswer: string;
-  userAnswer: string;
-  isCorrect: boolean;
-  isSkipped?: boolean;
+interface WordMagnetResultCardProps {
+  result: WordMagnetGradeResult;
+  index: number;
 }
 
-export function WordPairResultCard({
-  number,
-  prompt,
-  correctAnswer,
-  userAnswer,
-  isCorrect,
-  isSkipped,
-}: WordPairResultCardProps) {
+/**
+ * 문장 순서 맞추기 결과 카드 — WordPairResultCard와 동일한 패턴으로 통일:
+ * 번호 배지(정답=success/오답=destructive) + 영문 번역 배지 + 우측 상태 아이콘,
+ * 아래 '내 답변 / 정답' 라벨 행. WordMagnetResultStage와 결과 페이지들이 공유한다.
+ */
+export function WordMagnetResultCard({ result: r, index }: WordMagnetResultCardProps) {
   return (
     <Card className="overflow-hidden border bg-white rounded-2xl shadow-sm">
-      <CardContent className="p-5 sm:p-6">
+      <CardContent className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span
               className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${
-                isSkipped ? "bg-muted-foreground" : isCorrect ? "bg-success" : "bg-destructive"
+                r.skipped ? "bg-muted-foreground" : r.isCorrect ? "bg-success" : "bg-destructive"
               }`}
             >
-              {number}
+              {index + 1}
             </span>
-            <Badge
-              variant="outline"
-              className="font-semibold text-base px-3 py-1 bg-slate-50 border-slate-200 text-slate-700 break-keep"
-            >
-              {prompt}
-            </Badge>
+            <span className="text-base font-semibold text-slate-600 bg-slate-50 border border-slate-200 px-3 py-1 rounded-md break-keep">
+              {r.translation}
+            </span>
           </div>
-          {isSkipped ? (
+          {r.skipped ? (
             <HelpCircle className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-          ) : isCorrect ? (
+          ) : r.isCorrect ? (
             <CheckCircle className="w-5 h-5 text-success flex-shrink-0" />
           ) : (
             <XCircle className="w-5 h-5 text-destructive flex-shrink-0" />
           )}
         </div>
 
-        {isSkipped ? (
+        {r.skipped ? (
           <div className="space-y-3">
             <div className="flex items-start gap-3">
               <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-muted text-muted-foreground">
@@ -70,19 +52,15 @@ export function WordPairResultCard({
               <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-accent text-primary">
                 정답
               </span>
-              <p className="text-lg font-bold leading-relaxed text-primary break-keep">
-                {correctAnswer}
-              </p>
+              <p className="text-lg font-bold leading-relaxed text-primary break-keep">{r.correctSentence}</p>
             </div>
           </div>
-        ) : isCorrect ? (
+        ) : r.isCorrect ? (
           <div className="flex items-start gap-3">
             <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-accent text-primary">
               정답
             </span>
-            <p className="text-lg font-bold leading-relaxed text-foreground break-keep">
-              {correctAnswer}
-            </p>
+            <p className="text-lg font-bold leading-relaxed text-foreground break-keep">{r.correctSentence}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -91,16 +69,14 @@ export function WordPairResultCard({
                 내 답변
               </span>
               <p className="text-lg font-bold leading-relaxed text-destructive line-through break-keep">
-                {userAnswer || "—"}
+                {r.userSentence || "—"}
               </p>
             </div>
             <div className="flex items-start gap-3">
               <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-accent text-primary">
                 정답
               </span>
-              <p className="text-lg font-bold leading-relaxed text-primary break-keep">
-                {correctAnswer}
-              </p>
+              <p className="text-lg font-bold leading-relaxed text-primary break-keep">{r.correctSentence}</p>
             </div>
           </div>
         )}

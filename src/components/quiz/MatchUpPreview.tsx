@@ -22,9 +22,8 @@ export function MatchUpPreview({
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold mb-2">짝 맞추기</h2>
         <p className="text-muted-foreground">
-          학생이 단어를 탭한 뒤 알맞은 뜻을 탭해 짝을 맞춥니다. 뜻은 AI가 자동 생성했으며 수정할 수 있습니다.
+          학생이 단어를 탭한 뒤 알맞은 뜻을 탭해 짝을 맞춥니다. 저장 후 재편집이 가능합니다.
         </p>
       </div>
 

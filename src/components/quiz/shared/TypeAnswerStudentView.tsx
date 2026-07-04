@@ -9,7 +9,7 @@ export interface TypeAnswerStudentItem {
 }
 
 /**
- * 뜻 보고 단어 쓰기 학생 미리보기 — 실제 퀴즈(TypeAnswerStage)와 동일한 한 문제씩 캐러셀.
+ * 단어 받아쓰기 학생 미리보기 — 실제 퀴즈(TypeAnswerStage)와 동일한 한 문제씩 캐러셀.
  * 입력칸은 비활성(disabled).
  */
 export function TypeAnswerStudentView({ problems }: { problems: TypeAnswerStudentItem[] }) {
@@ -24,9 +24,9 @@ export function TypeAnswerStudentView({ problems }: { problems: TypeAnswerStuden
   if (!problem) return null;
 
   return (
-    <Card className="w-full max-w-3xl mx-auto sm:rounded-2xl">
+    <Card className="w-full max-w-5xl mx-auto sm:rounded-2xl">
       <CardContent className="p-4 sm:p-8 space-y-6">
-        <p className="text-center text-sm text-muted-foreground font-medium">
+        <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold">
           뜻을 보고 알맞은 한국어 단어를 입력하세요
         </p>
 
@@ -36,7 +36,7 @@ export function TypeAnswerStudentView({ problems }: { problems: TypeAnswerStuden
 
         <Input
           disabled
-          placeholder="한국어 단어 입력"
+          placeholder="정답 입력"
           className="h-14 text-center text-xl font-semibold rounded-2xl border-2 border-border bg-white opacity-70 placeholder:text-base placeholder:font-normal placeholder:text-muted-foreground/60"
         />
 

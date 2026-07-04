@@ -1,8 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Edit2, Save, Loader2, Plus, Eye } from "lucide-react";
 import { useParams } from "react-router-dom";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SentenceMakingStudentView } from "@/components/quiz/shared/SentenceMakingStudentView";
@@ -16,6 +27,22 @@ export interface SentenceMakingProblem {
   word_meaning: string | null;
   model_answer: string;
   created_at: string;
+  sort_order: number;
+}
+
+// 드래그로 순서를 바꿀 수 있는 카드 래퍼 — 편집 모드에서만 사용.
+function SortableWordMeaningCard({ id, children }: { id: string; children: (dragHandleProps: { attributes: any; listeners: any }) => ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ attributes, listeners })}
+    </div>
+  );
 }
 
 interface SentenceMakingProblemListProps {
@@ -58,18 +85,37 @@ export function SentenceMakingProblemList({
 
   const handleAddProblem = () => {
     const newId = `temp-${crypto.randomUUID()}`;
-    const newProblem: SentenceMakingProblem = {
-      id: newId,
-      quiz_id: quizId || '',
-      problem_id: `sm-${crypto.randomUUID().slice(0, 8)}`,
-      word: '',
-      word_meaning: '',
-      model_answer: '',
-      created_at: new Date().toISOString()
-    };
-    setEditedProblems(prev => [...prev, newProblem]);
+    setEditedProblems(prev => {
+      const newProblem: SentenceMakingProblem = {
+        id: newId,
+        quiz_id: quizId || '',
+        problem_id: `sm-${crypto.randomUUID().slice(0, 8)}`,
+        word: '',
+        word_meaning: '',
+        model_answer: '',
+        created_at: new Date().toISOString(),
+        sort_order: prev.length,
+      };
+      return [...prev, newProblem];
+    });
     if (!isEditing) setIsEditing(true);
   };
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setEditedProblems((prev) => {
+      const oldIndex = prev.findIndex((p) => p.id === active.id);
+      const newIndex = prev.findIndex((p) => p.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex).map((p, idx) => ({ ...p, sort_order: idx }));
+    });
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
 
   const handleSaveAll = async () => {
     setIsSaving(true);
@@ -77,20 +123,22 @@ export function SentenceMakingProblemList({
       await Promise.all(
         editedProblems.map((problem) => {
           if (problem.id.startsWith('temp-')) {
-            return supabase.from("sentence_making_problems").insert({
+            return supabase.from("sentence_making_problems" as any).insert({
               quiz_id: problem.quiz_id,
               problem_id: problem.problem_id,
               word: problem.word,
               word_meaning: problem.word_meaning || null,
               model_answer: problem.model_answer,
+              sort_order: problem.sort_order,
             });
           } else {
             return supabase
-              .from("sentence_making_problems")
+              .from("sentence_making_problems" as any)
               .update({
                 word: problem.word,
                 word_meaning: problem.word_meaning || null,
                 model_answer: problem.model_answer,
+                sort_order: problem.sort_order,
               })
               .eq("id", problem.id);
           }
@@ -216,21 +264,47 @@ export function SentenceMakingProblemList({
         <SentenceMakingStudentView problems={problems} />
       ) : !studentPreview && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {editedProblems.map((problem, index) => (
-              <WordMeaningEditCard
-                key={problem.id}
-                index={index}
-                word={problem.word}
-                meaning={problem.word_meaning || ""}
-                editable={isEditing}
-                onChangeWord={(v) => handleUpdateProblem(problem.id, "word", v)}
-                onChangeMeaning={(v) => handleUpdateProblem(problem.id, "word_meaning", v)}
-                onDelete={() => handleDelete(problem.id)}
-                deleting={deletingId === problem.id}
-              />
-            ))}
-          </div>
+          {isEditing ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={editedProblems.map((p) => p.id)} strategy={rectSortingStrategy}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {editedProblems.map((problem, index) => (
+                    <SortableWordMeaningCard key={problem.id} id={problem.id}>
+                      {(dragHandleProps) => (
+                        <WordMeaningEditCard
+                          index={index}
+                          word={problem.word}
+                          meaning={problem.word_meaning || ""}
+                          editable={isEditing}
+                          onChangeWord={(v) => handleUpdateProblem(problem.id, "word", v)}
+                          onChangeMeaning={(v) => handleUpdateProblem(problem.id, "word_meaning", v)}
+                          onDelete={() => handleDelete(problem.id)}
+                          deleting={deletingId === problem.id}
+                          dragHandleProps={dragHandleProps}
+                        />
+                      )}
+                    </SortableWordMeaningCard>
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {editedProblems.map((problem, index) => (
+                <WordMeaningEditCard
+                  key={problem.id}
+                  index={index}
+                  word={problem.word}
+                  meaning={problem.word_meaning || ""}
+                  editable={isEditing}
+                  onChangeWord={(v) => handleUpdateProblem(problem.id, "word", v)}
+                  onChangeMeaning={(v) => handleUpdateProblem(problem.id, "word_meaning", v)}
+                  onDelete={() => handleDelete(problem.id)}
+                  deleting={deletingId === problem.id}
+                />
+              ))}
+            </div>
+          )}
 
           <div className="flex justify-center mt-4">
             <Button

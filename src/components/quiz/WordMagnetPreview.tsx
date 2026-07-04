@@ -11,6 +11,8 @@ interface WordMagnetPreviewProps {
   updateWordMagnetItems: (id: string, items: { content: string; isParticle: boolean }[]) => void;
   resegmentWordMagnetProblem: (id: string) => void;
   resegmentingId: string | null;
+  regenerateWordMagnetProblem: (id: string) => void;
+  regeneratingWordMagnetId: string | null;
   deleteWordMagnetProblem: (id: string) => void;
   addWordMagnetProblem: () => void;
   /** problem_id → 출처 단어(빈칸 문제). 헤더 읽기전용 라벨용. */
@@ -24,6 +26,8 @@ export function WordMagnetPreview({
   updateWordMagnetItems,
   resegmentWordMagnetProblem,
   resegmentingId,
+  regenerateWordMagnetProblem,
+  regeneratingWordMagnetId,
   deleteWordMagnetProblem,
   addWordMagnetProblem,
   sourceWords,
@@ -31,21 +35,18 @@ export function WordMagnetPreview({
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold mb-2">문장 순서 맞추기</h2>
         <p className="text-muted-foreground">
-          학생이 흩어진 단어 타일을 순서대로 배열해 문장을 완성합니다.
+          학생이 무작위로 섞인 단어 타일을 순서대로 배열해 문장을 완성합니다. 저장 후 재편집이 가능합니다.
         </p>
       </div>
 
       {studentPreview ? (
-        <div className="max-w-3xl mx-auto">
-          <WordMagnetStudentView problems={problems} />
-        </div>
+        <WordMagnetStudentView problems={problems} />
       ) : (
         <div className="space-y-4">
           <div className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary/80">
             <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>조사·어미는 노란색 타일입니다. 'AI 재분절'로 다시 나누거나 칩을 직접 편집할 수 있어요.</span>
+            <span>단어 타일은 'AI 재분절'로 다시 나누거나 직접 편집할 수 있어요. 조사·어미는 노란색 타일입니다.</span>
           </div>
 
           <div className="grid grid-cols-1 gap-4">
@@ -62,6 +63,8 @@ export function WordMagnetPreview({
                 onChangeItems={(items) => updateWordMagnetItems(problem.problem_id, items)}
                 onResegment={() => resegmentWordMagnetProblem(problem.problem_id)}
                 resegmenting={resegmentingId === problem.problem_id}
+                onRegenerateProblem={() => regenerateWordMagnetProblem(problem.problem_id)}
+                regeneratingProblem={regeneratingWordMagnetId === problem.problem_id}
                 onDelete={() => deleteWordMagnetProblem(problem.problem_id)}
               />
             ))}

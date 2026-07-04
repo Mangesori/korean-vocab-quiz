@@ -1,8 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Edit2, Save, Loader2, Plus, Eye } from "lucide-react";
 import { useParams } from "react-router-dom";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { TypeAnswerStudentView } from "@/components/quiz/shared/TypeAnswerStudentView";
@@ -15,6 +26,22 @@ export interface TypeAnswerProblem {
   prompt: string;
   answer: string;
   created_at: string;
+  sort_order: number;
+}
+
+// 드래그로 순서를 바꿀 수 있는 카드 래퍼 — 편집 모드에서만 사용.
+function SortableWordMeaningCard({ id, children }: { id: string; children: (dragHandleProps: { attributes: any; listeners: any }) => ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ attributes, listeners })}
+    </div>
+  );
 }
 
 interface TypeAnswerProblemListProps {
@@ -57,17 +84,36 @@ export function TypeAnswerProblemList({
 
   const handleAddProblem = () => {
     const newId = `temp-${crypto.randomUUID()}`;
-    const newProblem: TypeAnswerProblem = {
-      id: newId,
-      quiz_id: quizId || '',
-      problem_id: `ta-${crypto.randomUUID().slice(0, 8)}`,
-      prompt: '',
-      answer: '',
-      created_at: new Date().toISOString()
-    };
-    setEditedProblems(prev => [...prev, newProblem]);
+    setEditedProblems(prev => {
+      const newProblem: TypeAnswerProblem = {
+        id: newId,
+        quiz_id: quizId || '',
+        problem_id: `ta-${crypto.randomUUID().slice(0, 8)}`,
+        prompt: '',
+        answer: '',
+        created_at: new Date().toISOString(),
+        sort_order: prev.length,
+      };
+      return [...prev, newProblem];
+    });
     if (!isEditing) setIsEditing(true);
   };
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setEditedProblems((prev) => {
+      const oldIndex = prev.findIndex((p) => p.id === active.id);
+      const newIndex = prev.findIndex((p) => p.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex).map((p, idx) => ({ ...p, sort_order: idx }));
+    });
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
 
   const handleSaveAll = async () => {
     setIsSaving(true);
@@ -80,6 +126,7 @@ export function TypeAnswerProblemList({
               problem_id: problem.problem_id,
               prompt: problem.prompt,
               answer: problem.answer,
+              sort_order: problem.sort_order,
             });
           } else {
             return supabase
@@ -87,6 +134,7 @@ export function TypeAnswerProblemList({
               .update({
                 prompt: problem.prompt,
                 answer: problem.answer,
+                sort_order: problem.sort_order,
               })
               .eq("id", problem.id);
           }
@@ -154,7 +202,7 @@ export function TypeAnswerProblemList({
       <div className="space-y-4">
         {toggleRow && <div className="flex justify-start">{toggleRow}</div>}
         <div className="text-center py-12 text-muted-foreground">
-          뜻 보고 단어 쓰기 문제가 없습니다.
+          단어 받아쓰기 문제가 없습니다.
           <div className="flex justify-center mt-4">
             <Button
               variant="ghost"
@@ -214,23 +262,51 @@ export function TypeAnswerProblemList({
         <TypeAnswerStudentView problems={displayProblems} />
       ) : !studentPreview && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {editedProblems.map((problem, index) => (
-              <WordMeaningEditCard
-                key={problem.id}
-                index={index}
-                word={problem.answer}
-                meaning={problem.prompt}
-                editable={isEditing}
-                wordPlaceholder="정답 한국어 단어"
-                meaningPlaceholder="단어 뜻"
-                onChangeWord={(v) => handleUpdateProblem(problem.id, "answer", v)}
-                onChangeMeaning={(v) => handleUpdateProblem(problem.id, "prompt", v)}
-                onDelete={() => handleDelete(problem.id)}
-                deleting={deletingId === problem.id}
-              />
-            ))}
-          </div>
+          {isEditing ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={editedProblems.map((p) => p.id)} strategy={rectSortingStrategy}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {editedProblems.map((problem, index) => (
+                    <SortableWordMeaningCard key={problem.id} id={problem.id}>
+                      {(dragHandleProps) => (
+                        <WordMeaningEditCard
+                          index={index}
+                          word={problem.answer}
+                          meaning={problem.prompt}
+                          editable={isEditing}
+                          wordPlaceholder="정답 한국어 단어"
+                          meaningPlaceholder="단어 뜻"
+                          onChangeWord={(v) => handleUpdateProblem(problem.id, "answer", v)}
+                          onChangeMeaning={(v) => handleUpdateProblem(problem.id, "prompt", v)}
+                          onDelete={() => handleDelete(problem.id)}
+                          deleting={deletingId === problem.id}
+                          dragHandleProps={dragHandleProps}
+                        />
+                      )}
+                    </SortableWordMeaningCard>
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {editedProblems.map((problem, index) => (
+                <WordMeaningEditCard
+                  key={problem.id}
+                  index={index}
+                  word={problem.answer}
+                  meaning={problem.prompt}
+                  editable={isEditing}
+                  wordPlaceholder="정답 한국어 단어"
+                  meaningPlaceholder="단어 뜻"
+                  onChangeWord={(v) => handleUpdateProblem(problem.id, "answer", v)}
+                  onChangeMeaning={(v) => handleUpdateProblem(problem.id, "prompt", v)}
+                  onDelete={() => handleDelete(problem.id)}
+                  deleting={deletingId === problem.id}
+                />
+              ))}
+            </div>
+          )}
 
           <div className="flex justify-center mt-4">
             <Button

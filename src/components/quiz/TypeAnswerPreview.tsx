@@ -22,9 +22,8 @@ export function TypeAnswerPreview({
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold mb-2">뜻 보고 단어 쓰기</h2>
         <p className="text-muted-foreground">
-          학생이 뜻을 보고 알맞은 한국어 단어를 직접 입력합니다. 정답은 학생에게 표시되지 않습니다.
+          학생이 뜻을 보고 알맞은 한국어 단어를 직접 입력합니다. 저장 후 재편집이 가능합니다.
         </p>
       </div>
 

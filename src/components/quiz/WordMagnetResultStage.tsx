@@ -1,6 +1,6 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, ChevronRight, ChevronLeft } from "lucide-react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
+import { WordMagnetResultCard } from "@/components/quiz/shared/WordMagnetResultCard";
 
 export interface WordMagnetGradeResult {
   problemId: string;
@@ -8,6 +8,7 @@ export interface WordMagnetGradeResult {
   correctSentence: string;
   userSentence: string;
   isCorrect: boolean;
+  skipped?: boolean;
 }
 
 interface WordMagnetResultStageProps {
@@ -41,55 +42,7 @@ export function WordMagnetResultStage({ results, onNext, nextLabel, onBack, back
       {/* 문제별 결과 카드 */}
       <div className="space-y-4">
         {results.map((r, idx) => (
-          <Card key={r.problemId} className="overflow-hidden border bg-white rounded-2xl shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${
-                      r.isCorrect ? "bg-success" : "bg-destructive"
-                    }`}
-                  >
-                    {idx + 1}
-                  </span>
-                  <span className="text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 px-3 py-1 rounded-md break-keep">
-                    {r.translation}
-                  </span>
-                </div>
-                {r.isCorrect ? (
-                  <CheckCircle className="w-5 h-5 text-success flex-shrink-0" />
-                ) : (
-                  <XCircle className="w-5 h-5 text-destructive flex-shrink-0" />
-                )}
-              </div>
-
-              {r.isCorrect ? (
-                <div className="flex items-start gap-3">
-                  <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-accent text-primary">
-                    정답
-                  </span>
-                  <p className="text-lg font-bold leading-relaxed text-foreground break-keep">{r.correctSentence}</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-destructive/10 text-destructive">
-                      내 답변
-                    </span>
-                    <p className="text-lg font-bold leading-relaxed text-destructive line-through break-keep">
-                      {r.userSentence || "—"}
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-accent text-primary">
-                      정답
-                    </span>
-                    <p className="text-lg font-bold leading-relaxed text-primary break-keep">{r.correctSentence}</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <WordMagnetResultCard key={r.problemId} result={r} index={idx} />
         ))}
       </div>
 

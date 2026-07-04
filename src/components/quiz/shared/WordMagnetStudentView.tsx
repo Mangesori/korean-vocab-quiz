@@ -46,9 +46,9 @@ export function WordMagnetStudentView({ problems }: { problems: WordMagnetStuden
   if (!problem) return null;
 
   return (
-    <Card className="w-full max-w-3xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl bg-transparent sm:bg-white">
+    <Card className="w-full max-w-5xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl bg-transparent sm:bg-white">
       <CardContent className="p-0 sm:p-6 md:p-8 space-y-5">
-        <p className="text-center text-sm sm:text-base text-muted-foreground font-medium">
+        <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold">
           단어를 끌거나 탭해서 문장을 완성하세요
         </p>
 

@@ -37,10 +37,13 @@ export function FillBlankStudentSet({
   onPlayAudio,
 }: FillBlankStudentSetProps) {
   return (
-    <Card className="border shadow-sm rounded-2xl overflow-hidden bg-white">
+    <Card className="max-w-5xl mx-auto border shadow-sm rounded-2xl overflow-hidden bg-white">
       <CardContent className="p-0">
+        <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold bg-[#F1ECE4] px-6 pt-5 pb-3">
+          빈칸에 알맞은 단어를 입력하세요
+        </p>
         {/* 보기(단어 은행) */}
-        <div className="bg-[#F1ECE4] border-b border-[#D3CCC4] px-6 py-5 flex flex-col items-center">
+        <div className="bg-[#F1ECE4] border-b border-[#D3CCC4] px-6 pb-5 flex flex-col items-center">
           <p className="text-sm font-bold text-muted-foreground mb-4">보기</p>
           <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
             {set.map((problem) => (
@@ -104,7 +107,7 @@ export function FillBlankStudentSet({
                         {maskTranslation(problem.translation)}
                       </div>
                     )}
-                    <Input readOnly className="h-10 text-center bg-muted/30" placeholder="정답 입력" />
+                    <Input readOnly className="h-10 text-center bg-muted" placeholder="정답 입력" />
                   </div>
 
                   {/* 데스크톱 */}
@@ -119,7 +122,7 @@ export function FillBlankStudentSet({
                               <>
                                 <Input
                                   readOnly
-                                  className="w-48 h-10 mx-1 text-center text-base inline-block bg-muted/30"
+                                  className="w-48 h-10 mx-1 text-center text-base inline-block bg-muted"
                                   placeholder="정답 입력"
                                 />
                                 {problem.hint && <span className="text-primary text-sm">{problem.hint}</span>}

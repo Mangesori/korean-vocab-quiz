@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -47,6 +47,7 @@ export default function QuizDetail() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams(); // Added
 
   // State
@@ -128,7 +129,7 @@ export default function QuizDetail() {
     enabled: !!id && !!quiz?.matchup_enabled,
   });
 
-  // 뜻 보고 단어 쓰기 문제 조회
+  // 단어 받아쓰기 문제 조회
   const { data: typeAnswerProblems = [], refetch: refetchTypeAnswer } = useQuery({
     queryKey: ['typeAnswerProblems', id],
     queryFn: async () => {
@@ -581,7 +582,7 @@ export default function QuizDetail() {
     }
   };
 
-  // 뜻 보고 단어 쓰기 추가 핸들러
+  // 단어 받아쓰기 추가 핸들러
   const handleAddTypeAnswer = async () => {
     if (!quiz) return;
 
@@ -602,7 +603,7 @@ export default function QuizDetail() {
         .insert(taProblemsToInsert);
 
       if (insertError) {
-        throw new Error("뜻 보고 단어 쓰기 문제 저장 실패: " + insertError.message);
+        throw new Error("단어 받아쓰기 문제 저장 실패: " + insertError.message);
       }
 
       // quizzes 테이블 업데이트
@@ -615,13 +616,13 @@ export default function QuizDetail() {
         throw new Error("퀴즈 설정 업데이트 실패: " + updateError.message);
       }
 
-      toast.success("뜻 보고 단어 쓰기가 추가되었습니다!");
+      toast.success("단어 받아쓰기가 추가되었습니다!");
       refetchQuiz();
       refetchTypeAnswer();
       setProblemTab("type_answer");
     } catch (error: any) {
       console.error("Add type answer error:", error);
-      toast.error(error.message || "뜻 보고 단어 쓰기 추가에 실패했습니다");
+      toast.error(error.message || "단어 받아쓰기 추가에 실패했습니다");
     }
   };
 
@@ -741,8 +742,12 @@ export default function QuizDetail() {
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate("/dashboard")} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> 대시보드
+        <Button
+          variant="ghost"
+          onClick={() => (location.key !== "default" ? navigate(-1) : navigate("/quizzes"))}
+          className="mb-4"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" /> 뒤로
         </Button>
 
         <QuizHeader 
@@ -790,7 +795,7 @@ export default function QuizDetail() {
                 {confirmDialog === "sentence_making" && "문장 만들기 문제를 추가하시겠습니까?"}
                 {confirmDialog === "recording" && "말하기 연습 문제를 추가하시겠습니까?"}
                 {confirmDialog === "matchup" && "짝 맞추기 문제를 추가하시겠습니까?"}
-                {confirmDialog === "type_answer" && "뜻 보고 단어 쓰기 문제를 추가하시겠습니까?"}
+                {confirmDialog === "type_answer" && "단어 받아쓰기 문제를 추가하시겠습니까?"}
                 {confirmDialog === "word_magnet" && "문장 순서 맞추기 문제를 추가하시겠습니까?"}
               </AlertDialogTitle>
               <AlertDialogDescription>
@@ -855,7 +860,7 @@ export default function QuizDetail() {
                   }`}
                 >
                   <Keyboard className="w-4 h-4" />
-                  뜻 보고 단어 쓰기 {quiz.type_answer_enabled && `(${typeAnswerProblems.length})`}
+                  단어 받아쓰기 {quiz.type_answer_enabled && `(${typeAnswerProblems.length})`}
                 </button>
                 <button
                   onClick={() => setProblemTab("fill_blank")}
@@ -916,6 +921,7 @@ export default function QuizDetail() {
                 problems={hasChanges ? editedProblems : quiz.problems}
                 isEditing={isEditing}
                 onUpdateProblem={updateProblem}
+                onReorderProblems={setEditedProblems}
                 audioUrls={audioUrls}
                 onPlayAudio={playAudio}
                 onRegenerateAllAudio={handleRegenerateAll}
@@ -946,7 +952,7 @@ export default function QuizDetail() {
             {quiz.matchup_enabled && (
               <div className={problemTab === "matchup" ? "" : "hidden"}>
                 <MatchupProblemList
-                  problems={matchupProblems}
+                  problems={[...matchupProblems].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))}
                   onRefresh={refetchMatchup}
                   studentPreview={studentPreview}
                   onToggleStudentPreview={setStudentPreview}
@@ -958,11 +964,11 @@ export default function QuizDetail() {
               </div>
             )}
 
-            {/* 뜻 보고 단어 쓰기 문제 목록 */}
+            {/* 단어 받아쓰기 문제 목록 */}
             {quiz.type_answer_enabled && (
               <div className={problemTab === "type_answer" ? "" : "hidden"}>
                 <TypeAnswerProblemList
-                  problems={typeAnswerProblems}
+                  problems={[...typeAnswerProblems].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))}
                   onRefresh={refetchTypeAnswer}
                   studentPreview={studentPreview}
                   onToggleStudentPreview={setStudentPreview}
@@ -978,7 +984,7 @@ export default function QuizDetail() {
             {quiz.word_magnet_enabled && (
               <div className={problemTab === "word_magnet" ? "" : "hidden"}>
                 <WordMagnetProblemList
-                  problems={wordMagnetProblems}
+                  problems={[...wordMagnetProblems].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))}
                   onRefresh={refetchWordMagnet}
                   studentPreview={studentPreview}
                   onToggleStudentPreview={setStudentPreview}
@@ -987,6 +993,9 @@ export default function QuizDetail() {
                   onSaveAll={saveAllTabs}
                   registerSaver={registerWordMagnetSaver}
                   sourceWords={sourceWordById}
+                  difficulty={quiz.difficulty}
+                  translationLanguage={quiz.translation_language}
+                  apiProvider={quiz.api_provider as "openai" | "gemini" | "gemini-pro" | undefined}
                 />
               </div>
             )}
@@ -995,7 +1004,7 @@ export default function QuizDetail() {
             {quiz.sentence_making_enabled && (
               <div className={problemTab === "sentence_making" ? "" : "hidden"}>
                 <SentenceMakingProblemList
-                  problems={sentenceMakingProblems}
+                  problems={[...sentenceMakingProblems].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))}
                   onRefresh={refetchSentenceMaking}
                   studentPreview={studentPreview}
                   onToggleStudentPreview={setStudentPreview}
@@ -1011,10 +1020,7 @@ export default function QuizDetail() {
             {quiz.recording_enabled && (
               <div className={problemTab === "recording" ? "" : "hidden"}>
                 <RecordingProblemList
-                  problems={[...recordingProblems].sort((a, b) => {
-                    const order = quiz.problems.map((p: any) => p.id);
-                    return order.indexOf(a.problem_id) - order.indexOf(b.problem_id);
-                  })}
+                  problems={[...recordingProblems].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))}
                   onRefresh={refetchRecording}
                   studentPreview={studentPreview}
                   onToggleStudentPreview={setStudentPreview}
@@ -1023,6 +1029,7 @@ export default function QuizDetail() {
                   onSaveAll={saveAllTabs}
                   registerSaver={registerRecordingSaver}
                   sourceWords={sourceWordById}
+                  fillBlankProblems={quiz.problems}
                 />
               </div>
             )}

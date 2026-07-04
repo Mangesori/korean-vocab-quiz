@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Trash2, Scissors, Link2, Sparkles } from "lucide-react";
+import { Loader2, Trash2, Scissors, Link2, Sparkles, RefreshCw, GripVertical } from "lucide-react";
 
 export interface TileItem {
   content: string;
@@ -31,8 +31,12 @@ interface WordMagnetEditCardProps {
   /** AI 재분절(선택) */
   onResegment?: () => void;
   resegmenting?: boolean;
+  /** 문제 재생성(선택) — 빈칸 채우기와 무관하게 완전히 새 문장으로 교체 */
+  onRegenerateProblem?: () => void;
+  regeneratingProblem?: boolean;
   onDelete: () => void;
   deleting?: boolean;
+  dragHandleProps?: { attributes: any; listeners: any };
 }
 
 export function WordMagnetEditCard({
@@ -47,8 +51,11 @@ export function WordMagnetEditCard({
   onChangeItems,
   onResegment,
   resegmenting = false,
+  onRegenerateProblem,
+  regeneratingProblem = false,
   onDelete,
   deleting = false,
+  dragHandleProps,
 }: WordMagnetEditCardProps) {
   const [splitIdx, setSplitIdx] = useState<number | null>(null);
 
@@ -75,10 +82,21 @@ export function WordMagnetEditCard({
 
   return (
     <Card className="bg-white border-slate-200 hover:shadow-md transition-shadow">
-      <CardHeader className="py-2.5 px-4 bg-muted/30 border-b border-slate-100">
+      <CardHeader className="py-3 px-4 bg-muted/30 border-b border-slate-100">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex-shrink-0">
+            {dragHandleProps && (
+              <button
+                type="button"
+                {...dragHandleProps.attributes}
+                {...dragHandleProps.listeners}
+                className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none flex-shrink-0"
+                aria-label="순서 변경"
+              >
+                <GripVertical className="w-4 h-4" />
+              </button>
+            )}
+            <span className="flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground text-sm font-bold flex-shrink-0">
               {index + 1}
             </span>
             {word && (
@@ -87,42 +105,59 @@ export function WordMagnetEditCard({
               </span>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onDelete}
-            disabled={deleting}
-            className="h-8 w-8 flex-shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          >
-            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-          </Button>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {onRegenerateProblem && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={onRegenerateProblem}
+                disabled={regeneratingProblem}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                {regeneratingProblem ? (
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                )}
+                문제 재생성
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              disabled={deleting}
+              className="h-9 w-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-4 pb-4 space-y-3">
-        <div>
+      <CardContent className="pt-4 pb-5 space-y-4">
+        <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">정답 문장 (학생에게는 숨겨짐)</Label>
           {editable ? (
             <Input
               value={baseText}
               onChange={(e) => onChangeBaseText(e.target.value)}
               placeholder="정답이 되는 완성 문장"
-              className="mt-1 font-medium"
+              className="font-medium"
             />
           ) : (
-            <p className="px-3 py-2 rounded-md bg-muted/30 text-lg font-medium mt-1">{baseText}</p>
+            <p className="px-3 py-2 rounded-md bg-muted text-lg font-lg">{baseText}</p>
           )}
         </div>
-        <div>
+        <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">번역</Label>
           {editable ? (
             <Input
               value={translation}
               onChange={(e) => onChangeTranslation(e.target.value)}
               placeholder="문장 번역 입력"
-              className="mt-1"
             />
           ) : (
-            <p className="px-3 py-2 rounded-md bg-muted/30 text-sm mt-1">{translation || "(없음)"}</p>
+            <p className="px-3 py-2 rounded-md bg-muted text-sm">{translation || "(없음)"}</p>
           )}
         </div>
 
@@ -226,8 +261,8 @@ export function WordMagnetEditCard({
             </p>
           </div>
         ) : (
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1 block">타일 미리보기</Label>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground block">타일 미리보기</Label>
             {/* 조사/어미는 앞 어간에 붙이고(작은 마진), 단어 사이만 띄움 — 실제 학생 화면과 동일 */}
             <div className="flex flex-wrap items-center gap-y-2 rounded-2xl bg-slate-50/80 p-3">
               {items.length === 0 ? (

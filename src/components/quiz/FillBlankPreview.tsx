@@ -1,11 +1,8 @@
 import type { Problem } from "@/types/quiz";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { RefreshCw, Loader2, Plus, Trash2 } from "lucide-react";
+import { Plus, Info } from "lucide-react";
 import { FillBlankStudentSet } from "@/components/quiz/shared/FillBlankStudentSet";
+import { FillBlankEditCard } from "@/components/quiz/shared/FillBlankEditCard";
 
 interface FillBlankPreviewProps {
   problemSets: Problem[][];
@@ -36,6 +33,19 @@ export function FillBlankPreview({
 }: FillBlankPreviewProps) {
   return (
     <>
+      <div className="text-center mb-6">
+        <p className="text-muted-foreground">
+          학생이 빈칸에 알맞은 단어를 입력합니다. 저장 후 재편집이 가능합니다.
+        </p>
+      </div>
+
+      {!studentPreview && (
+        <div className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary/80 mb-6">
+          <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span>출제 문장에서 정답이 들어갈 자리에 괄호 ( )를 넣어주세요. 학생 화면에는 정답 칸에 입력한 단어가 그 자리에 채워져서 보입니다.</span>
+        </div>
+      )}
+
       {problemSets.map((set, setIndex) => (
         <div key={setIndex} className="mb-6">
           <div className="flex items-center gap-2 mb-4">
@@ -54,103 +64,16 @@ export function FillBlankPreview({
           ) : (
             <div className="space-y-4">
               {set.map((problem, problemIndex) => (
-                <Card key={problem.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                  <CardHeader className="py-3 px-4 bg-muted/30">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                          {setIndex * wordsPerSet + problemIndex + 1}
-                        </span>
-                        <Input
-                          value={problem.word}
-                          onChange={(e) => updateProblem(problem.id, "word", e.target.value)}
-                          className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold text-center w-auto min-w-[80px] max-w-[200px] h-8 text-sm border-primary/30"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => regenerateProblem(problem)}
-                          disabled={regeneratingId === problem.id}
-                          className="bg-primary hover:bg-primary/90"
-                        >
-                          {regeneratingId === problem.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                          ) : (
-                            <RefreshCw className="w-4 h-4 mr-1" />
-                          )}
-                          <span className="hidden sm:inline">문제 재생성</span>
-                          <span className="sm:hidden">재생성</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteFillBlankProblem(problem.id)}
-                          className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="pt-4 pb-5 space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground text-xs uppercase tracking-wide">문장</Label>
-                      <p className="text-lg px-3 py-2 rounded-md bg-muted/30">
-                        {problem.sentence.split(/\(\s*\)|\(\)/).map((part, i, arr) => (
-                          <span key={i}>
-                            {part}
-                            {i < arr.length - 1 && (
-                              <span className="text-primary font-bold">{problem.answer}</span>
-                            )}
-                          </span>
-                        ))}
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground text-xs uppercase tracking-wide">출제 문장</Label>
-                      <Input
-                        value={problem.sentence}
-                        onChange={(e) => updateProblem(problem.id, "sentence", e.target.value)}
-                        className="text-sm sm:text-lg bg-muted/30"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs uppercase tracking-wide text-muted-foreground font-medium">정답</Label>
-                        <Input
-                          value={problem.answer}
-                          onChange={(e) => updateProblem(problem.id, "answer", e.target.value)}
-                          className="bg-muted/30 text-sm"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs uppercase tracking-wide text-muted-foreground font-medium">힌트</Label>
-                        <Input
-                          value={problem.hint}
-                          onChange={(e) => updateProblem(problem.id, "hint", e.target.value)}
-                          className="bg-muted/30 text-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
-                        번역({langLabel})
-                      </Label>
-                      <Textarea
-                        value={problem.translation}
-                        onChange={(e) => updateProblem(problem.id, "translation", e.target.value)}
-                        className="bg-muted/30 min-h-[60px] text-sm"
-                        rows={2}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+                <FillBlankEditCard
+                  key={problem.id}
+                  problem={problem}
+                  index={setIndex * wordsPerSet + problemIndex}
+                  onUpdateProblem={updateProblem}
+                  langLabel={langLabel}
+                  onRegenerateProblem={() => regenerateProblem(problem)}
+                  regeneratingId={regeneratingId}
+                  onDeleteProblem={() => deleteFillBlankProblem(problem.id)}
+                />
               ))}
             </div>
           )}

@@ -35,6 +35,12 @@ export function renderModelAnswerWithDiff(modelAnswer: string, studentSentence: 
   );
 }
 
+function getAccuracyColorClass(score: number): string {
+  if (score < 50) return "text-destructive";
+  if (score < 75) return "text-warning";
+  return "text-success";
+}
+
 export function renderSentenceWithFeedback(
   sentence: string,
   wordFeedback?: { word: string; accuracyScore: number }[],
@@ -43,19 +49,20 @@ export function renderSentenceWithFeedback(
   if (!wordFeedback || wordFeedback.length === 0) {
     return <span className={isPassed ? "text-success font-bold" : ""}>{sentence}</span>;
   }
-  const lowScoreWords = new Set(
-    wordFeedback.filter((w) => w.accuracyScore < 60).map((w) => w.word.replace(/[.,!?。，！？]/g, ""))
+  const wordScores = new Map(
+    wordFeedback.map((w) => [w.word.replace(/[.,!?。，！？]/g, ""), w.accuracyScore])
   );
-  if (lowScoreWords.size === 0) {
+  const hasAttentionWords = wordFeedback.some((w) => w.accuracyScore < 75);
+  if (!hasAttentionWords) {
     return <span className="text-success font-bold">{sentence}</span>;
   }
   return (
     <span className="font-bold">
       {sentence.split(/(\s+)/).map((word, idx) => {
         const clean = word.replace(/[.,!?。，！？]/g, "");
-        return lowScoreWords.has(clean)
-          ? <span key={idx} className="text-destructive">{word}</span>
-          : <span key={idx} className="text-success">{word}</span>;
+        const score = wordScores.get(clean);
+        const colorClass = score === undefined ? "text-success" : getAccuracyColorClass(score);
+        return <span key={idx} className={colorClass}>{word}</span>;
       })}
     </span>
   );
@@ -64,15 +71,12 @@ export function renderSentenceWithFeedback(
 export interface SpeakingFeedbackInput {
   isPassed: boolean;
   overallScore: number;
-  fluencyScore: number;
-  prosodyScore: number;
-  completenessScore: number;
   wordLevelFeedback?: { word: string; accuracyScore: number }[];
 }
 
 export function generateSpeakingFeedback(attempt: SpeakingFeedbackInput): string {
   const lowWords = (attempt.wordLevelFeedback ?? [])
-    .filter((w) => w.accuracyScore < 60)
+    .filter((w) => w.accuracyScore < 50)
     .map((w) => w.word.replace(/[.,!?。，！？]/g, ""));
 
   if (lowWords.length > 0) {
@@ -83,17 +87,11 @@ export function generateSpeakingFeedback(attempt: SpeakingFeedbackInput): string
 
   if (attempt.isPassed) {
     if (attempt.overallScore >= 90) return "Excellent pronunciation! You sound very natural and clear.";
-    let feedback = "Good job! ";
-    if (attempt.fluencyScore < 80) {
-      feedback += "Try to speak a bit more smoothly without pausing.";
-    } else if (attempt.prosodyScore < 80) {
-      feedback += "Pay a little more attention to the natural rhythm and intonation.";
-    } else if (attempt.completenessScore < 80) {
-      feedback += "Make sure to pronounce every word in the sentence clearly.";
-    } else {
-      feedback += "Keep practicing to make it even more natural.";
+    const attentionWords = (attempt.wordLevelFeedback ?? []).filter((w) => w.accuracyScore < 75);
+    if (attentionWords.length > 0) {
+      return "Good job! A few words could be a bit clearer — keep practicing.";
     }
-    return feedback;
+    return "Good job! Keep practicing to make it even more natural.";
   }
 
   return "Please listen carefully to the native speaker and try again.";

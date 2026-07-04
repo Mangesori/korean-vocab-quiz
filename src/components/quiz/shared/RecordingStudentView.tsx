@@ -48,12 +48,15 @@ export function RecordingStudentView({ problems }: { problems: RecordingStudentI
           </div>
           <div className="flex-1 flex flex-col items-center justify-center w-full">
             {problem.mode === "read" ? (
-              <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 text-foreground leading-relaxed text-center drop-shadow-sm">
-                {problem.sentence}
-              </h3>
+              <>
+                <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold mb-2">문장을 보고 따라 말해보세요</p>
+                <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 text-foreground leading-relaxed text-center drop-shadow-sm">
+                  {problem.sentence}
+                </h3>
+              </>
             ) : (
               <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-6">
-                <p className="text-sm sm:text-base lg:text-lg text-muted-foreground font-medium mb-2">음성을 듣고 따라 녹음하세요</p>
+                <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold mb-2">음성을 듣고 따라 녹음하세요</p>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"

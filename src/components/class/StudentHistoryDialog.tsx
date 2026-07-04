@@ -47,8 +47,12 @@ export function StudentHistoryDialog({
   studentName,
   classId,
 }: StudentHistoryDialogProps) {
-  const { activities, isLoading } = useStudentHistory(studentId, classId);
-  const [selectedResult, setSelectedResult] = useState<StudentQuizActivity | null>(null);
+  const { activities, isLoading, refetch } = useStudentHistory(studentId, classId);
+  // id만 state로 갖고 매 렌더링마다 최신 activities에서 찾아 파생시킨다 —
+  // QuizResultsList.tsx와 동일한 패턴. useStudentHistory는 실시간 구독이 없으므로
+  // 점수 변경 후에는 QuizResultDialog의 onDataChanged 콜백으로 명시적으로 refetch한다.
+  const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
+  const selectedResult = activities.find((a) => a.id === selectedResultId) ?? null;
 
   return (
     <>
@@ -74,7 +78,7 @@ export function StudentHistoryDialog({
                     <TableHead className="whitespace-nowrap">배정일</TableHead>
                     <TableHead className="whitespace-nowrap">빈칸 채우기</TableHead>
                     <TableHead className="whitespace-nowrap">짝 맞추기</TableHead>
-                    <TableHead className="whitespace-nowrap">뜻 보고 단어 쓰기</TableHead>
+                    <TableHead className="whitespace-nowrap">단어 받아쓰기</TableHead>
                     <TableHead className="whitespace-nowrap">문장 순서 맞추기</TableHead>
                     <TableHead className="whitespace-nowrap">문장 만들기</TableHead>
                     <TableHead className="whitespace-nowrap">말하기 연습</TableHead>
@@ -145,7 +149,7 @@ export function StudentHistoryDialog({
                             size="icon"
                             className="h-8 w-8 hover:bg-transparent"
                             disabled={activity.status !== "completed"}
-                            onClick={() => activity.status === "completed" && setSelectedResult(activity)}
+                            onClick={() => activity.status === "completed" && setSelectedResultId(activity.id)}
                           >
                             <Eye className={`w-4 h-4 ${activity.status !== "completed" ? "text-muted-foreground" : "text-primary"}`} />
                           </Button>
@@ -162,10 +166,11 @@ export function StudentHistoryDialog({
 
       <QuizResultDialog
         isOpen={!!selectedResult}
-        onClose={() => setSelectedResult(null)}
+        onClose={() => setSelectedResultId(null)}
         result={selectedResult}
         studentName={studentName}
         quizId={selectedResult?.quiz_id || ""}
+        onDataChanged={refetch}
       />
     </>
   );

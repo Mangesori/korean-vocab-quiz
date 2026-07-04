@@ -150,7 +150,7 @@ export default function QuizShare() {
 
   const typeChips = [
     { label: "짝 맞추기", count: `${matchupCount}문제`, show: !!quiz.matchup_enabled },
-    { label: "뜻 보고 단어 쓰기", count: `${typeAnswerCount}문제`, show: !!quiz.type_answer_enabled },
+    { label: "단어 받아쓰기", count: `${typeAnswerCount}문제`, show: !!quiz.type_answer_enabled },
     { label: "빈칸 채우기", count: `${quiz.problems.length}문제`, show: quiz.fill_blank_enabled !== false },
     { label: "문장 순서 맞추기", count: `${wordMagnetCount}문제`, show: !!quiz.word_magnet_enabled },
     { label: "문장 만들기", count: `${sentenceCount}문제`, show: !!quiz.sentence_making_enabled },

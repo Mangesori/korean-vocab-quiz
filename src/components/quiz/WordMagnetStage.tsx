@@ -36,7 +36,7 @@ export interface WordMagnetProblemData {
 interface WordMagnetStageProps {
   problems: WordMagnetProblemData[];
   onProgressUpdate?: (current: number, total: number, label: string) => void;
-  onComplete: (answers: Record<string, string>) => void;
+  onComplete: (answers: Record<string, string>, skippedIds: string[]) => void;
   onBack?: () => void;
   backLabel?: string;
 }
@@ -141,6 +141,7 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
   // 문제별로 배치한 답(타일 배열) 저장
   const [savedAnswers, setSavedAnswers] = useState<Record<string, Tile[]>>({});
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
 
   const total = problems.length;
   const currentProblem = problems[currentIndex];
@@ -168,6 +169,15 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
     useSensor(KeyboardSensor)
   );
 
+  const unskipCurrent = () => {
+    if (!currentProblem || !skippedIds.has(currentProblem.id)) return;
+    setSkippedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(currentProblem.id);
+      return next;
+    });
+  };
+
   const handleTap = (tile: Tile) => {
     const inAnswer = answerItems.some((t) => t.id === tile.id);
     const newA = inAnswer
@@ -175,6 +185,7 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
       : [...answerItems, tile];
     setAnswerItems(newA);
     persistCurrent(newA);
+    unskipCurrent();
   };
 
   const handleDragStart = (e: DragStartEvent) => setActiveId(e.active.id);
@@ -183,6 +194,7 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
     setActiveId(null);
     const { active, over } = e;
     if (!over) return;
+    unskipCurrent();
     const activeIdStr = String(active.id);
     const overId = String(over.id);
 
@@ -224,6 +236,7 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
   const goNext = () => { if (currentIndex < total - 1) setCurrentIndex((i) => i + 1); };
 
   const allAnswered = problems.every((p) => {
+    if (skippedIds.has(p.id)) return true;
     const saved = p.id === currentProblem?.id ? answerItems : savedAnswers[p.id];
     return saved && saved.length > 0;
   });
@@ -233,20 +246,51 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
     const answers: Record<string, string> = {};
     problems.forEach((p) => {
       const tiles = p.id === currentProblem.id ? answerItems : savedAnswers[p.id] || [];
-      answers[p.id] = assembleForDisplay(tiles);
+      answers[p.id] = skippedIds.has(p.id) ? "" : assembleForDisplay(tiles);
     });
-    onComplete(answers);
+    onComplete(answers, Array.from(skippedIds));
+  };
+
+  const handleSkip = () => {
+    const next = new Set(skippedIds);
+    next.add(currentProblem.id);
+    setSkippedIds(next);
+    if (currentIndex < total - 1) {
+      setCurrentIndex((i) => i + 1);
+    } else {
+      const answers: Record<string, string> = {};
+      problems.forEach((p) => {
+        const tiles = p.id === currentProblem.id ? answerItems : savedAnswers[p.id] || [];
+        answers[p.id] = next.has(p.id) ? "" : assembleForDisplay(tiles);
+      });
+      onComplete(answers, Array.from(next));
+    }
   };
 
   const activeTile = bankOrder.find((t) => t.id === activeId);
-  const currentAnswered = answerItems.length > 0;
+  const isCurrentSkipped = skippedIds.has(currentProblem?.id);
+  const currentAnswered = answerItems.length > 0 || isCurrentSkipped;
 
   if (!currentProblem) return null;
 
+  const skipButton = (
+    <button
+      type="button"
+      onClick={handleSkip}
+      className={`inline-block text-sm rounded px-1 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+        isCurrentSkipped
+          ? "text-foreground font-semibold"
+          : "text-muted-foreground font-medium hover:text-foreground hover:scale-110"
+      }`}
+    >
+      {isCurrentSkipped ? "모르겠어요 (선택됨)" : "모르겠어요"}
+    </button>
+  );
+
   return (
-    <Card className="w-full max-w-3xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl bg-transparent sm:bg-white">
+    <Card className="w-full max-w-5xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl bg-transparent sm:bg-white mt-4">
       <CardContent className="p-0 sm:p-6 md:p-8 space-y-5">
-        <p className="text-center text-sm sm:text-base text-muted-foreground font-medium">
+        <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold">
           단어를 끌거나 탭해서 문장을 완성하세요
         </p>
 
@@ -296,10 +340,13 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
           <DragOverlay>{activeTile ? <TileBox tile={activeTile} /> : null}</DragOverlay>
         </DndContext>
 
+        {/* 모바일: 폭이 부족해 네비 줄 위에 별도로 */}
+        <div className="sm:hidden flex justify-center">{skipButton}</div>
+
         {/* 네비게이션 */}
-        <div className="flex justify-between items-center pt-2">
-          {currentIndex === 0 ? (
-            onBack ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 items-center pt-2 gap-2">
+          <div className="justify-self-start">
+            {currentIndex === 0 && onBack ? (
               <Button
                 variant="outline"
                 onClick={onBack}
@@ -308,35 +355,38 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
                 <ChevronLeft className="w-4 h-4 mr-2" /> {backLabel ?? "이전"}
               </Button>
             ) : (
-              <span />
-            )
-          ) : (
-            <Button
-              variant="outline"
-              onClick={goPrev}
-              className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
-            >
-              <ChevronLeft className="w-4 h-4 mr-2" /> 이전
-            </Button>
-          )}
+              <Button
+                variant="outline"
+                onClick={goPrev}
+                disabled={currentIndex === 0}
+                className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" /> 이전
+              </Button>
+            )}
+          </div>
 
-          {currentIndex < total - 1 ? (
-            <Button
-              onClick={goNext}
-              disabled={!currentAnswered}
-              className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
-            >
-              다음 문제 <ChevronRight className="w-4 h-4 ml-2" />
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={!allAnswered}
-              className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
-            >
-              결과 확인 <ChevronRight className="w-5 h-5 ml-2" />
-            </Button>
-          )}
+          <div className="hidden sm:flex justify-center">{skipButton}</div>
+
+          <div className="justify-self-end">
+            {currentIndex < total - 1 ? (
+              <Button
+                onClick={goNext}
+                disabled={!currentAnswered}
+                className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
+              >
+                다음 문제 <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmit}
+                disabled={!allAnswered}
+                className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
+              >
+                결과 확인 <ChevronRight className="w-5 h-5 ml-2" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

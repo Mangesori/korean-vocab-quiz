@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Navigate, Link, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,6 +41,7 @@ interface WrongAnswer {
 
 export default function WrongAnswerNotebook() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [quizFilter, setQuizFilter] = useState<string>('all');
@@ -174,12 +175,15 @@ export default function WrongAnswerNotebook() {
       <Navbar />
       <main className="container max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <Link to="/dashboard">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              대시보드로 돌아가기
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2"
+            onClick={() => (location.key !== 'default' ? navigate(-1) : navigate('/dashboard'))}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            뒤로
+          </Button>
         </div>
 
         <div className="mb-6">
@@ -295,7 +299,7 @@ export default function WrongAnswerNotebook() {
                   {/* 문장 섹션 */}
                   <div>
                     <p className="text-xs text-muted-foreground mb-2">문장</p>
-                    <div className="rounded-lg border bg-muted/30 px-4 py-2">
+                    <div className="rounded-lg border bg-muted px-4 py-2">
                       <p className="text-base leading-relaxed">
                         {(() => {
                           const parts = item.sentence.split(/\(\s*\)|\(\)/);
@@ -323,13 +327,13 @@ export default function WrongAnswerNotebook() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">정답</p>
-                      <p className="px-3 py-2 rounded-md bg-muted/30 text-sm font-medium text-success">
+                      <p className="px-3 py-2 rounded-md bg-muted text-sm font-medium text-success">
                         {item.correct_answer}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">내 답</p>
-                      <p className="px-3 py-2 rounded-md bg-muted/30 text-sm font-medium text-destructive">
+                      <p className="px-3 py-2 rounded-md bg-muted text-sm font-medium text-destructive">
                         {item.user_answer || '(입력 없음)'}
                       </p>
                     </div>
@@ -339,7 +343,7 @@ export default function WrongAnswerNotebook() {
                   {item.translation && (
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">번역</p>
-                      <p className="px-3 py-2 rounded-md bg-muted/30 text-sm">
+                      <p className="px-3 py-2 rounded-md bg-muted text-sm">
                         {item.translation}
                       </p>
                     </div>

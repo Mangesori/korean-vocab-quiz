@@ -104,7 +104,11 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
   const { results, isLoading } = useQuizResults(quizId);
   const [filterType, setFilterType] = useState<"all" | "anonymous" | "student">("all");
   const [sortOrder, setSortOrder] = useState<"latest" | "score_high" | "score_low">("latest");
-  const [selectedResult, setSelectedResult] = useState<QuizResult | null>(null);
+  // id만 state로 갖고 매 렌더링마다 최신 results에서 찾아 파생시킨다 —
+  // 재채점/수정 후 quiz_results가 갱신돼도(useQuizResults의 실시간 구독) 다이얼로그가
+  // 스냅샷을 계속 들고 있어 화면이 갱신되지 않는 문제를 구조적으로 방지한다.
+  const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
+  const selectedResult = results.find((r) => r.id === selectedResultId) ?? null;
 
   // Filter and Sort
   const filteredResults = results
@@ -249,7 +253,7 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
     <div key={result.id} className="flex flex-col gap-2 p-4 border rounded-lg bg-card">
       <div className="flex items-center justify-between">
         {renderNameCell(result)}
-        <Button variant="ghost" size="icon" onClick={() => setSelectedResult(result)}>
+        <Button variant="ghost" size="icon" onClick={() => setSelectedResultId(result.id)}>
           <Eye className="h-4 w-4" />
         </Button>
       </div>
@@ -345,7 +349,7 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
                     />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedResult(result)}>
+                    <Button variant="ghost" size="icon" onClick={() => setSelectedResultId(result.id)}>
                       <Eye className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -359,7 +363,7 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
       {/* Result Detail Dialog */}
       <QuizResultDialog
         isOpen={!!selectedResult}
-        onClose={() => setSelectedResult(null)}
+        onClose={() => setSelectedResultId(null)}
         result={selectedResult}
         studentName={selectedResult ? (selectedResult.is_anonymous ? selectedResult.anonymous_name || "익명" : selectedResult.student_profile?.name || "알 수 없음") : ""}
         isAnonymous={selectedResult?.is_anonymous}

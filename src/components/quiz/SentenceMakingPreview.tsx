@@ -22,9 +22,8 @@ export function SentenceMakingPreview({
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold mb-2">문장 만들기 단어 목록</h2>
         <p className="text-muted-foreground">
-          학생들은 각 단어를 사용하여 문장을 만들어야 합니다. (저장 후 상세 편집 가능)
+          학생이 제시된 단어를 사용하여 문장을 만듭니다. 저장 후 재편집이 가능합니다.
         </p>
       </div>
 

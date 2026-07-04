@@ -227,7 +227,7 @@ export default function TeacherDashboard() {
                 <p className="text-xs text-muted-foreground mt-0.5">생성한 퀴즈 목록</p>
               </div>
               <Link to="/quizzes">
-                <Button variant="ghost" className="text-xs h-auto py-[3px] px-[9px] gap-[2px] [&_svg]:size-3">
+                <Button variant="ghost" className="text-sm h-auto py-2 px-3 gap-1 [&_svg]:size-4">
                   전체 보기<ChevronRight />
                 </Button>
               </Link>
@@ -303,7 +303,7 @@ export default function TeacherDashboard() {
                 <p className="text-xs text-muted-foreground mt-0.5">관리 중인 클래스</p>
               </div>
               <Link to="/classes">
-                <Button variant="ghost" className="text-xs h-auto py-[3px] px-[9px] gap-[2px] [&_svg]:size-3">
+                <Button variant="ghost" className="text-sm h-auto py-2 px-3 gap-1 [&_svg]:size-4">
                   전체 보기<ChevronRight />
                 </Button>
               </Link>

@@ -1,16 +1,43 @@
 
-import { useState } from "react";
-import { Eye, EyeOff, RefreshCw, Loader2, Save, Edit2, Plus } from "lucide-react";
+import { useState, type CSSProperties, type ReactNode } from "react";
+import { Eye, EyeOff, RefreshCw, Loader2, Save, Edit2, Plus, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { ProblemCard } from "./ProblemCard";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { FillBlankEditCard } from "@/components/quiz/shared/FillBlankEditCard";
 import { FillBlankStudentSet } from "@/components/quiz/shared/FillBlankStudentSet";
 import { Problem } from "@/hooks/useQuizData";
+
+// 드래그로 순서를 바꿀 수 있는 카드 래퍼 — 편집 모드에서만 사용. 세트 경계를 넘는 드래그도 지원.
+function SortableFillBlankCard({ id, children }: { id: string; children: (dragHandleProps: { attributes: any; listeners: any }) => ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ attributes, listeners })}
+    </div>
+  );
+}
 
 interface FillBlankProblemListProps {
   problems: Problem[];
   isEditing: boolean;
   onUpdateProblem: (id: string, field: keyof Problem, value: string) => void;
+  onReorderProblems?: (problems: Problem[]) => void;
   audioUrls: Record<string, string>;
   onPlayAudio: (url: string) => void;
   onRegenerateAllAudio: () => void;
@@ -38,6 +65,7 @@ export function FillBlankProblemList({
   problems,
   isEditing,
   onUpdateProblem,
+  onReorderProblems,
   audioUrls,
   onPlayAudio,
   onRegenerateAllAudio,
@@ -72,25 +100,19 @@ export function FillBlankProblemList({
     setShowTranslations(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // 학생 화면용: 문장에서 빈칸과 힌트를 분리하여 렌더링
-  const renderStudentSentence = (sentence: string, hint: string) => {
-    const parts = sentence.split(/\(\s*\)|\(\)/);
-
-    if (parts.length < 2) {
-      return <span>{sentence}</span>;
-    }
-
-    return (
-      <span className="flex items-center flex-wrap gap-1">
-        <span>{parts[0]}</span>
-        <span className="inline-flex items-center gap-1">
-          <span className="text-muted-foreground">( _____ )</span>
-          {hint && <span className="text-primary text-sm">{hint}</span>}
-        </span>
-        <span>{parts[1]}</span>
-      </span>
-    );
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id || !onReorderProblems) return;
+    const oldIndex = problems.findIndex((p) => p.id === active.id);
+    const newIndex = problems.findIndex((p) => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    onReorderProblems(arrayMove(problems, oldIndex, newIndex));
   };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
 
   return (
     <div className="space-y-6">
@@ -108,7 +130,7 @@ export function FillBlankProblemList({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center sm:gap-2">
+        <div className="grid grid-cols-2 gap-3 w-full sm:flex sm:w-auto sm:items-center sm:gap-3">
           <Button
             variant="default"
             size="sm"
@@ -175,55 +197,100 @@ export function FillBlankProblemList({
         </div>
       </div>
 
+      {isEditing && (
+        <div className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary/80 mb-6">
+          <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span>출제 문장에서 정답이 들어갈 자리에 괄호 ( )를 넣어주세요. 학생 화면에는 정답 칸에 입력한 단어가 그 자리에 채워져서 보입니다.</span>
+        </div>
+      )}
 
-      <div className="space-y-6">
-        {problemSets.map((set, setIndex) => (
-          <div key={setIndex}>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="px-3 py-1 rounded-md bg-muted text-muted-foreground text-xl font-medium">
-                세트 {setIndex + 1}
-              </span>
+      {isEditing && !studentPreview && onReorderProblems ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={problems.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-6">
+              {problemSets.map((set, setIndex) => (
+                <div key={setIndex}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="px-3 py-1 rounded-md bg-muted text-muted-foreground text-xl font-medium">
+                      세트 {setIndex + 1}
+                    </span>
+                  </div>
+                  <div className="space-y-4">
+                    {set.map((problem) => {
+                      const globalIndex = setIndex * wordsPerSet + set.indexOf(problem);
+                      return (
+                        <SortableFillBlankCard key={problem.id} id={problem.id}>
+                          {(dragHandleProps) => (
+                            <FillBlankEditCard
+                              problem={problem}
+                              index={globalIndex}
+                              isEditing={isEditing}
+                              onUpdateProblem={onUpdateProblem}
+                              audioUrl={audioUrls[problem.id]}
+                              onPlayAudio={onPlayAudio}
+                              onRegenerateAudio={() => onRegenerateSingleAudio(problem)}
+                              onRegenerateProblem={() => onRegenerateProblem(problem)}
+                              regeneratingId={regeneratingProblemId}
+                              onDeleteProblem={onDeleteProblem ? () => onDeleteProblem(problem) : undefined}
+                              isDeletingProblem={deletingProblemId === problem.id}
+                              dragHandleProps={dragHandleProps}
+                            />
+                          )}
+                        </SortableFillBlankCard>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
-
-            {studentPreview ? (
-              <FillBlankStudentSet
-                set={set}
-                startNumber={setIndex * wordsPerSet + 1}
-                showTranslations={showTranslations}
-                onToggleTranslation={toggleTranslation}
-                audioUrls={audioUrls}
-                onPlayAudio={onPlayAudio}
-              />
-            ) : (
-              <div className="space-y-4">
-                {set.map((problem) => {
-                  const globalIndex = setIndex * wordsPerSet + set.indexOf(problem);
-                  return (
-                    <ProblemCard
-                      key={problem.id}
-                      problem={problem}
-                      index={globalIndex}
-                      isEditing={isEditing}
-                      onUpdateProblem={onUpdateProblem}
-                      audioUrl={audioUrls[problem.id]}
-                      onPlayAudio={onPlayAudio}
-                      onRegenerateAudio={() => onRegenerateSingleAudio(problem)}
-                      onRegenerateProblem={() => onRegenerateProblem(problem)}
-                      regeneratingId={regeneratingProblemId}
-                      showTranslation={!!showTranslations[problem.id]}
-                      onToggleTranslation={toggleTranslation}
-                      studentPreview={studentPreview}
-                      renderStudentSentence={renderStudentSentence}
-                      onDeleteProblem={onDeleteProblem ? () => onDeleteProblem(problem) : undefined}
-                      isDeletingProblem={deletingProblemId === problem.id}
-                    />
-                  );
-                })}
+          </SortableContext>
+        </DndContext>
+      ) : (
+        <div className="space-y-6">
+          {problemSets.map((set, setIndex) => (
+            <div key={setIndex}>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="px-3 py-1 rounded-md bg-muted text-muted-foreground text-xl font-medium">
+                  세트 {setIndex + 1}
+                </span>
               </div>
-            )}
-          </div>
-        ))}
-      </div>
+
+              {studentPreview ? (
+                <FillBlankStudentSet
+                  set={set}
+                  startNumber={setIndex * wordsPerSet + 1}
+                  showTranslations={showTranslations}
+                  onToggleTranslation={toggleTranslation}
+                  audioUrls={audioUrls}
+                  onPlayAudio={onPlayAudio}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {set.map((problem) => {
+                    const globalIndex = setIndex * wordsPerSet + set.indexOf(problem);
+                    return (
+                      <FillBlankEditCard
+                        key={problem.id}
+                        problem={problem}
+                        index={globalIndex}
+                        isEditing={isEditing}
+                        onUpdateProblem={onUpdateProblem}
+                        audioUrl={audioUrls[problem.id]}
+                        onPlayAudio={onPlayAudio}
+                        onRegenerateAudio={() => onRegenerateSingleAudio(problem)}
+                        onRegenerateProblem={() => onRegenerateProblem(problem)}
+                        regeneratingId={regeneratingProblemId}
+                        onDeleteProblem={onDeleteProblem ? () => onDeleteProblem(problem) : undefined}
+                        isDeletingProblem={deletingProblemId === problem.id}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {onAddProblem && (
         <div className="flex justify-center mt-4">

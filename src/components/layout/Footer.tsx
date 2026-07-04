@@ -2,7 +2,7 @@ import { FeedbackButton } from '@/components/feedback/FeedbackButton';
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-muted/30">
+    <footer className="border-t border-border bg-muted">
       <div className="container py-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <img src="/Namu_logo_text_right.png" className="h-10 w-auto" alt="나무 Korean" />

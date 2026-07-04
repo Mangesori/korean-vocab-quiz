@@ -1,12 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const TABS = [
   { id: "create", label: "퀴즈 생성", role: "선생님", subtitle: "선생님 화면 / 새 퀴즈 만들기" },
-  { id: "blank", label: "빈칸", role: "학생", subtitle: "학생 화면 / 빈칸 채우기 퀴즈" },
-  { id: "sentence", label: "문장", role: "학생", subtitle: "학생 화면 / 문장 만들기 퀴즈" },
-  { id: "speak", label: "말하기", role: "학생", subtitle: "학생 화면 / 말하기 연습 퀴즈" },
-  { id: "result", label: "결과", role: "학생", subtitle: "학생 화면 / 퀴즈 결과" },
+  { id: "matchup", label: "매치업", role: "학생", subtitle: "학생 화면 / 짝 맞추기 퀴즈" },
+  { id: "typeAnswer", label: "받아쓰기", role: "학생", subtitle: "학생 화면 / 단어 받아쓰기 퀴즈" },
+  { id: "blank", label: "빈칸 채우기", role: "학생", subtitle: "학생 화면 / 빈칸 채우기 퀴즈" },
+  { id: "wordMagnet", label: "순서 맞추기", role: "학생", subtitle: "학생 화면 / 문장 순서 맞추기 퀴즈" },
+  { id: "sentence", label: "문장 만들기", role: "학생", subtitle: "학생 화면 / 문장 만들기 퀴즈" },
+  { id: "speak", label: "말하기 연습", role: "학생", subtitle: "학생 화면 / 말하기 연습 퀴즈" },
+  { id: "result", label: "결과 확인", role: "학생", subtitle: "학생 화면 / 퀴즈 결과" },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -35,29 +38,33 @@ function PaneCreate({ isActive, isMobile = false }: { isActive: boolean; isMobil
   const WORDS = ["자다", "연습하다", "혼자", "가깝다", "걸리다"];
   const [typed, setTyped] = useState("");
   const [cefrSelected, setCefrSelected] = useState("A1");
+  const [typesSelected, setTypesSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!isActive) { setTyped(""); setCefrSelected("A1"); return; }
+    if (!isActive) { setTyped(""); setCefrSelected("A1"); setTypesSelected(new Set()); return; }
     let i = 0;
     let tid: ReturnType<typeof setTimeout>;
-    let t1: ReturnType<typeof setTimeout> | undefined;
+    const extraTids: ReturnType<typeof setTimeout>[] = [];
     const tick = () => {
       if (i < FULL_TEXT.length) {
         setTyped(FULL_TEXT.slice(0, i + 1));
         i++;
         tid = setTimeout(tick, 70);
       } else {
-        // typing done — jump A1 → B1
-        t1 = setTimeout(() => setCefrSelected("B1"), 300);
+        // typing done — jump A1 → B1, then 퀴즈 유형이 하나씩 선택됨
+        extraTids.push(setTimeout(() => setCefrSelected("B1"), 300));
+        extraTids.push(setTimeout(() => setTypesSelected(new Set(["blank"])), 700));
+        extraTids.push(setTimeout(() => setTypesSelected(new Set(["blank", "sentence"])), 1050));
         tid = setTimeout(() => {
           setTyped(""); i = 0;
           setCefrSelected("A1");
+          setTypesSelected(new Set());
           tid = setTimeout(tick, 300);
         }, 2200);
       }
     };
     tid = setTimeout(tick, 600);
-    return () => { clearTimeout(tid); if (t1) clearTimeout(t1); };
+    return () => { clearTimeout(tid); extraTids.forEach(clearTimeout); };
   }, [isActive]);
 
   const wordCount = WORDS.filter(w => typed.includes(w)).length;
@@ -112,24 +119,34 @@ function PaneCreate({ isActive, isMobile = false }: { isActive: boolean; isMobil
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 5 }}>
           {[
-            { icon: "type", label: "빈칸 채우기", sub: "필수 포함", on: true },
-            { icon: "pen", label: "문장 만들기", sub: "선택됨", on: true },
-            { icon: "mic", label: "말하기 연습", sub: "발음 평가", on: false },
-          ].map((q, i) => (
-            <div key={i} style={{
+            { id: "matchup", icon: "link", label: "짝 맞추기", subOff: "단어 매칭" },
+            { id: "typeAnswer", icon: "keyboard", label: "단어 받아쓰기", subOff: "뜻 보고 단어 쓰기" },
+            { id: "blank", icon: "type", label: "빈칸 채우기", subOff: "문장 완성하기" },
+            { id: "wordMagnet", icon: "magnet", label: "문장 순서", subOff: "순서대로 단어 배치" },
+            { id: "sentence", icon: "pen", label: "문장 만들기", subOff: "단어 보고 문장 쓰기" },
+            { id: "speak", icon: "mic", label: "말하기 연습", subOff: "읽거나 듣고 따라 말하기" },
+          ].map((q) => {
+            const on = typesSelected.has(q.id);
+            return (
+            <div key={q.id} style={{
               padding: `${8 * S}px ${10 * S}px`, borderRadius: 10,
-              border: `1.5px solid ${q.on ? "#1E6B47" : "#E2DDD8"}`,
-              background: q.on ? "#E8F5EE" : "#fff",
+              border: `1.5px solid ${on ? "#1E6B47" : "#E2DDD8"}`,
+              background: on ? "#E8F5EE" : "#fff",
+              transition: "border 200ms ease, background 200ms ease",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 3 }}>
-                {q.icon === "type" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={q.on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></svg>}
-                {q.icon === "pen" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={q.on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" /></svg>}
-                {q.icon === "mic" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={q.on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5 12c0 3.866 3.134 7 7 7s7-3.134 7-7" /><line x1="12" y1="19" x2="12" y2="22" /></svg>}
-                <span style={{ fontSize: 10.5 * S, fontWeight: 700, color: q.on ? "#1A1714" : "#6B6460" }}>{q.label}</span>
+                {q.icon === "link" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7a5 5 0 0 1 0-10h2" /><path d="M15 7h2a5 5 0 1 1 0 10h-2" /><line x1="8" y1="12" x2="16" y2="12" /></svg>}
+                {q.icon === "keyboard" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="6" y1="9" x2="6" y2="9.01" /><line x1="10" y1="9" x2="10" y2="9.01" /><line x1="14" y1="9" x2="14" y2="9.01" /><line x1="18" y1="9" x2="18" y2="9.01" /><line x1="7" y1="15" x2="17" y2="15" /></svg>}
+                {q.icon === "type" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></svg>}
+                {q.icon === "magnet" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15 3 12l6-6a6 6 0 0 1 8.49 8.49L12 20l-3-3 5-5a2 2 0 1 0-2.83-2.83L6 14" /><path d="m5 8 3 3" /><path d="m11 14 3 3" /></svg>}
+                {q.icon === "pen" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" /></svg>}
+                {q.icon === "mic" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5 12c0 3.866 3.134 7 7 7s7-3.134 7-7" /><line x1="12" y1="19" x2="12" y2="22" /></svg>}
+                <span style={{ fontSize: 10.5 * S, fontWeight: 700, color: on ? "#1A1714" : "#6B6460", transition: "color 200ms ease" }}>{q.label}</span>
               </div>
-              <div style={{ fontSize: 9.5 * S, color: q.on ? "#1E6B47" : "#9E9894" }}>{q.sub}</div>
+              <div style={{ fontSize: 9.5 * S, color: on ? "#1E6B47" : "#9E9894", transition: "color 200ms ease" }}>{on ? "선택됨" : q.subOff}</div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -140,6 +157,153 @@ function PaneCreate({ isActive, isMobile = false }: { isActive: boolean; isMobil
         <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10 * S, opacity: 0.7, padding: "2px 5px", background: "rgba(255,255,255,0.18)", borderRadius: 4 }}>⌘ ↵</span>
       </div>
 
+    </div>
+  );
+}
+
+// ─── Pane: 짝 맞추기 ─────────────────────────────────────────────────────────
+const MU_PAIRS = [
+  { k: "자다", m: "to sleep" },
+  { k: "연습하다", m: "to practice" },
+  { k: "혼자", m: "alone" },
+  { k: "가깝다", m: "close by" },
+  { k: "걸리다", m: "to take (time)" },
+];
+const MU_LEFT_ORDER = [0, 1, 2, 3, 4];
+const MU_RIGHT_ORDER = [3, 0, 4, 1, 2];
+
+function PaneMatchup({ isActive, isMobile = false }: { isActive: boolean; isMobile?: boolean }) {
+  const S = isMobile ? 1 : 1.3;
+  const [matched, setMatched] = useState<Set<number>>(new Set());
+  const [selLeft, setSelLeft] = useState<number | null>(null);
+  const [selRight, setSelRight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isActive) { setMatched(new Set()); setSelLeft(null); setSelRight(null); return; }
+    let cancelled = false;
+    const tids: ReturnType<typeof setTimeout>[] = [];
+    const T = (fn: () => void, ms: number) => { const id = setTimeout(() => { if (!cancelled) fn(); }, ms); tids.push(id); };
+
+    const runCycle = () => {
+      setMatched(new Set());
+      setSelLeft(null);
+      setSelRight(null);
+      let t = 500;
+      MU_PAIRS.forEach((_, i) => {
+        T(() => setSelLeft(i), t); t += 550;
+        T(() => setSelRight(i), t); t += 550;
+        T(() => {
+          setMatched((prev) => new Set(prev).add(i));
+          setSelLeft(null);
+          setSelRight(null);
+        }, t); t += 450;
+      });
+      T(runCycle, t + 1200);
+    };
+    runCycle();
+    return () => { cancelled = true; tids.forEach(clearTimeout); };
+  }, [isActive]);
+
+  const tileStyle = (state: "matched" | "selected" | "idle", isLeft: boolean): React.CSSProperties => {
+    const base: React.CSSProperties = {
+      width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+      borderRadius: 14, padding: `${11 * S}px ${10 * S}px`, textAlign: "center",
+      transition: "all 200ms ease", fontWeight: 700, fontSize: 12 * S,
+    };
+    if (state === "matched") return { ...base, border: "2px solid #2D7D52", background: "rgba(45,125,82,0.1)", color: "#1A1714" };
+    if (state === "selected") return { ...base, border: "2px solid #1E6B47", background: "rgba(30,107,71,0.1)", boxShadow: "0 0 0 3px rgba(30,107,71,0.15)", color: "#1A1714" };
+    return isLeft
+      ? { ...base, border: "2px solid rgba(30,107,71,0.2)", background: "rgba(30,107,71,0.04)", color: "#1A1714" }
+      : { ...base, border: "2px solid #E2E8F0", background: "#F8FAFC", color: "#1E293B", fontWeight: 500 };
+  };
+
+  return (
+    <div style={{ padding: `${18 * S}px ${20 * S}px ${22 * S}px`, display: "flex", flexDirection: "column", gap: 14 * S, height: "100%" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16 * S, color: "#1A1714" }}>짝 맞추기</div>
+        <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11 * S, color: "#6B6460" }}>{matched.size} / {MU_PAIRS.length}</div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 * S, flex: 1 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {MU_LEFT_ORDER.map((i) => (
+            <div key={i} style={tileStyle(matched.has(i) ? "matched" : selLeft === i ? "selected" : "idle", true)}>{MU_PAIRS[i].k}</div>
+          ))}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {MU_RIGHT_ORDER.map((i) => (
+            <div key={i} style={tileStyle(matched.has(i) ? "matched" : selRight === i ? "selected" : "idle", false)}>{MU_PAIRS[i].m}</div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
+        <div style={{ padding: `${8 * S}px ${14 * S}px`, borderRadius: 9, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#6B6460" }}>← 이전</div>
+        <div style={{
+          padding: `${8 * S}px ${16 * S}px`, borderRadius: 9, fontSize: 12 * S, fontWeight: 600,
+          background: matched.size === MU_PAIRS.length ? "#1E6B47" : "#E2DDD8",
+          color: matched.size === MU_PAIRS.length ? "#fff" : "#9E9894",
+          transition: "all 200ms ease",
+        }}>결과 확인 →</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Pane: 단어 받아쓰기 ─────────────────────────────────────────────────────
+function PaneTypeAnswer({ isActive, isMobile = false }: { isActive: boolean; isMobile?: boolean }) {
+  const S = isMobile ? 1 : 1.3;
+  const PROMPT = "alone";
+  const ANSWER = "혼자";
+  const [typed, setTyped] = useState("");
+
+  useEffect(() => {
+    if (!isActive) { setTyped(""); return; }
+    let i = 0;
+    let tid: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      if (i < ANSWER.length) {
+        setTyped(ANSWER.slice(0, i + 1));
+        i++;
+        tid = setTimeout(tick, 220);
+      } else {
+        tid = setTimeout(() => { setTyped(""); i = 0; tid = setTimeout(tick, 500); }, 2200);
+      }
+    };
+    tid = setTimeout(tick, 600);
+    return () => clearTimeout(tid);
+  }, [isActive]);
+
+  const done = typed === ANSWER;
+
+  return (
+    <div style={{ padding: `${18 * S}px ${22 * S}px ${22 * S}px`, display: "flex", flexDirection: "column", gap: 16 * S, height: "100%" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16 * S, color: "#1A1714" }}>단어 받아쓰기</div>
+        <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11 * S, color: "#6B6460" }}>3 / 15</div>
+      </div>
+
+      <div style={{ padding: `${22 * S}px ${20 * S}px`, background: "#F8FAFC", borderRadius: 14, minHeight: 90 * S, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ fontSize: 17 * S, fontWeight: 700, color: "#1A1714", textAlign: "center", margin: 0 }}>{PROMPT}</p>
+      </div>
+
+      <div style={{
+        height: 46 * S, borderRadius: 12, background: "#F8FAFC",
+        border: typed ? "1.5px solid #1E6B47" : "1.5px solid #E2E8F0",
+        boxShadow: typed ? "0 0 0 3px rgba(30,107,71,0.12)" : "none",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 15 * S, fontWeight: 700, color: done ? "#1E6B47" : "#1A1714",
+        transition: "all 200ms ease",
+      }}>
+        {typed
+          ? <>{typed}<span style={{ display: "inline-block", width: 1.5, height: 14, background: "#1E6B47", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} /></>
+          : <span style={{ fontSize: 12 * S, fontWeight: 400, color: "#94A3B8" }}>정답 입력</span>}
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
+        <div style={{ padding: `${8 * S}px ${14 * S}px`, borderRadius: 9, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#6B6460" }}>← 이전</div>
+        <div style={{ padding: `${8 * S}px ${16 * S}px`, borderRadius: 9, background: "#1E6B47", color: "#fff", fontSize: 12 * S, fontWeight: 600 }}>다음 문제 →</div>
+      </div>
     </div>
   );
 }
@@ -372,6 +536,106 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
   );
 }
 
+// ─── Pane: 문장 순서 맞추기 ───────────────────────────────────────────────────
+const WM_TILES: { content: string; isParticle: boolean }[] = [
+  { content: "집", isParticle: false },
+  { content: "에서", isParticle: true },
+  { content: "학교", isParticle: false },
+  { content: "까지", isParticle: true },
+  { content: "10분", isParticle: false },
+  { content: "이", isParticle: true },
+  { content: "걸려요.", isParticle: false },
+];
+const WM_BANK_ORDER = [4, 1, 6, 0, 5, 3, 2];
+
+function WMTile({ content, isParticle, S, hidden, marginLeft }: { content: string; isParticle: boolean; S: number; hidden?: boolean; marginLeft?: number }) {
+  return (
+    <div style={{
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      borderRadius: 10, padding: `${6 * S}px ${11 * S}px`, fontSize: 12.5 * S, fontWeight: 600,
+      whiteSpace: "nowrap",
+      marginLeft: marginLeft ?? 0,
+      background: hidden || isParticle ? "#F1F5F9" : "#fff",
+      color: hidden ? "transparent" : isParticle ? "#64748B" : "#1A1714",
+      border: "1px solid #E2E8F0",
+      boxShadow: !hidden && !isParticle ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+      transition: "opacity 200ms ease",
+    }}>{content}</div>
+  );
+}
+
+function PaneWordMagnet({ isActive, isMobile = false }: { isActive: boolean; isMobile?: boolean }) {
+  const S = isMobile ? 1 : 1.3;
+  const [placedCount, setPlacedCount] = useState(0);
+
+  useEffect(() => {
+    if (!isActive) { setPlacedCount(0); return; }
+    let cancelled = false;
+    const tids: ReturnType<typeof setTimeout>[] = [];
+    const T = (fn: () => void, ms: number) => { const id = setTimeout(() => { if (!cancelled) fn(); }, ms); tids.push(id); };
+    const runCycle = () => {
+      setPlacedCount(0);
+      let t = 600;
+      for (let i = 1; i <= WM_TILES.length; i++) {
+        T(() => setPlacedCount(i), t);
+        t += 480;
+      }
+      T(runCycle, t + 1800);
+    };
+    runCycle();
+    return () => { cancelled = true; tids.forEach(clearTimeout); };
+  }, [isActive]);
+
+  return (
+    <div style={{ padding: `${18 * S}px ${20 * S}px ${20 * S}px`, display: "flex", flexDirection: "column", gap: 12 * S, height: "100%" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16 * S, color: "#1A1714" }}>문장 순서 맞추기</div>
+        <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11 * S, color: "#6B6460" }}>5 / 10</div>
+      </div>
+
+      <div style={{ padding: `${14 * S}px ${16 * S}px`, background: "#F8FAFC", borderRadius: 12, textAlign: "center" }}>
+        <p style={{ fontSize: 12.5 * S, fontWeight: 600, color: "#1A1714", margin: 0 }}>It takes 10 minutes from home to school.</p>
+      </div>
+
+      {/* 답 영역 — 밑줄 라인 2개(실제 컴포넌트의 노트 줄 패턴처럼). 타일은 위쪽 줄부터 채워짐 */}
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <div style={{
+          minHeight: 50 * S, borderBottom: "1px solid #E2DDD8",
+          display: "flex", flexWrap: "wrap", alignItems: "flex-end", rowGap: 6, padding: `2px 2px ${5 * S}px`,
+        }}>
+          {WM_TILES.slice(0, placedCount).map((t, i) => (
+            <WMTile
+              key={i}
+              content={t.content}
+              isParticle={t.isParticle}
+              S={S}
+              marginLeft={i > 0 ? (t.isParticle ? 4 * S : 12 * S) : 0}
+            />
+          ))}
+        </div>
+        <div style={{ minHeight: 50 * S, borderBottom: "1px solid #E2DDD8" }} />
+      </div>
+
+      {/* 단어 은행 */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: `${8 * S}px`, marginTop: 6 }}>
+        {WM_BANK_ORDER.map((idx) => (
+          <WMTile key={idx} content={WM_TILES[idx].content} isParticle={WM_TILES[idx].isParticle} S={S} hidden={idx < placedCount} />
+        ))}
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
+        <div style={{ padding: `${8 * S}px ${14 * S}px`, borderRadius: 9, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#6B6460" }}>← 이전</div>
+        <div style={{
+          padding: `${8 * S}px ${16 * S}px`, borderRadius: 9, fontSize: 12 * S, fontWeight: 600,
+          background: placedCount === WM_TILES.length ? "#1E6B47" : "#E2DDD8",
+          color: placedCount === WM_TILES.length ? "#fff" : "#9E9894",
+          transition: "all 200ms ease",
+        }}>다음 문제 →</div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Pane: 문장 만들기 ───────────────────────────────────────────────────────
 function PaneSentence({ isActive, isMobile = false }: { isActive: boolean; isMobile?: boolean }) {
   const S = isMobile ? 1 : 1.3;
@@ -460,12 +724,12 @@ function PaneSpeak({ isActive, isMobile = false }: { isActive: boolean; isMobile
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, paddingTop: 8, paddingBottom: 4 }}>
           <p style={{ fontSize: 13 * S, color: "#6B6460", fontWeight: 500, textAlign: "center" }}>음성을 듣고 따라 녹음하세요</p>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 8, width: "100%" }}>
-            <button style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: `${7 * S}px ${14 * S}px`, borderRadius: 10, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
+          <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <button style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: `${7 * S}px ${14 * S}px`, borderRadius: 10, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
               보통 속도로 듣기
             </button>
-            <button style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: `${7 * S}px ${14 * S}px`, borderRadius: 10, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
+            <button style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: `${7 * S}px ${14 * S}px`, borderRadius: 10, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>
               <span style={{ fontSize: 15, lineHeight: 1 }}>🐢</span>
               천천히 듣기
             </button>
@@ -505,14 +769,77 @@ function PaneSpeak({ isActive, isMobile = false }: { isActive: boolean; isMobile
 const WAVEFORM_HEIGHTS = [6, 10, 14, 8, 12, 6, 14, 10, 8, 12];
 const NATIVE_WAVEFORM_HEIGHTS = [4, 8, 12, 10, 14, 8, 5, 12, 10, 8];
 
+const MATCHUP_RESULTS = [
+  { ok: true, n: 1, word: "자다", mine: "to sleep" },
+  { ok: true, n: 2, word: "연습하다", mine: "to practice" },
+  { ok: true, n: 3, word: "혼자", mine: "alone" },
+  { ok: false, n: 4, word: "가깝다", mine: "to take (time)", correct: "close by" },
+  { ok: true, n: 5, word: "걸리다", mine: "to take (time)" },
+];
+
+const TYPE_ANSWER_RESULTS = [
+  { ok: true, n: 1, prompt: "to sleep", mine: "자다" },
+  { ok: true, n: 2, prompt: "to practice", mine: "연습하다" },
+  { ok: false, n: 3, prompt: "alone", mine: "혹자", correct: "혼자" },
+  { ok: true, n: 4, prompt: "close by", mine: "가깝다" },
+  { ok: true, n: 5, prompt: "to take (time)", mine: "걸리다" },
+];
+
+const BLANK_RESULTS = [
+  { ok: true, n: 1, word: "자다", sentence: "피곤할 때는 일찍 ", answer: "자요", rest: "." },
+  { ok: true, n: 2, word: "연습하다", sentence: "집에서도 한국어를 ", answer: "연습했어요", rest: "." },
+  { ok: true, n: 3, word: "혼자", sentence: "오늘은 ", answer: "혼자", rest: " 밥을 먹었어요." },
+  { ok: false, n: 4, word: "가깝다", sentence: "여기서 역까지 ", answer: "가까워요", rest: ".", mine: "걸려요" },
+  { ok: true, n: 5, word: "걸리다", sentence: "집에서 학교까지 10분이 ", answer: "걸려요", rest: "." },
+];
+
+const WORD_MAGNET_RESULTS = [
+  { ok: true, n: 1, translation: "I sleep early because I'm tired today.", mine: "오늘 너무 피곤해서 일찍 자요." },
+  { ok: true, n: 2, translation: "I practice Korean at home too.", mine: "집에서도 한국어를 연습해요." },
+  { ok: false, n: 3, translation: "It takes 10 minutes from home to school.", mine: "학교에서 집이 10분 걸려요.", correct: "집에서 학교까지 10분이 걸려요." },
+  { ok: true, n: 4, translation: "The school is close from here.", mine: "여기서 학교까지 가까워요." },
+  { ok: true, n: 5, translation: "I studied alone at the library.", mine: "저는 도서관에서 혼자 공부했어요." },
+];
+
+const SENTENCE_RESULTS = [
+  { ok: true, n: 1, word: "자다", mine: "오늘 너무 피곤해서 일찍 잤어요.", mineColors: [] as string[], recommend: "", feedback: "" },
+  { ok: false, n: 2, word: "연습하다", mine: "어제 한국어가 연습해요.", mineColors: ["한국어가", "연습해요."] as string[], recommend: "어제 한국어를 연습했어요.", feedback: 'Use "를" not "가" after 한국어, and use past tense "-었어요".' },
+  { ok: true, n: 3, word: "혼자", mine: "저는 주말마다 혼자 운동해요.", mineColors: [] as string[], recommend: "", feedback: "" },
+  { ok: true, n: 4, word: "가깝다", mine: "학교가 집에서 가까워요.", mineColors: [] as string[], recommend: "", feedback: "" },
+  { ok: false, n: 5, word: "걸리다", mine: "10분을 걸려요.", mineColors: ["10분을", "걸려요."] as string[], recommend: "집에서 도서관까지 10분이 걸려요.", feedback: 'Use "이" not "을" as the particle before 걸리다.' },
+];
+
+const SPEAK_RESULTS = [
+  { n: 1, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "오늘 일찍 잘 거예요.", wrongWords: [] as string[], feedback: "Pronunciation is very natural!" },
+  { n: 2, type: "듣고 말하기", typeColor: "#C2410C", typeBg: "rgba(255,237,213,0.8)", sentence: "매일 조금씩 연습해요.", wrongWords: ["연습해요"] as string[], feedback: "Pay attention to the pronunciation of '연습해요'." },
+  { n: 3, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "혼자 공부하는 게 좋아요.", wrongWords: [] as string[], feedback: "Great pronunciation!" },
+  { n: 4, type: "듣고 말하기", typeColor: "#C2410C", typeBg: "rgba(255,237,213,0.8)", sentence: "여기서 가까워요.", wrongWords: [] as string[], feedback: "Accurate pronunciation!" },
+  { n: 5, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "거기까지 얼마나 걸려요?", wrongWords: ["걸려요"] as string[], feedback: "Pay attention to the pronunciation of '걸려요'." },
+];
+
+function pctLabel(correct: number, total: number) {
+  return `${Math.round((correct / total) * 100)}%`;
+}
+const MATCHUP_CORRECT = MATCHUP_RESULTS.filter((r) => r.ok).length;
+const TYPE_ANSWER_CORRECT = TYPE_ANSWER_RESULTS.filter((r) => r.ok).length;
+const BLANK_CORRECT = BLANK_RESULTS.filter((r) => r.ok).length;
+const WORD_MAGNET_CORRECT = WORD_MAGNET_RESULTS.filter((r) => r.ok).length;
+const SENTENCE_CORRECT = SENTENCE_RESULTS.filter((r) => r.ok).length;
+const SPEAK_CORRECT = SPEAK_RESULTS.filter((r) => r.wrongWords.length === 0).length;
+const TOTAL_CORRECT = MATCHUP_CORRECT + TYPE_ANSWER_CORRECT + BLANK_CORRECT + WORD_MAGNET_CORRECT + SENTENCE_CORRECT + SPEAK_CORRECT;
+const TOTAL_PROBLEMS = MATCHUP_RESULTS.length + TYPE_ANSWER_RESULTS.length + BLANK_RESULTS.length + WORD_MAGNET_RESULTS.length + SENTENCE_RESULTS.length + SPEAK_RESULTS.length;
+
 function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
   const S = isMobile ? 1 : 1.3;
-  const [tab, setTab] = useState<"blank" | "sentence" | "speak">("blank");
+  const [tab, setTab] = useState<"matchup" | "typeAnswer" | "blank" | "wordMagnet" | "sentence" | "speak">("matchup");
 
   const RESULT_TABS = [
-    { id: "blank" as const, label: "빈칸 채우기", pct: "80%", color: "#1E6B47" },
-    { id: "sentence" as const, label: "문장 만들기", pct: "60%", color: "#6D28D9" },
-    { id: "speak" as const, label: "말하기 연습", pct: "60%", color: "#D97706" },
+    { id: "matchup" as const, label: "짝맞추기", pct: pctLabel(MATCHUP_CORRECT, MATCHUP_RESULTS.length), color: "#0E7490" },
+    { id: "typeAnswer" as const, label: "받아쓰기", pct: pctLabel(TYPE_ANSWER_CORRECT, TYPE_ANSWER_RESULTS.length), color: "#1D4ED8" },
+    { id: "blank" as const, label: "빈칸", pct: pctLabel(BLANK_CORRECT, BLANK_RESULTS.length), color: "#1E6B47" },
+    { id: "wordMagnet" as const, label: "순서", pct: pctLabel(WORD_MAGNET_CORRECT, WORD_MAGNET_RESULTS.length), color: "#9D174D" },
+    { id: "sentence" as const, label: "문장", pct: pctLabel(SENTENCE_CORRECT, SENTENCE_RESULTS.length), color: "#6D28D9" },
+    { id: "speak" as const, label: "말하기", pct: pctLabel(SPEAK_CORRECT, SPEAK_RESULTS.length), color: "#D97706" },
   ];
 
   // 듣기/번역 보기 버튼 (빈칸 카드용)
@@ -527,9 +854,9 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
       {/* 점수 헤더 */}
       <div style={{ textAlign: "center", paddingTop: 2 }}>
         <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 11 * S, color: "#9E9894", marginBottom: 4 }}>일상 어휘 퀴즈</div>
-        <div style={{ fontSize: 44 * S, fontWeight: 900, color: "#1E6B47", lineHeight: 1, letterSpacing: "-0.02em" }}>67%</div>
+        <div style={{ fontSize: 44 * S, fontWeight: 900, color: "#1E6B47", lineHeight: 1, letterSpacing: "-0.02em" }}>{pctLabel(TOTAL_CORRECT, TOTAL_PROBLEMS)}</div>
         <div style={{ display: "inline-block", marginTop: 7, padding: `4px ${14 * S}px`, borderRadius: 9999, background: "rgba(255,255,255,0.9)", border: "1px solid #E2DDD8", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", fontSize: 11 * S, fontWeight: 700, color: "#1A1714" }}>
-          15문제 중 10문제를 맞혔어요!
+          {TOTAL_PROBLEMS}문제 중 {TOTAL_CORRECT}문제를 맞혔어요!
         </div>
         <div style={{ fontSize: 10.5 * S, color: "#9E9894", marginTop: 5 }}>잘했어요! 조금만 더 연습해볼까요? 💪</div>
       </div>
@@ -552,13 +879,57 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
 
       {/* 카드 목록 */}
       <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-        {tab === "blank" && [
-          { ok: true, n: 1, word: "자다", sentence: "피곤할 때는 일찍 ", answer: "자요", rest: "." },
-          { ok: true, n: 2, word: "연습하다", sentence: "집에서도 한국어를 ", answer: "연습했어요", rest: "." },
-          { ok: true, n: 3, word: "혼자", sentence: "오늘은 ", answer: "혼자", rest: " 밥을 먹었어요." },
-          { ok: false, n: 4, word: "가깝다", sentence: "여기서 역까지 ", answer: "가까워요", rest: ".", mine: "걸려요" },
-          { ok: true, n: 5, word: "걸리다", sentence: "집에서 학교까지 10분이 ", answer: "걸려요", rest: "." },
-        ].map((c) => (
+        {tab === "matchup" && MATCHUP_RESULTS.map((c) => (
+          <div key={c.n} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: `${10 * S}px ${12 * S}px`, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", fontSize: 9 * S, fontWeight: 700, color: "#fff", background: c.ok ? "#2D7D52" : "#C13B2E", flexShrink: 0 }}>{c.n}</span>
+                <span style={{ padding: `2px ${8 * S}px`, borderRadius: 9999, background: "#F8F5F0", border: "1px solid #E2DDD8", fontSize: 10.5 * S, fontWeight: 600, color: "#1A1714" }}>{c.word}</span>
+              </div>
+              {c.ok
+                ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D7D52" strokeWidth="2.5" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C13B2E" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+              }
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{ fontSize: 9 * S, fontWeight: 700, padding: "2px 5px", borderRadius: 4, background: c.ok ? "rgba(45,125,82,0.1)" : "#F1F5F9", color: c.ok ? "#2D7D52" : "#64748B", minWidth: 38, textAlign: "center", flexShrink: 0 }}>내 답변</span>
+              <span style={{ fontSize: 11.5 * S, fontWeight: 700, color: c.ok ? "#1E293B" : "#C13B2E" }}>{c.mine}</span>
+            </div>
+            {!c.ok && c.correct && (
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
+                <span style={{ fontSize: 9 * S, fontWeight: 700, padding: "2px 5px", borderRadius: 4, background: "rgba(30,107,71,0.1)", color: "#1E6B47", minWidth: 38, textAlign: "center", flexShrink: 0 }}>정답</span>
+                <span style={{ fontSize: 11.5 * S, fontWeight: 700, color: "#1E6B47" }}>{c.correct}</span>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {tab === "typeAnswer" && TYPE_ANSWER_RESULTS.map((c) => (
+          <div key={c.n} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: `${10 * S}px ${12 * S}px`, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", fontSize: 9 * S, fontWeight: 700, color: "#fff", background: c.ok ? "#2D7D52" : "#C13B2E", flexShrink: 0 }}>{c.n}</span>
+                <span style={{ padding: `2px ${8 * S}px`, borderRadius: 9999, background: "#F8F5F0", border: "1px solid #E2DDD8", fontSize: 10.5 * S, fontWeight: 600, color: "#1A1714" }}>{c.prompt}</span>
+              </div>
+              {c.ok
+                ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D7D52" strokeWidth="2.5" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C13B2E" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+              }
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{ fontSize: 9 * S, fontWeight: 700, padding: "2px 5px", borderRadius: 4, background: c.ok ? "rgba(45,125,82,0.1)" : "#F1F5F9", color: c.ok ? "#2D7D52" : "#64748B", minWidth: 38, textAlign: "center", flexShrink: 0 }}>내 답변</span>
+              <span style={{ fontSize: 11.5 * S, fontWeight: 700, color: c.ok ? "#1E293B" : "#C13B2E" }}>{c.mine}</span>
+            </div>
+            {!c.ok && c.correct && (
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
+                <span style={{ fontSize: 9 * S, fontWeight: 700, padding: "2px 5px", borderRadius: 4, background: "rgba(30,107,71,0.1)", color: "#1E6B47", minWidth: 38, textAlign: "center", flexShrink: 0 }}>정답</span>
+                <span style={{ fontSize: 11.5 * S, fontWeight: 700, color: "#1E6B47" }}>{c.correct}</span>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {tab === "blank" && BLANK_RESULTS.map((c) => (
           <div key={c.n} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: `${10 * S}px ${12 * S}px`, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
             {/* 헤더: [번호][단어] ... [듣기][번역 보기] */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
@@ -587,13 +958,28 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
           </div>
         ))}
 
-        {tab === "sentence" && [
-          { ok: true, n: 1, word: "자다", mine: "오늘 너무 피곤해서 일찍 잤어요.", mineColors: [] as string[], recommend: "", feedback: "" },
-          { ok: false, n: 2, word: "연습하다", mine: "어제 한국어가 연습해요.", mineColors: ["한국어가", "연습해요."] as string[], recommend: "어제 한국어를 연습했어요.", feedback: 'Use "를" not "가" after 한국어, and use past tense "-었어요".' },
-          { ok: true, n: 3, word: "혼자", mine: "저는 주말마다 혼자 운동해요.", mineColors: [] as string[], recommend: "", feedback: "" },
-          { ok: true, n: 4, word: "가깝다", mine: "학교가 집에서 가까워요.", mineColors: [] as string[], recommend: "", feedback: "" },
-          { ok: false, n: 5, word: "걸리다", mine: "10분을 걸려요.", mineColors: ["10분을", "걸려요."] as string[], recommend: "집에서 도서관까지 10분이 걸려요.", feedback: 'Use "이" not "을" as the particle before 걸리다.' },
-        ].map((c) => (
+        {tab === "wordMagnet" && WORD_MAGNET_RESULTS.map((c) => (
+          <div key={c.n} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: `${10 * S}px ${12 * S}px`, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", fontSize: 9 * S, fontWeight: 700, color: "#fff", background: c.ok ? "#2D7D52" : "#C13B2E", flexShrink: 0, marginTop: 1 }}>{c.n}</span>
+                <span style={{ fontSize: 10 * S, color: "#6B6460", fontWeight: 500, lineHeight: 1.4 }}>{c.translation}</span>
+              </div>
+              <div style={{ flexShrink: 0 }}>
+                {c.ok
+                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D7D52" strokeWidth="2.5" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C13B2E" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+                }
+              </div>
+            </div>
+            <div style={{ fontSize: 12 * S, fontWeight: 600, color: c.ok ? "#1E293B" : "#C13B2E", lineHeight: 1.5 }}>{c.mine}</div>
+            {!c.ok && c.correct && (
+              <div style={{ marginTop: 6, fontSize: 12 * S, fontWeight: 600, color: "#1E6B47", lineHeight: 1.5 }}>{c.correct}</div>
+            )}
+          </div>
+        ))}
+
+        {tab === "sentence" && SENTENCE_RESULTS.map((c) => (
           <div key={c.n} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: `${10 * S}px ${12 * S}px`, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
             {/* 헤더 */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -629,13 +1015,7 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
           </div>
         ))}
 
-        {tab === "speak" && [
-          { n: 1, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "오늘 일찍 잘 거예요.", wrongWords: [] as string[], feedback: "Pronunciation is very natural!" },
-          { n: 2, type: "듣고 말하기", typeColor: "#C2410C", typeBg: "rgba(255,237,213,0.8)", sentence: "매일 조금씩 연습해요.", wrongWords: ["연습해요"] as string[], feedback: "Pay attention to the pronunciation of '연습해요'." },
-          { n: 3, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "혼자 공부하는 게 좋아요.", wrongWords: [] as string[], feedback: "Great pronunciation!" },
-          { n: 4, type: "듣고 말하기", typeColor: "#C2410C", typeBg: "rgba(255,237,213,0.8)", sentence: "여기서 가까워요.", wrongWords: [] as string[], feedback: "Accurate pronunciation!" },
-          { n: 5, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "거기까지 얼마나 걸려요?", wrongWords: ["걸려요"] as string[], feedback: "Pay attention to the pronunciation of '걸려요'." },
-        ].map((c) => (
+        {tab === "speak" && SPEAK_RESULTS.map((c) => (
           <div key={c.n} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: `${10 * S}px ${12 * S}px`, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
             {/* 헤더 */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
@@ -693,6 +1073,7 @@ export function HeroProductMock() {
   const S = isMobile ? 1 : 1.3;
   const [active, setActive] = useState<TabId>("create");
   const [paused, setPaused] = useState(false);
+  const tabBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (paused) return;
@@ -702,6 +1083,11 @@ export function HeroProductMock() {
     }, ROTATE_MS);
     return () => clearTimeout(t);
   }, [active, paused]);
+
+  useEffect(() => {
+    const btn = tabBarRef.current?.querySelector<HTMLButtonElement>(`[data-tab-id="${active}"]`);
+    btn?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [active]);
 
   const activeTab = TABS.find((t) => t.id === active)!;
 
@@ -719,19 +1105,40 @@ export function HeroProductMock() {
       `}</style>
 
       {/* Tab bar above window */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 10, padding: 4, borderRadius: 10, background: "rgba(232,245,238,0.5)", border: "1px solid #E2DDD8" }}>
-        {TABS.map((t) => (
-          <button key={t.id} onClick={() => setActive(t.id)} style={{
-            flex: 1, padding: `${8 * S}px 6px`, borderRadius: 7, border: "none",
-            background: t.id === active ? "#fff" : "transparent",
-            boxShadow: t.id === active ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
-            cursor: "pointer", textAlign: "center", transition: "all 120ms ease",
-            fontFamily: "'Pretendard Variable', Pretendard, system-ui, sans-serif",
-          }}>
-            <div style={{ fontSize: 12 * S, fontWeight: 600, color: t.id === active ? "#1A1714" : "#6B6460", marginBottom: 1, letterSpacing: "-0.01em" }}>{t.label}</div>
-            <div style={{ fontSize: 9 * S, fontFamily: "'Geist', system-ui", fontWeight: 600, color: t.id === active ? "#1E6B47" : "#9E9894", letterSpacing: "0.04em", textTransform: "uppercase" }}>{t.role}</div>
-          </button>
-        ))}
+      <div style={{ position: "relative", marginBottom: 10 }}>
+        <div
+          ref={tabBarRef}
+          style={{
+            display: "flex", gap: 4, padding: 4, borderRadius: 10,
+            background: "rgba(232,245,238,0.5)", border: "1px solid #E2DDD8",
+            overflowX: "auto",
+            scrollSnapType: "x proximity",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
+          {TABS.map((t) => (
+            <button key={t.id} data-tab-id={t.id} onClick={() => setActive(t.id)} style={{
+              flex: "0 0 auto",
+              minWidth: Math.round(76 * S),
+              scrollSnapAlign: "start",
+              padding: `${8 * S}px 6px`, borderRadius: 7, border: "none",
+              background: t.id === active ? "#fff" : "transparent",
+              boxShadow: t.id === active ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+              cursor: "pointer", textAlign: "center", transition: "all 120ms ease",
+              fontFamily: "'Pretendard Variable', Pretendard, system-ui, sans-serif",
+              whiteSpace: "nowrap",
+            }}>
+              <div style={{ fontSize: 12 * S, fontWeight: 600, color: t.id === active ? "#1A1714" : "#6B6460", marginBottom: 1, letterSpacing: "-0.01em" }}>{t.label}</div>
+              <div style={{ fontSize: 9 * S, fontFamily: "'Geist', system-ui", fontWeight: 600, color: t.id === active ? "#1E6B47" : "#9E9894", letterSpacing: "0.04em", textTransform: "uppercase" }}>{t.role}</div>
+            </button>
+          ))}
+        </div>
+        <div style={{
+          position: "absolute", top: 0, right: 0, bottom: 0, width: 28,
+          background: "linear-gradient(to right, rgba(232,245,238,0), rgba(232,245,238,0.95))",
+          borderRadius: "0 10px 10px 0",
+          pointerEvents: "none",
+        }} />
       </div>
 
       {/* Window frame */}
@@ -753,7 +1160,10 @@ export function HeroProductMock() {
           {TABS.map((t) => (
             <div key={t.id} style={{ position: "absolute", inset: 0, opacity: t.id === active ? 1 : 0, transition: "opacity 280ms ease", pointerEvents: t.id === active ? "auto" : "none" }}>
               {t.id === "create" && <PaneCreate isActive={active === "create"} isMobile={isMobile} />}
+              {t.id === "matchup" && <PaneMatchup isActive={active === "matchup"} isMobile={isMobile} />}
+              {t.id === "typeAnswer" && <PaneTypeAnswer isActive={active === "typeAnswer"} isMobile={isMobile} />}
               {t.id === "blank" && <PaneBlank isActive={active === "blank"} isMobile={isMobile} />}
+              {t.id === "wordMagnet" && <PaneWordMagnet isActive={active === "wordMagnet"} isMobile={isMobile} />}
               {t.id === "sentence" && <PaneSentence isActive={active === "sentence"} isMobile={isMobile} />}
               {t.id === "speak" && <PaneSpeak isActive={active === "speak"} isMobile={isMobile} />}
               {t.id === "result" && <PaneResult isMobile={isMobile} />}
