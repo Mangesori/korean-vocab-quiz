@@ -14,10 +14,9 @@ import {
   Search,
   Loader2,
   Trash2,
-  Send
+  Send,
+  BookOpen
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { LevelBadge } from '@/components/ui/level-badge';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
@@ -37,6 +36,7 @@ import { ShareQuizDialogContent } from '@/components/quiz/ShareQuizDialog';
 import { useQuizSharing } from '@/hooks/useQuizSharing';
 import { useClasses } from '@/hooks/useClasses';
 import { toast } from 'sonner';
+import { formatDateShort } from '@/lib/formatDate';
 
 interface Quiz {
   id: string;
@@ -149,7 +149,10 @@ export default function Quizzes() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">퀴즈 목록</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
+              <BookOpen className="h-8 w-8 text-primary" />
+              내 퀴즈
+            </h1>
             <p className="text-muted-foreground mt-1">생성한 모든 퀴즈를 관리하세요</p>
           </div>
           <Link to="/quiz/create">
@@ -200,7 +203,7 @@ export default function Quizzes() {
             {filteredQuizzes.map((quiz) => (
               <Link key={quiz.id} to={`/quiz/${quiz.id}`}>
                 <Card className="hover:shadow-lg transition-all hover:border-primary/50 cursor-pointer h-full">
-                  <CardContent className="p-5">
+                  <CardContent className="p-5 flex flex-col h-full">
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                         <FileText className="w-5 h-5 text-primary" />
@@ -226,15 +229,15 @@ export default function Quizzes() {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center justify-between mt-4">
+                    <div className="flex items-center justify-between mt-auto pt-4">
                       <div className="flex items-center text-xs text-muted-foreground">
                         <Clock className="w-3 h-3 mr-1" />
-                        {format(new Date(quiz.created_at), 'yyyy년 M월 d일', { locale: ko })}
+                        {formatDateShort(quiz.created_at)}
                       </div>
                       <div className="flex gap-1">
                         <Button
                           size="sm"
-                          className="h-8 text-xs bg-accent hover:bg-accent/90 text-accent-foreground"
+                          className="h-8 text-xs bg-accent text-accent-foreground hover:bg-primary/15 transition-colors"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();

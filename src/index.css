@@ -1,75 +1,16 @@
-
-
-@font-face {
-    font-family: 'Paperozi';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-1Thin.woff2') format('woff2');
-    font-weight: 100;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Paperozi';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-2ExtraLight.woff2') format('woff2');
-    font-weight: 200;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Paperozi';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-3Light.woff2') format('woff2');
-    font-weight: 300;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Paperozi';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2') format('woff2');
-    font-weight: 400;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Paperozi';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-5Medium.woff2') format('woff2');
-    font-weight: 500;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Paperozi';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2') format('woff2');
-    font-weight: 600;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Paperozi';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2') format('woff2');
-    font-weight: 700;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Paperozi';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2') format('woff2');
-    font-weight: 800;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Paperozi';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-9Black.woff2') format('woff2');
-    font-weight: 900;
-    font-display: swap;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer utilities {
-  .font-brand {
-    font-family: 'Paperozi', sans-serif;
+  /* 폰트 통일: 모든 텍스트 Pretendard. font-brand/ui/mono는 의미용 별칭으로만 유지. */
+  .font-brand,
+  .font-ui {
+    font-family: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .font-mono {
+    font-family: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings: "tnum" 1; /* 숫자 폭 고정 — 표·가격 정렬 */
   }
 }
 
@@ -77,114 +18,107 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    --background: 40 15% 97%;
+    --foreground: 20 8% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 20 8% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 20 8% 10%;
 
-    --primary: 246 80% 60%;
+    --primary: 152 55% 27%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 40 15% 97%;
+    --secondary-foreground: 20 8% 10%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 40 15% 97%;
+    --muted-foreground: 22 7% 40%;
 
-    --accent: 173 80% 40%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 152 55% 95%;
+    --accent-foreground: 152 55% 20%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 3 60% 47%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 246 80% 60%;
+    --border: 25 12% 88%;
+    --input: 25 12% 88%;
+    --ring: 152 55% 27%;
 
     --radius: 0.75rem;
 
-    /* Custom colors for the platform */
-    --success: 142 76% 36%;
+    --success: 150 47% 34%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 72% 45%;
     --warning-foreground: 0 0% 100%;
 
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
 
     /* Gradient colors */
-    --gradient-start: 246 80% 60%;
-    --gradient-end: 280 65% 60%;
+    --gradient-start: 152 55% 27%;
+    --gradient-end: 150 47% 34%;
 
-    /* Level badge colors */
-    --level-a1: 142 76% 36%;
-    --level-a2: 173 80% 40%;
-    --level-b1: 199 89% 48%;
-    --level-b2: 246 80% 60%;
-    --level-c1: 280 65% 60%;
-    --level-c2: 330 80% 60%;
+    /* Level badge colors — see .level-a1~.level-c2 utility classes below (single source of truth) */
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5% 26%;
-    --sidebar-primary: 246 80% 60%;
+    --sidebar-background: 40 15% 97%;
+    --sidebar-foreground: 20 8% 10%;
+    --sidebar-primary: 152 55% 27%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 96%;
-    --sidebar-accent-foreground: 240 6% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 246 80% 60%;
+    --sidebar-accent: 152 55% 95%;
+    --sidebar-accent-foreground: 152 55% 20%;
+    --sidebar-border: 25 12% 88%;
+    --sidebar-ring: 152 55% 27%;
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
+    --background: 20 8% 8%;
+    --foreground: 40 15% 97%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
+    --card: 20 8% 10%;
+    --card-foreground: 40 15% 97%;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 20 8% 10%;
+    --popover-foreground: 40 15% 97%;
 
-    --primary: 246 80% 65%;
+    --primary: 152 45% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 20 8% 14%;
+    --secondary-foreground: 40 15% 97%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 20 8% 14%;
+    --muted-foreground: 22 7% 60%;
 
-    --accent: 173 80% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 152 30% 18%;
+    --accent-foreground: 152 55% 80%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 3 55% 40%;
+    --destructive-foreground: 40 15% 97%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 246 80% 65%;
+    --border: 20 8% 18%;
+    --input: 20 8% 18%;
+    --ring: 152 45% 42%;
 
-    --success: 142 76% 42%;
+    --success: 150 47% 40%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 55%;
+    --warning: 38 72% 50%;
     --warning-foreground: 0 0% 0%;
 
     --info: 199 89% 53%;
     --info-foreground: 0 0% 100%;
 
-    --sidebar-background: 222 47% 8%;
-    --sidebar-foreground: 240 5% 96%;
-    --sidebar-primary: 246 80% 65%;
+    --sidebar-background: 20 8% 8%;
+    --sidebar-foreground: 40 15% 97%;
+    --sidebar-primary: 152 45% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 4% 16%;
-    --sidebar-accent-foreground: 240 5% 96%;
-    --sidebar-border: 240 4% 16%;
-    --sidebar-ring: 246 80% 65%;
+    --sidebar-accent: 152 30% 18%;
+    --sidebar-accent-foreground: 152 55% 80%;
+    --sidebar-border: 20 8% 18%;
+    --sidebar-ring: 152 45% 42%;
   }
 }
 
@@ -195,7 +129,7 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
     overflow-y: scroll;
   }
 
@@ -205,18 +139,18 @@
   h4,
   h5,
   h6 {
-    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 700;
   }
 }
 
 @layer components {
   .gradient-primary {
-    @apply bg-gradient-to-r from-primary to-purple-500;
+    @apply bg-gradient-to-r from-[hsl(var(--gradient-start))] to-[hsl(var(--gradient-end))];
   }
 
   .gradient-text {
-    @apply bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[hsl(var(--gradient-start))] to-[hsl(var(--gradient-end))] bg-clip-text text-transparent;
   }
 
   .card-hover {

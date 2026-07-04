@@ -18,6 +18,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { renderSentenceWithFeedback } from "@/components/quiz/quizResultUtils";
 
 interface SpeakingProblem {
   id: string;
@@ -30,11 +31,7 @@ interface SpeakingProblem {
 interface SpeakingAttempt {
   attemptNumber: number;
   recordingUrl: string;
-  pronunciationScore: number;
   accuracyScore: number;
-  fluencyScore: number;
-  completenessScore: number;
-  prosodyScore: number;
   overallScore: number;
   wordLevelFeedback: { word: string; accuracyScore: number; errorType?: string }[];
   isPassed: boolean;
@@ -46,6 +43,7 @@ interface SpeakingStageProps {
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (results: Record<string, SpeakingAttempt[]>) => void;
   onBack?: () => void;
+  backLabel?: string;
 }
 
 // WebM을 WAV로 변환하는 함수
@@ -56,7 +54,7 @@ async function convertToWav(webmBlob: Blob): Promise<Blob> {
   try {
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-    // 16kHz 모노로 리샘플링 (Azure 권장)
+    // 16kHz 모노로 리샘플링
     const targetSampleRate = 16000;
     const numChannels = 1;
 
@@ -131,7 +129,7 @@ function writeString(view: DataView, offset: number, str: string) {
   }
 }
 
-export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, onBack }: SpeakingStageProps) {
+export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, onBack, backLabel }: SpeakingStageProps) {
   const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [attempts, setAttempts] = useState<Record<string, SpeakingAttempt[]>>({});
@@ -253,8 +251,8 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
         reader.readAsDataURL(wavBlob);
       });
 
-      // 4. Azure Speech 평가 호출
-      const { data, error } = await supabase.functions.invoke("azure-speech-assessment", {
+      // 4. 클로바 스피치 발음평가 호출
+      const { data, error } = await supabase.functions.invoke("clova-speech-assessment", {
         body: {
           audioBase64,
           referenceText: currentProblem.sentence,
@@ -271,11 +269,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
       const newAttempt: SpeakingAttempt = {
         attemptNumber: currentAttempts.length + 1,
         recordingUrl,
-        pronunciationScore: data.pronunciationScore,
         accuracyScore: data.accuracyScore,
-        fluencyScore: data.fluencyScore,
-        completenessScore: data.completenessScore,
-        prosodyScore: data.prosodyScore,
         overallScore: data.overallScore,
         wordLevelFeedback: data.wordLevelFeedback,
         isPassed: data.isPassed,
@@ -334,50 +328,17 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const renderSentenceWithFeedback = (sentence: string, wordFeedback: { word: string; accuracyScore: number; errorType?: string }[]) => {
-    if (!wordFeedback || wordFeedback.length === 0) {
-      return <span className="text-success font-bold">{sentence}</span>;
-    }
-
-    const lowScoreWords = new Set(
-      wordFeedback
-        .filter((w) => w.accuracyScore < 60)
-        .map((w) => w.word.replace(/[.,!?。，！？]/g, ""))
-    );
-
-    if (lowScoreWords.size === 0) {
-      return <span className="text-success font-bold">{sentence}</span>;
-    }
-
-    const words = sentence.split(/(\s+)/);
-    return (
-      <span className="font-bold">
-        {words.map((word, idx) => {
-          const cleanWord = word.replace(/[.,!?。，！？]/g, "");
-          if (lowScoreWords.has(cleanWord)) {
-            return (
-              <span key={idx} className="text-destructive">
-                {word}
-              </span>
-            );
-          }
-          return <span key={idx} className="text-success">{word}</span>;
-        })}
-      </span>
-    );
-  };
-
   if (!currentProblem) {
     return null;
   }
 
   return (
     <>
-    <Card className="w-full max-w-5xl mx-auto border shadow-sm rounded-2xl overflow-hidden bg-white mb-4 sm:mb-6 mt-2 lg:mt-6">
+    <Card className="w-full max-w-5xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl overflow-hidden bg-transparent sm:bg-white mb-4 sm:mb-8 mt-4">
 
-      <CardContent className="p-4 sm:p-8 pt-4 sm:pt-0 space-y-4 sm:space-y-6">
+      <CardContent className="p-0 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
         {/* 문장 표시 */}
-          <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px] mt-2 sm:mt-6">
+          <div className="p-5 sm:p-10 bg-transparent sm:bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px] mt-0 sm:mt-1">
             <div className="flex w-full items-center justify-between mb-6 sm:mb-8">
               <div className="text-xs sm:text-sm font-semibold text-[#8B5CF6] bg-[#8B5CF6]/10 px-3 py-1.5 rounded-full inline-flex items-center">
                 {currentProblem.mode === "listen" ? "듣고 말하기" : "보고 말하기"}
@@ -395,10 +356,13 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
             
             <div className="flex-1 flex flex-col items-center justify-center w-full">
               {currentProblem.mode === "read" ? (
-                <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 text-foreground leading-relaxed text-center drop-shadow-sm">{currentProblem.sentence}</h3>
+                <>
+                  <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold mb-2">문장을 보고 따라 말해보세요</p>
+                  <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 text-foreground leading-relaxed text-center drop-shadow-sm">{currentProblem.sentence}</h3>
+                </>
               ) : (
                 <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-6">
-                  <p className="text-sm sm:text-base lg:text-lg text-muted-foreground font-medium mb-2">음성을 듣고 따라 녹음하세요</p>
+                  <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold mb-2">음성을 듣고 따라 녹음하세요</p>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -466,7 +430,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
               </div>
               {isRecording && (
                 <div className="flex items-center gap-2 text-destructive">
-                  <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-destructive animate-pulse-soft" />
                   <span className="font-mono">{formatTime(recordingTime)}</span>
                 </div>
               )}
@@ -507,7 +471,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
                 </div>
               </div>
 
-              {/* 문장에서 60점 미만 단어만 빨간색으로 표시 */}
+              {/* 단어별 점수에 따라 빨강/노랑/초록으로 표시 */}
               <p className="text-base sm:text-lg text-center py-2">
                 {renderSentenceWithFeedback(currentProblem.sentence, lastAttempt.wordLevelFeedback)}
               </p>
@@ -528,7 +492,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
 
               <Button
                 onClick={handleNext}
-                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-[#6366F1] text-white text-xs sm:text-sm font-semibold hover:bg-[#4F46E5] shadow-md transition-colors"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
               >
                 {currentIndex < problems.length - 1 ? (
                   <>
@@ -536,8 +500,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    결과보기
+                    결과 확인 <ChevronRight className="w-5 h-5 ml-2" />
                   </>
                 )}
               </Button>
@@ -553,7 +516,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
             className="h-12 px-4 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm text-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-1.5" />
-            문장 만들기 결과
+            {backLabel ?? "이전"}
           </Button>
         </div>
       )}

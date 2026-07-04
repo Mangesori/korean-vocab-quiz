@@ -35,7 +35,16 @@
       "Bash(git log *)",
       "Bash(gh repo *)",
       "Bash(git fetch *)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\vapor\\\\Clone\\\\Korean Vocab Quiz\" -Force)",
+      "Bash(Select-Object -First 20)",
+      "Bash(powershell -Command \"Get-Content 'mockups v2.html' | Select-String -Pattern '\\(id=|<section|<h|<title|class=.*screen\\)' | Select-Object -First 100\")",
+      "Bash(powershell -Command \"\\(Get-Content 'mockups v2.html' -Raw\\).Length\")",
+      "Bash(node -e ' *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\vapor\\\\AppData\\\\Local\\\\Temp\\\\design-extract2\\\\korean-quiz\\\\project\\\\\" -Force | Select-Object Name, Length, LastWriteTime)",
+      "Skill(gstack)",
+      "Skill(gstack:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -30,6 +30,8 @@ import WrongAnswerPractice from "./pages/WrongAnswerPractice";
 import ClassAnnouncements from "./pages/ClassAnnouncements";
 import WrongAnswerQuizCreate from "./pages/WrongAnswerQuizCreate";
 import QuizUIPreview from "./pages/QuizUIPreview";
+import MyQuizzes from "./pages/MyQuizzes";
+import Pricing from "./pages/Pricing";
 
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -52,6 +54,7 @@ const App = () => (
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -124,6 +127,7 @@ const App = () => (
             } />
 
             <Route path="/quiz/ui-preview" element={<QuizUIPreview />} />
+            <Route path="/my-quizzes" element={<MyQuizzes />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

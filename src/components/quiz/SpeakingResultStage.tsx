@@ -2,14 +2,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trophy, Volume2, Lightbulb } from "lucide-react";
 import { useRef, useState } from "react";
+import { renderSentenceWithFeedback, generateSpeakingFeedback } from "@/components/quiz/quizResultUtils";
 
 interface SpeakingAttempt {
   attemptNumber: number;
   recordingUrl: string;
   overallScore: number;
-  fluencyScore: number;
-  prosodyScore: number;
-  completenessScore: number;
   isPassed: boolean;
   wordLevelFeedback?: { word: string; accuracyScore: number; errorType?: string }[];
 }
@@ -78,73 +76,6 @@ export function SpeakingResultStage({
     audio.play();
   };
 
-  // 문장에서 60점 미만 단어를 빨간색으로, 나머지를 녹색으로 표시
-  const renderSentenceWithFeedback = (
-    sentence: string,
-    wordFeedback?: { word: string; accuracyScore: number }[],
-    isPassed?: boolean
-  ) => {
-    if (!wordFeedback || wordFeedback.length === 0) {
-      return <span className={isPassed ? "text-success font-bold" : ""}>{sentence}</span>;
-    }
-
-    const lowScoreWords = new Set(
-      wordFeedback.filter((w) => w.accuracyScore < 60).map((w) => w.word.replace(/[.,!?。，！？]/g, ""))
-    );
-
-    if (lowScoreWords.size === 0) {
-      return <span className="text-success font-bold">{sentence}</span>;
-    }
-
-    const words = sentence.split(/(\s+)/);
-    return (
-      <span className="font-bold">
-        {words.map((word, idx) => {
-          const cleanWord = word.replace(/[.,!?。，！？]/g, "");
-          if (lowScoreWords.has(cleanWord)) {
-            return (
-              <span key={idx} className="text-destructive">
-                {word}
-              </span>
-            );
-          }
-          return <span key={idx} className="text-success">{word}</span>;
-        })}
-      </span>
-    );
-  };
-
-  const generateFeedback = (attempt: SpeakingAttempt) => {
-    const lowScoreWords = attempt.wordLevelFeedback
-      ?.filter((w) => w.accuracyScore < 60)
-      .map((w) => w.word.replace(/[.,!?。，！？]/g, ""));
-
-    if (lowScoreWords && lowScoreWords.length > 0) {
-      const displayWords = lowScoreWords.slice(0, 3).join("', '");
-      const suffix = lowScoreWords.length > 3 ? "' and others" : "'";
-      return `Pay closer attention to the pronunciation of '${displayWords}${suffix}. Listen to the native speaker and try again!`;
-    }
-
-    if (attempt.isPassed) {
-      if (attempt.overallScore >= 90) {
-        return "Excellent pronunciation! You sound very natural and clear.";
-      }
-      
-      let feedback = "Good job! ";
-      if (attempt.fluencyScore < 80) {
-        feedback += "Try to speak a bit more smoothly without pausing.";
-      } else if (attempt.prosodyScore < 80) {
-        feedback += "Pay a little more attention to the natural rhythm and intonation.";
-      } else if (attempt.completenessScore < 80) {
-        feedback += "Make sure to pronounce every word in the sentence clearly.";
-      } else {
-        feedback += "Keep practicing to make it even more natural.";
-      }
-      return feedback;
-    }
-    
-    return "Please listen carefully to the native speaker and try again.";
-  };
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-4">
@@ -256,7 +187,7 @@ export function SpeakingResultStage({
                   </div>
                   
                   <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                    <p className="text-sm text-slate-600 leading-relaxed break-keep">{generateFeedback(best)}</p>
+                    <p className="text-sm text-slate-600 leading-relaxed break-keep">{generateSpeakingFeedback(best)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -268,7 +199,7 @@ export function SpeakingResultStage({
       <div className="text-center space-y-4 mt-8">
         <Button 
           onClick={onComplete}
-          className="w-full sm:w-auto min-w-[200px] h-12 text-base font-semibold shadow-md bg-[#6366F1] hover:bg-[#4F46E5] transition-colors rounded-xl"
+          className="w-full sm:w-auto min-w-[200px] h-12 text-base font-semibold shadow-md bg-primary hover:bg-primary/90 transition-colors rounded-xl"
         >
           최종 결과 보기
         </Button>

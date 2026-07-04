@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ChevronLeft } from "lucide-react";
 import { QuizReviewCard } from "@/components/quiz/QuizReviewCard";
 
 interface FillBlankAnswer {
@@ -18,12 +18,16 @@ interface FillBlankResultStageProps {
   answers: FillBlankAnswer[];
   onNext: () => void;
   nextLabel: string;
+  onBack?: () => void;
+  backLabel?: string;
 }
 
 export function FillBlankResultStage({
   answers,
   onNext,
   nextLabel,
+  onBack,
+  backLabel,
 }: FillBlankResultStageProps) {
   const correctCount = answers.filter((a) => a.isCorrect).length;
   const totalCount = answers.length;
@@ -52,15 +56,25 @@ export function FillBlankResultStage({
         ))}
       </div>
 
-      {/* 다음 단계 버튼 */}
-      <div className="text-center space-y-4 mt-8">
+      {/* 이전 / 다음 버튼 */}
+      <div className="flex justify-between items-center mt-8">
+        {onBack ? (
+          <Button
+            variant="outline"
+            onClick={onBack}
+            className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" /> {backLabel ?? "이전"}
+          </Button>
+        ) : (
+          <span />
+        )}
         <Button
           onClick={onNext}
-          className="w-full sm:w-auto min-w-[200px] h-12 text-lg shadow-lg hover:shadow-xl transition-all"
-          size="lg"
+          className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
         >
           {nextLabel}
-          <ChevronRight className="w-4 h-4 ml-2" />
+          <ChevronRight className="w-5 h-5 ml-2" />
         </Button>
       </div>
     </div>

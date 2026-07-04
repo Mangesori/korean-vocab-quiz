@@ -1,147 +1,159 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { AppLayout } from '@/components/layout/AppLayout';
+import { LandingHeader } from '@/components/layout/LandingHeader';
+import { Footer } from '@/components/layout/Footer';
 import { useAuth } from '@/hooks/useAuth';
-import { BookOpen, Users, Sparkles, CheckCircle, GraduationCap } from 'lucide-react';
+import { Sparkles, Layers, Users, ArrowRight } from 'lucide-react';
+import { HeroProductMock } from '@/components/landing/HeroProductMock';
 
 export default function Index() {
-  const { user, role } = useAuth();
+  const { user, loading } = useAuth();
+  if (!loading && user) return <Navigate to="/dashboard" replace />;
 
   return (
-    <AppLayout>
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5">
-        <div className="container py-24 md:py-32">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-3xl md:text-5xl font-bold mb-2 md:mb-6 animate-fade-in break-keep">
-              <span className="block">문장을 통해서 완성하는</span>
-            </h1>
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-fade-in break-keep">
-              <span className="block gradient-text">달콤한 한국어</span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 animate-fade-in animation-delay-150 break-keep">
-              단어장만 외우는 지루한 공부는 이제 그만.<br className="hidden md:block" />
-              생생한 문장 속에서 단어의 진짜 쓰임을 익히고, 퀴즈로 즐겁게 확인해보세요.
+    <div className="min-h-screen bg-background">
+      <LandingHeader />
+      <main>
+        {/* ── Hero (split) ── */}
+        <section className="bg-background">
+          <div className="container py-16 lg:py-24">
+            <div className="grid grid-cols-1 lg:grid-cols-[9fr_11fr] gap-16 items-center">
+              {/* Left: copy + CTA */}
+              <div>
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent text-accent-foreground text-sm font-semibold mb-6">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  수업에 집중하세요, 퀴즈는 AI가
+                </div>
+
+                <h1 className="font-brand font-black text-4xl md:text-5xl leading-[1.15] tracking-tight text-foreground mb-5 break-keep">
+                  퀴즈 만드는 데<br />
+                  <span className="text-primary">10초면 충분해요.</span>
+                </h1>
+
+                <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-md break-keep">
+                  단어만 입력하면 빈칸·문장·말하기 퀴즈가{" "}
+                  <strong className="text-foreground font-semibold">10초 안에</strong> 만들어집니다.
+                  학생들에게 바로 공유하고 결과까지 한눈에 볼 수 있어요.
+                </p>
+
+                <div className="flex gap-3 mb-6">
+                  {user ? (
+                    <Link to="/dashboard">
+                      <Button size="lg" className="gap-2">
+                        대시보드로 이동 <ArrowRight className="w-4 h-4" />
+                      </Button>
+                    </Link>
+                  ) : (
+                    <>
+                      <Link to="/auth?mode=signup" className="flex-1 sm:flex-none">
+                        <Button size="lg" className="gap-2 w-full sm:w-auto">
+                          무료로 시작하기 <ArrowRight className="w-4 h-4" />
+                        </Button>
+                      </Link>
+                      <Link to="/quiz/example" className="flex-1 sm:flex-none">
+                        <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                          퀴즈 맛보기
+                        </Button>
+                      </Link>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground font-ui">
+                  <span>✓ 회원가입만 하면 무료</span>
+                  <span>✓ AI가 예문·문제 생성</span>
+                  <span>✓ 채점 자동, 결과 즉시 확인</span>
+                </div>
+
+                {!user && (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    학생이신가요?{" "}
+                    <Link to="/auth?mode=signup" className="text-primary underline hover:text-primary/80">
+                      학생으로 가입하기
+                    </Link>
+                  </p>
+                )}
+              </div>
+
+              {/* Right: product mock */}
+              <div>
+                <HeroProductMock />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Features ── */}
+        <section id="features" className="py-20 bg-card border-t border-border">
+          <div className="container max-w-5xl">
+            <div className="mb-12">
+              <div className="text-xs font-ui font-bold text-primary tracking-[0.1em] uppercase mb-3">FEATURES</div>
+              <h2 className="font-brand font-black text-3xl leading-tight tracking-tight text-foreground">
+                수업 준비에서 채점까지,<br />한 도구로.
+              </h2>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-5">
+              {[
+                {
+                  icon: <Sparkles className="w-5 h-5" />,
+                  title: "AI가 문제를 만듭니다",
+                  desc: "단어만 입력하면 끝. 빈칸·문장·말하기 세 가지 유형을 동시에 생성합니다.",
+                  stat: "평균 10초",
+                },
+                {
+                  icon: <Layers className="w-5 h-5" />,
+                  title: "한 곳에서 모든 유형",
+                  desc: "읽기·쓰기·말하기를 한 클래스 안에서. 학생 수준과 관심사에 맞춘 예문 톤.",
+                  stat: "3가지 퀴즈",
+                },
+                {
+                  icon: <Users className="w-5 h-5" />,
+                  title: "클래스와 진척, 자동 정리",
+                  desc: "학생은 회원가입 후 초대 코드로 클래스 가입. 누가 어디서 막혔는지 즉시 확인.",
+                  stat: "학생 무제한",
+                },
+              ].map((f, i) => (
+                <div key={i} className="bg-background border border-border rounded-2xl p-7 flex flex-col">
+                  <div className="w-10 h-10 rounded-[10px] bg-accent text-primary flex items-center justify-center mb-5">
+                    {f.icon}
+                  </div>
+                  <h3 className="text-base font-bold text-foreground mb-2 leading-snug">{f.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed flex-1 mb-4 break-keep">{f.desc}</p>
+                  <div className="text-xs font-mono font-semibold text-primary pt-3 border-t border-dashed border-border">
+                    {f.stat}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── CTA Band ── */}
+        <section className="bg-primary text-primary-foreground py-16 text-center">
+          <div className="container">
+            <h2 className="font-brand font-black text-2xl md:text-3xl tracking-tight mb-3">
+              오늘 과제, 10초 만에 끝내세요
+            </h2>
+            <p className="text-primary-foreground/80 text-base mb-7 max-w-md mx-auto break-keep">
+              구독 없이도 매월 일정량까지 무료. 필요할 때 더 쓰세요.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in animation-delay-300">
-              {user ? (
-                <Link to="/dashboard">
-                  <Button size="lg" className="w-full sm:w-auto">
-                    대시보드로 이동
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                  <Link to="/auth?mode=signup">
-                    <Button size="lg" className="w-full sm:w-auto">
-                      무료로 시작하기
-                    </Button>
-                  </Link>
-                  <Link to="/quiz/example">
-                    <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                      퀴즈 맛보기
-                    </Button>
-                  </Link>
-                </>
-              )}
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link to={user ? "/dashboard" : "/auth?mode=signup"}>
+                <Button variant="secondary" size="lg" className="font-bold">
+                  {user ? "대시보드로 이동" : "지금 무료 시작"}
+                </Button>
+              </Link>
+              <Link to="#features">
+                <Button variant="outline" size="lg" className="bg-transparent border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10">
+                  요금 보기 →
+                </Button>
+              </Link>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 bg-muted/30">
-        <div className="container">
-          <h2 className="text-3xl font-bold text-center mb-3">
-            <span className="text-primary">달콤한국어</span>, 
-          </h2>
-          <h2 className="text-3xl font-bold text-center mb-12">
-            <span> 무엇이 다를까요?</span>
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-card rounded-2xl p-8 shadow-sm card-hover">
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
-                <Sparkles className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">문장으로 배우는 진짜 한국어</h3>
-              <p className="text-muted-foreground break-keep">
-                단어의 뜻은 문장 안에서 살아납니다. 다양한 예문으로 어휘의 뉘앙스까지 익히세요.
-              </p>
-            </div>
-            <div className="bg-card rounded-2xl p-8 shadow-sm card-hover">
-              <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center mb-6">
-                <BookOpen className="h-6 w-6 text-accent" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">나를 위한 맞춤형 문장</h3>
-              <p className="text-muted-foreground break-keep">
-                나의 수준과 관심사에 딱 맞는 문장들을 매일 새롭게 만날 수 있습니다.
-              </p>
-            </div>
-            <div className="bg-card rounded-2xl p-8 shadow-sm card-hover">
-              <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center mb-6">
-                <Users className="h-6 w-6 text-success" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">전 세계 언어 지원</h3>
-              <p className="text-muted-foreground break-keep">
-                모르는 단어가 나와도 걱정 마세요. 11개 언어 번역이 학습을 도와드립니다.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Roles Section */}
-      <section className="py-20">
-        <div className="container">
-          <div className="grid md:grid-cols-2 gap-12">
-            <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-3xl p-8 md:p-12">
-              <div className="flex items-center gap-3 mb-6">
-                <GraduationCap className="h-8 w-8 text-primary" />
-                <h3 className="text-2xl font-bold">선생님을 위한 스마트한 도구</h3>
-              </div>
-              <ul className="space-y-4">
-                {['단어 목록으로 퀴즈 자동 생성', '학생 맞춤형 예문 자동 생성', '클래스 생성 및 학생 관리', '학생에게 퀴즈 전송 및 결과 확인'].map((item) => (
-                  <li key={item} className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="bg-gradient-to-br from-accent/5 to-accent/10 rounded-3xl p-8 md:p-12">
-              <div className="flex items-center gap-3 mb-6">
-                <Users className="h-8 w-8 text-accent" />
-                <h3 className="text-2xl font-bold">학생을 위한 즐거운 학습</h3>
-              </div>
-              <ul className="space-y-4">
-                {['선생님이 보낸 퀴즈 풀기', '모국어 번역 힌트 제공', '학습 기록 및 오답노트', '클래스 참여로 체계적 학습'].map((item) => (
-                  <li key={item} className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-primary text-primary-foreground">
-        <div className="container text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            지금 바로 문장으로 시작하세요
-          </h2>
-          <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto break-keep">
-            무료로 가입하고 문장으로 배우는 진짜 한국어를 경험해보세요.
-          </p>
-          <Link to={user ? "/dashboard" : "/auth?mode=signup"}>
-            <Button size="lg" variant="secondary">
-              {user ? "대시보드로 이동" : "무료로 시작하기"}
-            </Button>
-          </Link>
-        </div>
-      </section>
-    </AppLayout>
+        </section>
+      </main>
+      <Footer />
+    </div>
   );
 }

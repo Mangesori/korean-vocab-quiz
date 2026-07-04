@@ -2,10 +2,8 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { ProfileForm } from '@/components/profile/ProfileForm';
-import { Navbar } from '@/components/layout/Navbar';
-import { Loader2, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Loader2 } from 'lucide-react';
 
 export default function ProfileSettings() {
   const { user, loading: authLoading } = useAuth();
@@ -24,18 +22,8 @@ export default function ProfileSettings() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="container max-w-2xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <Link to="/dashboard">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              대시보드로 돌아가기
-            </Button>
-          </Link>
-        </div>
-
+    <AppLayout>
+      <div className="container max-w-2xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold">프로필 설정</h1>
           <p className="text-muted-foreground mt-1">
@@ -48,7 +36,7 @@ export default function ProfileSettings() {
           onSubmit={updateProfile}
           isSubmitting={isUpdating}
         />
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

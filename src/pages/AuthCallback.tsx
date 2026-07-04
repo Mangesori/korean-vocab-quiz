@@ -50,15 +50,17 @@ export default function AuthCallback() {
     if (!userId) return;
     
     setIsLoading(true);
-    
+
     try {
-      // Create profile with role in one operation
+      // 모든 신규 사용자는 우선 student로 프로필을 만든다.
+      // "선생님" 선택자는 승인 전까지 학생 권한만 가지며(role이 권한 게이트),
+      // 아래에서 별도의 선생님 신청(pending)을 생성한다.
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
           user_id: userId,
           name: userName || 'User',
-          role: role,
+          role: 'student',
         });
 
       if (profileError) {
@@ -66,6 +68,22 @@ export default function AuthCallback() {
         toast.error('역할 설정 실패');
         setIsLoading(false);
         return;
+      }
+
+      if (role === 'teacher') {
+        const { error: appError } = await supabase
+          .from('teacher_applications' as any)
+          .insert({ user_id: userId });
+
+        if (appError) {
+          // 프로필은 생성됐으므로 치명적이지 않음 — 학생으로 진행
+          console.error('Teacher application error:', appError);
+          toast.error('선생님 신청 접수에 실패했습니다. 학생으로 시작합니다.');
+        } else {
+          toast.success('선생님 신청이 접수되었습니다', {
+            description: '운영자 승인 후 선생님 기능을 사용할 수 있습니다.',
+          });
+        }
       }
 
       // Link anonymous quiz result if exists
@@ -90,7 +108,7 @@ export default function AuthCallback() {
         }
       }
 
-      toast.success('환영합니다!');
+      if (role === 'student') toast.success('환영합니다!');
       navigate('/dashboard');
     } catch (error) {
       console.error('Error:', error);
@@ -125,17 +143,17 @@ export default function AuthCallback() {
                 disabled={isLoading}
                 className="p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all group"
               >
-                <Users className="w-10 h-10 mx-auto mb-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                <GraduationCap className="w-10 h-10 mx-auto mb-3 text-muted-foreground group-hover:text-primary transition-colors" />
                 <p className="font-semibold group-hover:text-primary transition-colors">선생님</p>
-                <p className="text-xs text-muted-foreground mt-1">퀴즈 생성 및 관리</p>
+                <p className="text-xs text-muted-foreground mt-1">퀴즈 생성 및 관리 · 승인 필요</p>
               </button>
-              
+
               <button
                 onClick={() => handleRoleSelection('student')}
                 disabled={isLoading}
                 className="p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all group"
               >
-                <GraduationCap className="w-10 h-10 mx-auto mb-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                <Users className="w-10 h-10 mx-auto mb-3 text-muted-foreground group-hover:text-primary transition-colors" />
                 <p className="font-semibold group-hover:text-primary transition-colors">학생</p>
                 <p className="text-xs text-muted-foreground mt-1">퀴즈 풀기 및 학습</p>
               </button>

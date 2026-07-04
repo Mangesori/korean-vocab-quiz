@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -12,17 +12,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Plus, 
-  Users, 
+  Plus,
+  Users,
   Copy,
   Loader2,
   ChevronRight,
-  Search // Added Search icon
+  Search,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatDateShort } from '@/lib/formatDate';
 
 interface Class {
   id: string;
@@ -38,7 +38,6 @@ export default function Classes() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const location = useLocation();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -171,7 +170,10 @@ export default function Classes() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">클래스 관리</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
+              <Users className="h-8 w-8 text-primary" />
+              내 클래스
+            </h1>
             <p className="text-muted-foreground mt-1">클래스를 만들고 학생을 초대하세요</p>
           </div>
           
@@ -270,15 +272,14 @@ export default function Classes() {
                 );
               })
               .map((cls) => (
-              <Card 
-                key={cls.id} 
-                className="hover:shadow-lg transition-all cursor-pointer hover:border-primary/50" // Updated className
-                onClick={() => navigate(`/class/${cls.id}`)}
+              <Link key={cls.id} to={`/class/${cls.id}`} className="block h-full">
+              <Card
+                className="hover:shadow-lg transition-all cursor-pointer hover:border-primary/50 h-full"
               >
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>{cls.name}</span>
-                    <span className="text-sm font-normal text-muted-foreground flex items-center gap-1">
+                    <span className="text-sm font-normal text-muted-foreground flex items-center gap-1 mr-2">
                       <Users className="w-4 h-4" />
                       {cls.member_count}
                     </span>
@@ -293,10 +294,11 @@ export default function Classes() {
                       <p className="text-xs text-muted-foreground">초대 코드</p>
                       <p className="font-mono text-lg font-bold text-primary">{cls.invite_code}</p>
                     </div>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         copyInviteCode(cls.invite_code);
                       }}
@@ -306,8 +308,9 @@ export default function Classes() {
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(cls.created_at), 'yyyy년 M월 d일', { locale: ko })}
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatDateShort(cls.created_at)}
                     </p>
                     <Button variant="ghost" size="sm">
                       상세보기 <ChevronRight className="w-4 h-4 ml-1" />
@@ -315,6 +318,7 @@ export default function Classes() {
                   </div>
                 </CardContent>
               </Card>
+              </Link>
             ))}
           </div>
         )}

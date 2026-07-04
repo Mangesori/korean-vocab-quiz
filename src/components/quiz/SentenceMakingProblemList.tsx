@@ -1,15 +1,23 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useState, useEffect, useCallback, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Edit2, Save, Loader2, Trash2, Plus, ChevronLeft, ChevronRight, Lightbulb, Eye } from "lucide-react";
+import { Edit2, Save, Loader2, Plus, Eye } from "lucide-react";
 import { useParams } from "react-router-dom";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SentenceMakingStudentView } from "@/components/quiz/shared/SentenceMakingStudentView";
+import { WordMeaningEditCard } from "@/components/quiz/shared/WordMeaningEditCard";
 
 export interface SentenceMakingProblem {
   id: string;
@@ -19,6 +27,22 @@ export interface SentenceMakingProblem {
   word_meaning: string | null;
   model_answer: string;
   created_at: string;
+  sort_order: number;
+}
+
+// 드래그로 순서를 바꿀 수 있는 카드 래퍼 — 편집 모드에서만 사용.
+function SortableWordMeaningCard({ id, children }: { id: string; children: (dragHandleProps: { attributes: any; listeners: any }) => ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ attributes, listeners })}
+    </div>
+  );
 }
 
 interface SentenceMakingProblemListProps {
@@ -26,6 +50,10 @@ interface SentenceMakingProblemListProps {
   onRefresh: () => void;
   studentPreview?: boolean;
   onToggleStudentPreview?: (v: boolean) => void;
+  isEditing: boolean;
+  setIsEditing: (v: boolean) => void;
+  onSaveAll: () => void | Promise<void>;
+  registerSaver: (fn: (() => Promise<void>) | null) => void;
 }
 
 export function SentenceMakingProblemList({
@@ -33,13 +61,14 @@ export function SentenceMakingProblemList({
   onRefresh,
   studentPreview,
   onToggleStudentPreview,
+  isEditing,
+  setIsEditing,
+  onSaveAll,
+  registerSaver,
 }: SentenceMakingProblemListProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedProblems, setEditedProblems] = useState<SentenceMakingProblem[]>([]);
+  const [editedProblems, setEditedProblems] = useState<SentenceMakingProblem[]>(problems);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [previewIndex, setPreviewIndex] = useState(0);
-  const [showHint, setShowHint] = useState(false);
   const { id: quizId } = useParams<{ id: string }>();
 
   useEffect(() => {
@@ -47,11 +76,6 @@ export function SentenceMakingProblemList({
       setEditedProblems(problems);
     }
   }, [problems, isEditing]);
-
-  useEffect(() => {
-    setPreviewIndex(0);
-    setShowHint(false);
-  }, [studentPreview]);
 
   const handleUpdateProblem = (id: string, field: keyof SentenceMakingProblem, value: string) => {
     setEditedProblems((prev) =>
@@ -61,18 +85,37 @@ export function SentenceMakingProblemList({
 
   const handleAddProblem = () => {
     const newId = `temp-${crypto.randomUUID()}`;
-    const newProblem: SentenceMakingProblem = {
-      id: newId,
-      quiz_id: quizId || '',
-      problem_id: `sm-${crypto.randomUUID().slice(0, 8)}`,
-      word: '',
-      word_meaning: '',
-      model_answer: '',
-      created_at: new Date().toISOString()
-    };
-    setEditedProblems(prev => [...prev, newProblem]);
+    setEditedProblems(prev => {
+      const newProblem: SentenceMakingProblem = {
+        id: newId,
+        quiz_id: quizId || '',
+        problem_id: `sm-${crypto.randomUUID().slice(0, 8)}`,
+        word: '',
+        word_meaning: '',
+        model_answer: '',
+        created_at: new Date().toISOString(),
+        sort_order: prev.length,
+      };
+      return [...prev, newProblem];
+    });
     if (!isEditing) setIsEditing(true);
   };
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setEditedProblems((prev) => {
+      const oldIndex = prev.findIndex((p) => p.id === active.id);
+      const newIndex = prev.findIndex((p) => p.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex).map((p, idx) => ({ ...p, sort_order: idx }));
+    });
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
 
   const handleSaveAll = async () => {
     setIsSaving(true);
@@ -80,20 +123,22 @@ export function SentenceMakingProblemList({
       await Promise.all(
         editedProblems.map((problem) => {
           if (problem.id.startsWith('temp-')) {
-            return supabase.from("sentence_making_problems").insert({
+            return supabase.from("sentence_making_problems" as any).insert({
               quiz_id: problem.quiz_id,
               problem_id: problem.problem_id,
               word: problem.word,
               word_meaning: problem.word_meaning || null,
               model_answer: problem.model_answer,
+              sort_order: problem.sort_order,
             });
           } else {
             return supabase
-              .from("sentence_making_problems")
+              .from("sentence_making_problems" as any)
               .update({
                 word: problem.word,
                 word_meaning: problem.word_meaning || null,
                 model_answer: problem.model_answer,
+                sort_order: problem.sort_order,
               })
               .eq("id", problem.id);
           }
@@ -101,7 +146,6 @@ export function SentenceMakingProblemList({
       );
 
       toast.success("전체 문제가 저장되었습니다");
-      setIsEditing(false);
       onRefresh();
     } catch (error: any) {
       console.error("Save error:", error);
@@ -110,6 +154,17 @@ export function SentenceMakingProblemList({
       setIsSaving(false);
     }
   };
+
+  // 전체 저장(save-all)용: 변경된 경우에만 자기 자신을 저장하는 함수를 부모에 등록
+  const saveSelfIfDirty = useCallback(async () => {
+    if (JSON.stringify(editedProblems) === JSON.stringify(problems)) return;
+    await handleSaveAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editedProblems, problems]);
+  useEffect(() => {
+    registerSaver(saveSelfIfDirty);
+    return () => registerSaver(null);
+  }, [registerSaver, saveSelfIfDirty]);
 
   const handleDelete = async (problemId: string) => {
     if (!confirm("이 문제를 삭제하시겠습니까?")) return;
@@ -149,7 +204,7 @@ export function SentenceMakingProblemList({
   if (problems.length === 0 && editedProblems.length === 0) {
     return (
       <div className="space-y-4">
-        {toggleRow && <div className="flex justify-end">{toggleRow}</div>}
+        {toggleRow && <div className="flex justify-start">{toggleRow}</div>}
         <div className="text-center py-12 text-muted-foreground">
           문장 만들기 문제가 없습니다.
           <div className="flex justify-center mt-4">
@@ -167,163 +222,89 @@ export function SentenceMakingProblemList({
     );
   }
 
-  const displayProblems = studentPreview ? problems : editedProblems;
-
   return (
     <div className="space-y-4">
       {/* 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">문제 목록</h2>
-          <span className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground font-medium">
-            {problems.length}개
-          </span>
+        <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start sm:gap-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">문제 목록</h2>
+          </div>
+          {toggleRow}
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          {toggleRow}
-          {!studentPreview && (
-            <>
-              <Button
-                variant={isEditing ? "secondary" : "outline"}
-                size="sm"
-                onClick={() => setIsEditing(!isEditing)}
-                className="w-full sm:w-auto"
-              >
-                <Edit2 className="w-4 h-4 mr-2" />
-                <span>{isEditing ? "수정 취소" : "수정하기"}</span>
-              </Button>
-              <Button
-                onClick={handleSaveAll}
-                disabled={isSaving || !isEditing || editedProblems.length === 0}
-                size="sm"
-                className="w-full sm:w-auto"
-                variant="default"
-              >
-                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                <span>저장하기</span>
-              </Button>
-            </>
-          )}
+          <Button
+            variant={isEditing ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => {
+              if (!isEditing) onToggleStudentPreview?.(false);
+              setIsEditing(!isEditing);
+            }}
+            className="w-full sm:w-auto"
+          >
+            <Edit2 className="w-4 h-4 mr-2" />
+            <span>{isEditing ? "수정 취소" : "수정하기"}</span>
+          </Button>
+          <Button
+            onClick={onSaveAll}
+            disabled={isSaving || !isEditing}
+            size="sm"
+            className="w-full sm:w-auto"
+            variant="default"
+          >
+            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            <span>저장하기</span>
+          </Button>
         </div>
       </div>
 
       {/* 학생 화면 미리보기 */}
-      {studentPreview && displayProblems.length > 0 ? (
-        (() => {
-          const problem = displayProblems[previewIndex];
-          const total = displayProblems.length;
-          return (
-            <Card className="w-full border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl overflow-hidden bg-transparent sm:bg-white">
-              <CardContent className="p-0 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
-                <div className="p-5 sm:p-10 bg-transparent sm:bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px]">
-                  <div className="flex w-full items-center justify-end mb-2 sm:mb-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowHint(!showHint)}
-                      className="bg-white text-xs h-8 px-3 rounded-xl shadow-sm text-slate-600"
-                    >
-                      <Lightbulb className={`w-3.5 h-3.5 mr-1.5 ${showHint ? "text-warning" : ""}`} />
-                      힌트
-                    </Button>
-                  </div>
-                  <div className="flex-1 flex flex-col items-center justify-center w-full">
-                    <p className="text-sm sm:text-base lg:text-lg text-muted-foreground font-medium mb-3 sm:mb-5 text-center">
-                      이 단어를 사용하여 문장을 만드세요
-                    </p>
-                    <Badge variant="outline" className="text-lg sm:text-xl lg:text-2xl px-6 py-2 sm:py-3 font-bold bg-white shadow-sm border-slate-200 rounded-2xl text-slate-800">
-                      {problem.word}
-                    </Badge>
-                    <p className={`text-sm sm:text-base text-muted-foreground mt-4 sm:mt-6 text-center transition-opacity duration-200 ${showHint && problem.word_meaning ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-                      {problem.word_meaning || ""}
-                    </p>
-                  </div>
-                </div>
-                <div className="px-1">
-                  <Textarea
-                    disabled
-                    placeholder={`"${problem.word}"을(를) 사용하여 문장을 작성하세요...`}
-                    className="min-h-[100px] text-md rounded-xl border-slate-200 opacity-60"
-                  />
-                </div>
-                <div className="flex justify-between items-center mt-6">
-                  <Button
-                    variant="outline"
-                    onClick={() => { setPreviewIndex(prev => Math.max(0, prev - 1)); setShowHint(false); }}
-                    disabled={previewIndex === 0}
-                    className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-2" /> 이전
-                  </Button>
-                  <span className="text-sm text-muted-foreground">{previewIndex + 1} / {total}</span>
-                  <Button
-                    onClick={() => { setPreviewIndex(prev => Math.min(total - 1, prev + 1)); setShowHint(false); }}
-                    disabled={previewIndex === total - 1}
-                    className="h-12 px-6 rounded-xl bg-[#6366F1] text-white font-semibold hover:bg-[#4F46E5] shadow-md transition-colors"
-                  >
-                    다음 문제 <ChevronRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })()
+      {studentPreview && problems.length > 0 ? (
+        <SentenceMakingStudentView problems={problems} />
       ) : !studentPreview && (
         <>
-          {editedProblems.map((problem, index) => (
-            <Card key={problem.id} className="overflow-hidden">
-              <CardHeader className="py-3 px-4 bg-muted/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                      {index + 1}
-                    </span>
-                    <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold">
-                      {problem.word}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(problem.id)}
-                      disabled={deletingId === problem.id}
-                      className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      {deletingId === problem.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
+          {isEditing ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={editedProblems.map((p) => p.id)} strategy={rectSortingStrategy}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {editedProblems.map((problem, index) => (
+                    <SortableWordMeaningCard key={problem.id} id={problem.id}>
+                      {(dragHandleProps) => (
+                        <WordMeaningEditCard
+                          index={index}
+                          word={problem.word}
+                          meaning={problem.word_meaning || ""}
+                          editable={isEditing}
+                          onChangeWord={(v) => handleUpdateProblem(problem.id, "word", v)}
+                          onChangeMeaning={(v) => handleUpdateProblem(problem.id, "word_meaning", v)}
+                          onDelete={() => handleDelete(problem.id)}
+                          deleting={deletingId === problem.id}
+                          dragHandleProps={dragHandleProps}
+                        />
                       )}
-                    </Button>
-                  </div>
+                    </SortableWordMeaningCard>
+                  ))}
                 </div>
-              </CardHeader>
-
-              <CardContent className="pt-4 pb-5 space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground text-xs uppercase tracking-wide">
-                    단어 뜻
-                  </Label>
-                  {isEditing ? (
-                    <Input
-                      value={problem.word_meaning || ""}
-                      onChange={(e) =>
-                        handleUpdateProblem(problem.id, "word_meaning", e.target.value)
-                      }
-                      placeholder="단어의 뜻을 입력하세요"
-                      className="bg-muted/30"
-                    />
-                  ) : (
-                    <p className="px-3 py-2 rounded-md bg-muted/30 text-sm">
-                      {problem.word_meaning || "(없음)"}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {editedProblems.map((problem, index) => (
+                <WordMeaningEditCard
+                  key={problem.id}
+                  index={index}
+                  word={problem.word}
+                  meaning={problem.word_meaning || ""}
+                  editable={isEditing}
+                  onChangeWord={(v) => handleUpdateProblem(problem.id, "word", v)}
+                  onChangeMeaning={(v) => handleUpdateProblem(problem.id, "word_meaning", v)}
+                  onDelete={() => handleDelete(problem.id)}
+                  deleting={deletingId === problem.id}
+                />
+              ))}
+            </div>
+          )}
 
           <div className="flex justify-center mt-4">
             <Button
@@ -332,13 +313,13 @@ export function SentenceMakingProblemList({
               onClick={handleAddProblem}
             >
               <Plus className="w-4 h-4 mr-2" />
-              문제 추가
+              단어 추가하기
             </Button>
           </div>
 
           {isEditing && (
             <div className="mt-4 flex justify-center">
-              <Button onClick={handleSaveAll} disabled={isSaving || editedProblems.length === 0} size="lg">
+              <Button onClick={onSaveAll} disabled={isSaving} size="lg">
                 {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 저장하기
               </Button>

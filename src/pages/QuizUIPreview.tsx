@@ -337,7 +337,7 @@ function SentenceMakingStage() {
 
         {/* 입력 */}
         <Textarea
-          placeholder={'"예쁘다"을(를) 사용하여 문장을 작성하세요...'}
+          placeholder={'"예쁘다"을(를) 사용하여 문장을 만드세요...'}
           className="min-h-[100px] text-lg"
           defaultValue="이 꽃이 정말 예뻐요"
         />

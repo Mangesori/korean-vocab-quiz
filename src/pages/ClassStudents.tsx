@@ -20,6 +20,7 @@ import { ko } from 'date-fns/locale';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { StudentHistoryDialog } from '@/components/class/StudentHistoryDialog';
+import { formatDateShort } from '@/lib/formatDate';
 
 interface ClassData {
   id: string;
@@ -169,7 +170,7 @@ export default function ClassStudents() {
                       <div>
                         <p className="font-medium">{member.profile?.name || '이름 없음'}</p>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(member.joined_at), 'yyyy.MM.dd 가입', { locale: ko })}
+                          {formatDateShort(member.joined_at) + ' 가입'}
                         </p>
                       </div>
                     </div>

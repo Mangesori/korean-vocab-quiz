@@ -81,8 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, name: string, userRole?: 'teacher' | 'student') => {
     try {
       const redirectUrl = `${window.location.origin}/auth/callback`;
-      
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+
+      const { error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -98,23 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: authError };
       }
 
-      if (authData.user) {
-        // Create profile with role in one operation
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: authData.user.id,
-            name,
-            role: userRole || 'student', // Default to student if no role provided
-          });
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-        } else if (userRole) {
-          setRole(userRole);
-        }
-      }
-
+      // 프로필은 AuthCallback의 역할 선택 화면에서 생성한다.
+      // (이메일/Google 가입 모두 동일한 선택 화면을 거치도록 통합)
       return { error: null };
     } catch (error) {
       return { error: error as Error };

@@ -22,6 +22,7 @@ export interface SentenceMakingAnswerDetail {
   ai_feedback: string;
   model_answer: string;
   is_passed: boolean;
+  is_skipped?: boolean;
 }
 
 export interface RecordingProblemDetail {
@@ -56,6 +57,8 @@ export interface QuizResultDetail {
   recordingProblems: RecordingProblemDetail[];
   recordingAnswers: RecordingAnswerDetail[];
   fillBlankWordMap: Record<string, string>;
+  difficulty: string;
+  translationLanguage: string;
 }
 
 export function useQuizResultDetail(resultId: string | null, quizId: string | null) {
@@ -71,10 +74,10 @@ export function useQuizResultDetail(resultId: string | null, quizId: string | nu
     if (!resultId || !quizId) return;
     setIsLoading(true);
 
-    // 퀴즈 플래그 + problems(word fallback용) 조회
+    // 퀴즈 플래그 + problems(word fallback용) + 재채점용 난이도/언어 조회
     const { data: quizData } = await supabase
       .from("quizzes")
-      .select("sentence_making_enabled, recording_enabled, problems")
+      .select("sentence_making_enabled, recording_enabled, problems, difficulty, translation_language")
       .eq("id", quizId)
       .single();
 
@@ -140,6 +143,8 @@ export function useQuizResultDetail(resultId: string | null, quizId: string | nu
       recordingProblems,
       recordingAnswers,
       fillBlankWordMap,
+      difficulty: quizData?.difficulty ?? "A1",
+      translationLanguage: quizData?.translation_language ?? "en",
     });
     setIsLoading(false);
   };

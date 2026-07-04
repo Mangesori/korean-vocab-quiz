@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.azure-speech-assessment]
 verify_jwt = false
+
+[functions.clova-speech-assessment]
+verify_jwt = false

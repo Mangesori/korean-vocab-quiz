@@ -2,15 +2,39 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StudentQuizActivity {
-  id: string;           // result id (for completed) or quiz_id (for pending)
+  id: string;
   quiz_id: string;
   quiz_title: string;
   score: number;
   total_questions: number;
-  completed_at: string | null; // 제출 시간 (미완료시 null)
-  assigned_at: string;         // 배정일
+  completed_at: string | null;
+  assigned_at: string;
   answers: any;
   status: "completed" | "pending";
+  // per-type scores
+  fill_blank_score: number | null;
+  fill_blank_total: number | null;
+  matchup_score: number | null;
+  matchup_total: number | null;
+  type_answer_score: number | null;
+  type_answer_total: number | null;
+  word_magnet_score: number | null;
+  word_magnet_total: number | null;
+  sentence_making_score: number | null;
+  sentence_making_total: number | null;
+  recording_score: number | null;
+  recording_total: number | null;
+  // quiz type flags
+  fill_blank_enabled: boolean;
+  matchup_enabled: boolean;
+  type_answer_enabled: boolean;
+  word_magnet_enabled: boolean;
+  sentence_making_enabled: boolean;
+  recording_enabled: boolean;
+  // per-type submission times
+  fill_blank_time: string | null;
+  sentence_making_time: string | null;
+  recording_time: string | null;
 }
 
 export function useStudentHistory(studentId: string, classId: string) {
@@ -26,15 +50,20 @@ export function useStudentHistory(studentId: string, classId: string) {
   const fetchHistory = async () => {
     setIsLoading(true);
     try {
-      // 1. Get all quizzes assigned to this class
-      const { data: assignedQuizzes, error: quizError } = await supabase
+      const { data: assignedQuizzes, error: quizError } = await (supabase as any)
         .from("quiz_assignments")
         .select(`
           quiz_id,
           assigned_at,
           quizzes (
             id,
-            title
+            title,
+            fill_blank_enabled,
+            matchup_enabled,
+            type_answer_enabled,
+            word_magnet_enabled,
+            sentence_making_enabled,
+            recording_enabled
           )
         `)
         .eq("class_id", classId);
@@ -43,19 +72,32 @@ export function useStudentHistory(studentId: string, classId: string) {
 
       const quizIds = assignedQuizzes ? assignedQuizzes.map((cq) => cq.quiz_id) : [];
 
-      // 배정일 맵 생성
-      const assignmentMap: Record<string, { title: string; assigned_at: string }> = {};
+      const assignmentMap: Record<string, {
+        title: string;
+        assigned_at: string;
+        fill_blank_enabled: boolean;
+        matchup_enabled: boolean;
+        type_answer_enabled: boolean;
+        word_magnet_enabled: boolean;
+        sentence_making_enabled: boolean;
+        recording_enabled: boolean;
+      }> = {};
       (assignedQuizzes || []).forEach((cq: any) => {
         assignmentMap[cq.quiz_id] = {
           title: cq.quizzes?.title || "삭제된 퀴즈",
-          assigned_at: cq.assigned_at
+          assigned_at: cq.assigned_at,
+          fill_blank_enabled: cq.quizzes?.fill_blank_enabled ?? true,
+          matchup_enabled: cq.quizzes?.matchup_enabled ?? false,
+          type_answer_enabled: cq.quizzes?.type_answer_enabled ?? false,
+          word_magnet_enabled: cq.quizzes?.word_magnet_enabled ?? false,
+          sentence_making_enabled: cq.quizzes?.sentence_making_enabled ?? false,
+          recording_enabled: cq.quizzes?.recording_enabled ?? false,
         };
       });
 
       const allActivities: StudentQuizActivity[] = [];
       const completedQuizIds = new Set<string>();
 
-      // 2. Get ALL results for this student (not just latest)
       if (quizIds.length > 0) {
         const { data: results, error: resultError } = await supabase
           .from("quiz_results")
@@ -65,7 +107,32 @@ export function useStudentHistory(studentId: string, classId: string) {
 
         if (resultError) throw resultError;
 
-        if (results) {
+        if (results && results.length > 0) {
+          const completedIds = results.map((r) => r.id);
+
+          // Batch-fetch per-type submission times
+          const [smAnswers, recAnswers] = await Promise.all([
+            supabase
+              .from("sentence_making_answers")
+              .select("result_id, created_at")
+              .in("result_id", completedIds)
+              .order("created_at", { ascending: false }),
+            supabase
+              .from("recording_answers")
+              .select("result_id, created_at")
+              .in("result_id", completedIds)
+              .order("created_at", { ascending: false }),
+          ]);
+
+          const smTimeMap: Record<string, string> = {};
+          const recTimeMap: Record<string, string> = {};
+          smAnswers.data?.forEach((a) => {
+            if (!smTimeMap[a.result_id]) smTimeMap[a.result_id] = a.created_at;
+          });
+          recAnswers.data?.forEach((a) => {
+            if (!recTimeMap[a.result_id]) recTimeMap[a.result_id] = a.created_at;
+          });
+
           results.forEach((r) => {
             completedQuizIds.add(r.quiz_id);
             const assignment = assignmentMap[r.quiz_id];
@@ -78,13 +145,33 @@ export function useStudentHistory(studentId: string, classId: string) {
               completed_at: r.completed_at,
               assigned_at: assignment?.assigned_at || r.completed_at,
               answers: r.answers,
-              status: "completed"
+              status: "completed",
+              fill_blank_score: r.fill_blank_score ?? null,
+              fill_blank_total: r.fill_blank_total ?? null,
+              matchup_score: (r as any).matchup_score ?? null,
+              matchup_total: (r as any).matchup_total ?? null,
+              type_answer_score: (r as any).type_answer_score ?? null,
+              type_answer_total: (r as any).type_answer_total ?? null,
+              word_magnet_score: (r as any).word_magnet_score ?? null,
+              word_magnet_total: (r as any).word_magnet_total ?? null,
+              sentence_making_score: r.sentence_making_score ?? null,
+              sentence_making_total: r.sentence_making_total ?? null,
+              recording_score: r.recording_score ?? null,
+              recording_total: r.recording_total ?? null,
+              fill_blank_enabled: assignment?.fill_blank_enabled ?? true,
+              matchup_enabled: assignment?.matchup_enabled ?? false,
+              type_answer_enabled: assignment?.type_answer_enabled ?? false,
+              word_magnet_enabled: assignment?.word_magnet_enabled ?? false,
+              sentence_making_enabled: assignment?.sentence_making_enabled ?? false,
+              recording_enabled: assignment?.recording_enabled ?? false,
+              fill_blank_time: r.completed_at,
+              sentence_making_time: smTimeMap[r.id] || null,
+              recording_time: recTimeMap[r.id] || null,
             });
           });
         }
       }
 
-      // 3. Add pending quizzes (not yet completed)
       (assignedQuizzes || []).forEach((cq: any) => {
         if (!completedQuizIds.has(cq.quiz_id)) {
           allActivities.push({
@@ -96,28 +183,42 @@ export function useStudentHistory(studentId: string, classId: string) {
             completed_at: null,
             assigned_at: cq.assigned_at,
             answers: null,
-            status: "pending"
+            status: "pending",
+            fill_blank_score: null,
+            fill_blank_total: null,
+            matchup_score: null,
+            matchup_total: null,
+            type_answer_score: null,
+            type_answer_total: null,
+            word_magnet_score: null,
+            word_magnet_total: null,
+            sentence_making_score: null,
+            sentence_making_total: null,
+            recording_score: null,
+            recording_total: null,
+            fill_blank_enabled: cq.quizzes?.fill_blank_enabled ?? true,
+            matchup_enabled: cq.quizzes?.matchup_enabled ?? false,
+            type_answer_enabled: cq.quizzes?.type_answer_enabled ?? false,
+            word_magnet_enabled: cq.quizzes?.word_magnet_enabled ?? false,
+            sentence_making_enabled: cq.quizzes?.sentence_making_enabled ?? false,
+            recording_enabled: cq.quizzes?.recording_enabled ?? false,
+            fill_blank_time: null,
+            sentence_making_time: null,
+            recording_time: null,
           });
         }
       });
 
-      // 4. Sort: pending (by assigned_at desc) first, then completed (by completed_at desc)
       allActivities.sort((a, b) => {
-        // Pending first, completed last
         if (a.status === "pending" && b.status === "completed") return -1;
         if (a.status === "completed" && b.status === "pending") return 1;
-
-        // Both completed: sort by completed_at desc
         if (a.status === "completed" && b.status === "completed") {
           return new Date(b.completed_at!).getTime() - new Date(a.completed_at!).getTime();
         }
-
-        // Both pending: sort by assigned_at desc
         return new Date(b.assigned_at).getTime() - new Date(a.assigned_at).getTime();
       });
 
       setActivities(allActivities);
-
     } catch (e) {
       console.error("Error fetching student history:", e);
     } finally {
@@ -125,5 +226,5 @@ export function useStudentHistory(studentId: string, classId: string) {
     }
   };
 
-  return { activities, isLoading };
+  return { activities, isLoading, refetch: fetchHistory };
 }

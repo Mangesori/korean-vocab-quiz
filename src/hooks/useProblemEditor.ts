@@ -84,7 +84,6 @@ export function useProblemEditor(
       }
 
       onSaveSuccess(editedProblems);
-      setIsEditing(false);
       toast.success("변경사항이 저장되었습니다");
     } catch (error: any) {
       console.error("Save error details:", error);

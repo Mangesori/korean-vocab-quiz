@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { format } from "date-fns";
-import { ko } from "date-fns/locale";
 import { useStudentHistory, StudentQuizActivity } from "@/hooks/useStudentHistory";
 import {
   Dialog,
@@ -17,10 +15,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, Clock, Eye } from "lucide-react";
+import { Loader2, Eye } from "lucide-react";
 import { QuizResultDialog } from "@/components/quiz/QuizResultDialog";
+import { formatDateShort } from "@/lib/formatDate";
+
+interface ScoreCellProps {
+  score: number | null;
+  total: number | null;
+  enabled: boolean;
+}
+
+function ScoreCell({ score, total, enabled }: ScoreCellProps) {
+  if (!enabled) return <span className="text-muted-foreground">—</span>;
+  if (score === null) return <span className="text-muted-foreground text-xs">미완료</span>;
+  return <span className="font-semibold text-sm">{score}/{total ?? "?"}</span>;
+}
 
 interface StudentHistoryDialogProps {
   isOpen: boolean;
@@ -37,13 +47,17 @@ export function StudentHistoryDialog({
   studentName,
   classId,
 }: StudentHistoryDialogProps) {
-  const { activities, isLoading } = useStudentHistory(studentId, classId);
-  const [selectedResult, setSelectedResult] = useState<StudentQuizActivity | null>(null);
+  const { activities, isLoading, refetch } = useStudentHistory(studentId, classId);
+  // id만 state로 갖고 매 렌더링마다 최신 activities에서 찾아 파생시킨다 —
+  // QuizResultsList.tsx와 동일한 패턴. useStudentHistory는 실시간 구독이 없으므로
+  // 점수 변경 후에는 QuizResultDialog의 onDataChanged 콜백으로 명시적으로 refetch한다.
+  const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
+  const selectedResult = activities.find((a) => a.id === selectedResultId) ?? null;
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{studentName} 학생의 활동 기록</DialogTitle>
             <DialogDescription>
@@ -56,58 +70,78 @@ export function StudentHistoryDialog({
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>퀴즈 제목</TableHead>
-                    <TableHead className="w-[140px]">배정일</TableHead>
-                    <TableHead className="w-[160px]">제출 시간</TableHead>
-                    <TableHead className="w-[120px]">상태</TableHead>
-                    <TableHead className="w-[80px]">점수</TableHead>
-                    <TableHead className="w-[100px] text-center">상세보기</TableHead>
+                    <TableHead className="whitespace-nowrap">배정일</TableHead>
+                    <TableHead className="whitespace-nowrap">빈칸 채우기</TableHead>
+                    <TableHead className="whitespace-nowrap">짝 맞추기</TableHead>
+                    <TableHead className="whitespace-nowrap">단어 받아쓰기</TableHead>
+                    <TableHead className="whitespace-nowrap">문장 순서 맞추기</TableHead>
+                    <TableHead className="whitespace-nowrap">문장 만들기</TableHead>
+                    <TableHead className="whitespace-nowrap">말하기 연습</TableHead>
+                    <TableHead className="whitespace-nowrap text-center">상세보기</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {activities.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
                         배정된 퀴즈가 없습니다.
                       </TableCell>
                     </TableRow>
                   ) : (
                     activities.map((activity) => (
                       <TableRow key={activity.id}>
-                        <TableCell className="font-medium">{activity.quiz_title}</TableCell>
-                        <TableCell>
-                          {format(new Date(activity.assigned_at), "yyyy-MM-dd", { locale: ko })}
+                        <TableCell className="font-medium">
+                          <div className="truncate">{activity.quiz_title}</div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {formatDateShort(activity.assigned_at)}
                         </TableCell>
                         <TableCell>
-                          {activity.completed_at ? (
-                            format(new Date(activity.completed_at), "MM-dd HH:mm", { locale: ko })
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
+                          <ScoreCell
+                            score={activity.fill_blank_score}
+                            total={activity.fill_blank_total}
+                            enabled={activity.fill_blank_enabled ?? true}
+                          />
                         </TableCell>
                         <TableCell>
-                          {activity.status === "completed" ? (
-                            <Badge className="bg-green-500 flex w-fit items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" /> 완료
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="flex w-fit items-center gap-1">
-                              <Clock className="w-3 h-3" /> 미완료
-                            </Badge>
-                          )}
+                          <ScoreCell
+                            score={activity.matchup_score}
+                            total={activity.matchup_total}
+                            enabled={activity.matchup_enabled}
+                          />
                         </TableCell>
                         <TableCell>
-                          {activity.status === "completed" ? (
-                            <span className="font-medium">
-                              {activity.score} / {activity.total_questions}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
+                          <ScoreCell
+                            score={activity.type_answer_score}
+                            total={activity.type_answer_total}
+                            enabled={activity.type_answer_enabled}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <ScoreCell
+                            score={activity.word_magnet_score}
+                            total={activity.word_magnet_total}
+                            enabled={activity.word_magnet_enabled}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <ScoreCell
+                            score={activity.sentence_making_score}
+                            total={activity.sentence_making_total}
+                            enabled={activity.sentence_making_enabled}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <ScoreCell
+                            score={activity.recording_score}
+                            total={activity.recording_total}
+                            enabled={activity.recording_enabled}
+                          />
                         </TableCell>
                         <TableCell className="text-center">
                           <Button
@@ -115,7 +149,7 @@ export function StudentHistoryDialog({
                             size="icon"
                             className="h-8 w-8 hover:bg-transparent"
                             disabled={activity.status !== "completed"}
-                            onClick={() => activity.status === "completed" && setSelectedResult(activity)}
+                            onClick={() => activity.status === "completed" && setSelectedResultId(activity.id)}
                           >
                             <Eye className={`w-4 h-4 ${activity.status !== "completed" ? "text-muted-foreground" : "text-primary"}`} />
                           </Button>
@@ -129,13 +163,14 @@ export function StudentHistoryDialog({
           )}
         </DialogContent>
       </Dialog>
-      
-      {/* Quiz Result Popup */}
+
       <QuizResultDialog
         isOpen={!!selectedResult}
-        onClose={() => setSelectedResult(null)}
+        onClose={() => setSelectedResultId(null)}
         result={selectedResult}
         studentName={studentName}
+        quizId={selectedResult?.quiz_id || ""}
+        onDataChanged={refetch}
       />
     </>
   );

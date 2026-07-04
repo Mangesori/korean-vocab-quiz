@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -19,10 +19,6 @@ import {
   X,
   Clock,
   FileText,
-  Calendar,
-  BarChart2,
-  ChevronDown,
-  ChevronUp,
   ChevronRight,
   Megaphone
 } from 'lucide-react';
@@ -38,13 +34,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { Label } from '@/components/ui/label';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { StudentHistoryDialog } from '@/components/class/StudentHistoryDialog';
 import { LevelBadge } from '@/components/ui/level-badge';
+import { formatDateShort } from '@/lib/formatDate';
 
 interface ClassData {
   id: string;
@@ -81,12 +75,11 @@ export default function ClassDetail() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
-  const [showAllAssignments, setShowAllAssignments] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
-  const [copiedCode, setCopiedCode] = useState(false);
   const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<{ id: string; name: string } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
@@ -287,8 +280,12 @@ export default function ClassDetail() {
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate('/classes')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> 클래스 목록
+        <Button
+          variant="ghost"
+          onClick={() => (location.key !== 'default' ? navigate(-1) : navigate('/classes'))}
+          className="mb-4"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" /> 뒤로
         </Button>
 
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
@@ -324,7 +321,7 @@ export default function ClassDetail() {
               )}
               
               <p className="text-xs text-muted-foreground">
-                생성일: {format(new Date(classData.created_at), 'yyyy년 M월 d일', { locale: ko })}
+                생성일: {formatDateShort(classData.created_at)}
               </p>
             </div>
 
@@ -345,6 +342,23 @@ export default function ClassDetail() {
             </div>
           </div>
 
+        {/* Header stat bar */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="bg-card border border-border rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-foreground">{assignments.length}</div>
+            <div className="text-xs text-muted-foreground mt-1">전체 퀴즈</div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-primary">{members.length}</div>
+            <div className="text-xs text-muted-foreground mt-1">학생 수</div>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-foreground">
+              {assignments.length > 0 ? formatDateShort(assignments[0].assigned_at) : '—'}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">최근 배정일</div>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
           {/* Assigned Quizzes Card - 2/3 (Left) */}
@@ -374,7 +388,8 @@ export default function ClassDetail() {
                 <>
                   <div className="grid gap-4 sm:grid-cols-1 xl:grid-cols-2">
                     {assignments.slice(0, 6).map((assignment) => (
-                      <Card key={assignment.id} className="hover:shadow-lg transition-all hover:border-primary/50 h-full">
+                      <Link key={assignment.id} to={`/quiz/${assignment.quiz_id}`} className="block h-full">
+                      <Card className="hover:shadow-lg transition-all hover:border-primary/50 h-full cursor-pointer">
                         <CardContent className="p-5">
                           {/* Icon + Badge */}
                           <div className="flex items-start justify-between mb-3">
@@ -415,21 +430,13 @@ export default function ClassDetail() {
                           <div className="flex items-center justify-between mt-4">
                             <div className="flex items-center text-xs text-muted-foreground">
                               <Clock className="w-3 h-3 mr-1" />
-                              {format(new Date(assignment.assigned_at), 'yyyy년 M월 d일', { locale: ko })}
+                              {formatDateShort(assignment.assigned_at)}
                             </div>
                             <div className="flex gap-1">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 className="h-8 text-xs"
-                                onClick={() => navigate(`/quiz/${assignment.quiz_id}`)}
-                              >
-                                문제 보기
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                className="h-8 text-xs"
-                                onClick={() => navigate(`/quiz/${assignment.quiz_id}?tab=results`)}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/quiz/${assignment.quiz_id}?tab=results`); }}
                               >
                                 결과 확인
                               </Button>
@@ -437,7 +444,7 @@ export default function ClassDetail() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                onClick={() => handleDeleteClick(assignment)}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteClick(assignment); }}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -445,6 +452,7 @@ export default function ClassDetail() {
                           </div>
                         </CardContent>
                       </Card>
+                      </Link>
                     ))}
                   </div>
                 </>
@@ -480,7 +488,7 @@ export default function ClassDetail() {
                   {members.slice(0, 10).map((member) => (
                     <div 
                       key={member.id} 
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted hover:bg-border/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
@@ -491,7 +499,7 @@ export default function ClassDetail() {
                         <div>
                           <p className="font-medium">{member.profile?.name || '이름 없음'}</p>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(member.joined_at), 'M월 d일 가입', { locale: ko })}
+                            {formatDateShort(member.joined_at) + ' 가입'}
                           </p>
                         </div>
                       </div>

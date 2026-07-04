@@ -174,7 +174,8 @@ export function useQuizSharing(quiz: Quiz | null, user: any, classes: Class[]) {
 
       const url = `${window.location.origin}/quiz/share/${shareToken}`;
       setShareUrl(url);
-      toast.success("공유 링크가 생성되었습니다!");
+      navigator.clipboard.writeText(url).catch(() => {});
+      toast.success("링크가 클립보드에 복사되었습니다");
     } catch (error) {
       console.error("Share link error:", error);
       toast.error("링크 생성에 실패했습니다");

@@ -27,5 +27,5 @@ Key rules:
 - Korean text: Pretendard (load via CDN). Paperozi for display/landing only.
 - English headers: DM Serif Display. UI text: Geist / Geist Mono.
 - Background: #F8F5F0 (warm off-white) — not pure white
-- Student quiz screens: one problem at a time, no game UI during quiz
+- Student quiz screens: layout fits the quiz type — focused single-item for fill-blank/writing, multi-item layouts allowed for match-up/word-magnet. Keep a calm tone (avoid arcade-style timers/score animations); no "one problem at a time" hard rule.
 - In QA mode, flag any code that doesn't match DESIGN.md.
