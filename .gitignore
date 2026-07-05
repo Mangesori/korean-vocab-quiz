@@ -29,3 +29,8 @@ dist-ssr
 # gstack (내부 .git 서브 레포지토리 제외)
 .agents/skills/gstack/.git
 .gstack/
+
+# fable 오케스트레이션 게이트 (토글 상태/턴 카운터, 머신별로 다름)
+.claude/fable/active.md
+.claude/fable/.fable-state
+.claude/fable/state/
