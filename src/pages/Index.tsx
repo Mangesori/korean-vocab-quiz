@@ -17,9 +17,9 @@ export default function Index() {
         {/* ── Hero (split) ── */}
         <section className="bg-background">
           <div className="container py-16 lg:py-24">
-            <div className="grid grid-cols-1 lg:grid-cols-[9fr_11fr] gap-16 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
               {/* Left: copy + CTA */}
-              <div>
+              <div className="lg:col-span-5">
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent text-accent-foreground text-sm font-semibold mb-6">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                   수업에 집중하세요, 퀴즈는 AI가
@@ -76,7 +76,7 @@ export default function Index() {
               </div>
 
               {/* Right: product mock */}
-              <div>
+              <div className="lg:col-span-7">
                 <HeroProductMock />
               </div>
             </div>

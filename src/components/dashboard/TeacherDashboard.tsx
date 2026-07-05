@@ -239,7 +239,7 @@ export default function TeacherDashboard() {
                   <p>아직 생성된 퀴즈가 없습니다</p>
                 </div>
               ) : (
-                <div className="p-3 grid grid-cols-2 gap-2">
+                <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {quizzes.map((quiz) => (
                     <Link key={quiz.id} to={`/quiz/${quiz.id}`}>
                       <Card className="flex flex-col cursor-pointer hover:border-primary/40 transition-colors h-full">
@@ -315,7 +315,7 @@ export default function TeacherDashboard() {
                   <p>아직 생성된 클래스가 없습니다</p>
                 </div>
               ) : (
-                <div className="p-3 grid grid-cols-2 gap-2">
+                <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {classes.slice(0, 4).map((cls) => (
                     <Link key={cls.id} to={`/class/${cls.id}`}>
                       <Card className="flex flex-col cursor-pointer hover:border-primary/40 transition-colors h-full">

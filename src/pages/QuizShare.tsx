@@ -227,7 +227,7 @@ export default function QuizShare() {
                     onChange={(e) => setAnonymousName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && anonymousName.trim().length >= 2) startQuiz(); }}
                     placeholder="예) 이서연"
-                    className="w-full h-[46px] px-3.5 rounded-[10px] border border-border bg-card text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
+                    className="w-full h-[46px] px-3.5 rounded-[10px] border border-border bg-card text-base md:text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/15"
                   />
                   {anonymousName.trim().length > 0 && anonymousName.trim().length < 2 && (
                     <p className="text-xs text-destructive mt-1">이름은 2글자 이상 입력해주세요</p>
