@@ -372,29 +372,29 @@ export function FillBlankStage({
           variant="outline"
           onClick={handlePrevSet}
           disabled={currentSetIndex === 0}
-          className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-border text-muted-foreground font-semibold hover:bg-white hover:text-foreground shadow-sm"
+          className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-border text-muted-foreground text-xs sm:text-sm font-semibold hover:bg-white hover:text-foreground shadow-sm"
         >
-          <ChevronLeft className="w-4 h-4 mr-2" /> 이전 세트
+          <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> 이전 세트
         </Button>
 
         {currentSetIndex < totalSets - 1 ? (
           <Button
             onClick={handleNextSet}
             disabled={!currentSetAnswered()}
-            className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
+            className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
           >
-            다음 세트 <ChevronRight className="w-4 h-4 ml-2" />
+            다음 세트 <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 sm:ml-2" />
           </Button>
         ) : (
           <Button
             onClick={handleComplete}
             disabled={isSubmitting || !allAnswered()}
-            className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
+            className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
           >
             {isSubmitting ? (
-              <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> 제출 중...</>
+              <><Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2 animate-spin" /> 제출 중...</>
             ) : (
-              <>결과 확인 <ChevronRight className="w-5 h-5 ml-2" /></>
+              <>결과 확인 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" /></>
             )}
           </Button>
         )}
