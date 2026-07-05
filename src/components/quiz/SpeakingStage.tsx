@@ -339,7 +339,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
       <CardContent className="p-0 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
         {/* 문장 표시 */}
           <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px] mt-0 sm:mt-1">
-            <div className="flex w-full items-center justify-between mb-6 sm:mb-8">
+            <div className="flex w-full items-center justify-between mb-2 sm:mb-3">
               <div className="text-xs sm:text-sm font-semibold text-[#8B5CF6] bg-[#8B5CF6]/10 px-3 py-1.5 rounded-full inline-flex items-center">
                 {currentProblem.mode === "listen" ? "듣고 말하기" : "보고 말하기"}
               </div>
@@ -354,11 +354,14 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
               </Button>
             </div>
             
+            {currentProblem.mode === "read" && (
+              <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold mb-2">문장을 보고 따라 말해보세요</p>
+            )}
+
             <div className="flex-1 flex flex-col items-center justify-center w-full">
               {currentProblem.mode === "read" ? (
                 <>
-                  <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold mb-2">문장을 보고 따라 말해보세요</p>
-                  <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 text-foreground leading-relaxed text-center drop-shadow-sm">{currentProblem.sentence}</h3>
+                  <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold mt-4 mb-4 sm:mb-6 text-foreground leading-relaxed text-center drop-shadow-sm">{currentProblem.sentence}</h3>
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-6">

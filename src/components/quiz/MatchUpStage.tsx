@@ -176,16 +176,16 @@ export function MatchUpStage({ problems, onProgressUpdate, onComplete, onBack, b
             variant="outline"
             onClick={onBack}
             disabled={!onBack}
-            className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
           >
-            <ChevronLeft className="w-4 h-4 mr-2" /> {backLabel ?? "이전"}
+            <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> {backLabel ?? "이전"}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!allMatched}
-            className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
+            className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
           >
-            결과 확인 <ChevronRight className="w-5 h-5 ml-2" />
+            결과 확인 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
           </Button>
         </div>
       </CardContent>
