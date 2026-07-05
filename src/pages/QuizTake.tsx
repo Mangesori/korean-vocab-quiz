@@ -113,6 +113,11 @@ export default function QuizTake() {
 
   // 멀티 스테이지 퀴즈 지원
   const [currentStage, setCurrentStage] = useState<QuizStage>("fill_blank");
+
+  // 스테이지 전환 시 스크롤 위치를 상단으로 리셋
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentStage]);
   const [stageResults, setStageResults] = useState<Record<string, any>>({});
   const [sentenceMakingProblems, setSentenceMakingProblems] = useState<SentenceMakingProblemData[]>([]);
   const [recordingProblems, setRecordingProblems] = useState<RecordingProblemData[]>([]);
@@ -1708,7 +1713,7 @@ export default function QuizTake() {
   const currentGlobalIndex = getCurrentGlobalStageIndex();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-primary/5">
+    <div className="min-h-screen bg-background">
       {/* 퀴즈 공통 Header & Global Stepper */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b shadow-sm">
         <div className="container mx-auto px-4 py-3">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -41,9 +41,15 @@ interface WordMagnetStageProps {
   backLabel?: string;
 }
 
-// 답 영역 밑줄 라인(노트 라인) 배경
-const RULED_LINES =
-  "repeating-linear-gradient(to bottom, transparent 0, transparent 51px, hsl(var(--border)) 51px, hsl(var(--border)) 52px)";
+// 답 영역 줄 사이 간격(px) — 상단 패딩과 flex 줄 간격에 동일하게 적용해
+// 밑줄 반복 주기(타일 실측 높이 + 이 값)와 항상 어긋나지 않게 한다.
+const ROW_GAP_PX = 16;
+// 타일 실측 전 초기 렌더용 대략값(실측되면 바로 교체됨)
+const FALLBACK_TILE_HEIGHT_PX = 42;
+// 밑줄을 타일 텍스트 하단에서 살짝 아래로 내리기 위한 여백(공책 줄 느낌)
+const LINE_OFFSET_PX = 6;
+// 답 영역에 처음부터 항상 확보해 둘 최소 줄 수(타일이 없어도 밑줄이 미리 보이도록)
+const MIN_VISIBLE_ROWS = 2;
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -138,6 +144,19 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
   const [answerItems, setAnswerItems] = useState<Tile[]>([]);
   // 단어 은행 표시 순서(불변). 사용된 타일은 placeholder로 남는다.
   const [bankOrder, setBankOrder] = useState<Tile[]>([]);
+
+  // 답 영역 밑줄 간격을 타일 실측 높이에 맞추기 위한 측정용(화면에 보이지 않는) 타일
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [measuredTileHeight, setMeasuredTileHeight] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (measureRef.current) {
+      setMeasuredTileHeight(measureRef.current.getBoundingClientRect().height);
+    }
+  }, []);
+  const rowCycle = (measuredTileHeight ?? FALLBACK_TILE_HEIGHT_PX) + ROW_GAP_PX;
+  const ruledLines = `repeating-linear-gradient(to bottom, transparent 0, transparent ${rowCycle - 1}px, hsl(var(--border)) ${rowCycle - 1}px, hsl(var(--border)) ${rowCycle}px)`;
+  // 타일이 하나도 없어도 공책처럼 줄이 미리 보이도록 최소 줄 수만큼 높이를 확보
+  const minAnswerAreaHeight = MIN_VISIBLE_ROWS * rowCycle + LINE_OFFSET_PX;
   // 문제별로 배치한 답(타일 배열) 저장
   const [savedAnswers, setSavedAnswers] = useState<Record<string, Tile[]>>({});
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
@@ -305,18 +324,32 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          {/* 답 영역 — 밑줄 라인 */}
+          {/* 답 영역 — 밑줄 라인(타일 실측 높이에 맞춘 반복 주기) */}
           <DroppableArea
             id="answer-area"
-            className="min-h-[108px] px-1 pb-1 flex flex-wrap content-start items-end gap-y-3"
-            style={{ backgroundImage: RULED_LINES }}
+            className="px-1 pb-0 flex flex-wrap content-start items-end"
+            style={{
+              backgroundImage: ruledLines,
+              backgroundPosition: `0 ${LINE_OFFSET_PX}px`,
+              paddingTop: ROW_GAP_PX,
+              rowGap: ROW_GAP_PX,
+              minHeight: minAnswerAreaHeight,
+            }}
           >
+            {/* 화면에는 보이지 않는 측정용 타일 — 실제 타일과 동일한 높이를 갖도록 같은 컴포넌트를 재사용 */}
+            <div
+              ref={measureRef}
+              aria-hidden
+              style={{ position: "absolute", visibility: "hidden", pointerEvents: "none", top: -9999, left: -9999 }}
+            >
+              <WordMagnetTile content="측정" isParticle={false} />
+            </div>
             <SortableContext items={answerItems.map((t) => t.id)} strategy={horizontalListSortingStrategy}>
-              {answerItems.map((tile, idx) => (
+              {answerItems.map((tile) => (
                 <SortableAnswerTile
                   key={tile.id}
                   tile={tile}
-                  marginClass={idx > 0 ? (tile.isParticle ? "ml-1" : "ml-3") : ""}
+                  marginClass={tile.isParticle ? "mr-1" : "mr-3"}
                   onTap={handleTap}
                 />
               ))}
@@ -340,50 +373,47 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
           <DragOverlay>{activeTile ? <TileBox tile={activeTile} /> : null}</DragOverlay>
         </DndContext>
 
-        {/* 모바일: 폭이 부족해 네비 줄 위에 별도로 */}
-        <div className="sm:hidden flex justify-center">{skipButton}</div>
-
         {/* 네비게이션 */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 items-center pt-2 gap-2">
+        <div className="grid grid-cols-3 items-center pt-2 gap-2">
           <div className="justify-self-start">
             {currentIndex === 0 && onBack ? (
               <Button
                 variant="outline"
                 onClick={onBack}
-                className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
               >
-                <ChevronLeft className="w-4 h-4 mr-2" /> {backLabel ?? "이전"}
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> {backLabel ?? "이전"}
               </Button>
             ) : (
               <Button
                 variant="outline"
                 onClick={goPrev}
                 disabled={currentIndex === 0}
-                className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
               >
-                <ChevronLeft className="w-4 h-4 mr-2" /> 이전
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> 이전
               </Button>
             )}
           </div>
 
-          <div className="hidden sm:flex justify-center">{skipButton}</div>
+          <div className="flex justify-center">{skipButton}</div>
 
           <div className="justify-self-end">
             {currentIndex < total - 1 ? (
               <Button
                 onClick={goNext}
                 disabled={!currentAnswered}
-                className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
               >
-                다음 문제 <ChevronRight className="w-4 h-4 ml-2" />
+                다음 문제 <ChevronRight className="w-4 h-4 ml-1.5 sm:ml-2" />
               </Button>
             ) : (
               <Button
                 onClick={handleSubmit}
                 disabled={!allAnswered}
-                className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
               >
-                결과 확인 <ChevronRight className="w-5 h-5 ml-2" />
+                결과 확인 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
               </Button>
             )}
           </div>

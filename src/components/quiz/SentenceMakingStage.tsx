@@ -295,7 +295,7 @@ export function SentenceMakingStage({
 
       <CardContent className="p-0 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
         {/* 단어 표시 */}
-          <div className="p-5 sm:p-10 bg-transparent sm:bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px] mt-0 sm:mt-1">
+          <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px] mt-0 sm:mt-1">
             <div className="flex w-full items-center justify-end mb-2 sm:mb-3">
               <Button
                 variant="outline"
@@ -342,50 +342,47 @@ export function SentenceMakingStage({
             />
           </div>
 
-          {/* 모바일: 폭이 부족해 네비 줄 위에 별도로 */}
-          <div className="sm:hidden flex justify-center">{skipButton}</div>
-
           {/* 이전/다음/채점 버튼 */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 items-center mt-6 gap-2">
+          <div className="grid grid-cols-3 items-center mt-6 gap-2">
             <div className="justify-self-start">
               {currentIndex === 0 && onBack ? (
                 <Button
                   variant="outline"
                   onClick={onBack}
-                  className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                  className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
                 >
-                  <ChevronLeft className="w-4 h-4 mr-2" /> {backLabel ?? "이전"}
+                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> {backLabel ?? "이전"}
                 </Button>
               ) : (
                 <Button
                   variant="outline"
                   onClick={handlePrev}
                   disabled={currentIndex === 0}
-                  className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                  className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
                 >
-                  <ChevronLeft className="w-4 h-4 mr-2" /> 이전
+                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> 이전
                 </Button>
               )}
             </div>
 
-            <div className="hidden sm:flex justify-center">{skipButton}</div>
+            <div className="flex justify-center">{skipButton}</div>
 
             <div className="justify-self-end">
               {currentIndex < problems.length - 1 ? (
                 <Button
                   onClick={handleNext}
                   disabled={!sentences[currentProblem.id]?.trim() && !isCurrentSkipped}
-                  className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
+                  className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
                 >
-                  다음 문제 <ChevronRight className="w-4 h-4 ml-2" />
+                  다음 문제 <ChevronRight className="w-4 h-4 ml-1.5 sm:ml-2" />
                 </Button>
               ) : (
                 <Button
                   onClick={() => handleGradeAll()}
                   disabled={!allFilled}
-                  className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
+                  className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
                 >
-                  결과 확인 <ChevronRight className="w-5 h-5 ml-2" />
+                  결과 확인 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
                 </Button>
               )}
             </div>

@@ -16,10 +16,10 @@ export function WordMagnetResultCard({ result: r, index }: WordMagnetResultCardP
   return (
     <Card className="overflow-hidden border bg-white rounded-2xl shadow-sm">
       <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2 min-w-0">
             <span
-              className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${
+              className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white flex-shrink-0 ${
                 r.skipped ? "bg-muted-foreground" : r.isCorrect ? "bg-success" : "bg-destructive"
               }`}
             >

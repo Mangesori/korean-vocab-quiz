@@ -119,40 +119,37 @@ export function TypeAnswerStage({ problems, onProgressUpdate, onComplete, onBack
           className="h-14 text-center text-xl font-semibold rounded-xl bg-slate-50 placeholder:text-base placeholder:font-normal placeholder:text-muted-foreground/60"
         />
 
-        {/* 모바일: 폭이 부족해 네비 줄 위에 별도로 */}
-        <div className="sm:hidden flex justify-center pb-2">{skipButton}</div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 items-center pt-2 gap-2">
+        <div className="grid grid-cols-3 items-center pt-2 gap-2">
           <div className="justify-self-start">
             {currentIndex === 0 && onBack ? (
               <Button
                 variant="outline"
                 onClick={onBack}
-                className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
               >
-                <ChevronLeft className="w-4 h-4 mr-2" /> {backLabel ?? "이전"}
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> {backLabel ?? "이전"}
               </Button>
             ) : (
               <Button
                 variant="outline"
                 onClick={goPrev}
                 disabled={currentIndex === 0}
-                className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
               >
-                <ChevronLeft className="w-4 h-4 mr-2" /> 이전
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> 이전
               </Button>
             )}
           </div>
 
-          <div className="hidden sm:flex justify-center">{skipButton}</div>
+          <div className="flex justify-center">{skipButton}</div>
 
           <div className="justify-self-end">
             <Button
               onClick={goNext}
               disabled={!currentFilled}
-              className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
+              className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
             >
-              {isLast ? "결과 확인" : "다음 문제"} <ChevronRight className="w-5 h-5 ml-2" />
+              {isLast ? "결과 확인" : "다음 문제"} <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
             </Button>
           </div>
         </div>

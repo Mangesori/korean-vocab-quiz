@@ -14,7 +14,7 @@ export function WordMagnetTile({
 }) {
   return (
     <div
-      className={`select-none rounded-xl px-3 py-2 text-base sm:text-lg shadow-sm border whitespace-nowrap ${
+      className={`select-none rounded-xl px-3 py-2 text-base shadow-sm border whitespace-nowrap ${
         isParticle
           ? "bg-slate-100 text-slate-500 border-slate-200"
           : "bg-white text-foreground border-slate-200"

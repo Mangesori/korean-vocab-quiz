@@ -118,7 +118,7 @@ export function MatchUpStage({ problems, onProgressUpdate, onComplete, onBack, b
       case "matched":
         return `${base} border-success bg-success/10`;
       case "selected":
-        return `${base} border-primary ring-2 ring-primary/40 bg-primary/10 shadow-sm`;
+        return `${base} border-primary ring-2 ring-primary/40 bg-primary/20 shadow-sm`;
       case "left":
         return `${base} border-primary/25 bg-primary/5 hover:border-primary/50`;
       case "right":

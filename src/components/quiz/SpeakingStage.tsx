@@ -338,7 +338,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
 
       <CardContent className="p-0 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
         {/* 문장 표시 */}
-          <div className="p-5 sm:p-10 bg-transparent sm:bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px] mt-0 sm:mt-1">
+          <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px] mt-0 sm:mt-1">
             <div className="flex w-full items-center justify-between mb-6 sm:mb-8">
               <div className="text-xs sm:text-sm font-semibold text-[#8B5CF6] bg-[#8B5CF6]/10 px-3 py-1.5 rounded-full inline-flex items-center">
                 {currentProblem.mode === "listen" ? "듣고 말하기" : "보고 말하기"}
