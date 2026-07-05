@@ -101,7 +101,7 @@ interface QuizResultsListProps {
 }
 
 export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnabled }: QuizResultsListProps) {
-  const { results, isLoading } = useQuizResults(quizId);
+  const { results, isLoading, refresh } = useQuizResults(quizId);
   const [filterType, setFilterType] = useState<"all" | "anonymous" | "student">("all");
   const [sortOrder, setSortOrder] = useState<"latest" | "score_high" | "score_low">("latest");
   // id만 state로 갖고 매 렌더링마다 최신 results에서 찾아 파생시킨다 —
@@ -368,6 +368,7 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
         studentName={selectedResult ? (selectedResult.is_anonymous ? selectedResult.anonymous_name || "익명" : selectedResult.student_profile?.name || "알 수 없음") : ""}
         isAnonymous={selectedResult?.is_anonymous}
         quizId={quizId}
+        onDataChanged={refresh}
       />
     </div>
   );
