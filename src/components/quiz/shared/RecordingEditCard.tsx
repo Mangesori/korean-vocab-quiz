@@ -32,6 +32,7 @@ interface RecordingEditCardProps {
   onRegenerateAudio?: () => void;
   regeneratingAudio?: boolean;
   onRegenerateProblem?: () => void;
+  regeneratingProblem?: boolean;
   onDelete: () => void;
   deleting?: boolean;
   dragHandleProps?: { attributes: any; listeners: any };
@@ -54,6 +55,7 @@ export function RecordingEditCard({
   onRegenerateAudio,
   regeneratingAudio = false,
   onRegenerateProblem,
+  regeneratingProblem = false,
   onDelete,
   deleting = false,
   dragHandleProps,
@@ -158,9 +160,14 @@ export function RecordingEditCard({
                 variant="default"
                 size="sm"
                 onClick={onRegenerateProblem}
+                disabled={regeneratingProblem}
                 className="bg-primary hover:bg-primary/90"
               >
-                <RefreshCw className="w-4 h-4 mr-1" />
+                {regeneratingProblem ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                )}
                 <span className="hidden sm:inline">문제 재생성</span>
                 <span className="sm:hidden">재생성</span>
               </Button>

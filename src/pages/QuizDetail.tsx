@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, TextCursorInput, PenLine, Mic, Link2, Keyboard, Magnet } from "lucide-react";
+import { Loader2, ArrowLeft, TextCursorInput, PenLine, Mic, Link2, Keyboard, Magnet, X } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Dialog } from "@/components/ui/dialog";
 import {
@@ -57,7 +57,8 @@ export default function QuizDetail() {
   // Tab State
   const [currentTab, setCurrentTab] = useState("problems");
   const [problemTab, setProblemTab] = useState<"fill_blank" | "sentence_making" | "recording" | "matchup" | "type_answer" | "word_magnet">("fill_blank");
-  const [confirmDialog, setConfirmDialog] = useState<"sentence_making" | "recording" | "matchup" | "type_answer" | "word_magnet" | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<"fill_blank" | "sentence_making" | "recording" | "matchup" | "type_answer" | "word_magnet" | null>(null);
+  const [removeDialog, setRemoveDialog] = useState<"fill_blank" | "sentence_making" | "recording" | "matchup" | "type_answer" | "word_magnet" | null>(null);
   const queryClient = useQueryClient();
 
   // Sync tab with URL
@@ -104,7 +105,7 @@ export default function QuizDetail() {
     const order: Array<["fill_blank" | "sentence_making" | "recording" | "matchup" | "type_answer" | "word_magnet", boolean]> = [
       ["matchup", !!quiz.matchup_enabled],
       ["type_answer", !!quiz.type_answer_enabled],
-      ["fill_blank", true],
+      ["fill_blank", quiz.fill_blank_enabled !== false],
       ["word_magnet", !!quiz.word_magnet_enabled],
       ["sentence_making", !!quiz.sentence_making_enabled],
       ["recording", !!quiz.recording_enabled],
@@ -422,6 +423,24 @@ export default function QuizDetail() {
       }
   };
 
+  // 빈칸 채우기 다시 추가 핸들러 (소프트 활성 — 문제 재생성 불필요, 플래그만 켬)
+  const handleAddFillBlank = async () => {
+    if (!quiz) return;
+    try {
+      const { error } = await supabase
+        .from("quizzes")
+        .update({ fill_blank_enabled: true } as any)
+        .eq("id", quiz.id);
+      if (error) throw new Error("퀴즈 설정 업데이트 실패: " + error.message);
+      toast.success("빈칸 채우기가 추가되었습니다!");
+      refetchQuiz();
+      setProblemTab("fill_blank");
+    } catch (error: any) {
+      console.error("Add fill blank error:", error);
+      toast.error(error.message || "빈칸 채우기 추가에 실패했습니다");
+    }
+  };
+
   // 문장 만들기 추가 핸들러
   const handleAddSentenceMaking = async () => {
     if (!quiz) return;
@@ -681,6 +700,119 @@ export default function QuizDetail() {
     }
   };
 
+  // 유형 통째 제거 핸들러
+  const handleRemoveType = async (
+    type: "fill_blank" | "sentence_making" | "recording" | "matchup" | "type_answer" | "word_magnet"
+  ) => {
+    if (!quiz) return;
+
+    // 최소 한 가지 유형은 남겨야 함
+    const enabledCount = [
+      quiz.fill_blank_enabled !== false,
+      quiz.matchup_enabled,
+      quiz.type_answer_enabled,
+      quiz.word_magnet_enabled,
+      quiz.sentence_making_enabled,
+      quiz.recording_enabled,
+    ].filter(Boolean).length;
+    if (enabledCount <= 1) {
+      toast.error("최소 한 가지 퀴즈 유형이 필요합니다");
+      return;
+    }
+
+    // 유형 → 문제 테이블명 / enabled 컬럼 / refetch 함수 / 표시 이름
+    let problemTable: string;
+    let enabledColumn: string;
+    let refetchType: () => void;
+    let typeLabel: string;
+    switch (type) {
+      case "fill_blank":
+        // 소프트 비활성: 문제 테이블 삭제 없이 플래그만 해제 (quiz.problems 보존)
+        problemTable = "";
+        enabledColumn = "fill_blank_enabled";
+        refetchType = () => {};
+        typeLabel = "빈칸 채우기";
+        break;
+      case "matchup":
+        problemTable = "matchup_problems";
+        enabledColumn = "matchup_enabled";
+        refetchType = refetchMatchup;
+        typeLabel = "짝 맞추기";
+        break;
+      case "type_answer":
+        problemTable = "type_answer_problems";
+        enabledColumn = "type_answer_enabled";
+        refetchType = refetchTypeAnswer;
+        typeLabel = "단어 받아쓰기";
+        break;
+      case "word_magnet":
+        problemTable = "word_magnet_problems";
+        enabledColumn = "word_magnet_enabled";
+        refetchType = refetchWordMagnet;
+        typeLabel = "문장 순서 맞추기";
+        break;
+      case "sentence_making":
+        problemTable = "sentence_making_problems";
+        enabledColumn = "sentence_making_enabled";
+        refetchType = refetchSentenceMaking;
+        typeLabel = "문장 만들기";
+        break;
+      case "recording":
+        problemTable = "recording_problems";
+        enabledColumn = "recording_enabled";
+        refetchType = refetchRecording;
+        typeLabel = "말하기 연습";
+        break;
+      default:
+        return;
+    }
+
+    try {
+      // 1. 해당 유형 문제 전체 삭제 (빈칸 채우기는 소프트 비활성이므로 스킵)
+      if (problemTable) {
+        const { error: deleteError } = await supabase
+          .from(problemTable as any)
+          .delete()
+          .eq("quiz_id", quiz.id);
+
+        if (deleteError) {
+          throw new Error(`${typeLabel} 문제 삭제 실패: ` + deleteError.message);
+        }
+      }
+
+      // 2. quizzes 테이블에서 enabled 플래그 해제
+      const { error: updateError } = await supabase
+        .from("quizzes")
+        .update({ [enabledColumn]: false } as any)
+        .eq("id", quiz.id);
+
+      if (updateError) {
+        throw new Error("퀴즈 설정 업데이트 실패: " + updateError.message);
+      }
+
+      toast.success(`${typeLabel}이(가) 제거되었습니다`);
+      refetchQuiz();
+      refetchType();
+
+      // 현재 보고 있던 탭이 방금 제거한 유형이면 남은 첫 활성 유형으로 이동
+      if (problemTab === type) {
+        const order: Array<["fill_blank" | "sentence_making" | "recording" | "matchup" | "type_answer" | "word_magnet", boolean]> = [
+          ["matchup", !!quiz.matchup_enabled],
+          ["type_answer", !!quiz.type_answer_enabled],
+          ["fill_blank", quiz.fill_blank_enabled !== false],
+          ["word_magnet", !!quiz.word_magnet_enabled],
+          ["sentence_making", !!quiz.sentence_making_enabled],
+          ["recording", !!quiz.recording_enabled],
+        ];
+        const next = order.find(([t, enabled]) => t !== type && enabled)?.[0];
+        if (next) setProblemTab(next);
+      }
+    } catch (error: any) {
+      console.error("Remove type error:", error);
+      toast.error(error.message || `${typeLabel} 제거에 실패했습니다`);
+    }
+  };
+
   // Actions
   const handleUpdateTitle = async (newTitle: string) => {
     if (!quiz) return;
@@ -792,6 +924,7 @@ export default function QuizDetail() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
+                {confirmDialog === "fill_blank" && "빈칸 채우기를 다시 추가하시겠습니까?"}
                 {confirmDialog === "sentence_making" && "문장 만들기 문제를 추가하시겠습니까?"}
                 {confirmDialog === "recording" && "말하기 연습 문제를 추가하시겠습니까?"}
                 {confirmDialog === "matchup" && "짝 맞추기 문제를 추가하시겠습니까?"}
@@ -799,6 +932,7 @@ export default function QuizDetail() {
                 {confirmDialog === "word_magnet" && "문장 순서 맞추기 문제를 추가하시겠습니까?"}
               </AlertDialogTitle>
               <AlertDialogDescription>
+                {confirmDialog === "fill_blank" && "기존 빈칸 채우기 문제가 다시 학생 화면에 표시됩니다."}
                 {confirmDialog === "sentence_making" && "각 단어로 문장을 직접 만들어 보는 문제가 추가됩니다."}
                 {confirmDialog === "recording" && "빈칸 채우기와 같은 문장으로 문제가 생성됩니다. 생성 후에는 개별 수정이 가능합니다."}
                 {confirmDialog === "matchup" && "단어와 뜻을 연결하는 짝 맞추기 문제가 추가됩니다."}
@@ -810,7 +944,8 @@ export default function QuizDetail() {
               <AlertDialogCancel>취소</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => {
-                  if (confirmDialog === "sentence_making") handleAddSentenceMaking();
+                  if (confirmDialog === "fill_blank") handleAddFillBlank();
+                  else if (confirmDialog === "sentence_making") handleAddSentenceMaking();
                   else if (confirmDialog === "recording") handleAddRecording();
                   else if (confirmDialog === "matchup") handleAddMatchup();
                   else if (confirmDialog === "type_answer") handleAddTypeAnswer();
@@ -819,6 +954,38 @@ export default function QuizDetail() {
                 }}
               >
                 추가하기
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={removeDialog !== null} onOpenChange={(open) => { if (!open) setRemoveDialog(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {removeDialog === "fill_blank" && "빈칸 채우기를 제거하시겠습니까?"}
+                {removeDialog === "sentence_making" && "문장 만들기 문제를 제거하시겠습니까?"}
+                {removeDialog === "recording" && "말하기 연습 문제를 제거하시겠습니까?"}
+                {removeDialog === "matchup" && "짝 맞추기 문제를 제거하시겠습니까?"}
+                {removeDialog === "type_answer" && "단어 받아쓰기 문제를 제거하시겠습니까?"}
+                {removeDialog === "word_magnet" && "문장 순서 맞추기 문제를 제거하시겠습니까?"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {removeDialog === "fill_blank"
+                  ? "빈칸 채우기 단계가 학생 화면에서 숨겨집니다. 문제는 보존되며 언제든 다시 추가할 수 있습니다."
+                  : "이 유형의 문제가 모두 삭제됩니다. 되돌릴 수 없습니다."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>취소</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+                onClick={() => {
+                  if (removeDialog) handleRemoveType(removeDialog);
+                  setRemoveDialog(null);
+                }}
+              >
+                제거하기
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -848,6 +1015,18 @@ export default function QuizDetail() {
                 >
                   <Link2 className="w-4 h-4" />
                   짝 맞추기 {quiz.matchup_enabled && `(${matchupProblems.length})`}
+                  {quiz.matchup_enabled && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label="짝 맞추기 제거"
+                      onClick={(e) => { e.stopPropagation(); setRemoveDialog("matchup"); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setRemoveDialog("matchup"); } }}
+                      className="ml-0.5 inline-flex items-center justify-center rounded-sm opacity-60 hover:opacity-100 hover:text-red-500 transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={() => quiz.type_answer_enabled ? setProblemTab("type_answer") : setConfirmDialog("type_answer")}
@@ -861,17 +1040,43 @@ export default function QuizDetail() {
                 >
                   <Keyboard className="w-4 h-4" />
                   단어 받아쓰기 {quiz.type_answer_enabled && `(${typeAnswerProblems.length})`}
+                  {quiz.type_answer_enabled && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label="단어 받아쓰기 제거"
+                      onClick={(e) => { e.stopPropagation(); setRemoveDialog("type_answer"); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setRemoveDialog("type_answer"); } }}
+                      className="ml-0.5 inline-flex items-center justify-center rounded-sm opacity-60 hover:opacity-100 hover:text-red-500 transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </span>
+                  )}
                 </button>
                 <button
-                  onClick={() => setProblemTab("fill_blank")}
+                  onClick={() => quiz.fill_blank_enabled !== false ? setProblemTab("fill_blank") : setConfirmDialog("fill_blank")}
                   className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    problemTab === "fill_blank"
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
+                    quiz.fill_blank_enabled !== false
+                      ? problemTab === "fill_blank"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground/50 border border-dashed border-muted-foreground/30 hover:text-muted-foreground"
                   }`}
                 >
                   <TextCursorInput className="w-4 h-4" />
-                  빈칸 채우기 ({quiz.problems.length})
+                  빈칸 채우기 {quiz.fill_blank_enabled !== false && `(${quiz.problems.length})`}
+                  {quiz.fill_blank_enabled !== false && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label="빈칸 채우기 제거"
+                      onClick={(e) => { e.stopPropagation(); setRemoveDialog("fill_blank"); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setRemoveDialog("fill_blank"); } }}
+                      className="ml-0.5 inline-flex items-center justify-center rounded-sm opacity-60 hover:opacity-100 hover:text-red-500 transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={() => quiz.word_magnet_enabled ? setProblemTab("word_magnet") : setConfirmDialog("word_magnet")}
@@ -885,6 +1090,18 @@ export default function QuizDetail() {
                 >
                   <Magnet className="w-4 h-4" />
                   문장 순서 맞추기 {quiz.word_magnet_enabled && `(${wordMagnetProblems.length})`}
+                  {quiz.word_magnet_enabled && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label="문장 순서 맞추기 제거"
+                      onClick={(e) => { e.stopPropagation(); setRemoveDialog("word_magnet"); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setRemoveDialog("word_magnet"); } }}
+                      className="ml-0.5 inline-flex items-center justify-center rounded-sm opacity-60 hover:opacity-100 hover:text-red-500 transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={() => quiz.sentence_making_enabled ? setProblemTab("sentence_making") : setConfirmDialog("sentence_making")}
@@ -898,6 +1115,18 @@ export default function QuizDetail() {
                 >
                   <PenLine className="w-4 h-4" />
                   문장 만들기 {quiz.sentence_making_enabled && `(${sentenceMakingProblems.length})`}
+                  {quiz.sentence_making_enabled && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label="문장 만들기 제거"
+                      onClick={(e) => { e.stopPropagation(); setRemoveDialog("sentence_making"); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setRemoveDialog("sentence_making"); } }}
+                      className="ml-0.5 inline-flex items-center justify-center rounded-sm opacity-60 hover:opacity-100 hover:text-red-500 transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={() => quiz.recording_enabled ? setProblemTab("recording") : setConfirmDialog("recording")}
@@ -911,6 +1140,18 @@ export default function QuizDetail() {
                 >
                   <Mic className="w-4 h-4" />
                   말하기 연습 {quiz.recording_enabled && `(${recordingProblems.length})`}
+                  {quiz.recording_enabled && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label="말하기 연습 제거"
+                      onClick={(e) => { e.stopPropagation(); setRemoveDialog("recording"); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setRemoveDialog("recording"); } }}
+                      className="ml-0.5 inline-flex items-center justify-center rounded-sm opacity-60 hover:opacity-100 hover:text-red-500 transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
@@ -1030,6 +1271,9 @@ export default function QuizDetail() {
                   registerSaver={registerRecordingSaver}
                   sourceWords={sourceWordById}
                   fillBlankProblems={quiz.problems}
+                  difficulty={quiz.difficulty}
+                  translationLanguage={quiz.translation_language}
+                  apiProvider={quiz.api_provider as "openai" | "gemini" | "gemini-pro" | undefined}
                 />
               </div>
             )}

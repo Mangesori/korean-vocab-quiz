@@ -163,6 +163,17 @@ export default function QuizCreate() {
       toast.dismiss("quiz-generation");
       toast.success(`${allProblems.length}개 문제 생성 완료!`);
 
+      // 말하기 연습 문제는 fillBlankEnabled 여부와 무관하게 빈칸 채우기 원본 문장에서
+      // 즉시 파생 (엣지 함수는 항상 빈 배열을 반환하므로 여기서 직접 생성)
+      const recordingProblemsFinal: RecordingProblem[] = recordingEnabled
+        ? allProblems.map((p) => ({
+            problem_id: p.id,
+            sentence: p.sentence.replace(/\(\s*\)|\(\)/g, p.answer),
+            mode: "read" as const,
+            translation: (p.translation || "").replace(/[[\]]/g, ""),
+          }))
+        : allRecordingProblems;
+
       sessionStorage.setItem(
         "quizDraft",
         JSON.stringify({
@@ -181,7 +192,7 @@ export default function QuizCreate() {
           typeAnswerEnabled,
           wordMagnetEnabled,
           sentenceMakingProblems: allSentenceMakingProblems,
-          recordingProblems: allRecordingProblems,
+          recordingProblems: recordingProblemsFinal,
           matchupProblems: allMatchupProblems,
           typeAnswerProblems: allTypeAnswerProblems,
           wordMagnetProblems: [],

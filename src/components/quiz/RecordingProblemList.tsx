@@ -61,6 +61,10 @@ interface RecordingProblemListProps {
   sourceWords?: Record<string, string>;
   /** "전체 문장 재생성"용 — 빈칸 채우기 원본 문제(problem_id가 이 id와 같은 문제만 대상). */
   fillBlankProblems?: { id: string; sentence: string; answer: string; translation: string }[];
+  /** 개별 문제 재생성(AI 호출)에 필요한 퀴즈 설정 */
+  difficulty: string;
+  translationLanguage: string;
+  apiProvider?: "openai" | "gemini" | "gemini-pro";
 }
 
 export function RecordingProblemList({
@@ -74,11 +78,15 @@ export function RecordingProblemList({
   registerSaver,
   sourceWords,
   fillBlankProblems,
+  difficulty,
+  translationLanguage,
+  apiProvider,
 }: RecordingProblemListProps) {
   const [editedProblems, setEditedProblems] = useState<RecordingProblem[]>(problems);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [regeneratingSentenceId, setRegeneratingSentenceId] = useState<string | null>(null);
   const [isRegeneratingAllAudio, setIsRegeneratingAllAudio] = useState(false);
   const [audioUrlMap, setAudioUrlMap] = useState<Record<string, string>>({});
   const { id: quizId } = useParams<{ id: string }>();
@@ -316,6 +324,44 @@ export function RecordingProblemList({
     toast.success("문장이 새로 계산되었습니다. 저장하기를 눌러 반영하세요.");
   };
 
+  // 문제 하나를 AI로 같은 단어의 새 예문으로 재생성 — 즉시 DB 저장하지 않고 화면에만 반영("저장하기"로 최종 반영).
+  const handleRegenerateProblem = async (id: string) => {
+    const target = editedProblems.find((p) => p.id === id);
+    if (!target) return;
+    // 교사가 "단어" 칩(label)을 바꿨으면 그 값을 우선 사용, 없으면 원본 빈칸 채우기 단어로 폴백
+    const word = target.label?.trim() || sourceWords?.[target.problem_id];
+    if (!word) {
+      toast.error("원본 단어를 찾을 수 없습니다");
+      return;
+    }
+    setRegeneratingSentenceId(id);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-quiz", {
+        body: { words: [word], difficulty, translationLanguage, wordsPerSet: 1, apiProvider, regenerateSingle: true },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message || "Regeneration failed");
+
+      const newProblem = data.problems[0];
+      const sentence = newProblem.sentence
+        .replace(/\(\s*\)|\(\)/g, newProblem.answer)
+        .replace(/([.?!])\s*\.+\s*$/, "$1")
+        .trim();
+      const translation = (newProblem.translation || "").replace(/[[\]]/g, "");
+
+      setEditedProblems((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, sentence, translation } : p))
+      );
+      if (!isEditing) setIsEditing(true);
+
+      toast.success("새 문장으로 재생성되었습니다");
+    } catch (error: any) {
+      console.error("Regenerate error:", error);
+      toast.error(error.message || "재생성에 실패했습니다");
+    } finally {
+      setRegeneratingSentenceId(null);
+    }
+  };
+
   const handleDelete = async (problemId: string) => {
     if (!confirm("이 문제를 삭제하시겠습니까?")) return;
 
@@ -472,6 +518,8 @@ export function RecordingProblemList({
                         onPlayAudio={audioUrl ? () => new Audio(audioUrl).play() : undefined}
                         onRegenerateAudio={() => handleRegenerateAudio(problem)}
                         regeneratingAudio={regeneratingId === problem.id}
+                        onRegenerateProblem={isEditing ? () => handleRegenerateProblem(problem.id) : undefined}
+                        regeneratingProblem={regeneratingSentenceId === problem.id}
                         onDelete={() => handleDelete(problem.id)}
                         deleting={deletingId === problem.id}
                         dragHandleProps={dragHandleProps}
@@ -505,6 +553,8 @@ export function RecordingProblemList({
                 onPlayAudio={audioUrl ? () => new Audio(audioUrl).play() : undefined}
                 onRegenerateAudio={() => handleRegenerateAudio(problem)}
                 regeneratingAudio={regeneratingId === problem.id}
+                onRegenerateProblem={isEditing ? () => handleRegenerateProblem(problem.id) : undefined}
+                regeneratingProblem={regeneratingSentenceId === problem.id}
                 onDelete={() => handleDelete(problem.id)}
                 deleting={deletingId === problem.id}
               />
