@@ -37,9 +37,9 @@ export function useQuizResults(quizId: string) {
     };
   }, [quizId]);
 
-  const fetchResults = async () => {
-    setIsLoading(true);
-    
+  const fetchResults = async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setIsLoading(true);
+
     // 1. Fetch results
     const { data: resultsData, error } = await supabase
       .from("quiz_results")
@@ -100,7 +100,7 @@ export function useQuizResults(quizId: string) {
           table: "quiz_results",
           filter: `quiz_id=eq.${quizId}`,
         },
-        () => { fetchResults(); }
+        () => { fetchResults({ silent: true }); }
       )
       .on(
         "postgres_changes",
@@ -110,10 +110,10 @@ export function useQuizResults(quizId: string) {
           table: "quiz_results",
           filter: `quiz_id=eq.${quizId}`,
         },
-        () => { fetchResults(); }
+        () => { fetchResults({ silent: true }); }
       )
       .subscribe();
   };
 
-  return { results, isLoading, refresh: fetchResults };
+  return { results, isLoading, refresh: () => fetchResults({ silent: true }) };
 }

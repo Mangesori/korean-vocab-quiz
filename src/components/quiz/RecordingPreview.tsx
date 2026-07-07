@@ -13,6 +13,8 @@ interface RecordingPreviewProps {
   addRecordingProblem: () => void;
   /** problem_id → 출처 단어(빈칸 문제). 헤더 읽기전용 라벨용. */
   sourceWords?: Record<string, string>;
+  /** 현재 AI 재생성 중인 문제의 problem_id (로딩 스피너 표시용). */
+  regeneratingProblemId?: string | null;
 }
 
 export function RecordingPreview({
@@ -23,6 +25,7 @@ export function RecordingPreview({
   regenerateRecordingProblem,
   addRecordingProblem,
   sourceWords,
+  regeneratingProblemId,
 }: RecordingPreviewProps) {
   return (
     <div className="space-y-6">
@@ -54,6 +57,7 @@ export function RecordingPreview({
               onChangeTranslation={(value) => updateRecordingProblem(problem.problem_id, "translation", value)}
               onChangeMode={(mode) => updateRecordingProblem(problem.problem_id, "mode", mode)}
               onRegenerateProblem={() => regenerateRecordingProblem(problem.problem_id, index)}
+              regeneratingProblem={regeneratingProblemId === problem.problem_id}
               onDelete={() => deleteRecordingProblem(problem.problem_id)}
             />
           ))}

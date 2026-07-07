@@ -49,6 +49,7 @@ export default function QuizPreview() {
   const [isSegmenting, setIsSegmenting] = useState(false);
   const [resegmentingId, setResegmentingId] = useState<string | null>(null);
   const [regeneratingWordMagnetId, setRegeneratingWordMagnetId] = useState<string | null>(null);
+  const [regeneratingRecId, setRegeneratingRecId] = useState<string | null>(null);
   const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
 
   type PreviewStage = BaseStage;
@@ -70,6 +71,9 @@ export default function QuizPreview() {
   // draft가 null인 초기엔 enabledStages가 ["fill_blank"]로만 계산되므로,
   // 로드 후 첫 활성 스테이지(보통 짝 맞추기)로 강제 초기화해야 한다.
   const stageInitRef = useRef(false);
+  // 교사가 직접 수정/추가한 말하기(recording) 문제 id 집합. 빈칸 채우기 스테이지를
+  // 다시 지나갈 때 이 문제들은 자동 재생성에서 제외하고 보존한다. (렌더 유발 불필요 → ref)
+  const manuallyEditedRecIds = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (draft && !stageInitRef.current && enabledStages.length > 0) {
       stageInitRef.current = true;
@@ -100,21 +104,39 @@ export default function QuizPreview() {
     return map;
   }, [draft?.problems]);
 
+  // 빈칸 채우기 문장에서 말하기 문제를 파생하되, 교사가 직접 수정한 문제(manuallyEditedRecIds)는
+  // 그대로 보존하고 손대지 않은 문제만 다시 동기화한다. 또 빈칸 문제와 매칭 안 되는(교사가 직접
+  // 추가했거나 원본 빈칸 문제가 삭제된) 기존 말하기 문제는 뒤에 append해서 유실을 막는다.
   const generateRecordingProblems = useCallback(() => {
     if (!draft?.recordingEnabled || !draft.problems) return;
 
-    const recordingProblems: RecordingProblem[] = draft.problems.map((problem) => ({
-      problem_id: problem.id,
-      sentence: problem.sentence.replace(/\(\s*\)|\(\)/g, problem.answer),
-      mode: "read" as const,
-      translation: (problem.translation || "").replace(/[[\]]/g, ""),
-    }));
+    const existingById = new Map((draft.recordingProblems || []).map((p) => [p.problem_id, p]));
+    const fillBlankIds = new Set(draft.problems.map((p) => p.id));
+
+    const merged: RecordingProblem[] = draft.problems.map((problem) => {
+      const existing = existingById.get(problem.id);
+      // 교사가 직접 수정한 문제는 그대로 보존
+      if (manuallyEditedRecIds.current.has(problem.id) && existing) {
+        return existing;
+      }
+      // 손대지 않은 문제는 빈칸 문장에서 파생(기존 mode/label은 보존 → 매번 read로 리셋되던 문제 해소)
+      return {
+        problem_id: problem.id,
+        sentence: problem.sentence.replace(/\(\s*\)|\(\)/g, problem.answer),
+        mode: existing?.mode ?? ("read" as const),
+        translation: (problem.translation || "").replace(/[[\]]/g, ""),
+        label: existing?.label,
+      };
+    });
+
+    // 빈칸 문제와 대응되지 않는 기존 말하기 문제(직접 추가/원본 삭제)는 뒤에 그대로 append
+    const orphaned = (draft.recordingProblems || []).filter((p) => !fillBlankIds.has(p.problem_id));
 
     setDraft((prev) => {
       if (!prev) return null;
-      return { ...prev, recordingProblems };
+      return { ...prev, recordingProblems: [...merged, ...orphaned] };
     });
-  }, [draft?.recordingEnabled, draft?.problems]);
+  }, [draft?.recordingEnabled, draft?.problems, draft?.recordingProblems]);
 
   // 매치업: 단어 목록에서 파생 (비었을 때만 — 엣지/교사가 채운 건 보존)
   const generateMatchupProblems = useCallback(() => {
@@ -542,6 +564,8 @@ export default function QuizPreview() {
   };
 
   const updateRecordingProblem = (problemId: string, field: keyof RecordingProblem, value: string) => {
+    // 어떤 field든 편집하면 수동 편집으로 표시 → 이후 자동 재생성에서 보존
+    manuallyEditedRecIds.current.add(problemId);
     setDraft((prev) => {
       if (!prev || !prev.recordingProblems) return prev;
       const updated = prev.recordingProblems.map((p) =>
@@ -552,6 +576,8 @@ export default function QuizPreview() {
   };
 
   const deleteRecordingProblem = (problemId: string) => {
+    // 삭제 시 집합에서도 제거(누수 방지)
+    manuallyEditedRecIds.current.delete(problemId);
     setDraft((prev) => {
       if (!prev || !prev.recordingProblems) return prev;
       return {
@@ -561,28 +587,66 @@ export default function QuizPreview() {
     });
   };
 
-  const regenerateRecordingProblem = (problemId: string, index: number) => {
-    if (!draft?.problems || index >= draft.problems.length) return;
-    const sourceProblem = draft.problems[index];
-    const sentenceWithoutBlanks = sourceProblem.sentence.replace(/\(\s*\)|\(\)/g, sourceProblem.answer);
+  // 말하기 문제 하나를 AI로 같은 단어의 새 예문으로 재생성 — 빈칸 채우기 문장 복사가 아니라 완전히 새 문장.
+  const regenerateRecordingProblem = async (problemId: string, index: number) => {
+    if (!draft) return;
+    // 교사가 "단어" 칩(label)을 바꿨으면 그 값을 우선 사용, 없으면 원본 빈칸 채우기 단어로 폴백
+    const recProblem = draft.recordingProblems?.find((p) => p.problem_id === problemId);
+    const word = recProblem?.label?.trim() || sourceWordById[problemId] || draft.problems[index]?.word;
+    if (!word) {
+      toast.error("원본 단어를 찾을 수 없습니다");
+      return;
+    }
+    setRegeneratingRecId(problemId);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-quiz", {
+        body: {
+          words: [word],
+          difficulty: draft.difficulty,
+          translationLanguage: draft.translationLanguage,
+          wordsPerSet: 1,
+          regenerateSingle: true,
+        },
+      });
 
-    setDraft((prev) => {
-      if (!prev || !prev.recordingProblems) return prev;
-      const updated = prev.recordingProblems.map((p) =>
-        p.problem_id === problemId
-          ? { ...p, sentence: sentenceWithoutBlanks, translation: (sourceProblem.translation || "").replace(/[[\]]/g, "") }
-          : p
-      );
-      return { ...prev, recordingProblems: updated };
-    });
-    toast.success("빈칸 채우기 문장으로 재생성되었습니다");
+      if (error || data?.error) {
+        throw new Error(data?.error || error?.message || error?.toString() || "Regeneration failed");
+      }
+
+      const newProblem = data.problems[0];
+      const sentence = newProblem.sentence
+        .replace(/\(\s*\)|\(\)/g, newProblem.answer)
+        .replace(/([.?!])\s*\.+\s*$/, "$1")
+        .trim();
+      const translation = (newProblem.translation || "").replace(/[[\]]/g, "");
+
+      // 재생성 결과는 독립 편집 → 이후 빈칸 채우기 자동 동기화에서 덮이면 안 됨
+      manuallyEditedRecIds.current.add(problemId);
+
+      setDraft((prev) => {
+        if (!prev || !prev.recordingProblems) return prev;
+        const updated = prev.recordingProblems.map((p) =>
+          p.problem_id === problemId ? { ...p, sentence, translation } : p
+        );
+        return { ...prev, recordingProblems: updated };
+      });
+      toast.success("새 문장으로 재생성되었습니다");
+    } catch (err) {
+      console.error("Regenerate recording error:", err);
+      toast.error("재생성에 실패했습니다");
+    } finally {
+      setRegeneratingRecId(null);
+    }
   };
 
   const addRecordingProblem = () => {
     setDraft((prev) => {
       if (!prev) return prev;
+      const newId = `rec-${Date.now()}`;
+      // 직접 추가한 문제 → 수동 편집으로 표시(append 규칙으로도 보존되지만 안전하게 명시)
+      manuallyEditedRecIds.current.add(newId);
       const newProblem: RecordingProblem = {
-        problem_id: `rec-${Date.now()}`,
+        problem_id: newId,
         sentence: "",
         mode: "read",
         translation: "",
@@ -1072,6 +1136,7 @@ export default function QuizPreview() {
             regenerateRecordingProblem={regenerateRecordingProblem}
             addRecordingProblem={addRecordingProblem}
             sourceWords={sourceWordById}
+            regeneratingProblemId={regeneratingRecId}
           />
         )}
 
