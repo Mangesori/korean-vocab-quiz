@@ -30,9 +30,9 @@ export function SentenceMakingStudentView({ problems }: { problems: SentenceMaki
   if (!problem) return null;
 
   return (
-    <Card className="w-full max-w-5xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl overflow-hidden bg-transparent sm:bg-white mb-4 sm:mb-8">
+    <Card className="w-full max-w-5xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl overflow-hidden bg-transparent sm:bg-white mb-4 sm:mb-8 mt-4">
       <CardContent className="p-0 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
-        <div className="p-5 sm:p-10 bg-transparent sm:bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px]">
+        <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px] mt-0 sm:mt-1">
           <div className="flex w-full items-center justify-end mb-2 sm:mb-3">
             <Button
               variant="outline"
@@ -60,7 +60,7 @@ export function SentenceMakingStudentView({ problems }: { problems: SentenceMaki
           <Textarea
             disabled
             placeholder={`"${problem.word}"을(를) 사용하여 문장을 만드세요.`}
-            className="min-h-[100px] text-md rounded-xl border-slate-200 opacity-60"
+            className="min-h-[100px] text-md rounded-xl bg-slate-50 opacity-60"
           />
         </div>
         <div className="flex justify-between items-center mt-6">
@@ -68,7 +68,7 @@ export function SentenceMakingStudentView({ problems }: { problems: SentenceMaki
             variant="outline"
             onClick={() => { setPreviewIndex((prev) => Math.max(0, prev - 1)); setShowHint(false); }}
             disabled={previewIndex === 0}
-            className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-2" /> 이전
           </Button>
@@ -76,7 +76,7 @@ export function SentenceMakingStudentView({ problems }: { problems: SentenceMaki
           <Button
             onClick={() => { setPreviewIndex((prev) => Math.min(total - 1, prev + 1)); setShowHint(false); }}
             disabled={previewIndex === total - 1}
-            className="h-12 px-6 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 shadow-md transition-colors"
+            className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
           >
             다음 문제 <ChevronRight className="w-4 h-4 ml-2" />
           </Button>
