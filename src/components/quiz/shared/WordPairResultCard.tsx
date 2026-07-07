@@ -18,6 +18,8 @@ interface WordPairResultCardProps {
   userAnswer: string;
   isCorrect: boolean;
   isSkipped?: boolean;
+  /** 오답 시 학생 답변 행의 라벨. 기본 "내 답변"(학생 화면). 교사 모달에선 "학생 답변". */
+  answerLabel?: string;
 }
 
 export function WordPairResultCard({
@@ -27,6 +29,7 @@ export function WordPairResultCard({
   userAnswer,
   isCorrect,
   isSkipped,
+  answerLabel = "내 답변",
 }: WordPairResultCardProps) {
   return (
     <Card className="overflow-hidden border bg-white rounded-2xl shadow-sm">
@@ -88,7 +91,7 @@ export function WordPairResultCard({
           <div className="space-y-3">
             <div className="flex items-start gap-3">
               <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-destructive/10 text-destructive">
-                내 답변
+                {answerLabel}
               </span>
               <p className="text-lg font-bold leading-relaxed text-destructive line-through break-keep">
                 {userAnswer || "—"}

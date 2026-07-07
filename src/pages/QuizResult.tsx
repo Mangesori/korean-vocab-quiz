@@ -273,8 +273,9 @@ export default function QuizResult() {
   if (!quiz || !result) return null;
 
   // 유형별 점수 계산
-  const fillBlankScore = result.fill_blank_score ?? result.score;
-  const fillBlankTotal = result.fill_blank_total ?? result.total_questions;
+  const hasFillBlankType = quiz.fill_blank_enabled !== false;
+  const fillBlankScore = hasFillBlankType ? (result.fill_blank_score ?? result.score) : 0;
+  const fillBlankTotal = hasFillBlankType ? (result.fill_blank_total ?? result.total_questions) : 0;
   const fillBlankPercentage = fillBlankTotal > 0 ? Math.round((fillBlankScore / fillBlankTotal) * 100) : 0;
 
   const smScore = result.sentence_making_score ?? 0;

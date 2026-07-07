@@ -96,11 +96,15 @@ function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }:
 
 interface QuizResultsListProps {
   quizId: string;
+  fillBlankEnabled?: boolean;
   sentenceMakingEnabled?: boolean;
   recordingEnabled?: boolean;
+  matchupEnabled?: boolean;
+  typeAnswerEnabled?: boolean;
+  wordMagnetEnabled?: boolean;
 }
 
-export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnabled }: QuizResultsListProps) {
+export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnabled, recordingEnabled, matchupEnabled, typeAnswerEnabled, wordMagnetEnabled }: QuizResultsListProps) {
   const { results, isLoading, refresh } = useQuizResults(quizId);
   const [filterType, setFilterType] = useState<"all" | "anonymous" | "student">("all");
   const [sortOrder, setSortOrder] = useState<"latest" | "score_high" | "score_low">("latest");
@@ -145,19 +149,28 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
     return <Badge className="bg-red-500 hover:bg-red-600">{score}/{total}</Badge>;
   };
 
-  const isMultiStage = sentenceMakingEnabled || recordingEnabled;
+  const isMultiStage = sentenceMakingEnabled || recordingEnabled || matchupEnabled || typeAnswerEnabled || wordMagnetEnabled;
 
   const getCombinedPercent = (result: QuizResult) => {
-    const smDone = result.sentence_making_score !== null;
-    const recDone = result.recording_score !== null;
+    // 빈칸이 실제로 퀴즈에 포함된 경우에만 fill_blank 폴백(전체 집계값)을 사용한다.
+    // fill_blank_total이 null/0이면 빈칸 미포함으로 간주하고 result.score 폴백을 쓰지 않는다.
+    const hasFillBlank = (result.fill_blank_total ?? 0) > 0;
+    const fillBlankScore = hasFillBlank ? (result.fill_blank_score ?? result.score) : 0;
+    const fillBlankTotal = hasFillBlank ? (result.fill_blank_total ?? result.total_questions) : 0;
     const score =
-      (result.fill_blank_score ?? result.score) +
-      (smDone ? result.sentence_making_score! : 0) +
-      (recDone ? result.recording_score! : 0);
+      fillBlankScore +
+      (result.matchup_score ?? 0) +
+      (result.type_answer_score ?? 0) +
+      (result.word_magnet_score ?? 0) +
+      (result.sentence_making_score ?? 0) +
+      (result.recording_score ?? 0);
     const total =
-      (result.fill_blank_total ?? result.total_questions) +
-      (smDone ? (result.sentence_making_total ?? 0) : 0) +
-      (recDone ? (result.recording_total ?? 0) : 0);
+      fillBlankTotal +
+      (result.matchup_total ?? 0) +
+      (result.type_answer_total ?? 0) +
+      (result.word_magnet_total ?? 0) +
+      (result.sentence_making_total ?? 0) +
+      (result.recording_total ?? 0);
     return total > 0 ? (score / total) * 100 : 0;
   };
 
@@ -167,12 +180,38 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
     }
     return (
       <div className="flex flex-wrap gap-x-3 gap-y-1">
-        <div className="flex items-center gap-1 text-xs">
-          <span className="text-muted-foreground">빈칸 채우기</span>
-          {result.fill_blank_score !== null && result.fill_blank_total
-            ? getScoreBadge(result.fill_blank_score, result.fill_blank_total)
-            : <span className="text-muted-foreground">-</span>}
-        </div>
+        {fillBlankEnabled !== false && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground">빈칸 채우기</span>
+            {result.fill_blank_score !== null && result.fill_blank_total
+              ? getScoreBadge(result.fill_blank_score, result.fill_blank_total)
+              : <span className="text-muted-foreground">-</span>}
+          </div>
+        )}
+        {matchupEnabled && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground">짝 맞추기</span>
+            {result.matchup_score !== null && result.matchup_total
+              ? getScoreBadge(result.matchup_score, result.matchup_total)
+              : <span className="text-muted-foreground">-</span>}
+          </div>
+        )}
+        {typeAnswerEnabled && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground">단어 받아쓰기</span>
+            {result.type_answer_score !== null && result.type_answer_total
+              ? getScoreBadge(result.type_answer_score, result.type_answer_total)
+              : <span className="text-muted-foreground">-</span>}
+          </div>
+        )}
+        {wordMagnetEnabled && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground">문장 순서 맞추기</span>
+            {result.word_magnet_score !== null && result.word_magnet_total
+              ? getScoreBadge(result.word_magnet_score, result.word_magnet_total)
+              : <span className="text-muted-foreground">-</span>}
+          </div>
+        )}
         {sentenceMakingEnabled && (
           <div className="flex items-center gap-1 text-xs">
             <span className="text-muted-foreground">문장 만들기</span>
@@ -223,12 +262,38 @@ export function QuizResultsList({ quizId, sentenceMakingEnabled, recordingEnable
     }
     return (
       <div className="flex flex-wrap gap-x-3 gap-y-1">
-        <div className="flex items-center gap-1 text-xs">
-          <span className="text-muted-foreground">빈칸</span>
-          {result.fill_blank_score !== null && result.fill_blank_total
-            ? getScoreBadge(result.fill_blank_score, result.fill_blank_total)
-            : <span className="text-muted-foreground">-</span>}
-        </div>
+        {fillBlankEnabled !== false && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground">빈칸</span>
+            {result.fill_blank_score !== null && result.fill_blank_total
+              ? getScoreBadge(result.fill_blank_score, result.fill_blank_total)
+              : <span className="text-muted-foreground">-</span>}
+          </div>
+        )}
+        {matchupEnabled && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground">짝 맞추기</span>
+            {result.matchup_score !== null && result.matchup_total
+              ? getScoreBadge(result.matchup_score, result.matchup_total)
+              : <span className="text-muted-foreground">-</span>}
+          </div>
+        )}
+        {typeAnswerEnabled && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground">단어 받아쓰기</span>
+            {result.type_answer_score !== null && result.type_answer_total
+              ? getScoreBadge(result.type_answer_score, result.type_answer_total)
+              : <span className="text-muted-foreground">-</span>}
+          </div>
+        )}
+        {wordMagnetEnabled && (
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground">문장 순서</span>
+            {result.word_magnet_score !== null && result.word_magnet_total
+              ? getScoreBadge(result.word_magnet_score, result.word_magnet_total)
+              : <span className="text-muted-foreground">-</span>}
+          </div>
+        )}
         {sentenceMakingEnabled && (
           <div className="flex items-center gap-1 text-xs">
             <span className="text-muted-foreground">문장</span>
