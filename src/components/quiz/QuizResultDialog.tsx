@@ -9,13 +9,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { UserCircle, CheckCircle, XCircle, HelpCircle, Volume2, Lightbulb, Loader2, TextCursorInput, PenLine, Mic, Pencil, RefreshCw } from "lucide-react";
+import { UserCircle, CheckCircle, XCircle, HelpCircle, Volume2, Lightbulb, Loader2, TextCursorInput, PenLine, Mic, Pencil, RefreshCw, Link2, Keyboard, Magnet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QuizReviewCard } from "@/components/quiz/QuizReviewCard";
+import { WordPairResultCard } from "@/components/quiz/shared/WordPairResultCard";
+import { WordMagnetResultCard } from "@/components/quiz/shared/WordMagnetResultCard";
 import { useQuizResultDetail } from "@/hooks/useQuizResultDetail";
 import { renderSentenceWithDiff, renderModelAnswerWithDiff, renderSentenceWithFeedback } from "@/components/quiz/quizResultUtils";
 import { formatDateFull } from '@/lib/formatDate';
@@ -37,6 +39,12 @@ interface QuizResultDialogProps {
     answers: any[];
     fill_blank_score?: number | null;
     fill_blank_total?: number | null;
+    matchup_score?: number | null;
+    matchup_total?: number | null;
+    type_answer_score?: number | null;
+    type_answer_total?: number | null;
+    word_magnet_score?: number | null;
+    word_magnet_total?: number | null;
     sentence_making_score?: number | null;
     sentence_making_total?: number | null;
     recording_score?: number | null;
@@ -635,26 +643,91 @@ export function QuizResultDialog({
   const smDone = result.sentence_making_score !== null && result.sentence_making_score !== undefined;
   const recDone = result.recording_score !== null && result.recording_score !== undefined;
 
-  const fillBlankScore = result.fill_blank_score ?? result.score;
-  const fillBlankTotal = result.fill_blank_total ?? result.total_questions;
+  // 빈칸이 실제로 이 퀴즈에 포함됐는지(문항별 답안 배열이 비어있지 않은지)를
+  // 총점식보다 먼저 판정한다. 빈칸이 없으면 fill_blank 폴백(result.score 전체 집계값)을
+  // 끌어오지 않아 다른 유형 점수가 이중으로 더해지는 것을 막는다.
+  const hasFillBlank = Array.isArray(result.answers) && result.answers.length > 0;
+
+  const fillBlankScore = hasFillBlank ? (result.fill_blank_score ?? result.score) : 0;
+  const fillBlankTotal = hasFillBlank ? (result.fill_blank_total ?? result.total_questions) : 0;
 
   const combinedScore =
     fillBlankScore +
-    (smDone ? result.sentence_making_score! : 0) +
-    (recDone ? result.recording_score! : 0);
+    (result.matchup_score ?? 0) +
+    (result.type_answer_score ?? 0) +
+    (result.word_magnet_score ?? 0) +
+    (result.sentence_making_score ?? 0) +
+    (result.recording_score ?? 0);
   const combinedTotal =
     fillBlankTotal +
-    (smDone ? (result.sentence_making_total ?? 0) : 0) +
-    (recDone ? (result.recording_total ?? 0) : 0);
+    (result.matchup_total ?? 0) +
+    (result.type_answer_total ?? 0) +
+    (result.word_magnet_total ?? 0) +
+    (result.sentence_making_total ?? 0) +
+    (result.recording_total ?? 0);
 
-  const hasFillBlank = Array.isArray(result.answers) && result.answers.length > 0;
   const hasSentenceMaking = detail?.sentenceMakingEnabled ?? false;
   const hasRecording = detail?.recordingEnabled ?? false;
+  const hasMatchup = (result.matchup_total ?? 0) > 0;
+  const hasTypeAnswer = (result.type_answer_total ?? 0) > 0;
+  const hasWordMagnet = (result.word_magnet_total ?? 0) > 0;
 
-  const activeTabCount = [hasFillBlank, hasSentenceMaking, hasRecording].filter(Boolean).length;
+  const activeTabCount = [hasMatchup, hasTypeAnswer, hasFillBlank, hasWordMagnet, hasSentenceMaking, hasRecording].filter(Boolean).length;
   const showTabs = activeTabCount > 1;
 
-  const defaultTab = hasFillBlank ? "fill_blank" : hasSentenceMaking ? "sentence_making" : "recording";
+  // 정규 순서(matchup→type_answer→fill_blank→word_magnet→sentence_making→recording)로 첫 활성 유형
+  const defaultTab = hasMatchup
+    ? "matchup"
+    : hasTypeAnswer
+    ? "type_answer"
+    : hasFillBlank
+    ? "fill_blank"
+    : hasWordMagnet
+    ? "word_magnet"
+    : hasSentenceMaking
+    ? "sentence_making"
+    : "recording";
+
+  const matchupContent = (
+    <div className="grid gap-4">
+      {(detail?.matchupResults ?? []).map((r, i) => (
+        <WordPairResultCard
+          key={r.problemId}
+          number={i + 1}
+          prompt={r.prompt}
+          correctAnswer={r.correctAnswer}
+          userAnswer={r.userAnswer}
+          isCorrect={r.isCorrect}
+          answerLabel="학생 답변"
+        />
+      ))}
+    </div>
+  );
+
+  const typeAnswerContent = (
+    <div className="grid gap-4">
+      {(detail?.typeAnswerResults ?? []).map((r, i) => (
+        <WordPairResultCard
+          key={r.problemId}
+          number={i + 1}
+          prompt={r.prompt}
+          correctAnswer={r.correctAnswer}
+          userAnswer={r.userAnswer}
+          isCorrect={r.isCorrect}
+          isSkipped={r.skipped}
+          answerLabel="학생 답변"
+        />
+      ))}
+    </div>
+  );
+
+  const wordMagnetContent = (
+    <div className="grid gap-4">
+      {(detail?.wordMagnetResults ?? []).map((r, i) => (
+        <WordMagnetResultCard key={r.problemId} result={r} index={i} />
+      ))}
+    </div>
+  );
 
   const fillBlankContent = (
     <div className="grid gap-4">
@@ -691,7 +764,8 @@ export function QuizResultDialog({
 
         <div className="space-y-6">
           {/* 학생 정보 & 점수 */}
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+          <div className="flex flex-col gap-3 p-4 bg-muted/50 rounded-lg">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {isAnonymous ? (
                 <UserCircle className="h-10 w-10 text-muted-foreground" />
@@ -718,6 +792,7 @@ export function QuizResultDialog({
               </p>
             </div>
           </div>
+          </div>
 
           {/* 문제별 상세 */}
           {detailLoading ? (
@@ -728,10 +803,28 @@ export function QuizResultDialog({
             <Tabs defaultValue={defaultTab}>
               <div className="flex justify-center mb-4">
                 <TabsList>
+                  {hasMatchup && (
+                    <TabsTrigger value="matchup" className="flex items-center gap-1.5">
+                      <Link2 className="hidden sm:block w-4 h-4" />
+                      짝 맞추기 ({result.matchup_score ?? 0}/{result.matchup_total ?? 0})
+                    </TabsTrigger>
+                  )}
+                  {hasTypeAnswer && (
+                    <TabsTrigger value="type_answer" className="flex items-center gap-1.5">
+                      <Keyboard className="hidden sm:block w-4 h-4" />
+                      단어 받아쓰기 ({result.type_answer_score ?? 0}/{result.type_answer_total ?? 0})
+                    </TabsTrigger>
+                  )}
                   {hasFillBlank && (
                     <TabsTrigger value="fill_blank" className="flex items-center gap-1.5">
                       <TextCursorInput className="hidden sm:block w-4 h-4" />
                       빈칸 채우기 ({fillBlankScore}/{fillBlankTotal})
+                    </TabsTrigger>
+                  )}
+                  {hasWordMagnet && (
+                    <TabsTrigger value="word_magnet" className="flex items-center gap-1.5">
+                      <Magnet className="hidden sm:block w-4 h-4" />
+                      문장 순서 ({result.word_magnet_score ?? 0}/{result.word_magnet_total ?? 0})
                     </TabsTrigger>
                   )}
                   {hasSentenceMaking && (
@@ -760,9 +853,24 @@ export function QuizResultDialog({
                   )}
                 </TabsList>
               </div>
+              {hasMatchup && (
+                <TabsContent value="matchup">
+                  {matchupContent}
+                </TabsContent>
+              )}
+              {hasTypeAnswer && (
+                <TabsContent value="type_answer">
+                  {typeAnswerContent}
+                </TabsContent>
+              )}
               {hasFillBlank && (
                 <TabsContent value="fill_blank">
                   {fillBlankContent}
+                </TabsContent>
+              )}
+              {hasWordMagnet && (
+                <TabsContent value="word_magnet">
+                  {wordMagnetContent}
                 </TabsContent>
               )}
               {hasSentenceMaking && detail && (
@@ -790,7 +898,10 @@ export function QuizResultDialog({
             </Tabs>
           ) : (
             <div className="space-y-4">
+              {hasMatchup && matchupContent}
+              {hasTypeAnswer && typeAnswerContent}
               {hasFillBlank && fillBlankContent}
+              {hasWordMagnet && wordMagnetContent}
               {hasSentenceMaking && detail && (
                 <SentenceMakingView
                   problems={detail.sentenceMakingProblems}

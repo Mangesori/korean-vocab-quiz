@@ -26,7 +26,7 @@ export function QuizResultsDialog({
     queryFn: async () => {
       const { data } = await supabase
         .from('quizzes')
-        .select('sentence_making_enabled, recording_enabled')
+        .select('fill_blank_enabled, sentence_making_enabled, recording_enabled, matchup_enabled, type_answer_enabled, word_magnet_enabled')
         .eq('id', quizId!)
         .single();
       return data;
@@ -44,8 +44,12 @@ export function QuizResultsDialog({
         {quizId && (
           <QuizResultsList
             quizId={quizId}
+            fillBlankEnabled={(quizSettings as any)?.fill_blank_enabled ?? true}
             sentenceMakingEnabled={quizSettings?.sentence_making_enabled ?? false}
             recordingEnabled={quizSettings?.recording_enabled ?? false}
+            matchupEnabled={quizSettings?.matchup_enabled ?? false}
+            typeAnswerEnabled={quizSettings?.type_answer_enabled ?? false}
+            wordMagnetEnabled={quizSettings?.word_magnet_enabled ?? false}
           />
         )}
       </DialogContent>

@@ -12,6 +12,12 @@ export interface QuizResult {
   anonymous_name: string | null;
   fill_blank_score: number | null;
   fill_blank_total: number | null;
+  matchup_score: number | null;
+  matchup_total: number | null;
+  type_answer_score: number | null;
+  type_answer_total: number | null;
+  word_magnet_score: number | null;
+  word_magnet_total: number | null;
   sentence_making_score: number | null;
   sentence_making_total: number | null;
   recording_score: number | null;

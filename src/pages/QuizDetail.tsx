@@ -1282,8 +1282,12 @@ export default function QuizDetail() {
           <TabsContent value="results" className="mt-0">
             <QuizResultsList
               quizId={quiz.id}
+              fillBlankEnabled={quiz.fill_blank_enabled}
               sentenceMakingEnabled={quiz.sentence_making_enabled}
               recordingEnabled={quiz.recording_enabled}
+              matchupEnabled={quiz.matchup_enabled}
+              typeAnswerEnabled={quiz.type_answer_enabled}
+              wordMagnetEnabled={quiz.word_magnet_enabled}
             />
           </TabsContent>
         </Tabs>
