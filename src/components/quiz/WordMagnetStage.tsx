@@ -345,11 +345,11 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
               <WordMagnetTile content="측정" isParticle={false} />
             </div>
             <SortableContext items={answerItems.map((t) => t.id)} strategy={horizontalListSortingStrategy}>
-              {answerItems.map((tile) => (
+              {answerItems.map((tile, idx) => (
                 <SortableAnswerTile
                   key={tile.id}
                   tile={tile}
-                  marginClass={tile.isParticle ? "mr-1" : "mr-3"}
+                  marginClass={idx > 0 ? (tile.isParticle ? "ml-1" : "ml-3") : ""}
                   onTap={handleTap}
                 />
               ))}

@@ -472,8 +472,10 @@ export default function QuizTake() {
           .eq("quiz_id", id);
 
         if (muProblems && muProblems.length > 0) {
+          // 문제 순서 셔플 (다른 유형과 동일 — 세트 구성이 로드마다 랜덤)
+          const shuffledMU = [...muProblems].sort(() => Math.random() - 0.5);
           setMatchupProblems(
-            muProblems.map((p) => ({
+            shuffledMU.map((p) => ({
               id: p.problem_id,
               korean_text: p.korean_text,
               meaning_text: p.meaning_text,
@@ -1503,6 +1505,7 @@ export default function QuizTake() {
         <div className="container mx-auto px-4 py-8">
           <MatchUpStage
             problems={matchupProblems}
+            wordsPerSet={wordsPerSet}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleMatchupComplete}
             onBack={goBackToPrev("matchup")}

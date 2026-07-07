@@ -17,6 +17,7 @@ export interface MatchUpResult {
 
 interface MatchUpStageProps {
   problems: MatchUpProblemData[];
+  wordsPerSet?: number;
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (results: Record<string, MatchUpResult>) => void;
   onBack?: () => void;
@@ -32,22 +33,57 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-export function MatchUpStage({ problems, onProgressUpdate, onComplete, onBack, backLabel }: MatchUpStageProps) {
-  const leftItems = useMemo(() => shuffle(problems), [problems]);
-  const rightItems = useMemo(() => shuffle(problems), [problems]);
+export function MatchUpStage({ problems, wordsPerSet = 5, onProgressUpdate, onComplete, onBack, backLabel }: MatchUpStageProps) {
+  const [currentSetIndex, setCurrentSetIndex] = useState(0);
+
+  // 문제를 세트 단위로 분할
+  const problemSets = useMemo(() => {
+    return Array.from({ length: Math.ceil(problems.length / wordsPerSet) }, (_, i) =>
+      problems.slice(i * wordsPerSet, (i + 1) * wordsPerSet)
+    );
+  }, [problems, wordsPerSet]);
+
+  const currentSet = problemSets[currentSetIndex] || [];
+  const totalSets = problemSets.length;
+
+  // 세트가 변경될 때만 보기 셔플 (currentSetIds 문자열로 의도적 고정)
+  const currentSetIds = currentSet.map((p) => p.id).join(",");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const leftItems = useMemo(() => shuffle(currentSet), [currentSetIds]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const rightItems = useMemo(() => shuffle(currentSet), [currentSetIds]);
 
   // matches: 좌 problemId → 우(뜻) problemId
   const [matches, setMatches] = useState<Record<string, string>>({});
   const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
   const [selectedRight, setSelectedRight] = useState<string | null>(null);
 
-  const matchedCount = Object.keys(matches).length;
-  const total = problems.length;
-  const allMatched = matchedCount === total && total > 0;
+  const currentSetMatched = currentSet.length > 0 && currentSet.every((p) => matches[p.id]);
+  const allMatched = Object.keys(matches).length === problems.length && problems.length > 0;
 
   useEffect(() => {
-    onProgressUpdate?.(matchedCount, total, `${matchedCount}/${total}`);
-  }, [matchedCount, total, onProgressUpdate]);
+    if (!onProgressUpdate) return;
+    const startNum = currentSetIndex * wordsPerSet + 1;
+    const endNum = Math.min((currentSetIndex + 1) * wordsPerSet, problems.length);
+    const label = startNum === endNum ? `${startNum}/${problems.length}` : `${startNum}-${endNum}/${problems.length}`;
+    onProgressUpdate(currentSetIndex + 1, totalSets, label);
+  }, [currentSetIndex, totalSets, problems.length, wordsPerSet, onProgressUpdate]);
+
+  const handleNextSet = () => {
+    if (currentSetIndex < totalSets - 1) {
+      setCurrentSetIndex(currentSetIndex + 1);
+      setSelectedLeft(null);
+      setSelectedRight(null);
+    }
+  };
+
+  const handlePrevSet = () => {
+    if (currentSetIndex > 0) {
+      setCurrentSetIndex(currentSetIndex - 1);
+      setSelectedLeft(null);
+      setSelectedRight(null);
+    }
+  };
 
   const rightUsedBy = useMemo(() => {
     const m: Record<string, string> = {};
@@ -172,21 +208,42 @@ export function MatchUpStage({ problems, onProgressUpdate, onComplete, onBack, b
         </div>
 
         <div className="flex justify-between items-center pt-2">
-          <Button
-            variant="outline"
-            onClick={onBack}
-            disabled={!onBack}
-            className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
-          >
-            <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> {backLabel ?? "이전"}
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!allMatched}
-            className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
-          >
-            결과 확인 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
-          </Button>
+          {currentSetIndex === 0 ? (
+            <Button
+              variant="outline"
+              onClick={onBack}
+              disabled={!onBack}
+              className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            >
+              <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> {backLabel ?? "이전"}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={handlePrevSet}
+              className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            >
+              <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> 이전 세트
+            </Button>
+          )}
+
+          {currentSetIndex < totalSets - 1 ? (
+            <Button
+              onClick={handleNextSet}
+              disabled={!currentSetMatched}
+              className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
+            >
+              다음 세트 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSubmit}
+              disabled={!allMatched}
+              className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
+            >
+              결과 확인 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

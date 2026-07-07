@@ -29,10 +29,10 @@ export function RecordingStudentView({ problems }: { problems: RecordingStudentI
   if (!problem) return null;
 
   return (
-    <Card className="w-full max-w-5xl mx-auto border shadow-sm rounded-2xl overflow-hidden bg-white mb-4 sm:mb-6">
-      <CardContent className="p-4 sm:p-8 space-y-4 sm:space-y-6">
-        <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px]">
-          <div className="flex w-full items-center justify-between mb-6 sm:mb-8">
+    <Card className="w-full max-w-5xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl overflow-hidden bg-transparent sm:bg-white mb-4 sm:mb-8 mt-4">
+      <CardContent className="p-0 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
+        <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px] mt-0 sm:mt-1">
+          <div className="flex w-full items-center justify-between mb-2 sm:mb-3">
             <div className="text-xs sm:text-sm font-semibold text-[#8B5CF6] bg-[#8B5CF6]/10 px-3 py-1.5 rounded-full inline-flex items-center">
               {problem.mode === "listen" ? "듣고 말하기" : "보고 말하기"}
             </div>
@@ -46,11 +46,13 @@ export function RecordingStudentView({ problems }: { problems: RecordingStudentI
               힌트
             </Button>
           </div>
+          {problem.mode === "read" && (
+            <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold mb-2">문장을 보고 따라 말해보세요</p>
+          )}
           <div className="flex-1 flex flex-col items-center justify-center w-full">
             {problem.mode === "read" ? (
               <>
-                <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold mb-2">문장을 보고 따라 말해보세요</p>
-                <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 text-foreground leading-relaxed text-center drop-shadow-sm">
+                <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold mt-4 mb-4 sm:mb-6 text-foreground leading-relaxed text-center drop-shadow-sm">
                   {problem.sentence}
                 </h3>
               </>
@@ -85,10 +87,12 @@ export function RecordingStudentView({ problems }: { problems: RecordingStudentI
             </p>
           </div>
         </div>
-        <div className="flex flex-col items-center gap-2">
-          <Button size="lg" disabled className="rounded-full w-20 h-20 opacity-40">
-            <Mic className="w-8 h-8" />
-          </Button>
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center gap-4">
+            <Button size="lg" disabled className="rounded-full w-20 h-20 opacity-40">
+              <Mic className="w-8 h-8" />
+            </Button>
+          </div>
           <p className="text-xs text-muted-foreground">학생 퀴즈 화면에서 녹음 가능</p>
         </div>
         <div className="flex justify-between items-center mt-6">
