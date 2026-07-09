@@ -234,13 +234,13 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
 §6-3. 짧은 문장(short_sentence·short_translation) 규칙 — 필수
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · short_sentence: 대상 단어를 포함한 완성형 한국어 문장. 괄호·빈칸 없이 정답까지 채운 자연스러운 문장.
-· 공백 포함 18~28자 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
+· 공백 포함 20~30자 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
 · 위 빈칸 채우기 문장(sentence)과는 다른, 더 짧고 쉬운 표현을 사용하세요. (같은 문장 복사 금지)
 · short_translation: short_sentence 전체를 ${languageName}로 자연스럽게 번역. 대괄호 없이 적으세요.
 ` : "";
 
   const shortOutputFields = includeShort ? `,
-      "short_sentence": "대상 단어가 들어간 18~28자의 짧은 완성형 문장.",
+      "short_sentence": "대상 단어가 들어간 20~30자의 짧은 완성형 문장.",
       "short_translation": "${languageName}로 된 short_sentence 번역"` : "";
 
   return `당신은 한국어 교육 전문가이자 TOPIK 문제 출제 전문가입니다.
@@ -371,13 +371,13 @@ const generateSimplePrompt = (words: string[], difficulty: string, languageName:
 
   const shortSection = includeShort ? `
 [짧은 문장(short_sentence·short_translation)] 필수
-- short_sentence: "${words[0]}"을(를) 포함한 완성형 문장(괄호·빈칸 없음). 공백 포함 18~28자 범위로.
+- short_sentence: "${words[0]}"을(를) 포함한 완성형 문장(괄호·빈칸 없음). 공백 포함 20~30자 범위로.
 - 위 빈칸 채우기 문장과 다른, 더 짧고 쉬운 표현. 학생이 듣고 한 번에 기억할 수 있는 길이.
 - short_translation: short_sentence 전체를 ${languageName}로 번역. 대괄호 없이.
 ` : "";
 
   const shortOutputFields = includeShort ? `,
-      "short_sentence": "18~28자 짧은 완성형 문장.",
+      "short_sentence": "20~30자 짧은 완성형 문장.",
       "short_translation": "${languageName} 번역"` : "";
   // 가이드에서 문법 목록 부분만 간단히 사용 (줄바꿈 등으로 인해 전체 텍스트가 들어가지만, 위쪽의 긴 설명들은 제외됨)
 

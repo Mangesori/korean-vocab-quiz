@@ -54,7 +54,7 @@ function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }:
           {formattedDate}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-56" align="start">
+      <PopoverContent className="w-auto" align="start">
         {isLoading ? (
           <div className="flex justify-center py-2">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -62,15 +62,15 @@ function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }:
         ) : times ? (
           <div className="space-y-2 text-sm">
             <div className="flex justify-between gap-3">
-              <span className="text-muted-foreground">빈칸 채우기</span>
-              <span className="font-medium tabular-nums">
+              <span className="text-muted-foreground whitespace-nowrap">빈칸 채우기</span>
+              <span className="font-medium tabular-nums whitespace-nowrap">
                 {formatDateFull(times.fillBlank)}
               </span>
             </div>
             {sentenceMakingEnabled && (
               <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">문장 만들기</span>
-                <span className="font-medium tabular-nums">
+                <span className="text-muted-foreground whitespace-nowrap">문장 만들기</span>
+                <span className="font-medium tabular-nums whitespace-nowrap">
                   {times.sentenceMaking
                     ? formatDateFull(times.sentenceMaking)
                     : "대기 중"}
@@ -79,8 +79,8 @@ function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }:
             )}
             {recordingEnabled && (
               <div className="flex justify-between gap-3">
-                <span className="text-muted-foreground">말하기 연습</span>
-                <span className="font-medium tabular-nums">
+                <span className="text-muted-foreground whitespace-nowrap">말하기 연습</span>
+                <span className="font-medium tabular-nums whitespace-nowrap">
                   {times.recording
                     ? formatDateFull(times.recording)
                     : "대기 중"}
@@ -179,7 +179,7 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
       return getScoreBadge(result.fill_blank_score ?? result.score, result.fill_blank_total ?? result.total_questions);
     }
     return (
-      <div className="flex flex-wrap gap-x-3 gap-y-1">
+      <div className="grid grid-cols-3 gap-x-3 gap-y-1 w-fit">
         {fillBlankEnabled !== false && (
           <div className="flex items-center gap-1 text-xs">
             <span className="text-muted-foreground">빈칸 채우기</span>

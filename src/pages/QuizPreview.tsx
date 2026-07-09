@@ -368,6 +368,9 @@ export default function QuizPreview() {
     if (previewStage === "word_magnet" && (!draft?.wordMagnetProblems || draft.wordMagnetProblems.length === 0)) {
       generateWordMagnetProblems();
     }
+    if (previewStage === "recording" && (!draft?.recordingProblems || draft.recordingProblems.length === 0)) {
+      generateRecordingProblems();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewStage]);
 
@@ -1078,7 +1081,8 @@ export default function QuizPreview() {
             {enabledStages.map((stage, index) => (
               <div key={stage} className="flex items-center gap-2">
                 <div
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-colors ${
+                  onClick={() => setPreviewStage(stage)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-colors cursor-pointer hover:opacity-80 ${
                     previewStage === stage
                       ? "bg-primary text-primary-foreground border-primary"
                       : index < currentStageIndex
