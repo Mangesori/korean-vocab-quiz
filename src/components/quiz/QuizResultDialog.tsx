@@ -757,7 +757,7 @@ export function QuizResultDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>퀴즈 결과 상세</DialogTitle>
         </DialogHeader>
@@ -802,7 +802,7 @@ export function QuizResultDialog({
           ) : showTabs ? (
             <Tabs defaultValue={defaultTab}>
               <div className="flex justify-center mb-4">
-                <TabsList>
+                <TabsList className="flex-wrap h-auto">
                   {hasMatchup && (
                     <TabsTrigger value="matchup" className="flex items-center gap-1.5">
                       <Link2 className="hidden sm:block w-4 h-4" />

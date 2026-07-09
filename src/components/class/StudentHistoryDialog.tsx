@@ -70,11 +70,11 @@ export function StudentHistoryDialog({
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
+            <div className="rounded-md border overflow-x-auto min-w-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>퀴즈 제목</TableHead>
+                    <TableHead className="max-w-[200px]">퀴즈 제목</TableHead>
                     <TableHead className="whitespace-nowrap">배정일</TableHead>
                     <TableHead className="whitespace-nowrap">빈칸 채우기</TableHead>
                     <TableHead className="whitespace-nowrap">짝 맞추기</TableHead>
@@ -95,7 +95,7 @@ export function StudentHistoryDialog({
                   ) : (
                     activities.map((activity) => (
                       <TableRow key={activity.id}>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium max-w-[200px]">
                           <div className="truncate">{activity.quiz_title}</div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
