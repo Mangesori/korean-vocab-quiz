@@ -41,6 +41,7 @@ import { MatchupProblemList, MatchupProblem } from "@/components/quiz/MatchupPro
 import { TypeAnswerProblemList, TypeAnswerProblem } from "@/components/quiz/TypeAnswerProblemList";
 import { WordMagnetProblemList, WordMagnetProblem } from "@/components/quiz/WordMagnetProblemList";
 import { parseSentenceToItems } from "@/lib/korean/wordMagnet";
+import { isShortSentenceLevel } from "@/lib/quiz";
 
 export default function QuizDetail() {
   const { id } = useParams<{ id: string }>();
@@ -516,15 +517,21 @@ export default function QuizDetail() {
 
       // quiz.problems 순서대로 recording problems 생성 (QuizPreview와 동일한 로직)
       // quiz.problems에 answer와 sentence가 이미 있으므로 추가 DB 쿼리 불필요
+      // B1+면 short_sentence(있으면)를 그대로 사용, 없으면 빈칸 치환 폴백.
+      const isB1Plus = isShortSentenceLevel(quiz.difficulty);
       const recProblemsToInsert = quiz.problems.map((p) => {
-        const sentenceWithoutBlanks = p.sentence.replace(/\(\s*\)|\(\)/g, p.answer);
+        const useShort = isB1Plus && !!p.short_sentence?.trim();
+        const sentence = useShort
+          ? p.short_sentence!.trim()
+          : p.sentence.replace(/\(\s*\)|\(\)/g, p.answer);
         return {
           quiz_id: quiz.id,
           problem_id: p.id,
-          sentence: sentenceWithoutBlanks,
+          sentence,
           mode: "read" as const,
-          sentence_audio_url: audioUrls[p.id] || null,
-          translation: p.translation || null,
+          // short_sentence는 빈칸 문장과 달라 기존 오디오(빈칸 기준)를 재사용하면 안 됨.
+          sentence_audio_url: useShort ? null : (audioUrls[p.id] || null),
+          translation: (useShort ? (p.short_translation ?? p.translation) : p.translation) || null,
           source_type: "reuse" as const,
         };
       });
@@ -654,9 +661,13 @@ export default function QuizDetail() {
         throw new Error("빈칸 채우기 문제가 없습니다. 먼저 빈칸 채우기 퀴즈를 생성해주세요.");
       }
 
+      // B1+면 short_sentence(있으면)를 base_text로, 없으면 빈칸 치환 폴백.
+      const isB1Plus = isShortSentenceLevel(quiz.difficulty);
       const wmProblemsToInsert = quiz.problems.map((p) => {
-        const baseText = p.sentence
-          .replace(/\(\s*\)|\(\)/g, p.answer)
+        const useShort = isB1Plus && !!p.short_sentence?.trim();
+        const baseText = (useShort
+          ? p.short_sentence!.trim()
+          : p.sentence.replace(/\(\s*\)|\(\)/g, p.answer))
           .replace(/([.?!])\s*\.+\s*$/, "$1")
           .trim();
         const items = parseSentenceToItems(baseText).map((it) => ({
@@ -667,10 +678,14 @@ export default function QuizDetail() {
           quiz_id: quiz.id,
           problem_id: p.id,
           base_text: baseText,
-          translation: (p.translation || "").replace(/[[\]]/g, ""),
+          translation: (useShort
+            ? (p.short_translation ?? p.translation ?? "")
+            : (p.translation || "")
+          ).replace(/[[\]]/g, ""),
           items,
         };
-      }).filter((p) => p.items.length > 0);
+      }).filter((p) => p.items.length > 0)
+        .map((p, index) => ({ ...p, sort_order: index }));
 
       const { error: insertError } = await supabase
         .from("word_magnet_problems" as any)

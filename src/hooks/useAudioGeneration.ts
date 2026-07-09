@@ -101,11 +101,18 @@ export function useAudioGeneration(quizId: string | undefined) {
             }, { onConflict: 'quiz_id,problem_id' });
 
           // recording_problems도 동기화 (listen 모드 문제에 오디오 URL 반영)
+          // 단, recording 문장이 fill_blank 완성 문장과 같은 경우(A1/A2)에만 동기화.
+          // B1+ 짧은 문장 recording은 자체 오디오를 유지해야 하므로 덮어쓰지 않음.
+          const filledSentence = problem.sentence
+            .replace(/\(\s*\)|\(\)/g, problem.answer)
+            .replace(/([.?!])\s*\.+\s*$/, "$1")
+            .trim();
           await supabase
             .from("recording_problems")
             .update({ sentence_audio_url: audioUrl })
             .eq("quiz_id", quizId)
-            .eq("problem_id", problem.id);
+            .eq("problem_id", problem.id)
+            .eq("sentence", filledSentence);
         }
 
         // ElevenLabs rate limit 방지: 마지막 문제 제외하고 1초 대기
@@ -151,11 +158,18 @@ export function useAudioGeneration(quizId: string | undefined) {
           }, { onConflict: 'quiz_id,problem_id' });
 
         // recording_problems도 동기화 (listen 모드 문제에 오디오 URL 반영)
+        // 단, recording 문장이 fill_blank 완성 문장과 같은 경우(A1/A2)에만 동기화.
+        // B1+ 짧은 문장 recording은 자체 오디오를 유지해야 하므로 덮어쓰지 않음.
+        const filledSentence = problem.sentence
+          .replace(/\(\s*\)|\(\)/g, problem.answer)
+          .replace(/([.?!])\s*\.+\s*$/, "$1")
+          .trim();
         await supabase
           .from("recording_problems")
           .update({ sentence_audio_url: audioUrl })
           .eq("quiz_id", quizId)
-          .eq("problem_id", problem.id);
+          .eq("problem_id", problem.id)
+          .eq("sentence", filledSentence);
 
         onAudioGenerated(problem.id, audioUrl);
         toast.success(`"${problem.word}" 문제의 음성이 재생성되었습니다`);

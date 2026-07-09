@@ -20,6 +20,7 @@ import { parseSentenceToItems } from "@/lib/korean/wordMagnet";
 import { segmentSentences } from "@/lib/korean/segment";
 import { WordMagnetStudentView } from "@/components/quiz/shared/WordMagnetStudentView";
 import { WordMagnetEditCard } from "@/components/quiz/shared/WordMagnetEditCard";
+import { isShortSentenceLevel } from "@/lib/quiz";
 
 export interface WordMagnetProblem {
   id: string;
@@ -126,16 +127,22 @@ export function WordMagnetProblemList({
     setRegeneratingId(id);
     try {
       const { data, error } = await supabase.functions.invoke("generate-quiz", {
-        body: { words: [word], difficulty, translationLanguage, wordsPerSet: 1, apiProvider },
+        body: { words: [word], difficulty, translationLanguage, wordsPerSet: 1, apiProvider, wordMagnetEnabled: true },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message || "Regeneration failed");
 
       const newProblem = data.problems[0];
-      const baseText = newProblem.sentence
-        .replace(/\(\s*\)|\(\)/g, newProblem.answer)
+      // B1+면 short_sentence(있으면)를 base_text로, 없으면 빈칸 치환 폴백.
+      const useShort = isShortSentenceLevel(difficulty) && !!newProblem.short_sentence?.trim();
+      const baseText = (useShort
+        ? newProblem.short_sentence.trim()
+        : newProblem.sentence.replace(/\(\s*\)|\(\)/g, newProblem.answer))
         .replace(/([.?!])\s*\.+\s*$/, "$1")
         .trim();
-      const translation = (newProblem.translation || "").replace(/[[\]]/g, "");
+      const translation = (useShort
+        ? (newProblem.short_translation ?? newProblem.translation ?? "")
+        : (newProblem.translation || "")
+      ).replace(/[[\]]/g, "");
       const heuristicItems = parseSentenceToItems(baseText).map((it) => ({ content: it.content, isParticle: it.isParticle }));
 
       setEditedProblems((prev) =>
@@ -173,21 +180,28 @@ export function WordMagnetProblemList({
     setIsRegeneratingAll(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-quiz", {
-        body: { words, difficulty, translationLanguage, wordsPerSet: words.length, apiProvider },
+        body: { words, difficulty, translationLanguage, wordsPerSet: words.length, apiProvider, wordMagnetEnabled: true },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message || "Regeneration failed");
 
       const newByWord = new Map<string, any>((data.problems || []).map((p: any) => [p.word, p]));
+      const isB1Plus = isShortSentenceLevel(difficulty);
 
       const updated = editedProblems.map((problem) => {
         const word = sourceWords?.[problem.problem_id];
         const newProblem = word ? newByWord.get(word) : undefined;
         if (!newProblem) return problem;
-        const baseText = newProblem.sentence
-          .replace(/\(\s*\)|\(\)/g, newProblem.answer)
+        // B1+면 short_sentence(있으면)를 base_text로, 없으면 빈칸 치환 폴백.
+        const useShort = isB1Plus && !!newProblem.short_sentence?.trim();
+        const baseText = (useShort
+          ? newProblem.short_sentence.trim()
+          : newProblem.sentence.replace(/\(\s*\)|\(\)/g, newProblem.answer))
           .replace(/([.?!])\s*\.+\s*$/, "$1")
           .trim();
-        const translation = (newProblem.translation || "").replace(/[[\]]/g, "");
+        const translation = (useShort
+          ? (newProblem.short_translation ?? newProblem.translation ?? "")
+          : (newProblem.translation || "")
+        ).replace(/[[\]]/g, "");
         return {
           ...problem,
           base_text: baseText,

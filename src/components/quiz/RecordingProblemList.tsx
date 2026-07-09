@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RecordingStudentView } from "@/components/quiz/shared/RecordingStudentView";
 import { RecordingEditCard } from "@/components/quiz/shared/RecordingEditCard";
+import { isShortSentenceLevel } from "@/lib/quiz";
 
 export interface RecordingProblem {
   id: string;
@@ -60,7 +61,7 @@ interface RecordingProblemListProps {
   /** problem_id → 출처 단어(빈칸 문제). 헤더 읽기전용 라벨용. */
   sourceWords?: Record<string, string>;
   /** "전체 문장 재생성"용 — 빈칸 채우기 원본 문제(problem_id가 이 id와 같은 문제만 대상). */
-  fillBlankProblems?: { id: string; sentence: string; answer: string; translation: string }[];
+  fillBlankProblems?: { id: string; sentence: string; answer: string; translation: string; short_sentence?: string; short_translation?: string }[];
   /** 개별 문제 재생성(AI 호출)에 필요한 퀴즈 설정 */
   difficulty: string;
   translationLanguage: string;
@@ -312,11 +313,17 @@ export function RecordingProblemList({
       prev.map((problem) => {
         const source = fillBlankById.get(problem.problem_id);
         if (!source) return problem;
-        const sentence = source.sentence
-          .replace(/\(\s*\)|\(\)/g, source.answer)
+        // B1+면 짧은 문장(short_sentence) 사용, 없으면 빈칸 치환 폴백 — 개별 재생성과 동일한 분기.
+        const useShort = isShortSentenceLevel(difficulty) && !!source.short_sentence?.trim();
+        const sentence = (useShort
+          ? source.short_sentence!.trim()
+          : source.sentence.replace(/\(\s*\)|\(\)/g, source.answer))
           .replace(/([.?!])\s*\.+\s*$/, "$1")
           .trim();
-        const translation = (source.translation || "").replace(/[[\]]/g, "");
+        const translation = (useShort
+          ? (source.short_translation ?? source.translation ?? "")
+          : (source.translation || "")
+        ).replace(/[[\]]/g, "");
         return { ...problem, sentence, translation };
       })
     );
@@ -337,16 +344,22 @@ export function RecordingProblemList({
     setRegeneratingSentenceId(id);
     try {
       const { data, error } = await supabase.functions.invoke("generate-quiz", {
-        body: { words: [word], difficulty, translationLanguage, wordsPerSet: 1, apiProvider, regenerateSingle: true },
+        body: { words: [word], difficulty, translationLanguage, wordsPerSet: 1, apiProvider, regenerateSingle: true, recordingEnabled: true },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message || "Regeneration failed");
 
       const newProblem = data.problems[0];
-      const sentence = newProblem.sentence
-        .replace(/\(\s*\)|\(\)/g, newProblem.answer)
+      // B1+면 새로 생성된 short_sentence(있으면)를 문장으로, 없으면 빈칸 치환 폴백.
+      const useShort = isShortSentenceLevel(difficulty) && !!newProblem.short_sentence?.trim();
+      const sentence = (useShort
+        ? newProblem.short_sentence.trim()
+        : newProblem.sentence.replace(/\(\s*\)|\(\)/g, newProblem.answer))
         .replace(/([.?!])\s*\.+\s*$/, "$1")
         .trim();
-      const translation = (newProblem.translation || "").replace(/[[\]]/g, "");
+      const translation = (useShort
+        ? (newProblem.short_translation ?? newProblem.translation ?? "")
+        : (newProblem.translation || "")
+      ).replace(/[[\]]/g, "");
 
       setEditedProblems((prev) =>
         prev.map((p) => (p.id === id ? { ...p, sentence, translation } : p))
