@@ -14,6 +14,9 @@ export interface Problem {
   hint: string;
   translation: string;
   meaning?: string;
+  // B1+ 난이도 말하기 연습/문장 순서 맞추기용 짧은(≤25자) 문장 + 번역(폴백 허용)
+  short_sentence?: string;
+  short_translation?: string;
 }
 
 export interface Quiz {

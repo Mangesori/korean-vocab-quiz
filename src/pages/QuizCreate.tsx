@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/lib/rbac/roles";
+import { isShortSentenceLevel } from "@/lib/quiz";
 import type { Problem, SentenceMakingProblem, RecordingProblem, MatchupProblem, TypeAnswerProblem } from "@/types/quiz";
 
 const DIFFICULTY_LEVELS = [
@@ -136,6 +137,7 @@ export default function QuizCreate() {
               recordingEnabled,
               matchupEnabled,
               typeAnswerEnabled,
+              wordMagnetEnabled,
               recordingMode: "read",
             },
           });
@@ -165,13 +167,23 @@ export default function QuizCreate() {
 
       // 말하기 연습 문제는 fillBlankEnabled 여부와 무관하게 빈칸 채우기 원본 문장에서
       // 즉시 파생 (엣지 함수는 항상 빈 배열을 반환하므로 여기서 직접 생성)
+      // B1+ 난이도면 빈칸 채우기 파생 대신 short_sentence(있으면)를 그대로 사용.
+      // short_sentence는 이미 완성형이라 괄호 치환이 필요 없다. 없으면 기존 치환으로 폴백.
       const recordingProblemsFinal: RecordingProblem[] = recordingEnabled
-        ? allProblems.map((p) => ({
-            problem_id: p.id,
-            sentence: p.sentence.replace(/\(\s*\)|\(\)/g, p.answer),
-            mode: "read" as const,
-            translation: (p.translation || "").replace(/[[\]]/g, ""),
-          }))
+        ? allProblems.map((p) => {
+            const useShort = isShortSentenceLevel(difficulty) && !!p.short_sentence?.trim();
+            return {
+              problem_id: p.id,
+              sentence: useShort
+                ? p.short_sentence!.trim()
+                : p.sentence.replace(/\(\s*\)|\(\)/g, p.answer),
+              mode: "read" as const,
+              translation: (useShort
+                ? (p.short_translation ?? p.translation ?? "")
+                : (p.translation || "")
+              ).replace(/[[\]]/g, ""),
+            };
+          })
         : allRecordingProblems;
 
       sessionStorage.setItem(

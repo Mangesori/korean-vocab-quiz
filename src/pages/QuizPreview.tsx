@@ -20,6 +20,7 @@ import { TypeAnswerPreview } from "@/components/quiz/TypeAnswerPreview";
 import { WordMagnetPreview } from "@/components/quiz/WordMagnetPreview";
 import { parseSentenceToItems } from "@/lib/korean/wordMagnet";
 import { segmentSentences } from "@/lib/korean/segment";
+import { isShortSentenceLevel } from "@/lib/quiz";
 import { STAGE_ORDER, STAGE_LABELS, type BaseStage } from "@/types/quiz";
 import type { Problem, SentenceMakingProblem, RecordingProblem, MatchupProblem, TypeAnswerProblem, WordMagnetProblem, QuizDraft } from "@/types/quiz";
 
@@ -120,11 +121,18 @@ export default function QuizPreview() {
         return existing;
       }
       // 손대지 않은 문제는 빈칸 문장에서 파생(기존 mode/label은 보존 → 매번 read로 리셋되던 문제 해소)
+      // B1+면 빈칸 파생 대신 short_sentence(있으면)를 그대로 사용, 없으면 기존 치환 폴백.
+      const useShort = isShortSentenceLevel(draft.difficulty) && !!problem.short_sentence?.trim();
       return {
         problem_id: problem.id,
-        sentence: problem.sentence.replace(/\(\s*\)|\(\)/g, problem.answer),
+        sentence: useShort
+          ? problem.short_sentence!.trim()
+          : problem.sentence.replace(/\(\s*\)|\(\)/g, problem.answer),
         mode: existing?.mode ?? ("read" as const),
-        translation: (problem.translation || "").replace(/[[\]]/g, ""),
+        translation: (useShort
+          ? (problem.short_translation ?? problem.translation ?? "")
+          : (problem.translation || "")
+        ).replace(/[[\]]/g, ""),
         label: existing?.label,
       };
     });
@@ -178,14 +186,21 @@ export default function QuizPreview() {
             translation: problem.word_magnet_translation || "",
           };
         }
-        const baseText = problem.sentence
-          .replace(/\(\s*\)|\(\)/g, problem.answer)
+        // B1+면 short_sentence(있으면)를 base_text로, 없으면 기존 빈칸 치환 폴백.
+        // 어느 경우든 끝 문장부호 정리 후처리는 유지.
+        const useShort = isShortSentenceLevel(draft.difficulty) && !!problem.short_sentence?.trim();
+        const baseText = (useShort
+          ? problem.short_sentence!.trim()
+          : problem.sentence.replace(/\(\s*\)|\(\)/g, problem.answer))
           .replace(/([.?!])\s*\.+\s*$/, "$1")
           .trim();
         return {
           problem_id: problem.id,
           base_text: baseText,
-          translation: (problem.translation || "").replace(/[[\]]/g, ""),
+          translation: (useShort
+            ? (problem.short_translation ?? problem.translation ?? "")
+            : (problem.translation || "")
+          ).replace(/[[\]]/g, ""),
         };
       })
       .filter((p) => p.base_text.length > 0);
@@ -287,6 +302,7 @@ export default function QuizPreview() {
           translationLanguage: draft.translationLanguage,
           wordsPerSet: 1,
           regenerateSingle: true,
+          wordMagnetEnabled: true,
         },
       });
 
@@ -295,11 +311,17 @@ export default function QuizPreview() {
       }
 
       const newProblem = data.problems[0];
-      const baseText = newProblem.sentence
-        .replace(/\(\s*\)|\(\)/g, newProblem.answer)
+      // B1+면 새로 생성된 short_sentence(있으면)를 base_text로, 없으면 빈칸 치환 폴백.
+      const useShort = isShortSentenceLevel(draft.difficulty) && !!newProblem.short_sentence?.trim();
+      const baseText = (useShort
+        ? newProblem.short_sentence.trim()
+        : newProblem.sentence.replace(/\(\s*\)|\(\)/g, newProblem.answer))
         .replace(/([.?!])\s*\.+\s*$/, "$1")
         .trim();
-      const translation = (newProblem.translation || "").replace(/[[\]]/g, "");
+      const translation = (useShort
+        ? (newProblem.short_translation ?? newProblem.translation ?? "")
+        : (newProblem.translation || "")
+      ).replace(/[[\]]/g, "");
 
       setDraft((prev) => {
         if (!prev) return null;
@@ -606,6 +628,7 @@ export default function QuizPreview() {
           translationLanguage: draft.translationLanguage,
           wordsPerSet: 1,
           regenerateSingle: true,
+          recordingEnabled: true,
         },
       });
 
@@ -614,11 +637,17 @@ export default function QuizPreview() {
       }
 
       const newProblem = data.problems[0];
-      const sentence = newProblem.sentence
-        .replace(/\(\s*\)|\(\)/g, newProblem.answer)
+      // B1+면 새로 생성된 short_sentence(있으면)를 문장으로, 없으면 빈칸 치환 폴백.
+      const useShort = isShortSentenceLevel(draft.difficulty) && !!newProblem.short_sentence?.trim();
+      const sentence = (useShort
+        ? newProblem.short_sentence.trim()
+        : newProblem.sentence.replace(/\(\s*\)|\(\)/g, newProblem.answer))
         .replace(/([.?!])\s*\.+\s*$/, "$1")
         .trim();
-      const translation = (newProblem.translation || "").replace(/[[\]]/g, "");
+      const translation = (useShort
+        ? (newProblem.short_translation ?? newProblem.translation ?? "")
+        : (newProblem.translation || "")
+      ).replace(/[[\]]/g, "");
 
       // 재생성 결과는 독립 편집 → 이후 빈칸 채우기 자동 동기화에서 덮이면 안 됨
       manuallyEditedRecIds.current.add(problemId);
@@ -860,12 +889,13 @@ export default function QuizPreview() {
       if (draft.wordMagnetEnabled && draft.wordMagnetProblems && draft.wordMagnetProblems.length > 0) {
         const wmProblemsToInsert = draft.wordMagnetProblems
           .filter((p) => p.base_text.trim() && p.items.length > 0)
-          .map((p) => ({
+          .map((p, index) => ({
             quiz_id: data.id,
             problem_id: p.problem_id,
             base_text: p.base_text,
             translation: p.translation || null,
             items: p.items,
+            sort_order: index,
           }));
 
         if (wmProblemsToInsert.length > 0) {
@@ -931,7 +961,29 @@ export default function QuizPreview() {
             );
 
             for (const recProblem of draft.recordingProblems) {
-              const audioUrl = fillBlankAudioMap.get(recProblem.problem_id);
+              // 대응 fill_blank 문제의 "완성 문장" 계산 (공통 헬퍼).
+              const fbSource = shuffledProblems.find((p) => p.id === recProblem.problem_id);
+              const filledSentence = fbSource
+                ? fbSource.sentence
+                    .replace(/\(\s*\)|\(\)/g, fbSource.answer)
+                    .replace(/([.?!])\s*\.+\s*$/, "$1")
+                    .trim()
+                : "";
+
+              let audioUrl: string | null | undefined;
+              if (fbSource && recProblem.sentence.trim() === filledSentence.trim()) {
+                // A1/A2: recording 문장 == fill_blank 완성 문장 → 기존 오디오 재사용(비용 절약).
+                audioUrl = fillBlankAudioMap.get(recProblem.problem_id);
+              } else {
+                // B1+ 짧은 문장: recording 문장과 다르므로 recording 문장으로 오디오 직접 생성.
+                audioUrl = await generateAndUploadAudio(
+                  recProblem.sentence,
+                  data.id,
+                  recProblem.problem_id,
+                  "sentence"
+                );
+              }
+
               if (audioUrl) {
                 const { error: updateError } = await supabase
                   .from("recording_problems" as any)
@@ -944,7 +996,7 @@ export default function QuizPreview() {
                 }
               }
             }
-            console.log("Recording audio URLs set from fill-blank audio:", data.id);
+            console.log("Recording audio URLs synced (reuse for matching, generated for short sentences):", data.id);
           }
         } catch (audioError) {
           console.error("Audio generation error:", audioError);

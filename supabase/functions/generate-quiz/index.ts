@@ -22,6 +22,7 @@ interface QuizRequest {
   skipFillBlank?: boolean;
   matchupEnabled?: boolean;
   typeAnswerEnabled?: boolean;
+  wordMagnetEnabled?: boolean;
 }
 
 interface Problem {
@@ -32,6 +33,9 @@ interface Problem {
   hint: string;
   translation: string;
   meaning?: string; // 단어(기본형)의 짧은 뜻 — 매치업/문장만들기 뜻 칸에 사용
+  // B1+ 말하기 연습/문장 순서 맞추기용 짧은(≤25자) 완성형 문장 + 번역
+  short_sentence?: string;
+  short_translation?: string;
 }
 
 interface MatchupProblem {
@@ -222,8 +226,22 @@ function shuffleGrammarGuide(guide: string): string {
   return result.join('\n');
 }
 
-const generateDetailedPrompt = (words: string[], difficulty: string, languageName: string) => {
+const generateDetailedPrompt = (words: string[], difficulty: string, languageName: string, includeShort = false) => {
   const selectedGuide = shuffleGrammarGuide(DIFFICULTY_GUIDES[difficulty] || DIFFICULTY_GUIDES["A1"]);
+
+  const shortSection = includeShort ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§6-3. 짧은 문장(short_sentence·short_translation) 규칙 — 필수
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· short_sentence: 대상 단어를 포함한 완성형 한국어 문장. 괄호·빈칸 없이 정답까지 채운 자연스러운 문장.
+· 공백 포함 18~28자 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
+· 위 빈칸 채우기 문장(sentence)과는 다른, 더 짧고 쉬운 표현을 사용하세요. (같은 문장 복사 금지)
+· short_translation: short_sentence 전체를 ${languageName}로 자연스럽게 번역. 대괄호 없이 적으세요.
+` : "";
+
+  const shortOutputFields = includeShort ? `,
+      "short_sentence": "대상 단어가 들어간 18~28자의 짧은 완성형 문장.",
+      "short_translation": "${languageName}로 된 short_sentence 번역"` : "";
 
   return `당신은 한국어 교육 전문가이자 TOPIK 문제 출제 전문가입니다.
 주어진 단어들로 ${difficulty} 수준의 빈칸 채우기 문제를 출제하세요.
@@ -310,7 +328,7 @@ ${selectedGuide}
 · meaning에는 단어(기본형)의 핵심 사전적 뜻을 ${languageName}로 1~3 단어로 간결하게 적으세요.
 · 문장 전체 번역이 아니라 단어 하나의 뜻만 적습니다. 대괄호는 쓰지 마세요.
   예: word "학생" → meaning "student" / word "마음에 들다" → meaning "to like"
-
+${shortSection}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §7. 부자연스러운 패턴 블랙리스트 (절대 금지)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -339,7 +357,7 @@ ${selectedGuide}
       "sentence": "( )가 포함된 ${difficulty} 수준 문장.",
       "hint": "문법 형태",
       "translation": "${languageName} 번역 with [core meaning]",
-      "meaning": "${languageName}로 된 단어의 짧은 뜻"
+      "meaning": "${languageName}로 된 단어의 짧은 뜻"${shortOutputFields}
     }
   ]
 }
@@ -347,9 +365,20 @@ ${selectedGuide}
 };
 
 // 가벼운 프롬프트 (Single Regeneration용)
-const generateSimplePrompt = (words: string[], difficulty: string, _languageName: string) => {
+const generateSimplePrompt = (words: string[], difficulty: string, languageName: string, includeShort = false) => {
   // 전체 가이드 대신 해당 레벨의 핵심 문법 리스트만 추출 (간략화)
   const fullGuide = shuffleGrammarGuide(DIFFICULTY_GUIDES[difficulty] || DIFFICULTY_GUIDES["A1"]);
+
+  const shortSection = includeShort ? `
+[짧은 문장(short_sentence·short_translation)] 필수
+- short_sentence: "${words[0]}"을(를) 포함한 완성형 문장(괄호·빈칸 없음). 공백 포함 18~28자 범위로.
+- 위 빈칸 채우기 문장과 다른, 더 짧고 쉬운 표현. 학생이 듣고 한 번에 기억할 수 있는 길이.
+- short_translation: short_sentence 전체를 ${languageName}로 번역. 대괄호 없이.
+` : "";
+
+  const shortOutputFields = includeShort ? `,
+      "short_sentence": "18~28자 짧은 완성형 문장.",
+      "short_translation": "${languageName} 번역"` : "";
   // 가이드에서 문법 목록 부분만 간단히 사용 (줄바꿈 등으로 인해 전체 텍스트가 들어가지만, 위쪽의 긴 설명들은 제외됨)
 
   return `역할: 한국어 교육 전문가 겸 TOPIK 출제자.
@@ -377,7 +406,7 @@ ${fullGuide}
 
 [translation] answer가 들어간 완전한 문장을 번역. 핵심 의미만 대괄호 [].
   예: answer "가고 싶어요" → "I want to [go]."
-
+${shortSection}
 [금지 패턴] 맥락 없는 감정 나열, 교과서식 인위적 문장, 부자연스러운 어휘 조합은 절대 금지.
 
 [출력 - JSON Only, 코드블록 없이]
@@ -388,7 +417,7 @@ ${fullGuide}
       "answer": "...",
       "sentence": "... ( ).",
       "hint": "...",
-      "translation": "... [core meaning] ..."
+      "translation": "... [core meaning] ..."${shortOutputFields}
     }
   ]
 }`;
@@ -483,9 +512,15 @@ serve(async (req) => {
       skipFillBlank = false,
       matchupEnabled = false,
       typeAnswerEnabled = false,
+      wordMagnetEnabled = false,
     }: QuizRequest = await req.json();
 
     const languageName = LANGUAGE_NAMES[translationLanguage] || "영어";
+
+    // B1 이상이면 말하기 연습/문장 순서 맞추기용 짧은 문장(short_sentence)을 함께 생성.
+    const isB1Plus = ["B1", "B2", "C1", "C2"].includes(difficulty);
+    // 상세(일괄) 생성은 recording/word_magnet 중 하나라도 켜졌을 때만 short_sentence 지시.
+    const includeShortDetailed = isB1Plus && (recordingEnabled || wordMagnetEnabled);
 
     // 빈칸 채우기 문제 배열 초기화
     let problems: Problem[] = [];
@@ -494,8 +529,8 @@ serve(async (req) => {
     if (!skipFillBlank) {
       // regenerateSingle이 true이면 가벼운 프롬프트 사용
       const prompt = regenerateSingle
-        ? generateSimplePrompt(words, difficulty, languageName)
-        : generateDetailedPrompt(words, difficulty, languageName);
+        ? generateSimplePrompt(words, difficulty, languageName, isB1Plus)
+        : generateDetailedPrompt(words, difficulty, languageName, includeShortDetailed);
 
       console.log(`Generating quiz using Claude for ${words.length} words at ${difficulty} level`);
 
@@ -613,6 +648,9 @@ serve(async (req) => {
         hint: p.hint || "",
         translation: p.translation,
         meaning: p.meaning || "",
+        // B1+ 짧은 문장(모델이 안 준 경우 undefined 유지 → 클라이언트가 폴백)
+        short_sentence: p.short_sentence,
+        short_translation: p.short_translation,
       }));
 
       console.log(`Successfully generated ${problems.length} fill-blank problems`);
