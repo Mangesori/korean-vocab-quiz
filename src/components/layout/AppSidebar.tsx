@@ -1,7 +1,9 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/lib/rbac/roles";
+import { supabase } from "@/integrations/supabase/client";
 
 import {
   Sidebar,
@@ -35,6 +37,7 @@ interface NavItem {
   icon: React.ElementType;
   label: string;
   exactSearch?: string;
+  badgeCount?: number;
 }
 
 const SB_ITEM_CLASS =
@@ -63,6 +66,11 @@ function NavLink({ item }: { item: NavItem }) {
         <Link to={item.path + (item.exactSearch ?? "")}>
           <Icon className="w-[15px] h-[15px] shrink-0" />
           <span>{item.label}</span>
+          {item.badgeCount !== undefined && item.badgeCount > 0 && (
+            <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[11px] font-semibold">
+              {item.badgeCount > 9 ? "9+" : item.badgeCount}
+            </span>
+          )}
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -73,6 +81,18 @@ export function AppSidebar() {
   const { user, role, signOut } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
+
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ['pendingTeacherCount'],
+    enabled: role === 'admin',
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('teacher_applications' as any)
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      return count ?? 0;
+    },
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -102,7 +122,7 @@ export function AppSidebar() {
 
   const adminItems: NavItem[] = [
     { path: "/admin", icon: Shield,        label: "관리자 대시보드", exactSearch: "" },
-    { path: "/admin", icon: GraduationCap, label: "선생님 관리",     exactSearch: "?tab=teachers" },
+    { path: "/admin", icon: GraduationCap, label: "선생님 관리",     exactSearch: "?tab=teachers", badgeCount: pendingCount },
     { path: "/admin", icon: FileText,      label: "시스템 리포트",   exactSearch: "?tab=report" },
     { path: "/admin", icon: MessageSquare, label: "피드백",         exactSearch: "?tab=feedback" },
   ];

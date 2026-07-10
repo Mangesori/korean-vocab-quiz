@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Loader2, BookOpen, PenLine, PenSquare, Mic, Type, Sparkles, Link2, Keyboard, Magnet } from "lucide-react";
+import { Loader2, BookOpen, PenLine, PenSquare, Mic, Type, Sparkles, Link2, Keyboard, Magnet, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -17,12 +17,12 @@ import { isShortSentenceLevel } from "@/lib/quiz";
 import type { Problem, SentenceMakingProblem, RecordingProblem, MatchupProblem, TypeAnswerProblem } from "@/types/quiz";
 
 const DIFFICULTY_LEVELS = [
-  { level: "A1", bg: "bg-[#DCFCE7]", text: "text-[#15803D]", border: "border-[#15803D]" },
-  { level: "A2", bg: "bg-[#CFFAFE]", text: "text-[#0E7490]", border: "border-[#0E7490]" },
-  { level: "B1", bg: "bg-[#DBEAFE]", text: "text-[#1D4ED8]", border: "border-[#1D4ED8]" },
-  { level: "B2", bg: "bg-[#EDE9FE]", text: "text-[#6D28D9]", border: "border-[#6D28D9]" },
-  { level: "C1", bg: "bg-[#FCE7F3]", text: "text-[#9D174D]", border: "border-[#9D174D]" },
-  { level: "C2", bg: "bg-[#FEF9C3]", text: "text-[#854D0E]", border: "border-[#854D0E]" },
+  { level: "A1", label: "입문", bg: "bg-[#DCFCE7]", text: "text-[#15803D]", border: "border-[#15803D]" },
+  { level: "A2", label: "기초", bg: "bg-[#CFFAFE]", text: "text-[#0E7490]", border: "border-[#0E7490]" },
+  { level: "B1", label: "중급", bg: "bg-[#DBEAFE]", text: "text-[#1D4ED8]", border: "border-[#1D4ED8]" },
+  { level: "B2", label: "중상급", bg: "bg-[#EDE9FE]", text: "text-[#6D28D9]", border: "border-[#6D28D9]" },
+  { level: "C1", label: "고급", bg: "bg-[#FCE7F3]", text: "text-[#9D174D]", border: "border-[#9D174D]" },
+  { level: "C2", label: "최상급", bg: "bg-[#FEF9C3]", text: "text-[#854D0E]", border: "border-[#854D0E]" },
 ] as const;
 
 const TRANSLATION_LANGUAGES = [
@@ -230,14 +230,27 @@ export default function QuizCreate() {
             <PenSquare className="h-8 w-8 text-primary" />
             퀴즈 만들기
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm">AI가 문맥에 맞는 문제를 생성합니다</p>
+          <p className="text-muted-foreground mt-1 text-sm">단어를 붙여넣고 유형만 고르면 10초면 완성돼요</p>
         </div>
 
         <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6 md:p-8 space-y-8">
-          {/* ── 섹션 1: 단어 입력 ── */}
+          {/* ── 섹션 1: 퀴즈 제목 ── */}
           <section>
             <div className="flex items-center gap-3 mb-3">
               <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">1</span>
+              <h2 className="font-semibold text-foreground">퀴즈 제목</h2>
+            </div>
+            <Input
+              placeholder="예: 1과 어휘 퀴즈"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </section>
+
+          {/* ── 섹션 2: 단어 입력 ── */}
+          <section>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">2</span>
               <h2 className="font-semibold text-foreground">단어 입력</h2>
             </div>
             <Textarea
@@ -252,10 +265,10 @@ export default function QuizCreate() {
             </div>
           </section>
 
-          {/* ── 섹션 2: CEFR 레벨 ── */}
+          {/* ── 섹션 3: CEFR 레벨 ── */}
           <section>
             <div className="flex items-center gap-3 mb-3">
-              <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">2</span>
+              <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">3</span>
               <h2 className="font-semibold text-foreground">난이도</h2>
             </div>
             <div className="grid grid-cols-6 gap-2">
@@ -273,137 +286,139 @@ export default function QuizCreate() {
                 </button>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {(() => {
+                const selected = DIFFICULTY_LEVELS.find((d) => d.level === difficulty);
+                return selected ? `${selected.level} · ${selected.label}` : null;
+              })()}
+            </p>
           </section>
 
-          {/* ── 섹션 3: 퀴즈 유형 ── */}
+          {/* ── 섹션 4: 퀴즈 유형 ── */}
           <section>
             <div className="flex items-center gap-3 mb-3">
-              <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">3</span>
+              <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">4</span>
               <h2 className="font-semibold text-foreground">퀴즈 유형</h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setMatchupEnabled(!matchupEnabled)}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${matchupEnabled
+                className={`relative p-4 rounded-xl border-2 text-left transition-all ${matchupEnabled
                     ? "border-primary bg-accent"
                     : "border-border hover:border-primary/40"
                   }`}
               >
+                {matchupEnabled && <Check className="absolute top-3 right-3 w-4 h-4 text-primary" />}
                 <div className="flex items-center gap-2 mb-1">
                   <Link2 className={`w-4 h-4 ${matchupEnabled ? "text-primary" : "text-muted-foreground"}`} />
                   <span className="font-bold text-sm text-foreground">짝 맞추기</span>
                 </div>
                 <div className={`text-xs ${matchupEnabled ? "text-primary" : "text-muted-foreground"}`}>
-                  {matchupEnabled ? "선택됨" : "단어 매칭"}
+                  단어 매칭
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setTypeAnswerEnabled(!typeAnswerEnabled)}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${typeAnswerEnabled
+                className={`relative p-4 rounded-xl border-2 text-left transition-all ${typeAnswerEnabled
                     ? "border-primary bg-accent"
                     : "border-border hover:border-primary/40"
                   }`}
               >
+                {typeAnswerEnabled && <Check className="absolute top-3 right-3 w-4 h-4 text-primary" />}
                 <div className="flex items-center gap-2 mb-1">
                   <Keyboard className={`w-4 h-4 ${typeAnswerEnabled ? "text-primary" : "text-muted-foreground"}`} />
                   <span className="font-bold text-sm text-foreground">단어 받아쓰기</span>
                 </div>
                 <div className={`text-xs ${typeAnswerEnabled ? "text-primary" : "text-muted-foreground"}`}>
-                  {typeAnswerEnabled ? "선택됨" : "뜻 보고 단어 쓰기"}
+                  뜻 보고 단어 쓰기
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setFillBlankEnabled(!fillBlankEnabled)}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${fillBlankEnabled
+                className={`relative p-4 rounded-xl border-2 text-left transition-all ${fillBlankEnabled
                     ? "border-primary bg-accent"
                     : "border-border hover:border-primary/40"
                   }`}
               >
+                {fillBlankEnabled && <Check className="absolute top-3 right-3 w-4 h-4 text-primary" />}
                 <div className="flex items-center gap-2 mb-1">
                   <Type className={`w-4 h-4 ${fillBlankEnabled ? "text-primary" : "text-muted-foreground"}`} />
                   <span className="font-bold text-sm text-foreground">빈칸 채우기</span>
                 </div>
                 <div className={`text-xs ${fillBlankEnabled ? "text-primary" : "text-muted-foreground"}`}>
-                  {fillBlankEnabled ? "선택됨" : "문장 완성하기"}
+                  문장 완성하기
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setWordMagnetEnabled(!wordMagnetEnabled)}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${wordMagnetEnabled
+                className={`relative p-4 rounded-xl border-2 text-left transition-all ${wordMagnetEnabled
                     ? "border-primary bg-accent"
                     : "border-border hover:border-primary/40"
                   }`}
               >
+                {wordMagnetEnabled && <Check className="absolute top-3 right-3 w-4 h-4 text-primary" />}
                 <div className="flex items-center gap-2 mb-1">
                   <Magnet className={`w-4 h-4 ${wordMagnetEnabled ? "text-primary" : "text-muted-foreground"}`} />
                   <span className="font-bold text-sm text-foreground">문장 순서 맞추기</span>
                 </div>
                 <div className={`text-xs ${wordMagnetEnabled ? "text-primary" : "text-muted-foreground"}`}>
-                  {wordMagnetEnabled ? "선택됨" : "순서대로 단어 배치"}
+                  순서대로 단어 배치
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setSentenceMakingEnabled(!sentenceMakingEnabled)}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${sentenceMakingEnabled
+                className={`relative p-4 rounded-xl border-2 text-left transition-all ${sentenceMakingEnabled
                     ? "border-primary bg-accent"
                     : "border-border hover:border-primary/40"
                   }`}
               >
+                {sentenceMakingEnabled && <Check className="absolute top-3 right-3 w-4 h-4 text-primary" />}
                 <div className="flex items-center gap-2 mb-1">
                   <PenLine className={`w-4 h-4 ${sentenceMakingEnabled ? "text-primary" : "text-muted-foreground"}`} />
                   <span className="font-bold text-sm text-foreground">문장 만들기</span>
                 </div>
                 <div className={`text-xs ${sentenceMakingEnabled ? "text-primary" : "text-muted-foreground"}`}>
-                  {sentenceMakingEnabled ? "선택됨" : "단어 보고 문장 쓰기"}
+                  단어 보고 문장 쓰기
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setRecordingEnabled(!recordingEnabled)}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${recordingEnabled
+                className={`relative p-4 rounded-xl border-2 text-left transition-all ${recordingEnabled
                     ? "border-primary bg-accent"
                     : "border-border hover:border-primary/40"
                   }`}
               >
+                {recordingEnabled && <Check className="absolute top-3 right-3 w-4 h-4 text-primary" />}
                 <div className="flex items-center gap-2 mb-1">
                   <Mic className={`w-4 h-4 ${recordingEnabled ? "text-primary" : "text-muted-foreground"}`} />
                   <span className="font-bold text-sm text-foreground">말하기 연습</span>
                 </div>
                 <div className={`text-xs ${recordingEnabled ? "text-primary" : "text-muted-foreground"}`}>
-                  {recordingEnabled ? "선택됨" : "읽거나 듣고 따라 말하기"}
+                  읽거나 듣고 따라 말하기
                 </div>
               </button>
             </div>
           </section>
 
-          {/* ── 섹션 4: 추가 설정 ── */}
+          {/* ── 섹션 5: 추가 설정 ── */}
           <section>
             <div className="flex items-center gap-3 mb-3">
-              <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">4</span>
+              <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">5</span>
               <h2 className="font-semibold text-foreground">추가 설정</h2>
             </div>
 
             <div className="space-y-5">
-              {/* 퀴즈 제목 */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">퀴즈 제목</label>
-                <Input
-                  placeholder="예: 1과 어휘 퀴즈"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-
               {/* 세트당 단어 수 */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

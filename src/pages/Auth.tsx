@@ -95,7 +95,7 @@ export default function Auth() {
               <img src="/Namu_logo_text_right.png" className="h-16 w-auto" alt="나무 Korean" />
             </Link>
           </CardTitle>
-          <CardDescription>선생님과 학생을 위한 어휘 학습 플랫폼</CardDescription>
+          <CardDescription>단어만 입력하면 퀴즈가 완성되는 한국어 어휘 학습</CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -170,6 +170,10 @@ export default function Auth() {
             <TabsContent value="signup" className="space-y-4">
               <form onSubmit={handleSignup} className="space-y-4">
 
+                <p className="bg-accent/50 rounded-lg px-3 py-2 text-sm text-muted-foreground">
+                  가입 후 학생/선생님 역할을 선택해요. 선생님은 운영자 승인 후 이용할 수 있어요.
+                </p>
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-name">이름</Label>
                   <div className="relative">
@@ -213,6 +217,7 @@ export default function Auth() {
                       onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground">6자 이상 입력해주세요</p>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isLoading}>

@@ -16,7 +16,7 @@ import { ko } from 'date-fns/locale';
 
 interface Notification {
   id: string;
-  type: 'quiz_assigned' | 'quiz_completed' | 'announcement' | 'student_joined';
+  type: 'quiz_assigned' | 'quiz_completed' | 'announcement' | 'student_joined' | 'teacher_application';
   title: string;
   message: string;
   quiz_id: string | null;
@@ -90,6 +90,11 @@ export function NotificationDropdown() {
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.is_read) {
       await markAsRead(notification.id);
+    }
+
+    if (notification.type === 'teacher_application') {
+      navigate('/admin?tab=teachers');
+      return;
     }
 
     if (notification.type === 'announcement') {

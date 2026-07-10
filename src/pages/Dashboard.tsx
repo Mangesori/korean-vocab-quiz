@@ -33,10 +33,6 @@ export default function Dashboard() {
     return <StudentDashboard />;
   }
 
-  // Role not set yet
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <LoadingSpinner size="lg" />
-    </div>
-  );
+  // Role not set yet — send to callback so it can prompt for role selection
+  return <Navigate to="/auth/callback" replace />;
 }
