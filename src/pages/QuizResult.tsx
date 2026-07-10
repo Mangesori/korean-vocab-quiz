@@ -304,6 +304,7 @@ export default function QuizResult() {
   const percentage = totalQuestions > 0 ? Math.round((totalScore / totalQuestions) * 100) : 0;
   const isGood = percentage >= 80;
   const isMedium = percentage >= 50 && percentage < 80;
+  const wrongCount = totalQuestions - totalScore;
 
   // 활성화된 퀴즈 유형 확인
   const hasFillBlank = fillBlankTotal > 0;
@@ -349,6 +350,10 @@ export default function QuizResult() {
   for (let i = 0; i < quiz.problems.length; i += wordsPerSet) {
     groupedProblems.push(quiz.problems.slice(i, i + wordsPerSet));
   }
+
+  // 성취도 기준 점수색 헬퍼
+  const scoreColor = (pct: number) =>
+    pct >= 80 ? "text-success" : pct >= 50 ? "text-warning" : "text-destructive";
 
   // 유형별 리뷰 콘텐츠 — 탭 뷰(다중 유형)와 단일 유형 화면에서 그대로 재사용
   const matchupContent = (
@@ -649,7 +654,10 @@ export default function QuizResult() {
             </div>
             
             <p className="mt-4 text-base sm:text-lg font-bold text-slate-500">
-              {isGood ? '정말 잘했어요! 👏' : isMedium ? '좋아요! 조금만 더 힘내볼까요? 💪' : '다시 한번 도전해보세요! 📚'}
+              {percentage >= 100 ? '완벽해요! 모든 문제를 맞혔어요 🎉'
+               : isGood ? `정말 잘했어요! 틀린 ${wrongCount}개만 복습하면 완벽해요 👏`
+               : isMedium ? `${totalScore}개는 이미 알아요. 틀린 ${wrongCount}개만 다시 볼까요? 💪`
+               : `괜찮아요, ${totalScore}개는 맞혔어요. 오답노트로 차근차근 복습해요 📚`}
             </p>
           </div>
 
@@ -663,7 +671,7 @@ export default function QuizResult() {
                       <Link2 className="w-4 h-4" />
                       <span className="text-sm">짝 맞추기</span>
                     </div>
-                    <span className="text-xl font-bold text-amber-500">{muPercentage}%</span>
+                    <span className={`text-xl font-bold ${scoreColor(muPercentage)}`}>{muPercentage}%</span>
                   </TabsTrigger>
                 )}
                 {hasTypeAnswer && (
@@ -672,7 +680,7 @@ export default function QuizResult() {
                       <Keyboard className="w-4 h-4" />
                       <span className="text-sm">단어 받아쓰기</span>
                     </div>
-                    <span className="text-xl font-bold text-pink-500">{taPercentage}%</span>
+                    <span className={`text-xl font-bold ${scoreColor(taPercentage)}`}>{taPercentage}%</span>
                   </TabsTrigger>
                 )}
                 {hasFillBlank && (
@@ -681,7 +689,7 @@ export default function QuizResult() {
                       <FileText className="w-4 h-4" />
                       <span className="text-sm">빈칸 채우기</span>
                     </div>
-                    <span className="text-xl font-bold text-blue-500">{fillBlankPercentage}%</span>
+                    <span className={`text-xl font-bold ${scoreColor(fillBlankPercentage)}`}>{fillBlankPercentage}%</span>
                   </TabsTrigger>
                 )}
                 {hasWordMagnet && (
@@ -690,7 +698,7 @@ export default function QuizResult() {
                       <Magnet className="w-4 h-4" />
                       <span className="text-sm">문장 순서 맞추기</span>
                     </div>
-                    <span className="text-xl font-bold text-cyan-500">{wmPercentage}%</span>
+                    <span className={`text-xl font-bold ${scoreColor(wmPercentage)}`}>{wmPercentage}%</span>
                   </TabsTrigger>
                 )}
                 {hasSentenceMaking && (
@@ -699,7 +707,7 @@ export default function QuizResult() {
                       <Pencil className="w-4 h-4" />
                       <span className="text-sm">문장 만들기</span>
                     </div>
-                    <span className="text-xl font-bold text-green-500">{smPercentage}%</span>
+                    <span className={`text-xl font-bold ${scoreColor(smPercentage)}`}>{smPercentage}%</span>
                   </TabsTrigger>
                 )}
                 {hasRecording && (
@@ -708,7 +716,7 @@ export default function QuizResult() {
                       <Mic className="w-4 h-4" />
                       <span className="text-sm">말하기 연습</span>
                     </div>
-                    <span className="text-xl font-bold text-purple-500">{recPercentage}%</span>
+                    <span className={`text-xl font-bold ${scoreColor(recPercentage)}`}>{recPercentage}%</span>
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -774,13 +782,20 @@ export default function QuizResult() {
 
           {/* 하단 버튼 */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6 mb-20">
+            {wrongCount > 0 && (
+              <Link to="/wrong-answers">
+                <Button className="w-full sm:w-auto min-w-[200px] h-14 text-base rounded-xl font-bold" size="lg">
+                  틀린 단어 {wrongCount}개 다시 풀기
+                </Button>
+              </Link>
+            )}
             <Link to="/dashboard">
               <Button variant="outline" className="w-full sm:w-auto min-w-[200px] h-14 text-base rounded-xl font-medium" size="lg">
                 <Home className="w-4 h-4 mr-2" /> 대시보드로 돌아가기
               </Button>
             </Link>
             <Link to="/quizzes">
-              <Button className="w-full sm:w-auto min-w-[200px] h-14 text-base rounded-xl bg-[#A399F7] hover:bg-[#A399F7]/90 text-white shadow-md font-bold" size="lg">
+              <Button className="w-full sm:w-auto min-w-[200px] h-14 text-base rounded-xl bg-primary hover:bg-primary/90 shadow-md font-bold" size="lg">
                 새 퀴즈 풀기 ✨
               </Button>
             </Link>

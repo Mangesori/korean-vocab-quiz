@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { Users, GraduationCap, Shield, Search, RefreshCw, FileText, Download, Check, X, Clock, Trash2, MessageSquare, Star } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
+import { getCombinedScore, type CombinableResult } from '@/lib/quizScore';
 
 interface UserWithRole {
   user_id: string;
@@ -47,10 +48,22 @@ interface Stats {
 }
 
 interface QuizMeta {
+  id: string;
   difficulty: string | null;
+  fill_blank_enabled: boolean;
   sentence_making_enabled: boolean;
   recording_enabled: boolean;
+  matchup_enabled: boolean;
+  type_answer_enabled: boolean;
+  word_magnet_enabled: boolean;
   created_at?: string;
+}
+
+interface ResultRow extends CombinableResult {
+  quiz_id: string;
+  student_id: string | null;
+  is_anonymous: boolean | null;
+  completed_at: string;
 }
 
 interface Growth {
@@ -81,6 +94,7 @@ export default function AdminDashboard() {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserWithRole | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [periodFilter, setPeriodFilter] = useState<'all' | '30d' | 'month'>('all');
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['adminDashboard'],
@@ -107,14 +121,12 @@ export default function AdminDashboard() {
       const [
         { data: classesData },
         { data: quizzesData },
-        { count: totalResults },
-        { data: scoresData },
+        { data: resultsData },
         { data: applicationsData },
       ] = await Promise.all([
         supabase.from('classes').select('created_at'),
-        supabase.from('quizzes').select('difficulty, sentence_making_enabled, recording_enabled, created_at'),
-        supabase.from('quiz_results').select('*', { count: 'exact', head: true }),
-        supabase.from('quiz_results').select('score, total_questions').not('score', 'is', null).not('total_questions', 'is', null),
+        supabase.from('quizzes').select('id, difficulty, fill_blank_enabled, sentence_making_enabled, recording_enabled, matchup_enabled, type_answer_enabled, word_magnet_enabled, created_at'),
+        supabase.from('quiz_results').select('quiz_id, student_id, is_anonymous, completed_at, score, total_questions, fill_blank_score, fill_blank_total, matchup_score, matchup_total, type_answer_score, type_answer_total, word_magnet_score, word_magnet_total, sentence_making_score, sentence_making_total, recording_score, recording_total'),
         supabase.from('teacher_applications' as any).select('id, user_id, created_at').eq('status', 'pending').order('created_at', { ascending: false }),
       ]);
 
@@ -134,15 +146,6 @@ export default function AdminDashboard() {
         quizzes: quizzes.filter(q => isThisMonth(q.created_at)).length,
       };
 
-      const avgScore = scoresData && scoresData.length > 0
-        ? Math.round(
-            scoresData.reduce((sum, r) => {
-              const tq = r.total_questions as number;
-              return sum + (tq > 0 ? ((r.score as number) / tq) * 100 : 0);
-            }, 0) / scoresData.length
-          )
-        : 0;
-
       return {
         users: usersWithProfiles,
         stats: {
@@ -155,8 +158,7 @@ export default function AdminDashboard() {
         } as Stats,
         growth,
         report: {
-          totalResults: totalResults || 0,
-          avgScore,
+          results: (resultsData || []) as ResultRow[],
           quizzes,
         },
         pendingApplications: (applicationsData as unknown as { id: string; user_id: string; created_at: string }[] | null) || [],
@@ -193,7 +195,7 @@ export default function AdminDashboard() {
     totalUsers: 0, admins: 0, teachers: 0, students: 0, totalClasses: 0, totalQuizzes: 0,
   };
   const growth = data?.growth ?? { users: 0, teachers: 0, classes: 0, quizzes: 0 };
-  const report = data?.report ?? { totalResults: 0, avgScore: 0, quizzes: [] as QuizMeta[] };
+  const report = data?.report ?? { results: [] as ResultRow[], quizzes: [] as QuizMeta[] };
   const pendingApplications = data?.pendingApplications ?? [];
 
   // 신청 user_id → 사용자 정보 매핑 (이름·이메일 표시용)
@@ -396,7 +398,7 @@ export default function AdminDashboard() {
       const [{ data: results, error }, { data: quizRows }] = await Promise.all([
         supabase
           .from("quiz_results")
-          .select("quiz_id, student_id, anonymous_name, is_anonymous, completed_at, score, total_questions")
+          .select("quiz_id, student_id, anonymous_name, is_anonymous, completed_at, score, total_questions, fill_blank_score, fill_blank_total, matchup_score, matchup_total, type_answer_score, type_answer_total, word_magnet_score, word_magnet_total, sentence_making_score, sentence_making_total, recording_score, recording_total")
           .order("completed_at", { ascending: false }),
         supabase.from("quizzes").select("id, title"),
       ]);
@@ -410,13 +412,14 @@ export default function AdminDashboard() {
 
       const rows = results.map((r) => {
         const student = r.is_anonymous ? (r.anonymous_name || "익명") : (r.student_id ? userName[r.student_id] || "(알 수 없음)" : "익명");
-        const pct = r.total_questions > 0 ? Math.round((r.score / r.total_questions) * 100) : 0;
+        const { score, total } = getCombinedScore(r);
+        const pct = total > 0 ? Math.round((score / total) * 100) : 0;
         return [
           student,
           quizTitle[r.quiz_id] || "(삭제된 퀴즈)",
           new Date(r.completed_at).toLocaleDateString("ko-KR"),
-          r.score,
-          r.total_questions,
+          score,
+          total,
           `${pct}%`,
         ];
       });
@@ -480,20 +483,95 @@ export default function AdminDashboard() {
     return arc;
   });
 
-  // CEFR distribution
-  const cefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-  const totalQ = report.quizzes.length || 1;
+  // ── 시스템 리포트 파생 지표 ──
+  const results = report.results;
+  const quizzes = report.quizzes;
+
+  // 기간 경계
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const somDate = new Date();
+  somDate.setDate(1);
+  somDate.setHours(0, 0, 0, 0);
+  const somMs = somDate.getTime();
+
+  // periodFilter 적용된 배열
+  const { filteredResults, filteredQuizzes } = useMemo(() => {
+    if (periodFilter === 'all') {
+      return { filteredResults: results, filteredQuizzes: quizzes };
+    }
+    const boundary = periodFilter === '30d' ? thirtyDaysAgo : somMs;
+    return {
+      filteredResults: results.filter((r) => r.completed_at && new Date(r.completed_at).getTime() >= boundary),
+      filteredQuizzes: quizzes.filter((q) => q.created_at && new Date(q.created_at).getTime() >= boundary),
+    };
+  }, [results, quizzes, periodFilter, thirtyDaysAgo, somMs]);
+
+  const totalResults = filteredResults.length;
+  const avgScore = useMemo(() => {
+    const agg = filteredResults.reduce(
+      (acc, r) => {
+        const { score, total } = getCombinedScore(r);
+        acc.score += score;
+        acc.total += total;
+        return acc;
+      },
+      { score: 0, total: 0 }
+    );
+    return agg.total > 0 ? Math.round((agg.score / agg.total) * 100) : 0;
+  }, [filteredResults]);
+
+  // CEFR distribution (filteredQuizzes 기준, '미지정' 포함)
+  const cefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', '미지정'];
+  const totalQ = filteredQuizzes.length || 1;
   const cefrCounts = cefrLevels.reduce((acc, level) => {
-    acc[level] = report.quizzes.filter(q => q.difficulty === level).length;
+    acc[level] = level === '미지정'
+      ? filteredQuizzes.filter((q) => q.difficulty == null).length
+      : filteredQuizzes.filter((q) => q.difficulty === level).length;
     return acc;
   }, {} as Record<string, number>);
 
-  // Quiz type distribution — 유형별 포함 퀴즈 수 (빈칸 채우기는 모든 퀴즈의 기본)
+  // Quiz type distribution — 유형별 포함 퀴즈 수 (빈칸 채우기는 기본값 true)
   const quizTypeStats = [
-    { label: '빈칸 채우기', count: report.quizzes.length, color: '#1E6B47' },
-    { label: '문장 만들기', count: report.quizzes.filter(q => q.sentence_making_enabled).length, color: '#6D28D9' },
-    { label: '말하기 연습', count: report.quizzes.filter(q => q.recording_enabled).length, color: '#C13B2E' },
+    { label: '빈칸 채우기', count: filteredQuizzes.filter((q) => q.fill_blank_enabled !== false).length, color: '#1E6B47' },
+    { label: '짝 맞추기', count: filteredQuizzes.filter((q) => q.matchup_enabled).length, color: '#1D4ED8' },
+    { label: '단어 받아쓰기', count: filteredQuizzes.filter((q) => q.type_answer_enabled).length, color: '#0E7490' },
+    { label: '문장 순서 맞추기', count: filteredQuizzes.filter((q) => q.word_magnet_enabled).length, color: '#854D0E' },
+    { label: '문장 만들기', count: filteredQuizzes.filter((q) => q.sentence_making_enabled).length, color: '#6D28D9' },
+    { label: '말하기 연습', count: filteredQuizzes.filter((q) => q.recording_enabled).length, color: '#C13B2E' },
   ];
+
+  // 고정 창 지표 (periodFilter와 무관)
+  const thisMonthResults = results.filter((r) => r.completed_at && new Date(r.completed_at).getTime() >= somMs).length;
+
+  // 월별 추이 (최근 6개월)
+  const monthlyTrend = useMemo(() => {
+    const now = new Date();
+    const buckets: { key: string; label: string; count: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      buckets.push({ key, label: `${d.getMonth() + 1}월`, count: 0 });
+    }
+    const idx = new Map(buckets.map((b, i) => [b.key, i] as const));
+    for (const r of results) {
+      if (!r.completed_at) continue;
+      const d = new Date(r.completed_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const i = idx.get(key);
+      if (i !== undefined) buckets[i].count++;
+    }
+    return buckets;
+  }, [results]);
+  const monthlyMax = Math.max(1, ...monthlyTrend.map((m) => m.count));
+
+  // 방치 지표
+  const resultQuizIds = new Set(results.map((r) => r.quiz_id));
+  const emptyQuizCount = quizzes.filter((q) => !resultQuizIds.has(q.id)).length;
+  const activeStudentCount = new Set(
+    results
+      .filter((r) => r.completed_at && new Date(r.completed_at).getTime() >= thirtyDaysAgo && !r.is_anonymous && r.student_id)
+      .map((r) => r.student_id)
+  ).size;
 
   if (loading) {
     return (
@@ -878,18 +956,35 @@ export default function AdminDashboard() {
 
           {/* ── 시스템 리포트 탭 ── */}
           <TabsContent value="report" className="space-y-6">
+            {/* 기간 필터 + CSV 내보내기 */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as typeof periodFilter)}>
+                <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체 기간</SelectItem>
+                  <SelectItem value="30d">최근 30일</SelectItem>
+                  <SelectItem value="month">이번 달</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" className="gap-2" onClick={exportResultsCsv} disabled={exportingResults}>
+                {exportingResults ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                CSV 내보내기
+              </Button>
+            </div>
+
             {/* KPI cards */}
             <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
               <Card>
                 <CardContent className="p-[18px]">
                   <div className="font-ui text-[11px] text-muted-foreground mb-[6px]">총 제출 수</div>
-                  <div className="font-mono font-bold text-[26px] leading-none text-foreground">{report.totalResults}</div>
+                  <div className="font-mono font-bold text-[26px] leading-none text-foreground">{totalResults}</div>
+                  <GrowthNote n={thisMonthResults} unit="건" />
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-[18px]">
                   <div className="font-ui text-[11px] text-muted-foreground mb-[6px]">평균 정답률</div>
-                  <div className="font-mono font-bold text-[26px] leading-none text-primary">{report.avgScore}%</div>
+                  <div className="font-mono font-bold text-[26px] leading-none text-primary">{avgScore}%</div>
                 </CardContent>
               </Card>
               <Card>
@@ -906,12 +1001,28 @@ export default function AdminDashboard() {
               </Card>
             </div>
 
+            {/* 방치 지표 */}
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+              <Card>
+                <CardContent className="p-[18px]">
+                  <div className="font-ui text-[11px] text-muted-foreground mb-[6px]">제출 0건 퀴즈</div>
+                  <div className="font-mono font-bold text-[26px] leading-none text-foreground">{emptyQuizCount}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-[18px]">
+                  <div className="font-ui text-[11px] text-muted-foreground mb-[6px]">최근 30일 활동 학생</div>
+                  <div className="font-mono font-bold text-[26px] leading-none text-foreground">{activeStudentCount}</div>
+                </CardContent>
+              </Card>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-6">
               {/* CEFR distribution */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">CEFR 레벨 분포</CardTitle>
-                  <CardDescription>퀴즈 {report.quizzes.length}개 기준</CardDescription>
+                  <CardDescription>퀴즈 {filteredQuizzes.length}개 기준</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {cefrLevels.map((level) => {
@@ -921,6 +1032,7 @@ export default function AdminDashboard() {
                       A1: 'bg-[#15803D]', A2: 'bg-[#0E7490]',
                       B1: 'bg-[#1D4ED8]', B2: 'bg-[#6D28D9]',
                       C1: 'bg-[#9D174D]', C2: 'bg-[#854D0E]',
+                      '미지정': 'bg-[#6B7280]',
                     };
                     return (
                       <div key={level} className="space-y-1">
@@ -944,7 +1056,7 @@ export default function AdminDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">퀴즈 유형 분포</CardTitle>
-                  <CardDescription>유형별 포함 퀴즈 수 · 전체 {report.quizzes.length}개</CardDescription>
+                  <CardDescription>유형별 포함 퀴즈 수 · 전체 {filteredQuizzes.length}개</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {quizTypeStats.map(({ label, count, color }) => {
@@ -967,6 +1079,30 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* 월별 제출 추이 */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">월별 제출 추이</CardTitle>
+                <CardDescription>최근 6개월</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {monthlyTrend.map((m) => {
+                  const pct = Math.round((m.count / monthlyMax) * 100);
+                  return (
+                    <div key={m.key} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-mono">{m.label}</span>
+                        <span className="text-muted-foreground">{m.count}건</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full bg-[#1E6B47] transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* ── 피드백 탭 ── */}

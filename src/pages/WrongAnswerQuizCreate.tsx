@@ -44,7 +44,31 @@ interface WrongAnswerData {
   sentence: string;
   translation: string | null;
   count: number;
+  students: Set<string>;
 }
+
+const DIFFICULTY_LEVELS = [
+  { level: "A1", label: "입문", bg: "bg-[#DCFCE7]", text: "text-[#15803D]", border: "border-[#15803D]" },
+  { level: "A2", label: "기초", bg: "bg-[#CFFAFE]", text: "text-[#0E7490]", border: "border-[#0E7490]" },
+  { level: "B1", label: "중급", bg: "bg-[#DBEAFE]", text: "text-[#1D4ED8]", border: "border-[#1D4ED8]" },
+  { level: "B2", label: "중상급", bg: "bg-[#EDE9FE]", text: "text-[#6D28D9]", border: "border-[#6D28D9]" },
+  { level: "C1", label: "고급", bg: "bg-[#FCE7F3]", text: "text-[#9D174D]", border: "border-[#9D174D]" },
+  { level: "C2", label: "최상급", bg: "bg-[#FEF9C3]", text: "text-[#854D0E]", border: "border-[#854D0E]" },
+] as const;
+
+const TRANSLATION_LANGUAGES = [
+  { value: "en", label: "영어 (English)" },
+  { value: "zh_CN", label: "중국어 간체 (简体中文)" },
+  { value: "zh_TW", label: "중국어 번체 (繁體中文)" },
+  { value: "ja", label: "일본어 (日本語)" },
+  { value: "vi", label: "베트남어 (Tiếng Việt)" },
+  { value: "th", label: "태국어 (ภาษาไทย)" },
+  { value: "id", label: "인도네시아어 (Bahasa Indonesia)" },
+  { value: "es", label: "스페인어 (Español)" },
+  { value: "fr", label: "프랑스어 (Français)" },
+  { value: "de", label: "독일어 (Deutsch)" },
+  { value: "ru", label: "러시아어 (Русский)" },
+];
 
 export default function WrongAnswerQuizCreate() {
   const navigate = useNavigate();
@@ -53,6 +77,10 @@ export default function WrongAnswerQuizCreate() {
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [quizTitle, setQuizTitle] = useState('');
+  const [difficulty, setDifficulty] = useState('B1');
+  const [translationLanguage, setTranslationLanguage] = useState('en');
+  const [regenerate, setRegenerate] = useState(false);
+  const [assignToClass, setAssignToClass] = useState(true);
   const [step, setStep] = useState(1);
 
   const { data: classes, isLoading: classesLoading } = useQuery({
@@ -92,7 +120,7 @@ export default function WrongAnswerQuizCreate() {
       // Get quiz results for selected students
       const { data: results, error } = await supabase
         .from('quiz_results')
-        .select('answers')
+        .select('student_id, answers')
         .in('student_id', selectedStudents);
 
       if (error) throw error;
@@ -108,6 +136,8 @@ export default function WrongAnswerQuizCreate() {
             const existing = wrongAnswerMap.get(key);
             if (existing) {
               existing.count++;
+              // 이 오답을 틀린 학생을 집계(중복 제거). student_id가 null일 수 있어 방어.
+              if (result.student_id) existing.students.add(result.student_id);
             } else {
               wrongAnswerMap.set(key, {
                 word: answer.correctAnswer,
@@ -115,6 +145,9 @@ export default function WrongAnswerQuizCreate() {
                 sentence: answer.sentence || '',
                 translation: answer.translation || null,
                 count: 1,
+                students: result.student_id
+                  ? new Set([result.student_id])
+                  : new Set<string>(),
               });
             }
           }
@@ -139,7 +172,7 @@ export default function WrongAnswerQuizCreate() {
         throw new Error('선택된 문제가 없습니다.');
       }
 
-      const problems = selectedProblems.map((p, index) => ({
+      let problems = selectedProblems.map((p, index) => ({
         id: `wrong-${index}`,
         word: p.word,
         answer: p.correct_answer,
@@ -148,22 +181,50 @@ export default function WrongAnswerQuizCreate() {
         translation: p.translation || '',
       }));
 
+      // AI로 새 예문 생성: 기존 문장을 재사용하지 않고 generate-quiz로 새 예문을 만든다.
+      if (regenerate) {
+        const { data: genData, error: genError } = await supabase.functions.invoke('generate-quiz', {
+          body: {
+            words: selectedProblems.map((p) => p.word),
+            difficulty,
+            translationLanguage,
+            wordsPerSet: 5,
+          },
+        });
+        if (!genError && genData?.problems) {
+          problems = genData.problems;
+        }
+      }
+
       const { data, error } = await supabase
         .from('quizzes')
         .insert({
           teacher_id: user!.id,
           title: quizTitle || '오답 복습 퀴즈',
           words: selectedProblems.map((p) => p.word),
-          difficulty: 'B1',
+          difficulty: difficulty,
           words_per_set: 5,
           timer_enabled: false,
-          translation_language: 'en',
+          translation_language: translationLanguage,
           problems: problems,
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // 생성한 퀴즈를 선택한 클래스에 바로 배정. 실패는 치명적이지 않으므로 경고만.
+      if (assignToClass && selectedClassId) {
+        try {
+          const { error: assignError } = await supabase
+            .from('quiz_assignments')
+            .insert({ quiz_id: data.id, class_id: selectedClassId });
+          if (assignError) throw assignError;
+        } catch (assignErr) {
+          toast.warning('퀴즈는 생성됐지만 클래스 배정에 실패했습니다.');
+        }
+      }
+
       return data;
     },
     onSuccess: (data) => {
@@ -407,6 +468,50 @@ export default function WrongAnswerQuizCreate() {
                 />
               </div>
 
+              {/* 난이도 */}
+              <div className="space-y-2">
+                <Label>난이도</Label>
+                <div className="grid grid-cols-6 gap-2">
+                  {DIFFICULTY_LEVELS.map(({ level, bg, text, border }) => (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => setDifficulty(level)}
+                      className={`py-2.5 rounded-full border-2 font-bold text-sm transition-all ${bg} ${text} ${border} ${
+                        difficulty === level
+                          ? 'opacity-100 ring-2 ring-offset-2 ring-current shadow-sm'
+                          : 'opacity-50 border-transparent'
+                      }`}
+                    >
+                      {level}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {(() => {
+                    const selected = DIFFICULTY_LEVELS.find((d) => d.level === difficulty);
+                    return selected ? `${selected.level} · ${selected.label}` : null;
+                  })()}
+                </p>
+              </div>
+
+              {/* 번역 언어 */}
+              <div className="space-y-2">
+                <Label>번역 언어</Label>
+                <Select value={translationLanguage} onValueChange={setTranslationLanguage}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRANSLATION_LANGUAGES.map((lang) => (
+                      <SelectItem key={lang.value} value={lang.value}>
+                        {lang.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {wrongAnswersLoading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
@@ -430,7 +535,7 @@ export default function WrongAnswerQuizCreate() {
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{wa.word}</span>
                           <span className="text-xs text-muted-foreground">
-                            ({wa.count}회 틀림)
+                            ({wa.count}회 · 학생 {wa.students.size}명)
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground truncate">
@@ -441,6 +546,31 @@ export default function WrongAnswerQuizCreate() {
                   ))}
                 </div>
               )}
+
+              {/* 생성 옵션 */}
+              <div className="space-y-3 pt-2 border-t">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="regenerate"
+                    checked={regenerate}
+                    onCheckedChange={(v) => setRegenerate(!!v)}
+                  />
+                  <Label htmlFor="regenerate" className="cursor-pointer">
+                    AI로 새 예문 생성 (기존 문장 재사용 안 함)
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="assignToClass"
+                    checked={assignToClass}
+                    disabled={!selectedClassId}
+                    onCheckedChange={(v) => setAssignToClass(!!v)}
+                  />
+                  <Label htmlFor="assignToClass" className="cursor-pointer">
+                    선택한 클래스에 바로 배정
+                  </Label>
+                </div>
+              </div>
 
               <div className="flex justify-between">
                 <Button variant="outline" onClick={() => setStep(2)}>
