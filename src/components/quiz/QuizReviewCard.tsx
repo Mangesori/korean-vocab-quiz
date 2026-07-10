@@ -113,7 +113,7 @@ export function QuizReviewCard({
           {/* Sentence with highlighted answer */}
           <h3 className="text-lg font-bold leading-relaxed text-foreground">
             {parts[0]}
-            <span className={`font-bold mx-1 ${isCorrect ? "text-success" : "text-destructive"}`}>
+            <span className="font-bold mx-1 text-success">
               {problem.answer}
             </span>
             {parts[1]}
@@ -122,10 +122,10 @@ export function QuizReviewCard({
           {/* Incorrect Answer Feedback */}
           {!isCorrect && (
             <div className="flex items-center gap-3">
-              <span className="shrink-0 text-xs font-bold py-1 w-14 text-center rounded-md bg-muted text-muted-foreground">
-                {isTeacherView ? "학생 답" : "내 답변"}
+              <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md bg-destructive/10 text-destructive">
+                {isTeacherView ? "학생 답변" : "내 답변"}
               </span>
-              <span className="text-base font-bold text-muted-foreground leading-normal">
+              <span className="text-base font-bold text-destructive leading-normal">
                 {userAnswer || "(입력 없음)"}
               </span>
             </div>

@@ -32,6 +32,7 @@ export interface RecordingProblemDetail {
   mode: "read" | "listen";
   sentence_audio_url?: string;
   translation?: string;
+  label?: string | null;
 }
 
 export interface RecordingAnswerDetail {
@@ -134,11 +135,11 @@ export function useQuizResultDetail(resultId: string | null, quizId: string | nu
 
     if (matchupEnabled) {
       const [{ data: muProblems }, { data: muAnswers }] = await Promise.all([
-        (supabase as any)
+        supabase
           .from("matchup_problems")
           .select("problem_id, korean_text, meaning_text")
           .eq("quiz_id", quizId),
-        (supabase as any)
+        supabase
           .from("matchup_answers")
           .select("problem_id, selected_meaning, is_correct, attempt_number")
           .eq("result_id", resultId),
@@ -168,14 +169,14 @@ export function useQuizResultDetail(resultId: string | null, quizId: string | nu
     }
 
     if (typeAnswerEnabled) {
-      const { data: taDetail } = await (supabase as any).rpc("get_type_answer_result_detail", {
+      const { data: taDetail } = await supabase.rpc("get_type_answer_result_detail", {
         _result_id: resultId,
       });
       if (taDetail) typeAnswerResults = taDetail as TypeAnswerResultDetail[];
     }
 
     if (wordMagnetEnabled) {
-      const { data: wmDetail } = await (supabase as any).rpc("get_word_magnet_result_detail", {
+      const { data: wmDetail } = await supabase.rpc("get_word_magnet_result_detail", {
         _result_id: resultId,
       });
       if (wmDetail) wordMagnetResults = wmDetail as WordMagnetResultDetail[];
@@ -202,7 +203,7 @@ export function useQuizResultDetail(resultId: string | null, quizId: string | nu
       const [{ data: recProblems }, { data: recAnswers }] = await Promise.all([
         supabase
           .from("recording_problems")
-          .select("id, problem_id, sentence, mode, sentence_audio_url, translation")
+          .select("id, problem_id, sentence, mode, sentence_audio_url, translation, label")
           .eq("quiz_id", quizId),
         supabase
           .from("recording_answers")

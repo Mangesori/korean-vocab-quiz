@@ -165,7 +165,7 @@ function SentenceMakingView({
           if (!ex || a.attempt_number > ex.attempt_number) bestByProblem[a.problem_id] = a;
         }
         const passedCount = Object.values(bestByProblem).filter((a) => a.is_passed).length;
-        await supabase.rpc("update_quiz_result_sentence_score" as any, {
+        await supabase.rpc("update_quiz_result_sentence_score", {
           _result_id: resultId,
           _score: passedCount,
           _total: problems.length,
@@ -253,7 +253,7 @@ function SentenceMakingView({
       if (!ex || a.attempt_number > ex.attempt_number) bestByProblem[a.problem_id] = a;
     }
     const passedCount = Object.values(bestByProblem).filter((a) => a.is_passed).length;
-    await supabase.rpc("update_quiz_result_sentence_score" as any, {
+    await supabase.rpc("update_quiz_result_sentence_score", {
       _result_id: resultId,
       _score: passedCount,
       _total: problems.length,
@@ -540,10 +540,15 @@ function RecordingView({
           <Card key={problem.id} className="overflow-hidden border bg-white rounded-xl shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${best.is_passed ? "bg-success" : "bg-destructive"}`}>
                     {idx + 1}
                   </span>
+                  {problem.label && (
+                    <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-slate-50 border-slate-200 text-slate-700">
+                      {problem.label}
+                    </Badge>
+                  )}
                   <div className={`text-sm font-semibold px-3 py-1 rounded-full ${problem.mode === "listen" ? "text-orange-700 bg-orange-100" : "text-primary/80 bg-primary/10"}`}>
                     {problem.mode === "listen" ? "듣고 말하기" : "보고 말하기"}
                   </div>
@@ -724,7 +729,7 @@ export function QuizResultDialog({
   const wordMagnetContent = (
     <div className="grid gap-4">
       {(detail?.wordMagnetResults ?? []).map((r, i) => (
-        <WordMagnetResultCard key={r.problemId} result={r} index={i} />
+        <WordMagnetResultCard key={r.problemId} result={r} index={i} answerLabel="학생 답변" />
       ))}
     </div>
   );
