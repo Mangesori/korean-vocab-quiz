@@ -181,7 +181,7 @@ export function RecordingProblemList({
       await Promise.all(
         editedProblems.map((problem) => {
           if (problem.id.startsWith('temp-')) {
-            return (supabase as any).from("recording_problems").insert({
+            return supabase.from("recording_problems").insert({
               quiz_id: problem.quiz_id,
               problem_id: problem.problem_id,
               sentence: problem.sentence,
@@ -193,7 +193,7 @@ export function RecordingProblemList({
               label: problem.label || null,
             });
           } else {
-            return (supabase as any)
+            return supabase
               .from("recording_problems")
               .update({
                 sentence: problem.sentence,

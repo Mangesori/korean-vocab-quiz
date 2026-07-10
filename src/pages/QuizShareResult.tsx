@@ -120,7 +120,7 @@ export default function QuizShareResult() {
           setFillBlankProblems(problemsWithAudio);
 
           if (quizData.matchup_enabled) {
-            const { data: muProblems } = await (supabase as any)
+            const { data: muProblems } = await supabase
               .from('matchup_problems')
               .select('problem_id, korean_text, meaning_text')
               .eq('quiz_id', resultData.quizId);

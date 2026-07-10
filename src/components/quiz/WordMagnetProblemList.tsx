@@ -289,7 +289,7 @@ export function WordMagnetProblemList({
                 }));
 
           if (problem.id.startsWith('temp-')) {
-            return supabase.from("word_magnet_problems" as any).insert({
+            return supabase.from("word_magnet_problems").insert({
               quiz_id: problem.quiz_id,
               problem_id: problem.problem_id,
               base_text: problem.base_text,
@@ -299,7 +299,7 @@ export function WordMagnetProblemList({
             });
           } else {
             return supabase
-              .from("word_magnet_problems" as any)
+              .from("word_magnet_problems")
               .update({
                 base_text: problem.base_text,
                 translation: problem.translation || null,
@@ -341,7 +341,7 @@ export function WordMagnetProblemList({
     try {
       if (!problemId.startsWith("temp-")) {
         const { error } = await supabase
-          .from("word_magnet_problems" as any)
+          .from("word_magnet_problems")
           .delete()
           .eq("id", problemId);
 

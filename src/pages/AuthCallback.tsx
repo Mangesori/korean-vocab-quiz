@@ -72,7 +72,7 @@ export default function AuthCallback() {
 
       if (role === 'teacher') {
         const { error: appError } = await supabase
-          .from('teacher_applications' as any)
+          .from('teacher_applications')
           .insert({ user_id: userId });
 
         if (appError) {

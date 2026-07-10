@@ -100,9 +100,9 @@ export default function QuizShare() {
       const [{ count: sc }, { count: rc }, { count: muc }, { data: taData }, { data: wmData }] = await Promise.all([
         supabase.from("sentence_making_problems").select("*", { count: "exact", head: true }).eq("quiz_id", shareData.quiz_id),
         supabase.from("recording_problems").select("*", { count: "exact", head: true }).eq("quiz_id", shareData.quiz_id),
-        supabase.from("matchup_problems" as any).select("*", { count: "exact", head: true }).eq("quiz_id", shareData.quiz_id),
-        (supabase as any).rpc("get_type_answer_problems_for_student", { _quiz_id: shareData.quiz_id }),
-        (supabase as any).rpc("get_word_magnet_problems_for_student", { _quiz_id: shareData.quiz_id }),
+        supabase.from("matchup_problems").select("*", { count: "exact", head: true }).eq("quiz_id", shareData.quiz_id),
+        supabase.rpc("get_type_answer_problems_for_student", { _quiz_id: shareData.quiz_id }),
+        supabase.rpc("get_word_magnet_problems_for_student", { _quiz_id: shareData.quiz_id }),
       ]);
       setSentenceCount(sc ?? 0);
       setRecordingCount(rc ?? 0);

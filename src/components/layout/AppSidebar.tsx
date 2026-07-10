@@ -87,7 +87,7 @@ export function AppSidebar() {
     enabled: role === 'admin',
     queryFn: async () => {
       const { count } = await supabase
-        .from('teacher_applications' as any)
+        .from('teacher_applications')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending');
       return count ?? 0;

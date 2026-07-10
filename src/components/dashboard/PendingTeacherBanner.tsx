@@ -15,7 +15,7 @@ export function PendingTeacherBanner() {
     queryKey: ['myTeacherApplication', user?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from('teacher_applications' as any)
+        .from('teacher_applications')
         .select('status')
         .eq('user_id', user!.id)
         .maybeSingle();

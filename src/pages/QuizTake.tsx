@@ -86,7 +86,7 @@ async function insertRecordingAnswersWithRetry(
   retries = 3
 ): Promise<boolean> {
   for (let attempt = 1; attempt <= retries; attempt++) {
-    const { error } = await (supabase as any).from("recording_answers").insert(recAnswers);
+    const { error } = await supabase.from("recording_answers").insert(recAnswers);
     if (!error) return true;
     console.error(`Failed to save recording answers (attempt ${attempt}/${retries}):`, error);
     if (attempt < retries) await new Promise((resolve) => setTimeout(resolve, attempt * 500));
@@ -268,7 +268,7 @@ export default function QuizTake() {
     if (!quiz || !user || isAnonymous) return;
 
     const checkProgress = async () => {
-      const { data: existing } = await (supabase as any)
+      const { data: existing } = await supabase
         .from("quiz_results")
         .select("id, score, total_questions, fill_blank_score, fill_blank_total, matchup_score, matchup_total, type_answer_score, type_answer_total, word_magnet_score, word_magnet_total, sentence_making_score, sentence_making_total, recording_score")
         .eq("quiz_id", quiz.id)
@@ -347,7 +347,7 @@ export default function QuizTake() {
   // stage: '문장 만들기' | '말하기 연습'
   const updateProgressNotification = async (stage: string, message: string) => {
     if (!user || isAnonymous || !quiz) return;
-    await supabase.rpc("update_quiz_progress_notification" as any, {
+    await supabase.rpc("update_quiz_progress_notification", {
       _quiz_id: quiz.id,
       _student_id: user.id,
       _stage: stage,
@@ -360,7 +360,7 @@ export default function QuizTake() {
   const ensureResultId = async (): Promise<string | null> => {
     if (isAnonymous || !user || !quiz) return null;
     if (quizResultId) return quizResultId;
-    const { data, error } = await supabase.rpc("ensure_quiz_result" as any, { _quiz_id: quiz.id });
+    const { data, error } = await supabase.rpc("ensure_quiz_result", { _quiz_id: quiz.id });
     if (error) {
       console.error("ensure_quiz_result error:", error);
       return null;
@@ -466,7 +466,7 @@ export default function QuizTake() {
 
       // 매치업 문제 가져오기
       if (quizData.matchup_enabled) {
-        const { data: muProblems } = await (supabase as any)
+        const { data: muProblems } = await supabase
           .from("matchup_problems")
           .select("problem_id, korean_text, meaning_text")
           .eq("quiz_id", id);
@@ -486,7 +486,7 @@ export default function QuizTake() {
 
       // 답 입력 문제(프롬프트만) 가져오기 — 정답 노출 방지를 위해 RPC 사용
       if (quizData.type_answer_enabled) {
-        const { data: taData } = await (supabase as any).rpc("get_type_answer_problems_for_student", {
+        const { data: taData } = await supabase.rpc("get_type_answer_problems_for_student", {
           _quiz_id: id,
         });
         if (Array.isArray(taData) && taData.length > 0) {
@@ -499,7 +499,7 @@ export default function QuizTake() {
 
       // 워드 마그넷 문제(타일만, 정답 어순 제외) 가져오기 — RPC가 타일 셔플
       if (quizData.word_magnet_enabled) {
-        const { data: wmData } = await (supabase as any).rpc("get_word_magnet_problems_for_student", {
+        const { data: wmData } = await supabase.rpc("get_word_magnet_problems_for_student", {
           _quiz_id: id,
         });
         if (Array.isArray(wmData) && wmData.length > 0) {
@@ -674,7 +674,7 @@ export default function QuizTake() {
 
         // Save to Database
         if (shareToken) {
-          const { data: insertedResult, error: insertError } = await (supabase as any)
+          const { data: insertedResult, error: insertError } = await supabase
             .from("quiz_results")
             .insert({
               quiz_id: quiz.id,
@@ -719,7 +719,7 @@ export default function QuizTake() {
               selected_meaning: matchupResults[p.id]?.selectedMeaning ?? "",
               is_correct: matchupResults[p.id]?.isCorrect ?? false,
             }));
-            const { error: muError } = await (supabase as any).from("matchup_answers").insert(muAnswers);
+            const { error: muError } = await supabase.from("matchup_answers").insert(muAnswers);
             if (muError) console.error("Failed to save matchup answers:", muError);
           }
 
@@ -735,7 +735,7 @@ export default function QuizTake() {
               is_correct: r.isCorrect,
               is_skipped: wordMagnetSkippedIds.has(r.problemId),
             }));
-            const { error: wmError } = await (supabase as any).from("word_magnet_answers").insert(wmAnswers);
+            const { error: wmError } = await supabase.from("word_magnet_answers").insert(wmAnswers);
             if (wmError) console.error("Failed to save word magnet answers:", wmError);
           }
 
@@ -751,7 +751,7 @@ export default function QuizTake() {
               is_correct: r.isCorrect,
               is_skipped: typeAnswerSkippedIds.has(r.problemId),
             }));
-            const { error: taError } = await (supabase as any).from("type_answer_answers").insert(taAnswers);
+            const { error: taError } = await supabase.from("type_answer_answers").insert(taAnswers);
             if (taError) console.error("Failed to save type answer answers:", taError);
           }
 
@@ -778,7 +778,7 @@ export default function QuizTake() {
                 });
               }
             }
-            const { error: smError } = await (supabase as any).from("sentence_making_answers").insert(smAnswers);
+            const { error: smError } = await supabase.from("sentence_making_answers").insert(smAnswers);
             if (smError) console.error("Failed to save sentence making answers:", smError);
           }
 
@@ -924,7 +924,7 @@ export default function QuizTake() {
             });
           }
         }
-        const { error: smError } = await (supabase as any).from("sentence_making_answers").insert(smAnswers);
+        const { error: smError } = await supabase.from("sentence_making_answers").insert(smAnswers);
         if (smError) console.error("Failed to save sentence making answers:", smError);
       }
 
@@ -973,7 +973,7 @@ export default function QuizTake() {
 
       // 빈칸 ON일 때만 빈칸/문장/녹음 점수 일괄 갱신 (빈칸 OFF면 빈칸 점수 NULL 유지)
       if (quiz.fill_blank_enabled !== false) {
-        const { error: updateError } = await supabase.rpc("update_quiz_result_scores" as any, {
+        const { error: updateError } = await supabase.rpc("update_quiz_result_scores", {
           _result_id: resultId,
           _fill_blank_score: fbScore,
           _fill_blank_total: fbTotal,
@@ -986,7 +986,7 @@ export default function QuizTake() {
       }
 
       // 모든 유형 점수를 합산해 집계 score/total 확정 (매치업·답입력·워드마그넷 포함)
-      await supabase.rpc("finalize_quiz_result" as any, { _result_id: resultId });
+      await supabase.rpc("finalize_quiz_result", { _result_id: resultId });
 
       navigate(`/quiz/${quiz.id}/result/${resultId}`);
     } catch (error) {
@@ -1167,10 +1167,10 @@ export default function QuizTake() {
         selected_meaning: results[p.id]?.selectedMeaning ?? "",
         is_correct: results[p.id]?.isCorrect ?? false,
       }));
-      const { error: muError } = await (supabase as any).from("matchup_answers").insert(muAnswers);
+      const { error: muError } = await supabase.from("matchup_answers").insert(muAnswers);
       if (muError) console.error("Failed to save matchup answers:", muError);
 
-      await supabase.rpc("update_quiz_result_matchup_score" as any, {
+      await supabase.rpc("update_quiz_result_matchup_score", {
         _result_id: rid,
         _score: muScore,
         _total: muTotal,
@@ -1203,7 +1203,7 @@ export default function QuizTake() {
     // 서버 채점 (정답 노출 방지)
     let graded: TypeAnswerGradeResult[] = [];
     try {
-      const { data, error } = await (supabase as any).rpc("grade_type_answers", {
+      const { data, error } = await supabase.rpc("grade_type_answers", {
         _quiz_id: quiz!.id,
         _answers: answers,
       });
@@ -1240,10 +1240,10 @@ export default function QuizTake() {
         is_correct: r.isCorrect,
         is_skipped: skippedSet.has(r.problemId),
       }));
-      const { error: taError } = await (supabase as any).from("type_answer_answers").insert(taAnswers);
+      const { error: taError } = await supabase.from("type_answer_answers").insert(taAnswers);
       if (taError) console.error("Failed to save type answer answers:", taError);
 
-      await supabase.rpc("update_quiz_result_type_answer_score" as any, {
+      await supabase.rpc("update_quiz_result_type_answer_score", {
         _result_id: rid,
         _score: taScore,
         _total: taTotal,
@@ -1275,7 +1275,7 @@ export default function QuizTake() {
     const skippedSet = new Set(skippedIds);
     let graded: WordMagnetGradeResult[] = [];
     try {
-      const { data, error } = await (supabase as any).rpc("grade_word_magnets", {
+      const { data, error } = await supabase.rpc("grade_word_magnets", {
         _quiz_id: quiz!.id,
         _answers: answers,
       });
@@ -1312,10 +1312,10 @@ export default function QuizTake() {
         is_correct: r.isCorrect,
         is_skipped: skippedSet.has(r.problemId),
       }));
-      const { error: wmError } = await (supabase as any).from("word_magnet_answers").insert(wmAnswers);
+      const { error: wmError } = await supabase.from("word_magnet_answers").insert(wmAnswers);
       if (wmError) console.error("Failed to save word magnet answers:", wmError);
 
-      await supabase.rpc("update_quiz_result_word_magnet_score" as any, {
+      await supabase.rpc("update_quiz_result_word_magnet_score", {
         _result_id: rid,
         _score: wmScore,
         _total: wmTotal,
@@ -1371,7 +1371,7 @@ export default function QuizTake() {
         }
       }
       if (smAnswers.length > 0) {
-        const { error: smError } = await (supabase as any).from("sentence_making_answers").insert(smAnswers);
+        const { error: smError } = await supabase.from("sentence_making_answers").insert(smAnswers);
         if (smError) console.error("Failed to save sentence making answers:", smError);
       }
 
@@ -1382,7 +1382,7 @@ export default function QuizTake() {
       }, 0);
       const smTotal = Object.keys(results).length;
       setSavedSentenceMakingScore({ score: smScore, total: smTotal });
-      await supabase.rpc("update_quiz_result_sentence_score" as any, {
+      await supabase.rpc("update_quiz_result_sentence_score", {
         _result_id: rid,
         _score: smScore,
         _total: smTotal,
@@ -1441,7 +1441,7 @@ export default function QuizTake() {
         (results[p.id] as any[])?.some((a: any) => a.isPassed)
       ).length;
 
-      await supabase.rpc("update_quiz_result_recording_score" as any, {
+      await supabase.rpc("update_quiz_result_recording_score", {
         _result_id: rid,
         _score: recScore,
         _total: recTotal,

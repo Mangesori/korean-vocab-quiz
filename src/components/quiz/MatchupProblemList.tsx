@@ -121,7 +121,7 @@ export function MatchupProblemList({
       await Promise.all(
         editedProblems.map((problem) => {
           if (problem.id.startsWith('temp-')) {
-            return supabase.from("matchup_problems" as any).insert({
+            return supabase.from("matchup_problems").insert({
               quiz_id: problem.quiz_id,
               problem_id: problem.problem_id,
               korean_text: problem.korean_text,
@@ -130,7 +130,7 @@ export function MatchupProblemList({
             });
           } else {
             return supabase
-              .from("matchup_problems" as any)
+              .from("matchup_problems")
               .update({
                 korean_text: problem.korean_text,
                 meaning_text: problem.meaning_text,
@@ -171,7 +171,7 @@ export function MatchupProblemList({
     try {
       if (!problemId.startsWith("temp-")) {
         const { error } = await supabase
-          .from("matchup_problems" as any)
+          .from("matchup_problems")
           .delete()
           .eq("id", problemId);
 

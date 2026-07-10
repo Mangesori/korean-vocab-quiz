@@ -184,7 +184,7 @@ export default function QuizResult() {
 
       // 짝 맞추기 데이터 로드
       if (quizData.matchup_enabled) {
-        const { data: muProblems } = await (supabase as any)
+        const { data: muProblems } = await supabase
           .from('matchup_problems')
           .select('problem_id, korean_text, meaning_text')
           .eq('quiz_id', id);
@@ -196,7 +196,7 @@ export default function QuizResult() {
           })));
         }
 
-        const { data: muAnswers } = await (supabase as any)
+        const { data: muAnswers } = await supabase
           .from('matchup_answers')
           .select('problem_id, selected_meaning, is_correct')
           .eq('result_id', resultId);
@@ -205,7 +205,7 @@ export default function QuizResult() {
 
       // 답 입력 데이터 로드 — 정답 포함 조회는 본인 결과에 한해 RPC로만 가능
       if (quizData.type_answer_enabled) {
-        const { data: taDetail } = await (supabase as any).rpc('get_type_answer_result_detail', {
+        const { data: taDetail } = await supabase.rpc('get_type_answer_result_detail', {
           _result_id: resultId,
         });
         if (taDetail) setTypeAnswerDetail(taDetail as TypeAnswerGradeResult[]);
@@ -213,7 +213,7 @@ export default function QuizResult() {
 
       // 워드마그넷 데이터 로드 — 정답 포함 조회는 본인 결과에 한해 RPC로만 가능
       if (quizData.word_magnet_enabled) {
-        const { data: wmDetail } = await (supabase as any).rpc('get_word_magnet_result_detail', {
+        const { data: wmDetail } = await supabase.rpc('get_word_magnet_result_detail', {
           _result_id: resultId,
         });
         if (wmDetail) setWordMagnetDetail(wmDetail as WordMagnetGradeResult[]);

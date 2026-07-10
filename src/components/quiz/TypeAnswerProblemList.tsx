@@ -121,7 +121,7 @@ export function TypeAnswerProblemList({
       await Promise.all(
         editedProblems.map((problem) => {
           if (problem.id.startsWith('temp-')) {
-            return supabase.from("type_answer_problems" as any).insert({
+            return supabase.from("type_answer_problems").insert({
               quiz_id: problem.quiz_id,
               problem_id: problem.problem_id,
               prompt: problem.prompt,
@@ -130,7 +130,7 @@ export function TypeAnswerProblemList({
             });
           } else {
             return supabase
-              .from("type_answer_problems" as any)
+              .from("type_answer_problems")
               .update({
                 prompt: problem.prompt,
                 answer: problem.answer,
@@ -171,7 +171,7 @@ export function TypeAnswerProblemList({
     try {
       if (!problemId.startsWith("temp-")) {
         const { error } = await supabase
-          .from("type_answer_problems" as any)
+          .from("type_answer_problems")
           .delete()
           .eq("id", problemId);
 

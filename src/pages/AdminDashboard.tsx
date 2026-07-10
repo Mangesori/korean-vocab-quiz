@@ -127,7 +127,7 @@ export default function AdminDashboard() {
         supabase.from('classes').select('created_at'),
         supabase.from('quizzes').select('id, difficulty, fill_blank_enabled, sentence_making_enabled, recording_enabled, matchup_enabled, type_answer_enabled, word_magnet_enabled, created_at'),
         supabase.from('quiz_results').select('quiz_id, student_id, is_anonymous, completed_at, score, total_questions, fill_blank_score, fill_blank_total, matchup_score, matchup_total, type_answer_score, type_answer_total, word_magnet_score, word_magnet_total, sentence_making_score, sentence_making_total, recording_score, recording_total'),
-        supabase.from('teacher_applications' as any).select('id, user_id, created_at').eq('status', 'pending').order('created_at', { ascending: false }),
+        supabase.from('teacher_applications').select('id, user_id, created_at').eq('status', 'pending').order('created_at', { ascending: false }),
       ]);
 
       const quizzes: QuizMeta[] = quizzesData || [];
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
     queryKey: ['adminFeedback'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('feedback' as any)
+        .from('feedback')
         .select('id, message, email, rating, context, created_at')
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -271,7 +271,7 @@ export default function AdminDashboard() {
 
       // 2) 신청 처리 기록
       const { error: appError } = await supabase
-        .from('teacher_applications' as any)
+        .from('teacher_applications')
         .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: user?.id })
         .eq('id', applicationId);
       if (appError) throw appError;
@@ -305,7 +305,7 @@ export default function AdminDashboard() {
     setReviewingAppId(applicationId);
     try {
       const { error } = await supabase
-        .from('teacher_applications' as any)
+        .from('teacher_applications')
         .update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: user?.id })
         .eq('id', applicationId);
       if (error) throw error;

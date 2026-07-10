@@ -120,7 +120,7 @@ export default function QuizDetail() {
     queryKey: ['matchupProblems', id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("matchup_problems" as any)
+        .from("matchup_problems")
         .select("*")
         .eq("quiz_id", id)
         .order("created_at", { ascending: true });
@@ -136,7 +136,7 @@ export default function QuizDetail() {
     queryKey: ['typeAnswerProblems', id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("type_answer_problems" as any)
+        .from("type_answer_problems")
         .select("*")
         .eq("quiz_id", id)
         .order("created_at", { ascending: true });
@@ -152,7 +152,7 @@ export default function QuizDetail() {
     queryKey: ['wordMagnetProblems', id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("word_magnet_problems" as any)
+        .from("word_magnet_problems")
         .select("*")
         .eq("quiz_id", id)
         .order("created_at", { ascending: true });
@@ -581,7 +581,7 @@ export default function QuizDetail() {
       }));
 
       const { error: insertError } = await supabase
-        .from("matchup_problems" as any)
+        .from("matchup_problems")
         .insert(muProblemsToInsert);
 
       if (insertError) {
@@ -625,7 +625,7 @@ export default function QuizDetail() {
       }));
 
       const { error: insertError } = await supabase
-        .from("type_answer_problems" as any)
+        .from("type_answer_problems")
         .insert(taProblemsToInsert);
 
       if (insertError) {
@@ -688,7 +688,7 @@ export default function QuizDetail() {
         .map((p, index) => ({ ...p, sort_order: index }));
 
       const { error: insertError } = await supabase
-        .from("word_magnet_problems" as any)
+        .from("word_magnet_problems")
         .insert(wmProblemsToInsert);
 
       if (insertError) {
