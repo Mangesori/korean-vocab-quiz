@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuizResults, QuizResult } from "@/hooks/useQuizResults";
 import { formatDateFull } from "@/lib/formatDate";
 import { useSubmissionTimes } from "@/hooks/useSubmissionTimes";
+import { getCombinedPercent } from "@/lib/quizScore";
 import {
   Table,
   TableBody,
@@ -26,6 +27,8 @@ import {
 } from "@/components/ui/popover";
 import { User, Loader2, Eye } from "lucide-react";
 import { QuizResultDialog } from "@/components/quiz/QuizResultDialog";
+import { Link } from "react-router-dom";
+import { useQuizAssignments } from "@/hooks/useQuizAssignments";
 
 interface SubmissionTimeCellProps {
   result: QuizResult;
@@ -73,7 +76,7 @@ function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }:
                 <span className="font-medium tabular-nums whitespace-nowrap">
                   {times.sentenceMaking
                     ? formatDateFull(times.sentenceMaking)
-                    : "대기 중"}
+                    : "미제출"}
                 </span>
               </div>
             )}
@@ -83,7 +86,7 @@ function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }:
                 <span className="font-medium tabular-nums whitespace-nowrap">
                   {times.recording
                     ? formatDateFull(times.recording)
-                    : "대기 중"}
+                    : "미제출"}
                 </span>
               </div>
             )}
@@ -106,6 +109,7 @@ interface QuizResultsListProps {
 
 export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnabled, recordingEnabled, matchupEnabled, typeAnswerEnabled, wordMagnetEnabled }: QuizResultsListProps) {
   const { results, isLoading, refresh } = useQuizResults(quizId);
+  const { assignedClasses, isLoading: assignmentsLoading } = useQuizAssignments(quizId);
   const [filterType, setFilterType] = useState<"all" | "anonymous" | "student">("all");
   const [sortOrder, setSortOrder] = useState<"latest" | "score_high" | "score_low">("latest");
   // id만 state로 갖고 매 렌더링마다 최신 results에서 찾아 파생시킨다 —
@@ -126,10 +130,10 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
         return new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime();
       }
       if (sortOrder === "score_high") {
-        return b.score - a.score;
+        return getCombinedPercent(b) - getCombinedPercent(a);
       }
       if (sortOrder === "score_low") {
-        return a.score - b.score;
+        return getCombinedPercent(a) - getCombinedPercent(b);
       }
       return 0;
     });
@@ -151,35 +155,15 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
 
   const isMultiStage = sentenceMakingEnabled || recordingEnabled || matchupEnabled || typeAnswerEnabled || wordMagnetEnabled;
 
-  const getCombinedPercent = (result: QuizResult) => {
-    // 빈칸이 실제로 퀴즈에 포함된 경우에만 fill_blank 폴백(전체 집계값)을 사용한다.
-    // fill_blank_total이 null/0이면 빈칸 미포함으로 간주하고 result.score 폴백을 쓰지 않는다.
-    const hasFillBlank = (result.fill_blank_total ?? 0) > 0;
-    const fillBlankScore = hasFillBlank ? (result.fill_blank_score ?? result.score) : 0;
-    const fillBlankTotal = hasFillBlank ? (result.fill_blank_total ?? result.total_questions) : 0;
-    const score =
-      fillBlankScore +
-      (result.matchup_score ?? 0) +
-      (result.type_answer_score ?? 0) +
-      (result.word_magnet_score ?? 0) +
-      (result.sentence_making_score ?? 0) +
-      (result.recording_score ?? 0);
-    const total =
-      fillBlankTotal +
-      (result.matchup_total ?? 0) +
-      (result.type_answer_total ?? 0) +
-      (result.word_magnet_total ?? 0) +
-      (result.sentence_making_total ?? 0) +
-      (result.recording_total ?? 0);
-    return total > 0 ? (score / total) * 100 : 0;
-  };
-
   const renderScoreCell = (result: typeof filteredResults[0]) => {
     if (!isMultiStage) {
       return getScoreBadge(result.fill_blank_score ?? result.score, result.fill_blank_total ?? result.total_questions);
     }
+    const pct = Math.round(getCombinedPercent(result));
     return (
-      <div className="grid grid-cols-3 gap-x-3 gap-y-1 w-fit">
+      <div className="space-y-1.5">
+        <div className="font-bold text-base">{pct}%</div>
+        <div className="grid grid-cols-3 gap-x-3 gap-y-1 w-fit">
         {fillBlankEnabled !== false && (
           <div className="flex items-center gap-1 text-xs">
             <span className="text-muted-foreground">빈칸 채우기</span>
@@ -217,7 +201,7 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
             <span className="text-muted-foreground">문장 만들기</span>
             {result.sentence_making_score !== null && result.sentence_making_total
               ? getScoreBadge(result.sentence_making_score, result.sentence_making_total)
-              : <Badge variant="secondary">대기 중</Badge>}
+              : <Badge variant="secondary">미제출</Badge>}
           </div>
         )}
         {recordingEnabled && (
@@ -225,9 +209,10 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
             <span className="text-muted-foreground">말하기 연습</span>
             {result.recording_score !== null && result.recording_total
               ? getScoreBadge(result.recording_score, result.recording_total)
-              : <Badge variant="secondary">대기 중</Badge>}
+              : <Badge variant="secondary">미제출</Badge>}
           </div>
         )}
+        </div>
       </div>
     );
   };
@@ -260,8 +245,11 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
     if (!isMultiStage) {
       return getScoreBadge(result.fill_blank_score ?? result.score, result.fill_blank_total ?? result.total_questions);
     }
+    const pct = Math.round(getCombinedPercent(result));
     return (
-      <div className="flex flex-wrap gap-x-3 gap-y-1">
+      <div className="space-y-1.5">
+        <div className="font-bold text-base">{pct}%</div>
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
         {fillBlankEnabled !== false && (
           <div className="flex items-center gap-1 text-xs">
             <span className="text-muted-foreground">빈칸</span>
@@ -299,7 +287,7 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
             <span className="text-muted-foreground">문장</span>
             {result.sentence_making_score !== null && result.sentence_making_total
               ? getScoreBadge(result.sentence_making_score, result.sentence_making_total)
-              : <Badge variant="secondary">대기 중</Badge>}
+              : <Badge variant="secondary">미제출</Badge>}
           </div>
         )}
         {recordingEnabled && (
@@ -307,9 +295,10 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
             <span className="text-muted-foreground">말하기</span>
             {result.recording_score !== null && result.recording_total
               ? getScoreBadge(result.recording_score, result.recording_total)
-              : <Badge variant="secondary">대기 중</Badge>}
+              : <Badge variant="secondary">미제출</Badge>}
           </div>
         )}
+        </div>
       </div>
     );
   };
@@ -333,6 +322,32 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
     </div>
   );
 
+  const renderEmptyState = () => (
+    <div className="text-center py-8 space-y-2">
+      <p className="text-muted-foreground text-sm">아직 제출한 학생이 없어요</p>
+      {assignmentsLoading ? (
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mx-auto" />
+      ) : assignedClasses.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">이 퀴즈는 다음 클래스에 배정되어 있어요</p>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {assignedClasses.map((c) => (
+              <Link
+                key={c.id}
+                to={`/class/${c.id}`}
+                className="text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 transition-colors rounded-full px-3 py-1"
+              >
+                {c.name} · {c.memberCount}명
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">아직 어떤 클래스에도 배정하지 않았어요. 공유 링크를 보내거나 클래스에 배정해 보세요</p>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
@@ -340,11 +355,11 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
           <span>총 {results.length}건의 제출</span>
           {results.length > 0 && (
             <span>
-              (평균: {Math.round(results.reduce((acc, curr) => acc + getCombinedPercent(curr), 0) / results.length)}점)
+              평균 정답률 {Math.round(results.reduce((acc, curr) => acc + getCombinedPercent(curr), 0) / results.length)}%
             </span>
           )}
         </div>
-        
+
         <div className="flex gap-2 w-full sm:w-auto">
           <Select value={filterType} onValueChange={(v: any) => setFilterType(v)}>
             <SelectTrigger className="flex-1 sm:w-[120px]">
@@ -356,7 +371,7 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
               <SelectItem value="anonymous">익명</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Select value={sortOrder} onValueChange={(v: any) => setSortOrder(v)}>
             <SelectTrigger className="flex-1 sm:w-[120px]">
               <SelectValue placeholder="정렬" />
@@ -373,7 +388,7 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
       {/* Mobile card list */}
       <div className="flex flex-col gap-3 sm:hidden">
         {filteredResults.length === 0 ? (
-          <p className="text-center py-8 text-muted-foreground text-sm">제출된 결과가 없습니다</p>
+          renderEmptyState()
         ) : (
           filteredResults.map(renderMobileCard)
         )}
