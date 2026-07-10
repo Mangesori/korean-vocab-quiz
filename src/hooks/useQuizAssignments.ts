@@ -12,7 +12,7 @@ export function useQuizAssignments(quizId: string) {
     queryKey: ["quiz-assignments", quizId],
     enabled: !!quizId,
     queryFn: async (): Promise<AssignedClass[]> => {
-      const { data: assignments } = await (supabase as any)
+      const { data: assignments } = await supabase
         .from("quiz_assignments")
         .select("class_id, classes(id, name)")
         .eq("quiz_id", quizId);

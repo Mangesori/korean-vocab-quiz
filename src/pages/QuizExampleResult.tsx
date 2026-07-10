@@ -172,7 +172,7 @@ export default function QuizExampleResult() {
                           {!answer.isCorrect && (
                             <div className="text-sm bg-destructive/5 text-destructive px-3 py-2 rounded-md inline-block">
                               <span className="font-medium mr-2">내 답안:</span>
-                              <span className="line-through opacity-80">{answer.userAnswer || '(입력 없음)'}</span>
+                              <span className="opacity-80">{answer.userAnswer || '(입력 없음)'}</span>
                             </div>
                           )}
                           

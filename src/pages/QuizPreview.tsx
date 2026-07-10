@@ -864,7 +864,7 @@ export default function QuizPreview() {
           }));
 
         if (muProblemsToInsert.length > 0) {
-          const { error: muError } = await (supabase as any).from("matchup_problems").insert(muProblemsToInsert);
+          const { error: muError } = await supabase.from("matchup_problems").insert(muProblemsToInsert);
           if (muError) {
             console.error("Failed to save matchup problems:", muError);
           }
@@ -882,7 +882,7 @@ export default function QuizPreview() {
           }));
 
         if (taProblemsToInsert.length > 0) {
-          const { error: taError } = await (supabase as any).from("type_answer_problems").insert(taProblemsToInsert);
+          const { error: taError } = await supabase.from("type_answer_problems").insert(taProblemsToInsert);
           if (taError) {
             console.error("Failed to save type answer problems:", taError);
           }
@@ -902,7 +902,7 @@ export default function QuizPreview() {
           }));
 
         if (wmProblemsToInsert.length > 0) {
-          const { error: wmError } = await (supabase as any).from("word_magnet_problems").insert(wmProblemsToInsert);
+          const { error: wmError } = await supabase.from("word_magnet_problems").insert(wmProblemsToInsert);
           if (wmError) {
             console.error("Failed to save word magnet problems:", wmError);
           }
@@ -921,7 +921,7 @@ export default function QuizPreview() {
           label: p.label || null,
         }));
 
-        const { error: recError } = await (supabase as any).from("recording_problems").insert(recProblemsToInsert);
+        const { error: recError } = await supabase.from("recording_problems").insert(recProblemsToInsert);
         if (recError) {
           console.error("Failed to save recording problems:", recError);
         }
@@ -989,7 +989,7 @@ export default function QuizPreview() {
 
               if (audioUrl) {
                 const { error: updateError } = await supabase
-                  .from("recording_problems" as any)
+                  .from("recording_problems")
                   .update({ sentence_audio_url: audioUrl })
                   .eq("quiz_id", data.id)
                   .eq("problem_id", recProblem.problem_id);

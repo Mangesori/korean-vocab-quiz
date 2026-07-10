@@ -93,7 +93,7 @@ export function WordPairResultCard({
               <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-destructive/10 text-destructive">
                 {answerLabel}
               </span>
-              <p className="text-lg font-bold leading-relaxed text-destructive line-through break-keep">
+              <p className="text-lg font-bold leading-relaxed text-destructive break-keep">
                 {userAnswer || "—"}
               </p>
             </div>

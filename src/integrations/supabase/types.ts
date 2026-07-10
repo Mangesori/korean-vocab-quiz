@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       announcements: {
@@ -228,6 +253,7 @@ export type Database = {
           meaning_text: string
           problem_id: string
           quiz_id: string
+          sort_order: number | null
         }
         Insert: {
           created_at?: string
@@ -236,6 +262,7 @@ export type Database = {
           meaning_text: string
           problem_id: string
           quiz_id: string
+          sort_order?: number | null
         }
         Update: {
           created_at?: string
@@ -244,6 +271,7 @@ export type Database = {
           meaning_text?: string
           problem_id?: string
           quiz_id?: string
+          sort_order?: number | null
         }
         Relationships: [
           {
@@ -793,11 +821,13 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          label: string | null
           mode: Database["public"]["Enums"]["recording_mode"]
           problem_id: string
           quiz_id: string
           sentence: string
           sentence_audio_url: string | null
+          sort_order: number | null
           source_problem_id: string | null
           source_type: Database["public"]["Enums"]["sentence_source"]
           translation: string | null
@@ -805,11 +835,13 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          label?: string | null
           mode?: Database["public"]["Enums"]["recording_mode"]
           problem_id: string
           quiz_id: string
           sentence: string
           sentence_audio_url?: string | null
+          sort_order?: number | null
           source_problem_id?: string | null
           source_type?: Database["public"]["Enums"]["sentence_source"]
           translation?: string | null
@@ -817,11 +849,13 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          label?: string | null
           mode?: Database["public"]["Enums"]["recording_mode"]
           problem_id?: string
           quiz_id?: string
           sentence?: string
           sentence_audio_url?: string | null
+          sort_order?: number | null
           source_problem_id?: string | null
           source_type?: Database["public"]["Enums"]["sentence_source"]
           translation?: string | null
@@ -844,6 +878,7 @@ export type Database = {
           grammar_score: number | null
           id: string
           is_passed: boolean | null
+          is_skipped: boolean
           model_answer: string | null
           naturalness_score: number | null
           problem_id: string
@@ -861,6 +896,7 @@ export type Database = {
           grammar_score?: number | null
           id?: string
           is_passed?: boolean | null
+          is_skipped?: boolean
           model_answer?: string | null
           naturalness_score?: number | null
           problem_id: string
@@ -878,6 +914,7 @@ export type Database = {
           grammar_score?: number | null
           id?: string
           is_passed?: boolean | null
+          is_skipped?: boolean
           model_answer?: string | null
           naturalness_score?: number | null
           problem_id?: string
@@ -913,6 +950,7 @@ export type Database = {
           model_answer: string
           problem_id: string
           quiz_id: string
+          sort_order: number | null
           word: string
           word_meaning: string | null
         }
@@ -923,6 +961,7 @@ export type Database = {
           model_answer: string
           problem_id: string
           quiz_id: string
+          sort_order?: number | null
           word: string
           word_meaning?: string | null
         }
@@ -933,6 +972,7 @@ export type Database = {
           model_answer?: string
           problem_id?: string
           quiz_id?: string
+          sort_order?: number | null
           word?: string
           word_meaning?: string | null
         }
@@ -979,6 +1019,7 @@ export type Database = {
           created_at: string
           id: string
           is_correct: boolean | null
+          is_skipped: boolean
           problem_id: string
           quiz_id: string
           result_id: string | null
@@ -990,6 +1031,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_correct?: boolean | null
+          is_skipped?: boolean
           problem_id: string
           quiz_id: string
           result_id?: string | null
@@ -1001,6 +1043,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_correct?: boolean | null
+          is_skipped?: boolean
           problem_id?: string
           quiz_id?: string
           result_id?: string | null
@@ -1032,6 +1075,7 @@ export type Database = {
           problem_id: string
           prompt: string
           quiz_id: string
+          sort_order: number | null
         }
         Insert: {
           answer: string
@@ -1040,6 +1084,7 @@ export type Database = {
           problem_id: string
           prompt: string
           quiz_id: string
+          sort_order?: number | null
         }
         Update: {
           answer?: string
@@ -1048,6 +1093,7 @@ export type Database = {
           problem_id?: string
           prompt?: string
           quiz_id?: string
+          sort_order?: number | null
         }
         Relationships: [
           {
@@ -1122,6 +1168,7 @@ export type Database = {
           created_at: string
           id: string
           is_correct: boolean | null
+          is_skipped: boolean
           problem_id: string
           quiz_id: string
           result_id: string | null
@@ -1133,6 +1180,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_correct?: boolean | null
+          is_skipped?: boolean
           problem_id: string
           quiz_id: string
           result_id?: string | null
@@ -1144,6 +1192,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_correct?: boolean | null
+          is_skipped?: boolean
           problem_id?: string
           quiz_id?: string
           result_id?: string | null
@@ -1175,6 +1224,7 @@ export type Database = {
           items: Json
           problem_id: string
           quiz_id: string
+          sort_order: number | null
           translation: string | null
         }
         Insert: {
@@ -1184,6 +1234,7 @@ export type Database = {
           items?: Json
           problem_id: string
           quiz_id: string
+          sort_order?: number | null
           translation?: string | null
         }
         Update: {
@@ -1193,6 +1244,7 @@ export type Database = {
           items?: Json
           problem_id?: string
           quiz_id?: string
+          sort_order?: number | null
           translation?: string | null
         }
         Relationships: [
@@ -1268,6 +1320,30 @@ export type Database = {
           },
         ]
       }
+      wrong_answer_progress: {
+        Row: {
+          correct_streak: number
+          last_practiced_at: string
+          mastered_at: string | null
+          student_id: string
+          word: string
+        }
+        Insert: {
+          correct_streak?: number
+          last_practiced_at?: string
+          mastered_at?: string | null
+          student_id: string
+          word: string
+        }
+        Update: {
+          correct_streak?: number
+          last_practiced_at?: string
+          mastered_at?: string | null
+          student_id?: string
+          word?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1297,8 +1373,16 @@ export type Database = {
         }[]
       }
       get_quiz_for_student: { Args: { _quiz_id: string }; Returns: Json }
+      get_student_wrong_answers: {
+        Args: { _student_id: string }
+        Returns: Json
+      }
       get_type_answer_problems_for_student: {
         Args: { _quiz_id: string }
+        Returns: Json
+      }
+      get_type_answer_result_detail: {
+        Args: { _result_id: string }
         Returns: Json
       }
       get_user_profiles_with_email: {
@@ -1319,6 +1403,10 @@ export type Database = {
       }
       get_word_magnet_problems_for_student: {
         Args: { _quiz_id: string }
+        Returns: Json
+      }
+      get_word_magnet_result_detail: {
+        Args: { _result_id: string }
         Returns: Json
       }
       grade_type_answers: {
@@ -1432,6 +1520,7 @@ export type Database = {
         Args: { _result_id: string; _score: number; _total: number }
         Returns: undefined
       }
+      update_wa_progress: { Args: { _items: Json }; Returns: Json }
     }
     Enums: {
       app_role: "teacher" | "student" | "admin"
@@ -1441,6 +1530,7 @@ export type Database = {
         | "quiz_completed"
         | "announcement"
         | "student_joined"
+        | "teacher_application"
       recording_mode: "read" | "listen"
       sentence_source: "reuse" | "ai_generated" | "teacher_input"
       translation_language:
@@ -1580,6 +1670,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["teacher", "student", "admin"],
@@ -1589,6 +1682,7 @@ export const Constants = {
         "quiz_completed",
         "announcement",
         "student_joined",
+        "teacher_application",
       ],
       recording_mode: ["read", "listen"],
       sentence_source: ["reuse", "ai_generated", "teacher_input"],

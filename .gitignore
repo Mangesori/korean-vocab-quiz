@@ -30,7 +30,18 @@ dist-ssr
 .agents/skills/gstack/.git
 .gstack/
 
-# fable 오케스트레이션 게이트 (토글 상태/턴 카운터, 머신별로 다름)
-.claude/fable/active.md
-.claude/fable/.fable-state
-.claude/fable/state/
+# fable 오케스트레이션 도구/게이트 (머신별 로컬 도구)
+.claude/fable/
+
+# Claude Code 로컬 설정/에이전트 (머신별)
+.claude/settings.json
+.claude/agents/
+
+# Supabase 로컬 임시
+supabase/.temp/
+
+# 디버그/임시 스크립트 (커밋 대상 아님)
+_debug*.mjs
+_verify-*.mjs
+debug-*.png
+patch/

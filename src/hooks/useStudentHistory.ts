@@ -50,7 +50,7 @@ export function useStudentHistory(studentId: string, classId: string) {
   const fetchHistory = async () => {
     setIsLoading(true);
     try {
-      const { data: assignedQuizzes, error: quizError } = await (supabase as any)
+      const { data: assignedQuizzes, error: quizError } = await supabase
         .from("quiz_assignments")
         .select(`
           quiz_id,

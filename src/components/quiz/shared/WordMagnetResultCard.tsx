@@ -5,6 +5,8 @@ import type { WordMagnetGradeResult } from "@/components/quiz/WordMagnetResultSt
 interface WordMagnetResultCardProps {
   result: WordMagnetGradeResult;
   index: number;
+  /** 오답 시 학생 답변 행의 라벨. 기본 "내 답변"(학생 화면). 교사 모달에선 "학생 답변". */
+  answerLabel?: string;
 }
 
 /**
@@ -12,7 +14,7 @@ interface WordMagnetResultCardProps {
  * 번호 배지(정답=success/오답=destructive) + 영문 번역 배지 + 우측 상태 아이콘,
  * 아래 '내 답변 / 정답' 라벨 행. WordMagnetResultStage와 결과 페이지들이 공유한다.
  */
-export function WordMagnetResultCard({ result: r, index }: WordMagnetResultCardProps) {
+export function WordMagnetResultCard({ result: r, index, answerLabel = "내 답변" }: WordMagnetResultCardProps) {
   return (
     <Card className="overflow-hidden border bg-white rounded-2xl shadow-sm">
       <CardContent className="p-6">
@@ -66,9 +68,9 @@ export function WordMagnetResultCard({ result: r, index }: WordMagnetResultCardP
           <div className="space-y-3">
             <div className="flex items-start gap-3">
               <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-destructive/10 text-destructive">
-                내 답변
+                {answerLabel}
               </span>
-              <p className="text-lg font-bold leading-relaxed text-destructive line-through break-keep">
+              <p className="text-lg font-bold leading-relaxed text-destructive break-keep">
                 {r.userSentence || "—"}
               </p>
             </div>

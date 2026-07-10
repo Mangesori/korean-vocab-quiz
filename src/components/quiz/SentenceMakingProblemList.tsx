@@ -123,7 +123,7 @@ export function SentenceMakingProblemList({
       await Promise.all(
         editedProblems.map((problem) => {
           if (problem.id.startsWith('temp-')) {
-            return supabase.from("sentence_making_problems" as any).insert({
+            return supabase.from("sentence_making_problems").insert({
               quiz_id: problem.quiz_id,
               problem_id: problem.problem_id,
               word: problem.word,
@@ -133,7 +133,7 @@ export function SentenceMakingProblemList({
             });
           } else {
             return supabase
-              .from("sentence_making_problems" as any)
+              .from("sentence_making_problems")
               .update({
                 word: problem.word,
                 word_meaning: problem.word_meaning || null,

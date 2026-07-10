@@ -56,7 +56,7 @@ export function FeedbackDialog({ open, onOpenChange, context, initialRating = nu
     }
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('feedback' as any).insert({
+      const { error } = await supabase.from('feedback').insert({
         message: message.trim(),
         email: email.trim() || null,
         rating,

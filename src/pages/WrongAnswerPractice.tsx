@@ -149,7 +149,7 @@ export default function WrongAnswerPractice() {
 
     // 진행도 저장 + 이번에 졸업한 단어 확인
     try {
-      const { data: graduated } = await (supabase as any).rpc('update_wa_progress', {
+      const { data: graduated } = await supabase.rpc('update_wa_progress', {
         _items: practiceResults.map((r) => ({ word: r.problem.word, correct: r.isCorrect })),
       });
       setGraduatedWords(Array.isArray(graduated) ? graduated : []);

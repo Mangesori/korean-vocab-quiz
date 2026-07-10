@@ -45,6 +45,8 @@ interface WrongAnswerData {
   translation: string | null;
   count: number;
   students: Set<string>;
+  // 이 단어(기본형)로 틀린 문장들을 빈칸을 정답으로 채운 완성 문장으로 모아 표시(중복 제거)
+  sentences: Set<string>;
 }
 
 const DIFFICULTY_LEVELS = [
@@ -132,15 +134,23 @@ export default function WrongAnswerQuizCreate() {
         const answers = result.answers as any[];
         answers?.forEach((answer) => {
           if (!answer.isCorrect) {
-            const key = answer.correctAnswer;
+            // 활용형(correctAnswer)이 아니라 기본형(word)으로 묶는다.
+            // 구버전 데이터엔 word가 없을 수 있어 활용형으로 폴백.
+            const lemma = (answer.word && String(answer.word).trim()) || answer.correctAnswer;
+            const key = lemma;
+            // 빈칸을 정답으로 채운 완성 문장(빈칸이 없으면 원문 유지)
+            const filled = (answer.sentence || '')
+              .replace(/\(\s*\)/, answer.correctAnswer)
+              .trim();
             const existing = wrongAnswerMap.get(key);
             if (existing) {
               existing.count++;
               // 이 오답을 틀린 학생을 집계(중복 제거). student_id가 null일 수 있어 방어.
               if (result.student_id) existing.students.add(result.student_id);
+              if (filled) existing.sentences.add(filled);
             } else {
               wrongAnswerMap.set(key, {
-                word: answer.correctAnswer,
+                word: lemma,
                 correct_answer: answer.correctAnswer,
                 sentence: answer.sentence || '',
                 translation: answer.translation || null,
@@ -148,6 +158,7 @@ export default function WrongAnswerQuizCreate() {
                 students: result.student_id
                   ? new Set([result.student_id])
                   : new Set<string>(),
+                sentences: new Set(filled ? [filled] : []),
               });
             }
           }
@@ -538,9 +549,13 @@ export default function WrongAnswerQuizCreate() {
                             ({wa.count}회 · 학생 {wa.students.size}명)
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {wa.sentence}
-                        </p>
+                        <div className="mt-0.5 space-y-0.5">
+                          {Array.from(wa.sentences).map((s, i) => (
+                            <p key={i} className="text-sm text-muted-foreground break-keep">
+                              {s}
+                            </p>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ))}
