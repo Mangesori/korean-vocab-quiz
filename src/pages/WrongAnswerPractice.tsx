@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -43,6 +44,8 @@ export default function WrongAnswerPractice() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [results, setResults] = useState<PracticeResult[]>([]);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const [showWordBank, setShowWordBank] = useState(false);
+  const [graduatedWords, setGraduatedWords] = useState<string[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -124,6 +127,7 @@ export default function WrongAnswerPractice() {
     if (currentSetIndex < totalSets - 1) {
       setCurrentSetIndex(currentSetIndex + 1);
       setShowTranslations({});
+      setShowWordBank(false);
     }
   };
 
@@ -134,7 +138,7 @@ export default function WrongAnswerPractice() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const practiceResults: PracticeResult[] = problems.map((problem) => {
       const userAnswer = (userAnswers[problem.id] || '').trim();
       const isCorrect = userAnswer.toLowerCase() === problem.correct_answer.toLowerCase();
@@ -142,16 +146,41 @@ export default function WrongAnswerPractice() {
     });
     setResults(practiceResults);
     setIsCompleted(true);
+
+    // 진행도 저장 + 이번에 졸업한 단어 확인
+    try {
+      const { data: graduated } = await (supabase as any).rpc('update_wa_progress', {
+        _items: practiceResults.map((r) => ({ word: r.problem.word, correct: r.isCorrect })),
+      });
+      setGraduatedWords(Array.isArray(graduated) ? graduated : []);
+    } catch (e) {
+      console.error('Failed to update wrong answer progress:', e);
+    }
   };
 
   const handleRetry = () => {
     setCurrentSetIndex(0);
     setUserAnswers({});
     setShowTranslations({});
+    setShowWordBank(false);
     setIsCompleted(false);
     setResults([]);
+    setGraduatedWords([]);
     // Reshuffle
     setProblems((prev) => [...prev].sort(() => Math.random() - 0.5));
+  };
+
+  // 틀린 문제만 다시 풀기
+  const handleRetryWrongOnly = () => {
+    const wrong = results.filter((r) => !r.isCorrect).map((r) => r.problem);
+    setProblems([...wrong].sort(() => Math.random() - 0.5));
+    setCurrentSetIndex(0);
+    setUserAnswers({});
+    setShowTranslations({});
+    setShowWordBank(false);
+    setIsCompleted(false);
+    setResults([]);
+    setGraduatedWords([]);
   };
 
   const score = useMemo(() => {
@@ -180,6 +209,12 @@ export default function WrongAnswerPractice() {
             </Link>
           </div>
 
+          {graduatedWords.length > 0 && (
+            <div className="text-center text-sm font-bold text-success mb-3">
+              🎓 {graduatedWords.join(', ')} 단어가 오답 노트를 졸업했어요!
+            </div>
+          )}
+
           <Card className="mb-6">
             <CardContent className="pt-6">
               <div className="text-center">
@@ -190,11 +225,17 @@ export default function WrongAnswerPractice() {
                 <p className="text-muted-foreground mb-6">
                   정답률 {Math.round((score / problems.length) * 100)}%
                 </p>
-                <div className="flex justify-center gap-3">
+                <div className="flex flex-wrap justify-center gap-3">
                   <Button onClick={handleRetry} variant="outline" className="gap-2">
                     <RotateCcw className="h-4 w-4" />
                     다시 풀기
                   </Button>
+                  {score < problems.length && (
+                    <Button onClick={handleRetryWrongOnly} className="gap-2">
+                      <RotateCcw className="h-4 w-4" />
+                      틀린 {problems.length - score}개만 다시
+                    </Button>
+                  )}
                   <Link to="/wrong-answers">
                     <Button>오답 노트로 돌아가기</Button>
                   </Link>
@@ -293,19 +334,27 @@ export default function WrongAnswerPractice() {
         {/* Main Card */}
         <Card className="shadow-lg">
           <CardContent className="p-4 sm:p-6">
-            {/* Word Bank */}
+            {/* Word Bank (기본 숨김 + 토글) */}
             <div className="mb-4 sm:mb-6">
-              <p className="text-sm text-muted-foreground mb-3 text-center">보기</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {shuffledWordBank.map((word, idx) => (
-                  <span
-                    key={idx}
-                    className="px-4 py-1.5 rounded-full text-sm bg-background border font-medium"
-                  >
-                    {word}
-                  </span>
-                ))}
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <p className="text-sm text-muted-foreground">보기</p>
+                <Button variant="ghost" size="sm" onClick={() => setShowWordBank((v) => !v)}>
+                  <Lightbulb className="w-4 h-4 mr-1" />
+                  {showWordBank ? '숨기기' : '열기'}
+                </Button>
               </div>
+              {showWordBank && (
+                <div className="flex flex-wrap justify-center gap-2">
+                  {shuffledWordBank.map((word, idx) => (
+                    <span
+                      key={idx}
+                      className="px-4 py-1.5 rounded-full text-sm bg-background border font-medium"
+                    >
+                      {word}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Problems List */}

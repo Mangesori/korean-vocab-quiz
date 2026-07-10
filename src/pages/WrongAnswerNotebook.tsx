@@ -47,52 +47,54 @@ export default function WrongAnswerNotebook() {
   const [quizFilter, setQuizFilter] = useState<string>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [showMastered, setShowMastered] = useState(false);
 
-  // quiz_results에서 직접 오답 조회
+  // 통합 RPC로 오답 조회 (최신순으로 이미 정렬돼 옴)
   const { data: wrongAnswers, isLoading } = useQuery({
-    queryKey: ['wrong-answers-from-results', user?.id],
+    queryKey: ['wrong-answers-unified', user?.id],
     queryFn: async () => {
-      const { data: results, error } = await supabase
-        .from('quiz_results')
-        .select(`
-          id,
-          answers,
-          completed_at,
-          quizzes (
-            id,
-            title
-          )
-        `)
-        .eq('student_id', user!.id)
-        .order('completed_at', { ascending: false });
+      const { data, error } = await (supabase as any).rpc('get_student_wrong_answers', {
+        _student_id: user!.id,
+      });
 
       if (error) throw error;
 
-      const wrongAnswersList: WrongAnswer[] = [];
-
-      results?.forEach((result: any) => {
-        const answers = result.answers as any[];
-        answers?.forEach((answer: any) => {
-          if (!answer.isCorrect) {
-            wrongAnswersList.push({
-              id: `${result.id}-${answer.problemId}`,
-              quiz_title: result.quizzes?.title || '퀴즈',
-              word: answer.word || answer.correctAnswer,
-              correct_answer: answer.correctAnswer,
-              user_answer: answer.userAnswer || '',
-              sentence: answer.sentence || '',
-              translation: answer.translation || null,
-              audio_url: answer.audioUrl || null,
-              completed_at: result.completed_at,
-            });
-          }
-        });
-      });
+      const rows = (data ?? []) as any[];
+      const wrongAnswersList: WrongAnswer[] = rows.map((row: any, idx: number) => ({
+        id: `${row.source}-${idx}`,
+        quiz_title: row.quiz_title || '퀴즈',
+        word: row.word || row.correct_answer,
+        correct_answer: row.correct_answer,
+        user_answer: row.user_answer || '',
+        sentence: row.sentence || '',
+        translation: row.translation ?? null,
+        audio_url: row.audio_url ?? null,
+        completed_at: row.completed_at ?? '',
+      }));
 
       return wrongAnswersList;
     },
     enabled: !!user?.id,
   });
+
+  // 졸업(마스터)한 단어 조회
+  const { data: masteredRows } = useQuery({
+    queryKey: ['wa-mastered', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from('wrong_answer_progress')
+        .select('word, mastered_at')
+        .eq('student_id', user!.id)
+        .not('mastered_at', 'is', null);
+      return data ?? [];
+    },
+  });
+
+  const masteredWords = useMemo(
+    () => new Set((masteredRows ?? []).map((r: any) => r.word)),
+    [masteredRows]
+  );
 
   // 퀴즈 목록 추출 - hooks must be before any conditional returns
   const quizTitles = useMemo(() => {
@@ -112,6 +114,30 @@ export default function WrongAnswerNotebook() {
       return matchesSearch && matchesQuiz;
     });
   }, [wrongAnswers, searchTerm, quizFilter]);
+
+  // 단어별 그룹화 + 틀린 횟수 집계 (자주 틀린 순 정렬)
+  const grouped = useMemo(() => {
+    const map = new Map<string, WrongAnswer & { count: number }>();
+    filteredWrongAnswers?.forEach((item) => {
+      const ex = map.get(item.word);
+      if (ex) {
+        ex.count++;
+        // 대표 항목은 가장 최근에 틀린 것으로 유지
+        if (item.completed_at > ex.completed_at) Object.assign(ex, item, { count: ex.count });
+      } else map.set(item.word, { ...item, count: 1 });
+    });
+    return [...map.values()].sort((a, b) => b.count - a.count);
+  }, [filteredWrongAnswers]);
+
+  // 졸업 단어 숨김/표시 처리
+  const masteredCount = useMemo(
+    () => grouped.filter((g) => masteredWords.has(g.word)).length,
+    [grouped, masteredWords]
+  );
+  const visibleGroups = useMemo(
+    () => (showMastered ? grouped : grouped.filter((g) => !masteredWords.has(g.word))),
+    [grouped, masteredWords, showMastered]
+  );
 
   const totalCount = wrongAnswers?.length || 0;
 
@@ -140,13 +166,13 @@ export default function WrongAnswerNotebook() {
     });
   };
 
-  // 전체 선택/해제
+  // 전체 선택/해제 (단어 단위, 화면에 보이는 그룹 기준)
   const toggleSelectAll = () => {
-    if (!filteredWrongAnswers) return;
-    if (selectedIds.size === filteredWrongAnswers.length) {
+    if (visibleGroups.length === 0) return;
+    if (selectedIds.size === visibleGroups.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredWrongAnswers.map((item) => item.id)));
+      setSelectedIds(new Set(visibleGroups.map((item) => item.word)));
     }
   };
 
@@ -161,12 +187,21 @@ export default function WrongAnswerNotebook() {
     setSelectedIds(new Set());
   };
 
-  // 연습 퀴즈 시작
+  // 연습 퀴즈 시작 (선택된 단어의 대표 항목을 PracticeProblem 형식으로 직렬화)
   const startPracticeQuiz = () => {
-    const selectedProblems = wrongAnswers?.filter((item) => selectedIds.has(item.id));
-    if (!selectedProblems || selectedProblems.length === 0) return;
+    const selectedGroups = visibleGroups.filter((g) => selectedIds.has(g.word));
+    if (selectedGroups.length === 0) return;
 
-    localStorage.setItem('practice_problems', JSON.stringify(selectedProblems));
+    const practiceProblems = selectedGroups.map((g) => ({
+      id: g.id,
+      word: g.word,
+      correct_answer: g.correct_answer,
+      sentence: g.sentence,
+      translation: g.translation,
+      audio_url: g.audio_url,
+    }));
+
+    localStorage.setItem('practice_problems', JSON.stringify(practiceProblems));
     navigate('/wrong-answers/practice');
   };
 
@@ -226,7 +261,7 @@ export default function WrongAnswerNotebook() {
                 onClick={toggleSelectAll}
                 className="whitespace-nowrap"
               >
-                {selectedIds.size === filteredWrongAnswers?.length && filteredWrongAnswers?.length > 0
+                {selectedIds.size === visibleGroups.length && visibleGroups.length > 0
                   ? '전체 해제'
                   : '전체 선택'}
               </Button>
@@ -250,7 +285,15 @@ export default function WrongAnswerNotebook() {
           )}
         </div>
 
-        {filteredWrongAnswers?.length === 0 ? (
+        {masteredCount > 0 && (
+          <div className="mb-4">
+            <Button variant="ghost" size="sm" onClick={() => setShowMastered((v) => !v)}>
+              🎓 졸업한 단어 {masteredCount}개 {showMastered ? '숨기기' : '보기'}
+            </Button>
+          </div>
+        )}
+
+        {visibleGroups.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <FileX className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -263,23 +306,25 @@ export default function WrongAnswerNotebook() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {filteredWrongAnswers?.map((item) => (
+            {visibleGroups.map((item) => {
+              const isMastered = masteredWords.has(item.word);
+              return (
               <Card
-                key={item.id}
+                key={item.word}
                 className={`overflow-hidden transition-all ${
                   isSelectionMode ? 'cursor-pointer' : ''
                 } ${
-                  isSelectionMode && selectedIds.has(item.id) ? 'ring-2 ring-primary' : ''
-                }`}
-                onClick={() => isSelectionMode && toggleSelection(item.id)}
+                  isSelectionMode && selectedIds.has(item.word) ? 'ring-2 ring-primary' : ''
+                } ${isMastered ? 'opacity-60' : ''}`}
+                onClick={() => isSelectionMode && toggleSelection(item.word)}
               >
                 <CardHeader className="pb-3">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                       {isSelectionMode && (
                         <Checkbox
-                          checked={selectedIds.has(item.id)}
-                          onCheckedChange={() => toggleSelection(item.id)}
+                          checked={selectedIds.has(item.word)}
+                          onCheckedChange={() => toggleSelection(item.word)}
                           onClick={(e) => e.stopPropagation()}
                         />
                       )}
@@ -289,6 +334,12 @@ export default function WrongAnswerNotebook() {
                       <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
                         {item.quiz_title}
                       </Badge>
+                      {item.count > 1 && (
+                        <Badge variant="destructive">{item.count}회 틀림</Badge>
+                      )}
+                      {isMastered && (
+                        <Badge variant="secondary">🎓 졸업</Badge>
+                      )}
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {formatDateShort(item.completed_at)}
@@ -350,7 +401,8 @@ export default function WrongAnswerNotebook() {
                   )}
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
