@@ -6,8 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -25,6 +24,7 @@ import {
   Play,
   X,
   ListChecks,
+  ChevronDown,
 } from 'lucide-react';
 
 interface WrongAnswer {
@@ -39,6 +39,37 @@ interface WrongAnswer {
   completed_at: string;
 }
 
+// 그룹별로 모으는 문장 단위 항목 (문장마다 정답/내 답/번역이 다를 수 있음)
+interface GroupedSentence {
+  raw: string;
+  answer: string;
+  user_answer: string;
+  translation: string | null;
+}
+
+type GroupedItem = WrongAnswer & {
+  count: number;
+  sentences: GroupedSentence[];
+};
+
+// 문장의 빈칸 ( ) 을 정답으로 채워 초록 강조한 조각을 만든다.
+function renderSentence(raw: string, answer: string) {
+  const parts = raw.split(/\(\s*\)|\(\)/);
+  if (parts.length < 2) return raw;
+  return (
+    <span>
+      {parts.map((part, idx) => (
+        <span key={idx}>
+          {part}
+          {idx < parts.length - 1 && (
+            <span className="text-success font-bold">{answer}</span>
+          )}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export default function WrongAnswerNotebook() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,6 +79,7 @@ export default function WrongAnswerNotebook() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showMastered, setShowMastered] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   // 통합 RPC로 오답 조회 (최신순으로 이미 정렬돼 옴)
   const { data: wrongAnswers, isLoading } = useQuery({
@@ -115,16 +147,42 @@ export default function WrongAnswerNotebook() {
     });
   }, [wrongAnswers, searchTerm, quizFilter]);
 
-  // 단어별 그룹화 + 틀린 횟수 집계 (자주 틀린 순 정렬)
+  // 단어별 그룹화 + 틀린 횟수 집계 + 문장 목록 수집 (자주 틀린 순 정렬)
   const grouped = useMemo(() => {
-    const map = new Map<string, WrongAnswer & { count: number }>();
+    const map = new Map<string, GroupedItem>();
     filteredWrongAnswers?.forEach((item) => {
       const ex = map.get(item.word);
+      const sentenceKey = `${item.sentence}|${item.correct_answer}`;
       if (ex) {
         ex.count++;
-        // 대표 항목은 가장 최근에 틀린 것으로 유지
-        if (item.completed_at > ex.completed_at) Object.assign(ex, item, { count: ex.count });
-      } else map.set(item.word, { ...item, count: 1 });
+        // 대표 항목은 가장 최근에 틀린 것으로 유지 (sentences 는 보존)
+        if (item.completed_at > ex.completed_at) {
+          const keepSentences = ex.sentences;
+          Object.assign(ex, item, { count: ex.count, sentences: keepSentences });
+        }
+        // 문장 dedup 후 추가
+        if (item.sentence && !ex.sentences.some((s) => `${s.raw}|${s.answer}` === sentenceKey)) {
+          ex.sentences.push({
+            raw: item.sentence,
+            answer: item.correct_answer,
+            user_answer: item.user_answer,
+            translation: item.translation,
+          });
+        }
+      } else {
+        map.set(item.word, {
+          ...item,
+          count: 1,
+          sentences: item.sentence
+            ? [{
+                raw: item.sentence,
+                answer: item.correct_answer,
+                user_answer: item.user_answer,
+                translation: item.translation,
+              }]
+            : [],
+        });
+      }
     });
     return [...map.values()].sort((a, b) => b.count - a.count);
   }, [filteredWrongAnswers]);
@@ -153,14 +211,24 @@ export default function WrongAnswerNotebook() {
     return <Navigate to="/auth" replace />;
   }
 
+  // 펼침 토글 (다중 오픈 허용)
+  const toggleExpand = (word: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(word)) next.delete(word);
+      else next.add(word);
+      return next;
+    });
+  };
+
   // 선택 토글
-  const toggleSelection = (id: string) => {
+  const toggleSelection = (word: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
+      if (next.has(word)) {
+        next.delete(word);
       } else {
-        next.add(id);
+        next.add(word);
       }
       return next;
     });
@@ -176,12 +244,7 @@ export default function WrongAnswerNotebook() {
     }
   };
 
-  // 선택 모드 진입
-  const enterSelectionMode = () => {
-    setIsSelectionMode(true);
-  };
-
-  // 선택 모드 종료
+  const enterSelectionMode = () => setIsSelectionMode(true);
   const exitSelectionMode = () => {
     setIsSelectionMode(false);
     setSelectedIds(new Set());
@@ -226,9 +289,7 @@ export default function WrongAnswerNotebook() {
             <FileX className="h-6 w-6" />
             오답 노트
           </h1>
-          <p className="text-muted-foreground mt-1">
-            총 {totalCount}개의 오답
-          </p>
+          <p className="text-muted-foreground mt-1">총 {totalCount}개의 오답</p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -256,29 +317,18 @@ export default function WrongAnswerNotebook() {
           </Select>
           {isSelectionMode ? (
             <>
-              <Button
-                variant="outline"
-                onClick={toggleSelectAll}
-                className="whitespace-nowrap"
-              >
+              <Button variant="outline" onClick={toggleSelectAll} className="whitespace-nowrap">
                 {selectedIds.size === visibleGroups.length && visibleGroups.length > 0
                   ? '전체 해제'
                   : '전체 선택'}
               </Button>
-              <Button
-                variant="ghost"
-                onClick={exitSelectionMode}
-                className="whitespace-nowrap"
-              >
+              <Button variant="ghost" onClick={exitSelectionMode} className="whitespace-nowrap">
                 <X className="h-4 w-4 mr-1" />
                 취소
               </Button>
             </>
           ) : (
-            <Button
-              onClick={enterSelectionMode}
-              className="whitespace-nowrap gap-2"
-            >
+            <Button onClick={enterSelectionMode} className="whitespace-nowrap gap-2">
               <ListChecks className="h-4 w-4" />
               오답 퀴즈 만들기
             </Button>
@@ -298,109 +348,95 @@ export default function WrongAnswerNotebook() {
             <CardContent className="py-12 text-center">
               <FileX className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                {searchTerm
-                  ? '검색 결과가 없습니다.'
-                  : '아직 오답이 없습니다. 퀴즈를 풀어보세요!'}
+                {searchTerm ? '검색 결과가 없습니다.' : '아직 오답이 없습니다. 퀴즈를 풀어보세요!'}
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {visibleGroups.map((item) => {
               const isMastered = masteredWords.has(item.word);
+              const isExpanded = expanded.has(item.word);
+              const isSelected = selectedIds.has(item.word);
               return (
-              <Card
-                key={item.word}
-                className={`overflow-hidden transition-all ${
-                  isSelectionMode ? 'cursor-pointer' : ''
-                } ${
-                  isSelectionMode && selectedIds.has(item.word) ? 'ring-2 ring-primary' : ''
-                } ${isMastered ? 'opacity-60' : ''}`}
-                onClick={() => isSelectionMode && toggleSelection(item.word)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      {isSelectionMode && (
-                        <Checkbox
-                          checked={selectedIds.has(item.word)}
-                          onCheckedChange={() => toggleSelection(item.word)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      )}
-                      <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-semibold">
-                        {item.word}
+                <div
+                  key={item.word}
+                  className={`rounded-lg border bg-card overflow-hidden transition-all ${
+                    isSelectionMode && isSelected ? 'ring-2 ring-primary' : ''
+                  } ${isMastered ? 'opacity-60' : ''}`}
+                >
+                  {/* 닫힘(헤더) 한 줄 */}
+                  <div
+                    className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/40 transition-colors"
+                    onClick={() =>
+                      isSelectionMode ? toggleSelection(item.word) : toggleExpand(item.word)
+                    }
+                  >
+                    {isSelectionMode && (
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleSelection(item.word)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
+                    <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold text-sm shrink-0">
+                      {item.word}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate">
+                      {item.quiz_title}
+                    </span>
+                    {item.count > 1 && (
+                      <span className="text-xs font-medium text-destructive shrink-0">
+                        ●{item.count}회
                       </span>
-                      <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
-                        {item.quiz_title}
-                      </Badge>
-                      {item.count > 1 && (
-                        <Badge variant="destructive">{item.count}회 틀림</Badge>
-                      )}
-                      {isMastered && (
-                        <Badge variant="secondary">🎓 졸업</Badge>
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground">
+                    )}
+                    {isMastered && <span className="text-xs shrink-0">🎓</span>}
+                    <span className="ml-auto text-xs text-muted-foreground shrink-0 tabular-nums">
                       {formatDateShort(item.completed_at)}
                     </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpand(item.word);
+                      }}
+                      className="shrink-0 flex items-center justify-center h-8 w-8 -mr-2 rounded-md text-muted-foreground hover:bg-muted transition-colors"
+                      aria-label={isExpanded ? '접기' : '펼치기'}
+                    >
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          isExpanded ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* 문장 섹션 */}
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-2">문장</p>
-                    <div className="rounded-lg border bg-muted px-4 py-2">
-                      <p className="text-base leading-relaxed">
-                        {(() => {
-                          const parts = item.sentence.split(/\(\s*\)|\(\)/);
-                          if (parts.length < 2) return item.sentence;
-                          return (
-                            <span>
-                              {parts.map((part, idx) => (
-                                <span key={idx}>
-                                  {part}
-                                  {idx < parts.length - 1 && (
-                                    <span className="text-success font-bold mx-1">
-                                      {item.correct_answer}
-                                    </span>
-                                  )}
-                                </span>
-                              ))}
+
+                  {/* 펼침(상세) — 문장별: 문장 → 번역 → 내 답변 */}
+                  {isExpanded && (
+                    <div className="border-t px-4 py-3 space-y-3">
+                      {item.sentences.map((s, idx) => (
+                        <div key={idx} className="space-y-0.5">
+                          <p className="text-sm leading-relaxed">
+                            {renderSentence(s.raw, s.answer)}
+                          </p>
+                          {s.translation && (
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              {s.translation}
+                            </p>
+                          )}
+                          <div className="flex items-baseline gap-2 pt-0.5">
+                            <span className="shrink-0 px-2 py-0.5 rounded-md bg-destructive/10 text-destructive text-[11px] font-semibold">
+                              내 답변
                             </span>
-                          );
-                        })()}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* 정답 / 내 답 섹션 */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">정답</p>
-                      <p className="px-3 py-2 rounded-md bg-muted text-sm font-medium text-success">
-                        {item.correct_answer}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">내 답</p>
-                      <p className="px-3 py-2 rounded-md bg-muted text-sm font-medium text-destructive">
-                        {item.user_answer || '(입력 없음)'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* 번역 섹션 */}
-                  {item.translation && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">번역</p>
-                      <p className="px-3 py-2 rounded-md bg-muted text-sm">
-                        {item.translation}
-                      </p>
+                            <span className="text-xs text-destructive font-medium">
+                              {s.user_answer || '(입력 없음)'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
               );
             })}
           </div>
