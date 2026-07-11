@@ -9,7 +9,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { UserCircle, CheckCircle, XCircle, HelpCircle, Volume2, Lightbulb, Loader2, TextCursorInput, PenLine, Mic, Pencil, RefreshCw, Link2, Keyboard, Magnet } from "lucide-react";
+import { UserCircle, CheckCircle, XCircle, HelpCircle, Volume2, Lightbulb, Loader2, TextCursorInput, PenLine, Mic, Pencil, RefreshCw, Link2, Keyboard, Magnet, Ear } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useRef, useState } from "react";
@@ -19,7 +19,7 @@ import { QuizReviewCard } from "@/components/quiz/QuizReviewCard";
 import { WordPairResultCard } from "@/components/quiz/shared/WordPairResultCard";
 import { WordMagnetResultCard } from "@/components/quiz/shared/WordMagnetResultCard";
 import { useQuizResultDetail } from "@/hooks/useQuizResultDetail";
-import { renderSentenceWithDiff, renderModelAnswerWithDiff, renderSentenceWithFeedback } from "@/components/quiz/quizResultUtils";
+import { renderSentenceWithDiff, renderModelAnswerWithDiff, renderSentenceWithFeedback, renderRecognizedText } from "@/components/quiz/quizResultUtils";
 import { formatDateFull } from '@/lib/formatDate';
 import type {
   SentenceMakingProblemDetail,
@@ -618,8 +618,16 @@ function RecordingView({
                 </div>
               </div>
 
-              <div className="mt-4 border-t border-slate-100 pt-4 text-lg pl-3">
+              <div className="mt-4 border-t border-slate-100 pt-4 text-lg pl-3 space-y-3">
                 {renderSentenceWithFeedback(problem.sentence, best.word_level_feedback, best.is_passed)}
+                {best.recognized_text && (
+                  <div className="flex items-start gap-2">
+                    <Ear className="w-4 h-4 text-slate-400 shrink-0 mt-1" />
+                    <p className="text-base">
+                      {renderRecognizedText(best.recognized_text, problem.sentence)}
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -760,6 +760,7 @@ export type Database = {
           recording_url: string
           result_id: string | null
           student_id: string | null
+          recognized_text: string | null
           word_level_feedback: Json | null
         }
         Insert: {
@@ -779,6 +780,7 @@ export type Database = {
           recording_url: string
           result_id?: string | null
           student_id?: string | null
+          recognized_text?: string | null
           word_level_feedback?: Json | null
         }
         Update: {
@@ -798,6 +800,7 @@ export type Database = {
           recording_url?: string
           result_id?: string | null
           student_id?: string | null
+          recognized_text?: string | null
           word_level_feedback?: Json | null
         }
         Relationships: [
