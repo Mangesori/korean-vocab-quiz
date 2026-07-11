@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -17,6 +18,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { maskTranslation } from '@/utils/maskTranslation';
+import { toJamo } from '@/utils/hangul';
 
 interface PracticeProblem {
   id: string;
@@ -25,6 +27,7 @@ interface PracticeProblem {
   sentence: string;
   translation: string | null;
   audio_url: string | null;
+  source: string;
 }
 
 interface PracticeResult {
@@ -35,6 +38,9 @@ interface PracticeResult {
 
 const WORDS_PER_SET = 5;
 
+// 문장에 빈칸 ( ) 이 있는지 판정 (받아쓰기 유형은 빈칸이 없다)
+const hasBlank = (sentence: string) => /\(\s*\)|\(\)/.test(sentence);
+
 export default function WrongAnswerPractice() {
   const navigate = useNavigate();
   const [problems, setProblems] = useState<PracticeProblem[]>([]);
@@ -44,7 +50,6 @@ export default function WrongAnswerPractice() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [results, setResults] = useState<PracticeResult[]>([]);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
-  const [showWordBank, setShowWordBank] = useState(false);
   const [graduatedWords, setGraduatedWords] = useState<string[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -82,6 +87,43 @@ export default function WrongAnswerPractice() {
     return [...currentSet].sort(() => Math.random() - 0.5).map((p) => p.word);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSetIndex, problems.length]);
+
+  // 답이 입력된 문제의 뱅크 단어 추적 (취소선용) — 자모 분해로 불규칙 활용 대응
+  const usedBankWords = useMemo(() => {
+    const used = new Set<string>();
+    const bankWords = currentSet.map((p) => p.word);
+
+    currentSet.forEach((p) => {
+      const answer = userAnswers[p.id]?.trim();
+      if (!answer) return;
+
+      if (bankWords.includes(answer)) {
+        used.add(answer);
+        return;
+      }
+
+      const ansJamo = toJamo(answer);
+      let bestWord = p.word;
+      let bestScore = 0;
+
+      for (const bw of bankWords) {
+        const bwJamo = toJamo(bw);
+        let score = 0;
+        while (score < bwJamo.length && score < ansJamo.length && bwJamo[score] === ansJamo[score]) {
+          score++;
+        }
+        if (score > bestScore || (score === bestScore && bw === p.word)) {
+          bestScore = score;
+          bestWord = bw;
+        }
+      }
+
+      used.add(bestScore > 0 ? bestWord : p.word);
+    });
+
+    return used;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSet, userAnswers]);
 
   const progress = useMemo(() => {
     if (problems.length === 0) return 0;
@@ -127,7 +169,6 @@ export default function WrongAnswerPractice() {
     if (currentSetIndex < totalSets - 1) {
       setCurrentSetIndex(currentSetIndex + 1);
       setShowTranslations({});
-      setShowWordBank(false);
     }
   };
 
@@ -162,7 +203,6 @@ export default function WrongAnswerPractice() {
     setCurrentSetIndex(0);
     setUserAnswers({});
     setShowTranslations({});
-    setShowWordBank(false);
     setIsCompleted(false);
     setResults([]);
     setGraduatedWords([]);
@@ -177,7 +217,6 @@ export default function WrongAnswerPractice() {
     setCurrentSetIndex(0);
     setUserAnswers({});
     setShowTranslations({});
-    setShowWordBank(false);
     setIsCompleted(false);
     setResults([]);
     setGraduatedWords([]);
@@ -247,6 +286,7 @@ export default function WrongAnswerPractice() {
           <h2 className="text-lg font-semibold mb-4">문제별 결과</h2>
           <div className="space-y-4">
             {results.map((result, index) => {
+              const blank = hasBlank(result.problem.sentence);
               const parts = result.problem.sentence.split(/\(\s*\)|\(\)/);
               return (
                 <Card
@@ -267,13 +307,29 @@ export default function WrongAnswerPractice() {
                           )}
                           <span className="font-medium">{result.problem.word}</span>
                         </div>
-                        <p className="text-sm">
-                          {parts[0]}
-                          <span className="font-bold text-green-600 mx-1">
-                            {result.problem.correct_answer}
-                          </span>
-                          {parts[1]}
-                        </p>
+                        {blank ? (
+                          // 빈칸 채우기: 문장 안에 정답을 초록으로 삽입
+                          <p className="text-sm">
+                            {parts[0]}
+                            <span className="font-bold text-green-600 mx-1">
+                              {result.problem.correct_answer}
+                            </span>
+                            {parts[1]}
+                          </p>
+                        ) : (
+                          // 받아쓰기: 뜻(단서) + 정답을 따로 표시
+                          <div className="text-sm space-y-1">
+                            {result.problem.sentence && (
+                              <p className="text-muted-foreground">뜻: {result.problem.sentence}</p>
+                            )}
+                            <p>
+                              <span className="text-muted-foreground mr-1">정답:</span>
+                              <span className="font-bold text-green-600">
+                                {result.problem.correct_answer}
+                              </span>
+                            </p>
+                          </div>
+                        )}
                         {!result.isCorrect && (
                           <p className="text-sm text-red-500">
                             내 답: {result.userAnswer || '(입력 없음)'}
@@ -302,9 +358,9 @@ export default function WrongAnswerPractice() {
 
   // Quiz screen
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-primary/5">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b shadow-sm">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -315,190 +371,218 @@ export default function WrongAnswerPractice() {
               </Link>
               <h1 className="font-bold text-lg">오답 연습</h1>
             </div>
-            <span className="text-sm text-muted-foreground">
+            <span className="shrink-0 px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold shadow-sm border border-slate-200">
               {startNum}-{endNum} / {problems.length}
             </span>
           </div>
-          <Progress value={progress} className="mt-2 h-2" />
+          <Progress value={progress} className="mt-2 h-2.5" />
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 max-w-5xl">
-        {/* Set Label */}
-        <div className="mb-4 text-center">
-          <span className="inline-block px-4 py-2 bg-muted rounded-md text-lg font-semibold">
-            세트 {currentSetIndex + 1}
-          </span>
-        </div>
-
+      <div className="container mx-auto px-4 py-8">
         {/* Main Card */}
-        <Card className="shadow-lg">
-          <CardContent className="p-4 sm:p-6">
-            {/* Word Bank (기본 숨김 + 토글) */}
-            <div className="mb-4 sm:mb-6">
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <p className="text-sm text-muted-foreground">보기</p>
-                <Button variant="ghost" size="sm" onClick={() => setShowWordBank((v) => !v)}>
-                  <Lightbulb className="w-4 h-4 mr-1" />
-                  {showWordBank ? '숨기기' : '열기'}
-                </Button>
-              </div>
-              {showWordBank && (
-                <div className="flex flex-wrap justify-center gap-2">
-                  {shuffledWordBank.map((word, idx) => (
-                    <span
+        <Card className="border shadow-sm rounded-2xl overflow-hidden mb-8 bg-white max-w-5xl mx-auto">
+          <CardContent className="p-0">
+            <p className="text-center text-sm text-muted-foreground bg-[#F1ECE4] px-6 pt-5 pb-3">
+              빈칸에 알맞은 단어를 입력하세요
+            </p>
+            {/* Word Bank (항상 표시 + 사용한 단어 취소선) */}
+            <div className="bg-[#F1ECE4] border-b border-[#D3CCC4] px-6 pb-5 flex flex-col items-center">
+              <p className="text-sm font-bold text-muted-foreground mb-4">보기</p>
+              <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
+                {shuffledWordBank.map((word, idx) => {
+                  const isUsed = usedBankWords.has(word);
+                  return (
+                    <Badge
                       key={idx}
-                      className="px-4 py-1.5 rounded-full text-sm bg-background border font-medium"
+                      variant="outline"
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium bg-white shadow-sm transition-all ${
+                        isUsed
+                          ? 'line-through text-muted-foreground border-border opacity-60'
+                          : 'text-foreground border-border'
+                      }`}
                     >
                       {word}
-                    </span>
-                  ))}
-                </div>
-              )}
+                    </Badge>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Problems List */}
-            <div className="space-y-0 divide-y">
-              {currentSet.map((problem, idx) => {
-                const problemNumber = currentSetIndex * WORDS_PER_SET + idx + 1;
-                // Clean up sentence
-                let sentence = problem.sentence;
-                sentence = sentence.replace(/([.?!])\s*\.+\s*$/, '$1');
-                sentence = sentence.replace(/\.\s*\.$/, '.');
-                const parts = sentence.split(/\(\s*\)|\(\)/);
+            <div className="p-6 sm:p-8">
+              <div className="space-y-0 divide-y">
+                {currentSet.map((problem, idx) => {
+                  const problemNumber = currentSetIndex * WORDS_PER_SET + idx + 1;
+                  // Clean up sentence
+                  let sentence = problem.sentence;
+                  sentence = sentence.replace(/([.?!])\s*\.+\s*$/, '$1');
+                  sentence = sentence.replace(/\.\s*\.$/, '.');
+                  const parts = sentence.split(/\(\s*\)|\(\)/);
+                  const blank = hasBlank(problem.sentence);
 
-                return (
-                  <div key={problem.id} className="py-4">
-                    {/* Mobile Layout: Stacked */}
-                    <div className="flex flex-col gap-2 sm:hidden">
-                      <div className="flex items-start gap-2">
-                        <span className="text-primary font-bold">{problemNumber}.</span>
-                        <div className="flex-1">
-                          <p className="text-base leading-relaxed">
-                            {parts[0]}
-                            <span className="text-muted-foreground">( _____ )</span>
-                            {parts[1]}
-                          </p>
+                  return (
+                    <div key={problem.id} className="py-6 sm:py-5 first:pt-2 last:pb-2">
+                      {/* Mobile Layout: Stacked */}
+                      <div className="flex flex-col gap-3 sm:hidden">
+                        <div className="flex items-start gap-2">
+                          <span className="text-primary font-bold">{problemNumber}.</span>
+                          <div className="flex-1">
+                            {blank ? (
+                              <p className="text-base leading-relaxed">
+                                {parts[0]}
+                                <span className="text-muted-foreground mx-1">( _____ )</span>
+                                {parts[1]}
+                              </p>
+                            ) : (
+                              <p className="text-base leading-relaxed">
+                                <span className="text-muted-foreground mr-1">뜻:</span>
+                                {sentence}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => problem.audio_url && playAudio(problem.audio_url, problem.id)}
+                              disabled={!problem.audio_url}
+                              className={`h-8 w-8 p-0 rounded-xl ${!problem.audio_url ? 'opacity-40' : ''}`}
+                            >
+                              <Volume2
+                                className={`w-4 h-4 ${
+                                  playingAudio === problem.id ? 'text-primary animate-pulse' : ''
+                                }`}
+                              />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 rounded-xl"
+                              onClick={() => toggleTranslation(problem.id)}
+                              disabled={!problem.translation}
+                            >
+                              <Lightbulb
+                                className={`w-4 h-4 ${showTranslations[problem.id] ? 'text-warning' : ''}`}
+                              />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex gap-1 shrink-0">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => problem.audio_url && playAudio(problem.audio_url, problem.id)}
-                            disabled={!problem.audio_url}
-                            className={`h-8 w-8 p-0 ${!problem.audio_url ? 'opacity-40' : ''}`}
-                          >
-                            <Volume2
-                              className={`w-4 h-4 ${
-                                playingAudio === problem.id ? 'text-primary animate-pulse' : ''
-                              }`}
-                            />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => toggleTranslation(problem.id)}
-                            disabled={!problem.translation}
-                          >
-                            <Lightbulb
-                              className={`w-4 h-4 ${showTranslations[problem.id] ? 'text-warning' : ''}`}
-                            />
-                          </Button>
-                        </div>
+                        <Input
+                          value={userAnswers[problem.id] || ''}
+                          onChange={(e) => handleAnswerChange(problem.id, e.target.value)}
+                          className="h-11 w-full text-center rounded-xl bg-slate-50 border-border"
+                          placeholder="정답 입력"
+                          autoComplete="off"
+                        />
+                        {showTranslations[problem.id] && problem.translation && (
+                          <div className="px-4 py-3 bg-accent rounded-xl text-sm border border-primary/15 text-foreground">
+                            {maskTranslation(problem.translation)}
+                          </div>
+                        )}
                       </div>
-                      <Input
-                        value={userAnswers[problem.id] || ''}
-                        onChange={(e) => handleAnswerChange(problem.id, e.target.value)}
-                        className="h-10 text-center"
-                        placeholder="정답 입력"
-                        autoComplete="off"
-                      />
-                      {showTranslations[problem.id] && problem.translation && (
-                        <div className="px-3 py-2 bg-info/10 rounded-lg text-sm border border-info/30">
-                          {maskTranslation(problem.translation)}
-                        </div>
-                      )}
-                    </div>
 
-                    {/* Desktop Layout: Inline */}
-                    <div className="hidden sm:block">
-                      <div className="flex items-center gap-3">
-                        <span className="text-primary font-bold min-w-[24px]">{problemNumber}.</span>
-                        <div className="flex-1 flex items-center flex-wrap gap-1">
-                          {parts.map((part, partIdx, arr) => (
-                            <span key={partIdx} className="inline-flex items-center">
-                              <span className="text-lg whitespace-nowrap">{part}</span>
-                              {partIdx < arr.length - 1 && (
-                                <Input
-                                  value={userAnswers[problem.id] || ''}
-                                  onChange={(e) => handleAnswerChange(problem.id, e.target.value)}
-                                  className="w-48 h-9 mx-1 text-center text-base inline-block"
-                                  autoComplete="off"
-                                />
-                              )}
-                            </span>
-                          ))}
+                      {/* Desktop Layout: Inline */}
+                      <div className="hidden sm:block">
+                        <div className="flex items-center gap-3">
+                          <span className="text-primary font-bold min-w-[24px]">{problemNumber}.</span>
+                          {blank ? (
+                            <div className="flex-1 flex items-center flex-wrap gap-1 leading-loose">
+                              <span className="text-lg font-medium text-foreground whitespace-nowrap">
+                                {parts[0]?.trim()}
+                              </span>
+                              <Input
+                                value={userAnswers[problem.id] || ''}
+                                onChange={(e) => handleAnswerChange(problem.id, e.target.value)}
+                                className="w-48 h-10 mx-1 text-center text-base inline-block rounded-xl bg-slate-50 border-border"
+                                placeholder="정답 입력"
+                                autoComplete="off"
+                              />
+                              <span className="text-lg font-medium text-foreground whitespace-nowrap">
+                                {parts[1]?.trim()}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex-1 flex items-center flex-wrap gap-2 leading-loose">
+                              <span className="text-lg font-medium text-foreground whitespace-nowrap">
+                                <span className="text-muted-foreground mr-1">뜻:</span>
+                                {sentence}
+                              </span>
+                              <Input
+                                value={userAnswers[problem.id] || ''}
+                                onChange={(e) => handleAnswerChange(problem.id, e.target.value)}
+                                className="w-48 h-10 mx-1 text-center text-base inline-block rounded-xl bg-slate-50 border-border"
+                                placeholder="정답 입력"
+                                autoComplete="off"
+                              />
+                            </div>
+                          )}
+                          <div className="flex gap-2 shrink-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => problem.audio_url && playAudio(problem.audio_url, problem.id)}
+                              disabled={!problem.audio_url}
+                              className={`rounded-xl ${!problem.audio_url ? 'opacity-40' : ''}`}
+                            >
+                              <Volume2
+                                className={`w-4 h-4 mr-1 ${
+                                  playingAudio === problem.id ? 'text-primary animate-pulse' : ''
+                                }`}
+                              />
+                              듣기
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => toggleTranslation(problem.id)}
+                              disabled={!problem.translation}
+                              className="rounded-xl"
+                            >
+                              <Lightbulb
+                                className={`w-4 h-4 mr-1 ${showTranslations[problem.id] ? 'text-warning' : ''}`}
+                              />
+                              힌트
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex gap-2 shrink-0">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => problem.audio_url && playAudio(problem.audio_url, problem.id)}
-                            disabled={!problem.audio_url}
-                            className={!problem.audio_url ? 'opacity-40' : ''}
-                          >
-                            <Volume2
-                              className={`w-4 h-4 mr-1 ${
-                                playingAudio === problem.id ? 'text-primary animate-pulse' : ''
-                              }`}
-                            />
-                            듣기
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleTranslation(problem.id)}
-                            disabled={!problem.translation}
-                          >
-                            <Lightbulb
-                              className={`w-4 h-4 mr-1 ${showTranslations[problem.id] ? 'text-warning' : ''}`}
-                            />
-                            힌트
-                          </Button>
-                        </div>
+                        {showTranslations[problem.id] && problem.translation && (
+                          <div className="mt-4 ml-8 px-4 py-3 bg-accent rounded-xl text-sm border border-primary/15 text-foreground">
+                            {maskTranslation(problem.translation)}
+                          </div>
+                        )}
                       </div>
-                      {showTranslations[problem.id] && problem.translation && (
-                        <div className="mt-2 ml-8 px-4 py-2 bg-info/10 rounded-lg text-sm border border-info/30">
-                          {maskTranslation(problem.translation)}
-                        </div>
-                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Navigation */}
-        <div className="flex justify-between pt-4">
-          <Button variant="outline" onClick={handlePrevSet} disabled={currentSetIndex === 0}>
-            <ChevronLeft className="w-4 h-4 mr-1" /> 이전
+        <div className="flex justify-between items-center mt-6 max-w-5xl mx-auto">
+          <Button
+            variant="outline"
+            onClick={handlePrevSet}
+            disabled={currentSetIndex === 0}
+            className="rounded-xl"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" /> 이전 세트
           </Button>
 
           {currentSetIndex === totalSets - 1 ? (
             <Button
               onClick={handleSubmit}
               disabled={!allAnswered()}
-              className="bg-success hover:bg-success/90"
+              className="rounded-xl bg-primary hover:bg-primary/90"
             >
               <CheckCircle className="w-4 h-4 mr-2" />
-              제출하기
+              결과 확인
             </Button>
           ) : (
-            <Button onClick={handleNextSet} disabled={!currentSetAnswered()}>
-              다음 <ChevronRight className="w-4 h-4 ml-1" />
+            <Button onClick={handleNextSet} disabled={!currentSetAnswered()} className="rounded-xl">
+              다음 세트 <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           )}
         </div>

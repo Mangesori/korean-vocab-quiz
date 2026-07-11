@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/popover";
 import { User, Loader2, Eye } from "lucide-react";
 import { QuizResultDialog } from "@/components/quiz/QuizResultDialog";
+import { QuizTypeScoreBadges } from "@/components/quiz/shared/QuizTypeScoreBadges";
 import { Link } from "react-router-dom";
 import { useQuizAssignments } from "@/hooks/useQuizAssignments";
 
@@ -159,61 +160,17 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
     if (!isMultiStage) {
       return getScoreBadge(result.fill_blank_score ?? result.score, result.fill_blank_total ?? result.total_questions);
     }
-    const pct = Math.round(getCombinedPercent(result));
     return (
-      <div className="space-y-1.5">
-        <div className="font-bold text-base">{pct}%</div>
-        <div className="grid grid-cols-3 gap-x-3 gap-y-1 w-fit">
-        {fillBlankEnabled !== false && (
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground">빈칸 채우기</span>
-            {result.fill_blank_score !== null && result.fill_blank_total
-              ? getScoreBadge(result.fill_blank_score, result.fill_blank_total)
-              : <span className="text-muted-foreground">-</span>}
-          </div>
-        )}
-        {matchupEnabled && (
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground">짝 맞추기</span>
-            {result.matchup_score !== null && result.matchup_total
-              ? getScoreBadge(result.matchup_score, result.matchup_total)
-              : <span className="text-muted-foreground">-</span>}
-          </div>
-        )}
-        {typeAnswerEnabled && (
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground">단어 받아쓰기</span>
-            {result.type_answer_score !== null && result.type_answer_total
-              ? getScoreBadge(result.type_answer_score, result.type_answer_total)
-              : <span className="text-muted-foreground">-</span>}
-          </div>
-        )}
-        {wordMagnetEnabled && (
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground">문장 순서 맞추기</span>
-            {result.word_magnet_score !== null && result.word_magnet_total
-              ? getScoreBadge(result.word_magnet_score, result.word_magnet_total)
-              : <span className="text-muted-foreground">-</span>}
-          </div>
-        )}
-        {sentenceMakingEnabled && (
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground">문장 만들기</span>
-            {result.sentence_making_score !== null && result.sentence_making_total
-              ? getScoreBadge(result.sentence_making_score, result.sentence_making_total)
-              : <Badge variant="secondary">미제출</Badge>}
-          </div>
-        )}
-        {recordingEnabled && (
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground">말하기 연습</span>
-            {result.recording_score !== null && result.recording_total
-              ? getScoreBadge(result.recording_score, result.recording_total)
-              : <Badge variant="secondary">미제출</Badge>}
-          </div>
-        )}
-        </div>
-      </div>
+      <QuizTypeScoreBadges
+        result={result}
+        fillBlankEnabled={fillBlankEnabled}
+        matchupEnabled={matchupEnabled}
+        typeAnswerEnabled={typeAnswerEnabled}
+        wordMagnetEnabled={wordMagnetEnabled}
+        sentenceMakingEnabled={sentenceMakingEnabled}
+        recordingEnabled={recordingEnabled}
+        columns={3}
+      />
     );
   };
 
@@ -245,61 +202,17 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
     if (!isMultiStage) {
       return getScoreBadge(result.fill_blank_score ?? result.score, result.fill_blank_total ?? result.total_questions);
     }
-    const pct = Math.round(getCombinedPercent(result));
     return (
-      <div className="space-y-1.5">
-        <div className="font-bold text-base">{pct}%</div>
-        <div className="flex flex-wrap gap-x-3 gap-y-1">
-        {fillBlankEnabled !== false && (
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground">빈칸</span>
-            {result.fill_blank_score !== null && result.fill_blank_total
-              ? getScoreBadge(result.fill_blank_score, result.fill_blank_total)
-              : <span className="text-muted-foreground">-</span>}
-          </div>
-        )}
-        {matchupEnabled && (
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground">짝 맞추기</span>
-            {result.matchup_score !== null && result.matchup_total
-              ? getScoreBadge(result.matchup_score, result.matchup_total)
-              : <span className="text-muted-foreground">-</span>}
-          </div>
-        )}
-        {typeAnswerEnabled && (
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground">단어 받아쓰기</span>
-            {result.type_answer_score !== null && result.type_answer_total
-              ? getScoreBadge(result.type_answer_score, result.type_answer_total)
-              : <span className="text-muted-foreground">-</span>}
-          </div>
-        )}
-        {wordMagnetEnabled && (
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground">문장 순서</span>
-            {result.word_magnet_score !== null && result.word_magnet_total
-              ? getScoreBadge(result.word_magnet_score, result.word_magnet_total)
-              : <span className="text-muted-foreground">-</span>}
-          </div>
-        )}
-        {sentenceMakingEnabled && (
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground">문장</span>
-            {result.sentence_making_score !== null && result.sentence_making_total
-              ? getScoreBadge(result.sentence_making_score, result.sentence_making_total)
-              : <Badge variant="secondary">미제출</Badge>}
-          </div>
-        )}
-        {recordingEnabled && (
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground">말하기</span>
-            {result.recording_score !== null && result.recording_total
-              ? getScoreBadge(result.recording_score, result.recording_total)
-              : <Badge variant="secondary">미제출</Badge>}
-          </div>
-        )}
-        </div>
-      </div>
+      <QuizTypeScoreBadges
+        result={result}
+        fillBlankEnabled={fillBlankEnabled}
+        matchupEnabled={matchupEnabled}
+        typeAnswerEnabled={typeAnswerEnabled}
+        wordMagnetEnabled={wordMagnetEnabled}
+        sentenceMakingEnabled={sentenceMakingEnabled}
+        recordingEnabled={recordingEnabled}
+        columns={2}
+      />
     );
   };
 
@@ -353,11 +266,6 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>총 {results.length}건의 제출</span>
-          {results.length > 0 && (
-            <span>
-              평균 정답률 {Math.round(results.reduce((acc, curr) => acc + getCombinedPercent(curr), 0) / results.length)}%
-            </span>
-          )}
         </div>
 
         <div className="flex gap-2 w-full sm:w-auto">

@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Navbar } from '@/components/layout/Navbar';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { formatDateShort } from '@/lib/formatDate';
+import { toast } from 'sonner';
 import {
   Loader2,
   Search,
@@ -37,15 +38,26 @@ interface WrongAnswer {
   translation: string | null;
   audio_url: string | null;
   completed_at: string;
+  source: string;
 }
 
-// 그룹별로 모으는 문장 단위 항목 (문장마다 정답/내 답/번역이 다를 수 있음)
+// 그룹별로 모으는 오답 단위 항목 (항목마다 유형/정답/내 답/번역이 다를 수 있음)
 interface GroupedSentence {
   raw: string;
   answer: string;
   user_answer: string;
   translation: string | null;
+  audio_url: string | null;
+  source: string;
 }
+
+// 퀴즈 유형(source) → 한국어 라벨
+const SOURCE_LABEL: Record<string, string> = {
+  fill_blank: '빈칸 채우기',
+  matchup: '짝 맞추기',
+  type_answer: '단어 받아쓰기',
+  word_magnet: '문장 순서 맞추기',
+};
 
 type GroupedItem = WrongAnswer & {
   count: number;
@@ -102,6 +114,7 @@ export default function WrongAnswerNotebook() {
         translation: row.translation ?? null,
         audio_url: row.audio_url ?? null,
         completed_at: row.completed_at ?? '',
+        source: row.source || 'fill_blank',
       }));
 
       return wrongAnswersList;
@@ -152,7 +165,16 @@ export default function WrongAnswerNotebook() {
     const map = new Map<string, GroupedItem>();
     filteredWrongAnswers?.forEach((item) => {
       const ex = map.get(item.word);
-      const sentenceKey = `${item.sentence}|${item.correct_answer}`;
+      // 유형+문장+정답으로 dedup (문장이 없는 유형도 정답으로 구분됨)
+      const entryKey = `${item.source}|${item.sentence}|${item.correct_answer}`;
+      const makeEntry = (): GroupedSentence => ({
+        raw: item.sentence,
+        answer: item.correct_answer,
+        user_answer: item.user_answer,
+        translation: item.translation,
+        audio_url: item.audio_url,
+        source: item.source,
+      });
       if (ex) {
         ex.count++;
         // 대표 항목은 가장 최근에 틀린 것으로 유지 (sentences 는 보존)
@@ -160,27 +182,15 @@ export default function WrongAnswerNotebook() {
           const keepSentences = ex.sentences;
           Object.assign(ex, item, { count: ex.count, sentences: keepSentences });
         }
-        // 문장 dedup 후 추가
-        if (item.sentence && !ex.sentences.some((s) => `${s.raw}|${s.answer}` === sentenceKey)) {
-          ex.sentences.push({
-            raw: item.sentence,
-            answer: item.correct_answer,
-            user_answer: item.user_answer,
-            translation: item.translation,
-          });
+        // 항목 dedup 후 추가 (문장 유무와 무관하게 모든 유형 수집)
+        if (!ex.sentences.some((s) => `${s.source}|${s.raw}|${s.answer}` === entryKey)) {
+          ex.sentences.push(makeEntry());
         }
       } else {
         map.set(item.word, {
           ...item,
           count: 1,
-          sentences: item.sentence
-            ? [{
-                raw: item.sentence,
-                answer: item.correct_answer,
-                user_answer: item.user_answer,
-                translation: item.translation,
-              }]
-            : [],
+          sentences: [makeEntry()],
         });
       }
     });
@@ -198,6 +208,7 @@ export default function WrongAnswerNotebook() {
   );
 
   const totalCount = wrongAnswers?.length || 0;
+  const uniqueWordCount = new Set((wrongAnswers ?? []).map((w) => w.word)).size;
 
   if (authLoading || isLoading) {
     return (
@@ -250,28 +261,53 @@ export default function WrongAnswerNotebook() {
     setSelectedIds(new Set());
   };
 
-  // 연습 퀴즈 시작 (선택된 단어의 대표 항목을 PracticeProblem 형식으로 직렬화)
+  // 연습 퀴즈 시작 — 빈칸 채우기/받아쓰기만 지원, 짝맞추기·문장순서는 제외
   const startPracticeQuiz = () => {
     const selectedGroups = visibleGroups.filter((g) => selectedIds.has(g.word));
     if (selectedGroups.length === 0) return;
 
-    const practiceProblems = selectedGroups.map((g) => ({
-      id: g.id,
-      word: g.word,
-      correct_answer: g.correct_answer,
-      sentence: g.sentence,
-      translation: g.translation,
-      audio_url: g.audio_url,
-    }));
+    let excluded = 0;
+    const practiceProblems = selectedGroups
+      .map((g) => {
+        // 지원 유형 우선순위: 빈칸 채우기 → 받아쓰기
+        const entry =
+          g.sentences.find((s) => s.source === 'fill_blank') ??
+          g.sentences.find((s) => s.source === 'type_answer');
+
+        if (!entry) {
+          // 짝맞추기·문장순서만 틀린 단어는 연습 불가
+          excluded++;
+          return null;
+        }
+
+        return {
+          id: g.id,
+          word: g.word,
+          correct_answer: entry.answer,
+          sentence: entry.raw,
+          translation: entry.translation,
+          audio_url: entry.audio_url,
+          source: entry.source,
+        };
+      })
+      .filter((p): p is NonNullable<typeof p> => p !== null);
+
+    if (excluded > 0) {
+      toast.info(`짝맞추기·문장순서 유형 ${excluded}개는 연습에서 제외했어요`);
+    }
+
+    if (practiceProblems.length === 0) {
+      toast.info('연습할 수 있는 빈칸/받아쓰기 오답이 없어요');
+      return;
+    }
 
     localStorage.setItem('practice_problems', JSON.stringify(practiceProblems));
     navigate('/wrong-answers/practice');
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
-      <Navbar />
-      <main className="container max-w-4xl mx-auto px-4 py-8">
+    <AppLayout>
+      <div className="container max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6">
           <Button
             variant="ghost"
@@ -289,7 +325,9 @@ export default function WrongAnswerNotebook() {
             <FileX className="h-6 w-6" />
             오답 노트
           </h1>
-          <p className="text-muted-foreground mt-1">총 {totalCount}개의 오답</p>
+          <p className="text-muted-foreground mt-1">
+            총 {uniqueWordCount}개 단어 · 오답 {totalCount}회
+          </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -382,7 +420,10 @@ export default function WrongAnswerNotebook() {
                     <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold text-sm shrink-0">
                       {item.word}
                     </span>
-                    <span className="text-xs text-muted-foreground truncate">
+                    <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-medium shrink-0">
+                      {SOURCE_LABEL[item.source] ?? '빈칸 채우기'}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate hidden sm:inline">
                       {item.quiz_title}
                     </span>
                     {item.count > 1 && (
@@ -414,26 +455,45 @@ export default function WrongAnswerNotebook() {
                   {/* 펼침(상세) — 문장별: 문장 → 번역 → 내 답변 */}
                   {isExpanded && (
                     <div className="border-t px-4 py-3 space-y-3">
-                      {item.sentences.map((s, idx) => (
-                        <div key={idx} className="space-y-0.5">
-                          <p className="text-sm leading-relaxed">
-                            {renderSentence(s.raw, s.answer)}
-                          </p>
-                          {s.translation && (
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                              {s.translation}
-                            </p>
-                          )}
-                          <div className="flex items-baseline gap-2 pt-0.5">
-                            <span className="shrink-0 px-2 py-0.5 rounded-md bg-destructive/10 text-destructive text-[11px] font-semibold">
-                              내 답변
-                            </span>
-                            <span className="text-xs text-destructive font-medium">
-                              {s.user_answer || '(입력 없음)'}
-                            </span>
+                      {item.sentences.map((s, idx) => {
+                        const hasBlank = /\(\s*\)|\(\)/.test(s.raw);
+                        return (
+                          <div key={idx} className="space-y-0.5">
+                            {hasBlank ? (
+                              // 빈칸 채우기: 문장 안에 정답을 채워 초록 강조
+                              <p className="text-sm leading-relaxed">
+                                {renderSentence(s.raw, s.answer)}
+                              </p>
+                            ) : (
+                              // 문장이 없는 유형(짝맞추기/문장순서) 또는 프롬프트형(받아쓰기): 정답을 따로 표시
+                              <>
+                                {s.raw && (
+                                  <p className="text-sm text-muted-foreground leading-relaxed">
+                                    {s.raw}
+                                  </p>
+                                )}
+                                <p className="text-sm leading-relaxed">
+                                  <span className="text-xs text-muted-foreground mr-1.5">정답</span>
+                                  <span className="text-success font-bold">{s.answer}</span>
+                                </p>
+                              </>
+                            )}
+                            {s.translation && (
+                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                {s.translation}
+                              </p>
+                            )}
+                            <div className="flex items-baseline gap-2 pt-0.5">
+                              <span className="shrink-0 px-2 py-0.5 rounded-md bg-destructive/10 text-destructive text-[11px] font-semibold">
+                                내 답변
+                              </span>
+                              <span className="text-xs text-destructive font-medium">
+                                {s.user_answer || '(입력 없음)'}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -441,7 +501,7 @@ export default function WrongAnswerNotebook() {
             })}
           </div>
         )}
-      </main>
+      </div>
 
       {/* 플로팅 바 - 선택 모드일 때 표시 */}
       {isSelectionMode && (
@@ -463,6 +523,6 @@ export default function WrongAnswerNotebook() {
           </div>
         </div>
       )}
-    </div>
+    </AppLayout>
   );
 }

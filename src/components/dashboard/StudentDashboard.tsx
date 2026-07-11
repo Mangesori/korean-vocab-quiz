@@ -29,6 +29,7 @@ import { LevelBadge } from '@/components/ui/level-badge';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { QuizTypeScoreBadges } from "@/components/quiz/shared/QuizTypeScoreBadges";
 
 interface Assignment {
   id: string;
@@ -57,10 +58,20 @@ interface Result {
   sentence_making_total: number | null;
   recording_score: number | null;
   recording_total: number | null;
+  matchup_score: number | null;
+  matchup_total: number | null;
+  type_answer_score: number | null;
+  type_answer_total: number | null;
+  word_magnet_score: number | null;
+  word_magnet_total: number | null;
   quizzes: {
     title: string;
+    fill_blank_enabled: boolean;
     sentence_making_enabled: boolean;
     recording_enabled: boolean;
+    matchup_enabled: boolean;
+    type_answer_enabled: boolean;
+    word_magnet_enabled: boolean;
   } | null;
 }
 
@@ -91,14 +102,6 @@ function CircleProgress({ percent }: { percent: number }) {
       </text>
     </svg>
   );
-}
-
-function ScorePill({ score, total }: { score: number | null; total: number | null }) {
-  if (score === null || total === null)
-    return <span className="text-muted-foreground text-xs">—</span>;
-  const pct = total > 0 ? Math.round((score / total) * 100) : 0;
-  const color = pct >= 80 ? 'text-success' : pct >= 60 ? 'text-warning' : 'text-destructive';
-  return <span className={`font-mono font-bold text-sm ${color}`}>{score}/{total}</span>;
 }
 
 export default function StudentDashboard() {
@@ -157,10 +160,20 @@ export default function StudentDashboard() {
           sentence_making_total,
           recording_score,
           recording_total,
+          matchup_score,
+          matchup_total,
+          type_answer_score,
+          type_answer_total,
+          word_magnet_score,
+          word_magnet_total,
           quizzes (
             title,
+            fill_blank_enabled,
             sentence_making_enabled,
-            recording_enabled
+            recording_enabled,
+            matchup_enabled,
+            type_answer_enabled,
+            word_magnet_enabled
           )
         `)
         .eq('student_id', user!.id)
@@ -649,9 +662,7 @@ export default function StudentDashboard() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>퀴즈</TableHead>
-                      <TableHead className="whitespace-nowrap text-center">빈칸</TableHead>
-                      <TableHead className="whitespace-nowrap text-center">문장</TableHead>
-                      <TableHead className="whitespace-nowrap text-center">말하기</TableHead>
+                      <TableHead className="whitespace-nowrap">점수</TableHead>
                       <TableHead className="whitespace-nowrap">날짜</TableHead>
                       <TableHead />
                     </TableRow>
@@ -669,22 +680,17 @@ export default function StudentDashboard() {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="text-center">
-                          <ScorePill score={result.fill_blank_score} total={result.fill_blank_total} />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {result.quizzes?.sentence_making_enabled ? (
-                            <ScorePill score={result.sentence_making_score} total={result.sentence_making_total} />
-                          ) : (
-                            <span className="text-muted-foreground text-xs">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {result.quizzes?.recording_enabled ? (
-                            <ScorePill score={result.recording_score} total={result.recording_total} />
-                          ) : (
-                            <span className="text-muted-foreground text-xs">—</span>
-                          )}
+                        <TableCell>
+                          <QuizTypeScoreBadges
+                            result={result}
+                            fillBlankEnabled={result.quizzes?.fill_blank_enabled}
+                            matchupEnabled={result.quizzes?.matchup_enabled}
+                            typeAnswerEnabled={result.quizzes?.type_answer_enabled}
+                            wordMagnetEnabled={result.quizzes?.word_magnet_enabled}
+                            sentenceMakingEnabled={result.quizzes?.sentence_making_enabled}
+                            recordingEnabled={result.quizzes?.recording_enabled}
+                            columns={2}
+                          />
                         </TableCell>
                         <TableCell className="text-muted-foreground whitespace-nowrap font-mono text-[11px]">
                           {format(new Date(result.completed_at), 'MM-dd')}
