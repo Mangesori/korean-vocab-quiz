@@ -507,7 +507,7 @@ export default function QuizShareResult() {
 
               <div className="mt-6 border-t border-slate-100 pt-5 space-y-4 px-1 sm:px-3">
                 <div className="text-lg">
-                  {renderSentenceWithFeedback(problem.sentence, wordFeedback, isPassed)}
+                  {renderSentenceWithFeedback(problem.sentence, wordFeedback, isPassed, recognizedText)}
                 </div>
 
                 {recognizedText && (

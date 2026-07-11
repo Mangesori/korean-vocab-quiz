@@ -184,7 +184,7 @@ export function SpeakingResultStage({
 
                 <div className="mt-6 border-t border-slate-100 pt-5 space-y-4 sm:px-3">
                   <div className="text-lg pl-3">
-                    {renderSentenceWithFeedback(problem.sentence, best.wordLevelFeedback, best.isPassed)}
+                    {renderSentenceWithFeedback(problem.sentence, best.wordLevelFeedback, best.isPassed, best.recognizedText)}
                   </div>
 
                   {best.recognizedText && (

@@ -46,26 +46,39 @@ function getAccuracyColorClass(score: number): string {
 export function renderSentenceWithFeedback(
   sentence: string,
   wordFeedback?: { word: string; accuracyScore: number }[],
-  isPassed?: boolean
+  isPassed?: boolean,
+  recognizedText?: string
 ) {
-  if (!wordFeedback || wordFeedback.length === 0) {
+  const clean = (w: string) => w.replace(/[.,!?。，！？]/g, "");
+  const wordScores = new Map(
+    (wordFeedback ?? []).map((w) => [clean(w.word), w.accuracyScore])
+  );
+  // 점수 없는 단어를 판정할 때 쓰는 인식문 자모 토큰(있을 때만).
+  const recJamo = recognizedText
+    ? recognizedText.trim().split(/\s+/).map((w) => toJamo(clean(w)))
+    : null;
+
+  // 점수도 인식문도 없으면: 합격이면 초록, 아니면 중립.
+  if (wordScores.size === 0 && !recJamo) {
     return <span className={isPassed ? "text-success font-bold" : "font-bold text-slate-700"}>{sentence}</span>;
   }
-  const wordScores = new Map(
-    wordFeedback.map((w) => [w.word.replace(/[.,!?。，！？]/g, ""), w.accuracyScore])
-  );
-  const hasAttentionWords = wordFeedback.some((w) => w.accuracyScore < 75);
-  // 전체를 초록으로 칠하는 지름길은 합격일 때만 적용. 불합격이면 per-word로 렌더한다.
-  if (!hasAttentionWords && isPassed) {
-    return <span className="text-success font-bold">{sentence}</span>;
-  }
+
   return (
     <span className="font-bold">
       {sentence.split(/(\s+)/).map((word, idx) => {
-        const clean = word.replace(/[.,!?。，！？]/g, "");
-        const score = wordScores.get(clean);
-        // 매칭 실패 단어는 중립 회색으로(모르면 초록이 아니라 회색).
-        const colorClass = score === undefined ? "text-slate-400" : getAccuracyColorClass(score);
+        if (/^\s+$/.test(word)) return <span key={idx}>{word}</span>;
+        const score = wordScores.get(clean(word));
+        let colorClass: string;
+        if (score !== undefined) {
+          // CLOVA 점수가 있으면 점수 색.
+          colorClass = getAccuracyColorClass(score);
+        } else if (recJamo) {
+          // 점수 없음 → 인식문과 자모 비교: 제대로 들렸으면 초록, 다르게 들렸으면 빨강.
+          colorClass = recJamo.includes(toJamo(clean(word))) ? "text-success" : "text-destructive";
+        } else {
+          // 점수도 인식문도 없을 때만 중립 회색.
+          colorClass = "text-slate-400";
+        }
         return <span key={idx} className={colorClass}>{word}</span>;
       })}
     </span>

@@ -619,7 +619,7 @@ function RecordingView({
               </div>
 
               <div className="mt-4 border-t border-slate-100 pt-4 text-lg pl-3 space-y-3">
-                {renderSentenceWithFeedback(problem.sentence, best.word_level_feedback, best.is_passed)}
+                {renderSentenceWithFeedback(problem.sentence, best.word_level_feedback, best.is_passed, best.recognized_text)}
                 {best.recognized_text && (
                   <div className="flex items-start gap-2">
                     <Ear className="w-4 h-4 text-slate-400 shrink-0 mt-1" />
