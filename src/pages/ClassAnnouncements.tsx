@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { supabase } from '@/integrations/supabase/client';
-import { Navbar } from '@/components/layout/Navbar';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -208,9 +208,8 @@ export default function ClassAnnouncements() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="container max-w-4xl mx-auto px-4 py-8">
+    <AppLayout>
+      <div className="container max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6">
           <Link to={`/class/${classId}`}>
             <Button variant="ghost" size="sm" className="gap-2">
@@ -388,7 +387,7 @@ export default function ClassAnnouncements() {
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 }
