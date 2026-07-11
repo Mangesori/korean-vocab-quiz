@@ -479,7 +479,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
 
               {/* 단어별 점수에 따라 빨강/노랑/초록으로 표시 */}
               <p className="text-base sm:text-lg text-center py-2">
-                {renderSentenceWithFeedback(currentProblem.sentence, lastAttempt.wordLevelFeedback)}
+                {renderSentenceWithFeedback(currentProblem.sentence, lastAttempt.wordLevelFeedback, lastAttempt.isPassed, lastAttempt.recognizedText)}
               </p>
 
               {/* CLOVA가 실제 인식한 문장 */}
