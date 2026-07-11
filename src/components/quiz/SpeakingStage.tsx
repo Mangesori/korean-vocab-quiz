@@ -13,12 +13,13 @@ import {
   RefreshCw,
   Lightbulb,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Ear
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { renderSentenceWithFeedback } from "@/components/quiz/quizResultUtils";
+import { renderSentenceWithFeedback, renderRecognizedText } from "@/components/quiz/quizResultUtils";
 
 interface SpeakingProblem {
   id: string;
@@ -35,6 +36,7 @@ interface SpeakingAttempt {
   overallScore: number;
   wordLevelFeedback: { word: string; accuracyScore: number; errorType?: string }[];
   isPassed: boolean;
+  recognizedText?: string;
 }
 
 interface SpeakingStageProps {
@@ -273,6 +275,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
         overallScore: data.overallScore,
         wordLevelFeedback: data.wordLevelFeedback,
         isPassed: data.isPassed,
+        recognizedText: data.text,
       };
 
       setAttempts((prev) => ({
@@ -478,6 +481,16 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
               <p className="text-base sm:text-lg text-center py-2">
                 {renderSentenceWithFeedback(currentProblem.sentence, lastAttempt.wordLevelFeedback)}
               </p>
+
+              {/* CLOVA가 실제 인식한 문장 */}
+              {lastAttempt.recognizedText && (
+                <div className="flex items-start justify-center gap-2 pt-1">
+                  <Ear className="w-4 h-4 text-slate-400 shrink-0 mt-1" />
+                  <p className="text-sm sm:text-base text-center">
+                    {renderRecognizedText(lastAttempt.recognizedText, currentProblem.sentence)}
+                  </p>
+                </div>
+              )}
             </div>
           )}
           {/* 다음/다시 시도 버튼 */}

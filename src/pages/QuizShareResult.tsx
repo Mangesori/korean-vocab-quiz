@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, HelpCircle, Volume2, Lightbulb, FileText, Pencil, Mic, Loader2, Bookmark, ChevronRight, Link2, Keyboard, Magnet } from "lucide-react";
+import { CheckCircle, XCircle, HelpCircle, Volume2, Lightbulb, FileText, Pencil, Mic, Loader2, Bookmark, ChevronRight, Link2, Keyboard, Magnet, Ear } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { QuizReviewCard } from "@/components/quiz/QuizReviewCard";
 import { WordPairResultCard } from "@/components/quiz/shared/WordPairResultCard";
 import { WordMagnetResultCard } from "@/components/quiz/shared/WordMagnetResultCard";
 import { FeedbackPromptCard } from "@/components/feedback/FeedbackPromptCard";
-import { renderSentenceWithDiff, renderModelAnswerWithDiff, renderSentenceWithFeedback, generateSpeakingFeedback, type SpeakingFeedbackInput } from "@/components/quiz/quizResultUtils";
+import { renderSentenceWithDiff, renderModelAnswerWithDiff, renderSentenceWithFeedback, renderRecognizedText, generateSpeakingFeedback, type SpeakingFeedbackInput } from "@/components/quiz/quizResultUtils";
 import type { MatchUpProblemData, MatchUpResult } from "@/components/quiz/MatchUpStage";
 import type { TypeAnswerGradeResult } from "@/components/quiz/TypeAnswerStage";
 import type { WordMagnetGradeResult } from "@/components/quiz/WordMagnetResultStage";
@@ -428,6 +428,7 @@ export default function QuizShareResult() {
         const lastAttempt = attempts[attempts.length - 1];
         const isPassed = (lastAttempt as any)?.isPassed ?? lastAttempt?.is_passed ?? false;
         const wordFeedback = (lastAttempt as any)?.wordLevelFeedback ?? lastAttempt?.word_level_feedback ?? [];
+        const recognizedText = (lastAttempt as any)?.recognizedText ?? (lastAttempt as any)?.recognized_text;
         const speakingFeedbackInput: SpeakingFeedbackInput = lastAttempt ? {
           isPassed,
           overallScore: (lastAttempt as any)?.overallScore ?? lastAttempt?.overall_score ?? 0,
@@ -508,6 +509,15 @@ export default function QuizShareResult() {
                 <div className="text-lg">
                   {renderSentenceWithFeedback(problem.sentence, wordFeedback, isPassed)}
                 </div>
+
+                {recognizedText && (
+                  <div className="flex items-start gap-2">
+                    <Ear className="w-4 h-4 text-slate-400 shrink-0 mt-1" />
+                    <p className="text-base">
+                      {renderRecognizedText(recognizedText, problem.sentence)}
+                    </p>
+                  </div>
+                )}
 
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
                   <p className="text-sm text-slate-600 leading-relaxed break-keep">{lastAttempt ? generateSpeakingFeedback(speakingFeedbackInput) : ""}</p>

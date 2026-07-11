@@ -797,6 +797,7 @@ export default function QuizTake() {
                   accuracy_score: attempt.accuracyScore,
                   overall_score: attempt.overallScore,
                   word_level_feedback: attempt.wordLevelFeedback,
+                  recognized_text: attempt.recognizedText ?? null,
                   is_passed: attempt.isPassed,
                 });
               }
@@ -953,6 +954,7 @@ export default function QuizTake() {
               accuracy_score: attempt.accuracyScore,
               overall_score: attempt.overallScore,
               word_level_feedback: attempt.wordLevelFeedback,
+              recognized_text: attempt.recognizedText ?? null,
               is_passed: attempt.isPassed,
             });
           }
@@ -1426,6 +1428,7 @@ export default function QuizTake() {
             accuracy_score: attempt.accuracyScore,
             overall_score: attempt.overallScore,
             word_level_feedback: attempt.wordLevelFeedback,
+            recognized_text: attempt.recognizedText ?? null,
             is_passed: attempt.isPassed,
           });
         }

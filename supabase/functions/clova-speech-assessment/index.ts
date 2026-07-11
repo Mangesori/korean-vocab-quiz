@@ -28,6 +28,7 @@ interface AssessmentResponse {
   overallScore: number;
   wordLevelFeedback: WordFeedback[];
   isPassed: boolean;
+  text: string;
 }
 
 // Base64 to ArrayBuffer 변환
@@ -43,7 +44,7 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 
 // 클로바 assessment_details 문자열 파싱
 // 예: "그분은|{그(gɯ):65, 분(bʊn):100, 은(ɯn):99} 젊었을|{젊(t͡ɕʌlm):39, 었(ʌs):100, 을(ɯl):99}"
-// 단어별로 묶어서, 그 단어에 속한 음절 점수 중 최솟값을 단어 점수로 사용
+// 단어별로 묶어서, 그 단어에 속한 음절 점수의 평균을 단어 점수로 사용
 function parseAssessmentDetails(details: string): WordFeedback[] {
   const results: WordFeedback[] = [];
   const wordPattern = /(\S+)\|\{([^}]*)\}/g;
@@ -53,7 +54,7 @@ function parseAssessmentDetails(details: string): WordFeedback[] {
     const syllablesRaw = match[2];
     const scores = [...syllablesRaw.matchAll(/:(\d+)/g)].map((m) => Number(m[1]));
     if (scores.length === 0) continue;
-    results.push({ word, accuracyScore: Math.min(...scores) });
+    results.push({ word, accuracyScore: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) });
   }
   return results;
 }
@@ -132,6 +133,7 @@ serve(async (req) => {
           overallScore,
           wordLevelFeedback,
           isPassed: overallScore >= 60,
+          text: typeof result.text === "string" ? result.text : "",
         };
       } else {
         console.warn("No assessment_score in response:", JSON.stringify(result));
@@ -140,6 +142,7 @@ serve(async (req) => {
           overallScore: 0,
           wordLevelFeedback: [],
           isPassed: false,
+          text: "",
         };
       }
 

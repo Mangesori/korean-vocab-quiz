@@ -47,6 +47,7 @@ export interface RecordingAnswerDetail {
   prosody_score: number;
   overall_score: number;
   word_level_feedback: { word: string; accuracyScore: number; errorType?: string }[];
+  recognized_text: string | null;
   is_passed: boolean;
 }
 

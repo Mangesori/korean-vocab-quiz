@@ -1,3 +1,5 @@
+import { toJamo } from "@/utils/hangul";
+
 export function renderSentenceWithDiff(
   studentSentence: string,
   modelAnswer: string | null | undefined,
@@ -47,13 +49,14 @@ export function renderSentenceWithFeedback(
   isPassed?: boolean
 ) {
   if (!wordFeedback || wordFeedback.length === 0) {
-    return <span className={isPassed ? "text-success font-bold" : ""}>{sentence}</span>;
+    return <span className={isPassed ? "text-success font-bold" : "font-bold text-slate-700"}>{sentence}</span>;
   }
   const wordScores = new Map(
     wordFeedback.map((w) => [w.word.replace(/[.,!?。，！？]/g, ""), w.accuracyScore])
   );
   const hasAttentionWords = wordFeedback.some((w) => w.accuracyScore < 75);
-  if (!hasAttentionWords) {
+  // 전체를 초록으로 칠하는 지름길은 합격일 때만 적용. 불합격이면 per-word로 렌더한다.
+  if (!hasAttentionWords && isPassed) {
     return <span className="text-success font-bold">{sentence}</span>;
   }
   return (
@@ -61,10 +64,29 @@ export function renderSentenceWithFeedback(
       {sentence.split(/(\s+)/).map((word, idx) => {
         const clean = word.replace(/[.,!?。，！？]/g, "");
         const score = wordScores.get(clean);
-        const colorClass = score === undefined ? "text-success" : getAccuracyColorClass(score);
+        // 매칭 실패 단어는 중립 회색으로(모르면 초록이 아니라 회색).
+        const colorClass = score === undefined ? "text-slate-400" : getAccuracyColorClass(score);
         return <span key={idx} className={colorClass}>{word}</span>;
       })}
     </span>
+  );
+}
+
+// CLOVA가 실제 인식한 문장을 표시하며, 기준 문장과 자모 단위로 비교해 다른 단어를 강조한다.
+export function renderRecognizedText(recognized: string, reference: string) {
+  const clean = (w: string) => w.replace(/[.,!?。，！？]/g, "");
+  const recognizedWords = recognized.trim().split(/\s+/);
+  const refJamo = reference.trim().split(/\s+/).map((w) => toJamo(clean(w)));
+  return (
+    <>
+      {recognizedWords.map((word, idx) => {
+        const wj = toJamo(clean(word));
+        const isMatch = refJamo[idx] === wj || refJamo.includes(wj);
+        return isMatch
+          ? <span key={idx} className="mr-1.5 text-slate-500">{word}</span>
+          : <span key={idx} className="text-destructive font-semibold mr-1.5 border-b-2 border-destructive/30">{word}</span>;
+      })}
+    </>
   );
 }
 
