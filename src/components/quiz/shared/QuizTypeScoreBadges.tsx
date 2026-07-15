@@ -27,7 +27,7 @@ interface QuizTypeScoreBadgesProps {
   wordMagnetEnabled?: boolean;
   sentenceMakingEnabled?: boolean;
   recordingEnabled?: boolean;
-  /** 3 = 선생님 데스크톱, 2 = 모바일·학생 대시보드, 1 = 세로 나열. */
+  /** 열 수. 3 = 선생님 데스크톱, 2 = 모바일·학생 대시보드, 1 = 세로 나열. */
   columns?: 1 | 2 | 3;
 }
 

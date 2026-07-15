@@ -331,6 +331,7 @@ export default function QuizDetail() {
                       translationLanguage: quiz.translation_language,
                       wordsPerSet: 1,
                       apiProvider: quiz.api_provider as "openai" | "gemini" | "gemini-pro" | undefined,
+                      purpose: "regenerate",
                     },
                  });
                  if (error || data.error) throw new Error(data?.error || "Regeneration failed");
@@ -368,6 +369,7 @@ export default function QuizDetail() {
                       translationLanguage: quiz.translation_language,
                       wordsPerSet: quiz.words_per_set,
                       apiProvider: quiz.api_provider as "openai" | "gemini" | "gemini-pro" | undefined,
+                      purpose: "regenerate",
                     },
                 });
                  if (error || data.error) throw new Error(data?.error || "Regeneration failed");
@@ -458,6 +460,7 @@ export default function QuizDetail() {
           sentenceMakingEnabled: true,
           recordingEnabled: false,
           skipFillBlank: true,
+          purpose: "regenerate",
         },
       });
 

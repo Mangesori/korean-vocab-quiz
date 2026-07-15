@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { supabase } from '@/integrations/supabase/client';
+import { readEdgeFunctionError, isQuotaExceeded, quizInsertErrorMessage } from '@/lib/supabaseErrors';
 import type { TablesInsert } from '@/integrations/supabase/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -220,8 +221,9 @@ async function retryRegeneration(
 ) {
   const toastId = toast.loading('새 예문 생성 중...');
   try {
+    // 이미 저장된 퀴즈의 problems만 갈아끼우므로 새 퀴즈를 만들지 않는다 → 한도 사전 체크 대상 아님.
     const { data, error } = await supabase.functions.invoke<GenerateQuizResponse>('generate-quiz', {
-      body: { words, difficulty, translationLanguage, wordsPerSet: 5 },
+      body: { words, difficulty, translationLanguage, wordsPerSet: 5, purpose: 'regenerate' },
     });
     if (error || !data?.problems?.length) throw error ?? new Error('problems 없음');
 
@@ -449,13 +451,22 @@ export default function WrongAnswerQuizCreate() {
               translationLanguage,
               wordsPerSet: 5,
               typeAnswerEnabled,
+              // 바로 아래에서 quizzes에 INSERT하는 새 퀴즈다 → 한도 사전 체크 대상.
+              purpose: 'create',
             },
           }
         );
 
         if (genError || !genData?.problems?.length) {
-          // 예전엔 여기서 조용히 기존 문장으로 폴백해 선생님이 실패를 몰랐다.
-          // 이제는 폴백은 유지하되 onSuccess에서 알리고 재시도를 제공한다.
+          // 한도 초과면 아래 INSERT가 트리거에 어차피 막힌다. 여기서 조용히 폴백하면
+          // 그때까지 헛일을 하고, 뜻을 못 구해 '받아쓰기에 쓸 단어 뜻이 없어요' 같은
+          // 엉뚱한 문구로 끝날 수도 있다. 한도 문구를 그대로 올린다.
+          if (genError) {
+            const parsed = await readEdgeFunctionError(genError, '새 예문 생성에 실패했어요');
+            if (isQuotaExceeded(parsed)) throw new Error(parsed.message);
+          }
+          // 그 외 실패는 예전처럼 기존 문장으로 폴백하되(선생님이 실패를 모르지 않도록)
+          // onSuccess에서 알리고 재시도를 제공한다.
           if (regenerate) regenerateFailed = true;
         } else {
           if (regenerate) problems = genData.problems;
@@ -506,7 +517,9 @@ export default function WrongAnswerQuizCreate() {
         .select()
         .single();
 
-      if (error) throw error;
+      // 한도 트리거(enforce_quiz_quota)에 막히면 트리거가 던진 한국어 문구가 여기로 온다.
+      // onError가 message를 그대로 띄우므로, 그 외 DB 에러(영문)는 헬퍼가 fallback으로 덮는다.
+      if (error) throw new Error(quizInsertErrorMessage(error, '퀴즈를 만들지 못했어요'));
 
       let typeAnswerDropped = false;
       if (typeAnswerReady) {

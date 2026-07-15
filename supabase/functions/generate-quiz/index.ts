@@ -9,12 +9,40 @@ const corsHeaders = {
 
 console.log("Loading generate-quiz function...");
 
+// 아래 두 문구는 quizzes 트리거(enforce_quiz_quota)가 던지는 문장과 글자까지 같아야 한다.
+// 사전 체크(이 함수)와 저장 시 트리거는 같은 상황에서 같은 말을 해야 하기 때문이다.
+// 트리거 쪽 문장을 고치면 여기도 같이 고칠 것 —
+// supabase/migrations/20260716000000_add_plan_limits_and_quota_trigger.sql
+const QUOTA_UNKNOWN_MESSAGE =
+  "퀴즈 생성 한도를 확인할 수 없어서 퀴즈를 만들지 못했어요. 잠시 후 다시 시도해 주세요.";
+
+function quotaExceededMessage(quizLimit: number, period: string | null): string {
+  // 트리거의 CASE _period WHEN 'week' THEN '이번 주' ELSE '이번 달' END 와 같은 규칙.
+  const periodLabel = period === "week" ? "이번 주" : "이번 달";
+  // 업그레이드 안내는 일부러 없다 — 지금은 결제 연동도 요금제 페이지도 없어서(체험 기간 파킹)
+  // 올릴 방법 자체가 없기 때문. 구독제 시작 시 트리거와 함께 문구를 고칠 것.
+  return `${periodLabel} 퀴즈 생성 한도(${quizLimit}개)를 다 썼어요`;
+}
+
+// quiz_quota_status RPC의 반환 형태.
+interface QuotaStatus {
+  plan: string | null;
+  quiz_limit: number | null;
+  period: string | null;
+  used: number | null;
+  allowed: boolean;
+}
+
 interface QuizRequest {
   words: string[];
   difficulty: string;
   translationLanguage: string;
   wordsPerSet: number;
   regenerateSingle?: boolean;
+  // 'create' = 새 퀴즈를 만드는 호출(한도 사전 체크 대상).
+  // 'regenerate' = 이미 저장된 퀴즈의 문제만 다시 만드는 호출(INSERT가 없어 한도와 무관).
+  // 안 보내면 'create'로 본다 — 아래 사전 체크 주석 참고.
+  purpose?: "create" | "regenerate";
   sentenceMakingEnabled?: boolean;
   recordingEnabled?: boolean;
   recordingMode?: "read" | "listen" | "mixed";
@@ -479,26 +507,8 @@ serve(async (req) => {
       );
     }
 
-    if (profileData.role === 'teacher') {
-      const MONTHLY_LIMIT = 10;
-      const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-
-      const { count, error: countError } = await supabase
-        .from('quizzes')
-        .select('*', { count: 'exact', head: true })
-        .eq('teacher_id', user.id)
-        .gte('created_at', startOfMonth);
-
-      if (!countError && count !== null && count >= MONTHLY_LIMIT) {
-        return new Response(
-          JSON.stringify({ error: `이번 달 퀴즈 생성 한도(${MONTHLY_LIMIT}개)에 도달했습니다.` }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-
-    console.log(`User ${user.id} (${profileData.role}) generating quiz`);
-
+    // 본문을 먼저 읽는다 — 아래 한도 사전 체크가 purpose를 봐야 하는데
+    // req.json()은 한 번만 부를 수 있어서 파싱을 위로 옮겼다.
     const {
       words,
       difficulty,
@@ -513,7 +523,60 @@ serve(async (req) => {
       matchupEnabled = false,
       typeAnswerEnabled = false,
       wordMagnetEnabled = false,
+      purpose = "create",
     }: QuizRequest = await req.json();
+
+    // 퀴즈 생성 한도 사전 체크.
+    //
+    // 진짜 관문은 quizzes BEFORE INSERT 트리거(enforce_quiz_quota)다. 이 함수는 INSERT를 하지 않고
+    // 문제만 만들기 때문에(저장은 QuizPreview에서) 사전 체크가 없으면 AI 토큰을 다 태운 뒤
+    // 저장 단계에서야 막힌다. 그걸 막으려고 여기서 한 번 미리 본다.
+    //
+    // 새 퀴즈를 만드는 호출(purpose === 'create')만 검사한다. 재생성은 이미 저장된 퀴즈의 문제를
+    // 갈아끼울 뿐이라 INSERT가 없고 한도를 쓰지 않는다. 여기서 같이 막으면 한도에 도달한 선생님이
+    // 이미 만든 퀴즈의 문제 하나를 고치는 것조차 못 한다. 통과시켜도 트리거가 관문이라 한도는 안 샌다.
+    // purpose가 없으면 'create'로 본다: 이 함수가 프론트보다 먼저 배포되면 옛 프론트는 플래그를
+    // 안 보내는데, 그때 'regenerate'로 기울면 진짜 생성 경로의 사전 체크가 통째로 사라진다.
+    // 'create'로 기울면 최악이 지금과 똑같은 동작(재생성도 막힘)이라 이쪽이 안전하다.
+    //
+    // admin 면제·플랜별 한도·기간 경계 계산은 전부 RPC 안에 있다(카운트 로직을 두 벌 만들지 않는다).
+    // 이 클라이언트는 service_role이 아니라 anon 키 + 사용자 Authorization 헤더라서
+    // auth.uid()가 호출한 선생님 본인이고, RPC의 소유권 가드를 그대로 통과한다.
+    if (purpose === "create") {
+      const { data: quotaData, error: quotaError } = await supabase.rpc("quiz_quota_status", {
+        _teacher_id: user.id,
+      });
+      const quota = quotaData as QuotaStatus | null;
+
+      // fail-closed. 예전 코드는 카운트 조회가 실패하면 그냥 통과시켰는데(fail-open),
+      // 트리거가 fail-closed라 어차피 저장에서 막힌다 — AI 토큰만 버리는 셈이었다.
+      if (quotaError || !quota) {
+        console.error("Quota check error:", quotaError);
+        return new Response(
+          JSON.stringify({ error: QUOTA_UNKNOWN_MESSAGE }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!quota.allowed) {
+        // quiz_limit이 없는데 allowed=false면 한도를 알 수 없어서 막힌 것이다
+        // (프로필 없음 / plan_limits에 행 없음). 사용자 잘못이 아니라 설정 문제라
+        // 트리거와 마찬가지로 한도 소진과 다른 문장을 쓴다.
+        if (quota.quiz_limit === null || quota.quiz_limit === undefined) {
+          return new Response(
+            JSON.stringify({ error: QUOTA_UNKNOWN_MESSAGE }),
+            { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ error: quotaExceededMessage(quota.quiz_limit, quota.period) }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    console.log(`User ${user.id} (${profileData.role}) generating quiz (purpose=${purpose})`);
 
     const languageName = LANGUAGE_NAMES[translationLanguage] || "영어";
 

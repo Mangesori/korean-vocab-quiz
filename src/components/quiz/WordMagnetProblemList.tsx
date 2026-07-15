@@ -127,7 +127,7 @@ export function WordMagnetProblemList({
     setRegeneratingId(id);
     try {
       const { data, error } = await supabase.functions.invoke("generate-quiz", {
-        body: { words: [word], difficulty, translationLanguage, wordsPerSet: 1, apiProvider, wordMagnetEnabled: true },
+        body: { words: [word], difficulty, translationLanguage, wordsPerSet: 1, apiProvider, wordMagnetEnabled: true, purpose: "regenerate" },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message || "Regeneration failed");
 
@@ -180,7 +180,7 @@ export function WordMagnetProblemList({
     setIsRegeneratingAll(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-quiz", {
-        body: { words, difficulty, translationLanguage, wordsPerSet: words.length, apiProvider, wordMagnetEnabled: true },
+        body: { words, difficulty, translationLanguage, wordsPerSet: words.length, apiProvider, wordMagnetEnabled: true, purpose: "regenerate" },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message || "Regeneration failed");
 

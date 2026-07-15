@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { quizInsertErrorMessage } from '@/lib/supabaseErrors';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
@@ -187,7 +188,11 @@ export function DuplicateQuizButton({
     },
     onError: (error) => {
       console.error('Duplicate error:', error);
-      toast.error('퀴즈 복제에 실패했습니다.');
+      // 복제도 quizzes INSERT라 한도 트리거(enforce_quiz_quota)에 막힌다. 예전엔 이 경로가
+      // AI를 안 거쳐 한도를 통째로 우회했고 이제 처음으로 막히는데, 고정 문구('퀴즈 복제에
+      // 실패했습니다.')로 덮으면 선생님이 실패 이유(= 한도 소진)를 전혀 알 수 없다.
+      // 한도 에러만 트리거 문구를 그대로 쓰고, 나머지 DB 에러는 영문이라 fallback으로 덮는다.
+      toast.error(quizInsertErrorMessage(error, '퀴즈를 복제하지 못했어요'));
     },
   });
 
