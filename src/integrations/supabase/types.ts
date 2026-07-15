@@ -1463,6 +1463,7 @@ export type Database = {
             Args: {
               _problem_order?: string[]
               _quiz_id: string
+              _result_id?: string | null
               _student_answers: Json
             }
             Returns: Json

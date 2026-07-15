@@ -135,6 +135,7 @@ export default function QuizTake() {
   const [savedMatchupScore, setSavedMatchupScore] = useState<{ score: number; total: number } | null>(null);
   const [savedTypeAnswerScore, setSavedTypeAnswerScore] = useState<{ score: number; total: number } | null>(null);
   const [savedWordMagnetScore, setSavedWordMagnetScore] = useState<{ score: number; total: number } | null>(null);
+  const [savedRecordingScore, setSavedRecordingScore] = useState<{ score: number; total: number } | null>(null);
   // '모르겠어요'로 건너뛴 문제 id — 여러 저장 경로(공유 링크/일반 제출)에서 함께 참조한다.
   const [typeAnswerSkippedIds, setTypeAnswerSkippedIds] = useState<Set<string>>(new Set());
   const [wordMagnetSkippedIds, setWordMagnetSkippedIds] = useState<Set<string>>(new Set());
@@ -270,7 +271,7 @@ export default function QuizTake() {
     const checkProgress = async () => {
       const { data: existing } = await supabase
         .from("quiz_results")
-        .select("id, score, total_questions, fill_blank_score, fill_blank_total, matchup_score, matchup_total, type_answer_score, type_answer_total, word_magnet_score, word_magnet_total, sentence_making_score, sentence_making_total, recording_score")
+        .select("id, score, total_questions, fill_blank_score, fill_blank_total, matchup_score, matchup_total, type_answer_score, type_answer_total, word_magnet_score, word_magnet_total, sentence_making_score, sentence_making_total, recording_score, recording_total")
         .eq("quiz_id", quiz.id)
         .eq("student_id", user.id)
         .order("completed_at", { ascending: false })
@@ -321,6 +322,13 @@ export default function QuizTake() {
           total: existing.sentence_making_total ?? 0,
         });
       }
+      // 진행 알림 메시지 조립(buildProgressMessage)에만 쓴다 — 완료 판정(doneMap)은 기존대로.
+      if (quiz.recording_enabled && existing.recording_score !== null) {
+        setSavedRecordingScore({
+          score: existing.recording_score,
+          total: (existing as any).recording_total ?? 0,
+        });
+      }
 
       // 정규 순서로 첫 미완료 스테이지를 찾아 재개
       const doneByStage: Record<BaseStage, boolean> = {
@@ -343,16 +351,43 @@ export default function QuizTake() {
     checkProgress();
   }, [quiz?.id, user?.id]);
 
+  // 선생님 진행 알림 메시지 조립 — 켜져 있고(enabledBases) 점수가 확정된 유형만
+  // "<라벨>: x/y"로 정규 순서대로 잇는다. 아직 안 푼 유형은 생략한다(0/0 금지).
+  //
+  // overrides: setState는 비동기라, 방금 채점한 점수는 state로 다시 읽으면 stale이다.
+  // 해당 스테이지 핸들러가 방금 계산한 값을 여기로 직접 넘긴다.
+  const buildProgressMessage = (
+    overrides?: Partial<Record<BaseStage, { score: number; total: number }>>
+  ): string => {
+    const savedScores: Record<BaseStage, { score: number; total: number } | null> = {
+      matchup: savedMatchupScore,
+      type_answer: savedTypeAnswerScore,
+      fill_blank: savedFillBlankScore,
+      word_magnet: savedWordMagnetScore,
+      sentence_making: savedSentenceMakingScore,
+      recording: savedRecordingScore,
+    };
+    const parts = enabledBases
+      .map((base) => {
+        const s = overrides?.[base] ?? savedScores[base];
+        return s ? `${STAGE_LABELS[base]}: ${s.score}/${s.total}` : null;
+      })
+      .filter((part): part is string => part !== null);
+    return `${quiz?.title ?? ""} — ${parts.join(", ")}`;
+  };
+
   // 선생님 알림 덮어쓰기 — SECURITY DEFINER RPC로 RLS 우회
   // stage: '문장 만들기' | '말하기 연습'
-  const updateProgressNotification = async (stage: string, message: string) => {
+  // isRedoOverride: 방금 RPC로 받은 is_redo를 쓸 때. setIsRedo 직후엔 isRedo state가
+  // 아직 갱신 전(stale)이라 그대로 읽으면 알림 문구가 틀린다.
+  const updateProgressNotification = async (stage: string, message: string, isRedoOverride?: boolean) => {
     if (!user || isAnonymous || !quiz) return;
     await supabase.rpc("update_quiz_progress_notification", {
       _quiz_id: quiz.id,
       _student_id: user.id,
       _stage: stage,
       _message: message,
-      _is_redo: isRedo,
+      _is_redo: isRedoOverride ?? isRedo,
     });
   };
 
@@ -362,7 +397,9 @@ export default function QuizTake() {
     if (quizResultId) return quizResultId;
     const { data, error } = await supabase.rpc("ensure_quiz_result", { _quiz_id: quiz.id });
     if (error) {
+      // 여기서 null을 반환하면 답안·점수·알림이 전부 조용히 스킵된다. 무음 유실 방지.
       console.error("ensure_quiz_result error:", error);
+      toast.error("결과 저장에 실패했습니다. 다시 시도해주세요.");
       return null;
     }
     const rid = (data as any)?.result_id ?? null;
@@ -1118,16 +1155,27 @@ export default function QuizTake() {
         quiz.problems.forEach((problem) => {
           studentAnswers[problem.id] = userAnswers[problem.id] || "";
         });
+        // _result_id를 넘겨 앞선 스테이지가 만든 결과 행을 재사용한다(없으면 서버가 새로 만든다).
+        // 넘기지 않으면 서버가 행을 새로 INSERT해 앞 스테이지 점수가 고아가 된다.
         const { data: submitData, error: submitError } = await supabase.rpc("submit_quiz_answers", {
           _quiz_id: quiz.id,
           _student_answers: studentAnswers,
           _problem_order: quiz.problems.map((p) => p.id),
+          _result_id: quizResultId,
         });
         if (!submitError && (submitData as any)?.success) {
           const res = submitData as { success: boolean; result_id: string; score: number; total: number; is_redo: boolean };
           setQuizResultId(res.result_id);
           setSavedFillBlankScore({ score: res.score, total: res.total });
           setIsRedo(res.is_redo ?? false);
+
+          // 다른 스테이지와 동일하게 진행 알림을 프론트에서 갱신한다.
+          // 위 setIsRedo는 아직 반영 전이라 방금 받은 res.is_redo를 직접 넘긴다.
+          await updateProgressNotification(
+            "빈칸 채우기",
+            buildProgressMessage({ fill_blank: { score: res.score, total: res.total } }),
+            res.is_redo ?? false
+          );
         }
       }
 
@@ -1178,11 +1226,9 @@ export default function QuizTake() {
         _total: muTotal,
       });
 
-      const fbScore = savedFillBlankScore?.score ?? 0;
-      const fbTotal = savedFillBlankScore?.total ?? 0;
       await updateProgressNotification(
         "짝 맞추기",
-        `${quiz!.title} — 빈칸 채우기: ${fbScore}/${fbTotal}, 짝 맞추기: ${muScore}/${muTotal}`
+        buildProgressMessage({ matchup: { score: muScore, total: muTotal } })
       );
     }
 
@@ -1251,11 +1297,9 @@ export default function QuizTake() {
         _total: taTotal,
       });
 
-      const fbScore = savedFillBlankScore?.score ?? 0;
-      const fbTotal = savedFillBlankScore?.total ?? 0;
       await updateProgressNotification(
         "단어 받아쓰기",
-        `${quiz!.title} — 빈칸 채우기: ${fbScore}/${fbTotal}, 단어 받아쓰기: ${taScore}/${taTotal}`
+        buildProgressMessage({ type_answer: { score: taScore, total: taTotal } })
       );
     }
 
@@ -1323,11 +1367,9 @@ export default function QuizTake() {
         _total: wmTotal,
       });
 
-      const fbScore = savedFillBlankScore?.score ?? 0;
-      const fbTotal = savedFillBlankScore?.total ?? 0;
       await updateProgressNotification(
         "문장 순서 맞추기",
-        `${quiz!.title} — 빈칸 채우기: ${fbScore}/${fbTotal}, 문장 순서 맞추기: ${wmScore}/${wmTotal}`
+        buildProgressMessage({ word_magnet: { score: wmScore, total: wmTotal } })
       );
     }
 
@@ -1390,10 +1432,10 @@ export default function QuizTake() {
         _total: smTotal,
       });
 
-      const fbScore = savedFillBlankScore?.score ?? 0;
-      const fbTotal = savedFillBlankScore?.total ?? 0;
-      const smMsg = `${quiz!.title} — 빈칸 채우기: ${fbScore}/${fbTotal}, 문장 만들기: ${smScore}/${smTotal}`;
-      await updateProgressNotification('문장 만들기', smMsg);
+      await updateProgressNotification(
+        '문장 만들기',
+        buildProgressMessage({ sentence_making: { score: smScore, total: smTotal } })
+      );
     }
 
     setCurrentStage("sentence_making_result");
@@ -1450,14 +1492,11 @@ export default function QuizTake() {
         _total: recTotal,
       });
 
-      const fbScoreR = savedFillBlankScore?.score ?? 0;
-      const fbTotalR = savedFillBlankScore?.total ?? 0;
-      const smScoreR = savedSentenceMakingScore?.score ?? 0;
-      const smTotalR = savedSentenceMakingScore?.total ?? 0;
-      const recParts = [`빈칸 채우기: ${fbScoreR}/${fbTotalR}`];
-      if (quiz!.sentence_making_enabled && smTotalR > 0) recParts.push(`문장 만들기: ${smScoreR}/${smTotalR}`);
-      recParts.push(`말하기 연습: ${recScore}/${recTotal}`);
-      await updateProgressNotification('말하기 연습', `${quiz!.title} — ${recParts.join(', ')}`);
+      setSavedRecordingScore({ score: recScore, total: recTotal });
+      await updateProgressNotification(
+        '말하기 연습',
+        buildProgressMessage({ recording: { score: recScore, total: recTotal } })
+      );
     }
 
     setCurrentStage("recording_result");
