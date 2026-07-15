@@ -83,6 +83,49 @@ export const STAGE_LABELS: Record<BaseStage, string> = {
   recording: "말하기 연습",
 };
 
+// 좁은 배지·칩처럼 STAGE_LABELS가 줄바꿈될 만한 자리에서만 쓰는 축약 라벨.
+// 넓은 자리(카드 제목, 스테퍼 등)는 계속 STAGE_LABELS를 쓴다.
+export const STAGE_SHORT_LABELS: Record<BaseStage, string> = {
+  matchup: "짝맞추기",
+  type_answer: "받아쓰기",
+  fill_blank: "빈칸",
+  word_magnet: "문장순서",
+  sentence_making: "문장",
+  recording: "말하기",
+};
+
+// 오답 집계 RPC가 반환하는 유형만 좁힌 타입.
+// 문장 만들기·말하기 연습은 AI 채점(부분 점수)이라 오답 집계 대상이 아니다.
+export type WrongAnswerSource = Extract<
+  BaseStage,
+  "fill_blank" | "matchup" | "type_answer" | "word_magnet"
+>;
+
+// 각 스테이지의 활성 여부가 저장된 quizzes 테이블 실제 컬럼명.
+// (src/integrations/supabase/types.ts의 quizzes Row 정의와 일치해야 한다.)
+export const STAGE_ENABLED_KEY: Record<BaseStage, string> = {
+  matchup: "matchup_enabled",
+  type_answer: "type_answer_enabled",
+  fill_blank: "fill_blank_enabled",
+  word_magnet: "word_magnet_enabled",
+  sentence_making: "sentence_making_enabled",
+  recording: "recording_enabled",
+};
+
+// 스테이지 활성 판정. 반드시 이 헬퍼를 거쳐서 판정할 것.
+//
+// 왜 fill_blank만 다른가: fill_blank_enabled는 DB DEFAULT가 true이고
+// 나머지 5개 컬럼은 DEFAULT가 false다. 빈칸 채우기는 원래 유일한 퀴즈 유형이라
+// 컬럼이 나중에 추가됐고, 기존 행이 전부 활성으로 남아야 했기 때문.
+// 그래서 fill_blank는 "명시적으로 false가 아니면 활성"(!== false)이고,
+// 나머지는 "명시적으로 true여야 활성"(truthy)이다. 호출부마다 이 차이를
+// 다시 구현하면 틀리기 쉬워서 여기서 한 번만 처리한다.
+export function isStageEnabled(stage: BaseStage, quiz: Record<string, unknown>): boolean {
+  const value = quiz[STAGE_ENABLED_KEY[stage]];
+  if (stage === "fill_blank") return value !== false;
+  return Boolean(value);
+}
+
 export interface QuizDraft {
   title: string;
   words: string[];

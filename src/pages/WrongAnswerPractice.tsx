@@ -28,6 +28,9 @@ interface PracticeProblem {
   translation: string | null;
   audio_url: string | null;
   source: string;
+  // 짝맞추기·문장순서에서 받아쓰기로 변환된 문항 중 word가 문장 전체인 경우(문장순서)는
+  // 보기 배지에 넣으면 정답이 그대로 노출되므로 false로 넘어온다. (기본값은 노출)
+  in_word_bank?: boolean;
 }
 
 interface PracticeResult {
@@ -41,6 +44,9 @@ const WORDS_PER_SET = 5;
 // 문장에 빈칸 ( ) 이 있는지 판정 (받아쓰기 유형은 빈칸이 없다)
 const hasBlank = (sentence: string) => /\(\s*\)|\(\)/.test(sentence);
 
+// 보기(word bank)에 노출할 문항인지 판정
+const inWordBank = (p: PracticeProblem) => p.in_word_bank !== false;
+
 export default function WrongAnswerPractice() {
   const navigate = useNavigate();
   const [problems, setProblems] = useState<PracticeProblem[]>([]);
@@ -50,7 +56,7 @@ export default function WrongAnswerPractice() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [results, setResults] = useState<PracticeResult[]>([]);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
-  const [graduatedWords, setGraduatedWords] = useState<string[]>([]);
+  const [masteredWords, setMasteredWords] = useState<string[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -79,21 +85,30 @@ export default function WrongAnswerPractice() {
     return sets;
   }, [problems]);
 
-  const currentSet = problemSets[currentSetIndex] || [];
+  const currentSet = useMemo(
+    () => problemSets[currentSetIndex] || [],
+    [problemSets, currentSetIndex]
+  );
   const totalSets = problemSets.length;
 
-  // Shuffle word bank for current set
+  // Shuffle word bank for current set (보기 제외 문항은 빼고)
   const shuffledWordBank = useMemo(() => {
-    return [...currentSet].sort(() => Math.random() - 0.5).map((p) => p.word);
+    return [...currentSet]
+      .filter(inWordBank)
+      .sort(() => Math.random() - 0.5)
+      .map((p) => p.word);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSetIndex, problems.length]);
 
   // 답이 입력된 문제의 뱅크 단어 추적 (취소선용) — 자모 분해로 불규칙 활용 대응
   const usedBankWords = useMemo(() => {
     const used = new Set<string>();
-    const bankWords = currentSet.map((p) => p.word);
+    const bankWords = currentSet.filter(inWordBank).map((p) => p.word);
 
     currentSet.forEach((p) => {
+      // 보기에 없는 문항(문장순서 변환)은 뱅크 매칭 대상이 아니다.
+      // 답이 문장 전체라 엉뚱한 보기 단어에 취소선이 그어질 수 있다.
+      if (!inWordBank(p)) return;
       const answer = userAnswers[p.id]?.trim();
       if (!answer) return;
 
@@ -122,7 +137,6 @@ export default function WrongAnswerPractice() {
     });
 
     return used;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSet, userAnswers]);
 
   const progress = useMemo(() => {
@@ -188,12 +202,12 @@ export default function WrongAnswerPractice() {
     setResults(practiceResults);
     setIsCompleted(true);
 
-    // 진행도 저장 + 이번에 졸업한 단어 확인
+    // 진행도 저장 + 이번에 마스터한 단어 확인
     try {
-      const { data: graduated } = await supabase.rpc('update_wa_progress', {
+      const { data: mastered } = await supabase.rpc('update_wa_progress', {
         _items: practiceResults.map((r) => ({ word: r.problem.word, correct: r.isCorrect })),
       });
-      setGraduatedWords(Array.isArray(graduated) ? graduated : []);
+      setMasteredWords(Array.isArray(mastered) ? mastered : []);
     } catch (e) {
       console.error('Failed to update wrong answer progress:', e);
     }
@@ -205,7 +219,7 @@ export default function WrongAnswerPractice() {
     setShowTranslations({});
     setIsCompleted(false);
     setResults([]);
-    setGraduatedWords([]);
+    setMasteredWords([]);
     // Reshuffle
     setProblems((prev) => [...prev].sort(() => Math.random() - 0.5));
   };
@@ -219,7 +233,7 @@ export default function WrongAnswerPractice() {
     setShowTranslations({});
     setIsCompleted(false);
     setResults([]);
-    setGraduatedWords([]);
+    setMasteredWords([]);
   };
 
   const score = useMemo(() => {
@@ -248,9 +262,9 @@ export default function WrongAnswerPractice() {
             </Link>
           </div>
 
-          {graduatedWords.length > 0 && (
+          {masteredWords.length > 0 && (
             <div className="text-center text-sm font-bold text-success mb-3">
-              🎓 {graduatedWords.join(', ')} 단어가 오답 노트를 졸업했어요!
+              ⭐ {masteredWords.join(', ')} 단어를 마스터했어요!
             </div>
           )}
 
@@ -356,6 +370,17 @@ export default function WrongAnswerPractice() {
   const startNum = currentSetIndex * WORDS_PER_SET + 1;
   const endNum = Math.min((currentSetIndex + 1) * WORDS_PER_SET, problems.length);
 
+  // 세트 구성에 따라 안내 문구/보기 노출 결정 (빈칸·받아쓰기가 섞일 수 있다)
+  const setHasBlank = currentSet.some((p) => hasBlank(p.sentence));
+  const setHasDictation = currentSet.some((p) => !hasBlank(p.sentence));
+  const promptText =
+    setHasBlank && setHasDictation
+      ? '알맞은 단어를 입력하세요'
+      : setHasBlank
+        ? '빈칸에 알맞은 단어를 입력하세요'
+        : '뜻을 보고 알맞은 단어를 입력하세요';
+  const hasWordBank = shuffledWordBank.length > 0;
+
   // Quiz screen
   return (
     <div className="min-h-screen bg-background">
@@ -383,31 +408,37 @@ export default function WrongAnswerPractice() {
         {/* Main Card */}
         <Card className="border shadow-sm rounded-2xl overflow-hidden mb-8 bg-white max-w-5xl mx-auto">
           <CardContent className="p-0">
-            <p className="text-center text-sm text-muted-foreground bg-[#F1ECE4] px-6 pt-5 pb-3">
-              빈칸에 알맞은 단어를 입력하세요
+            <p
+              className={`text-center text-sm text-muted-foreground bg-[#F1ECE4] px-6 pt-5 ${
+                hasWordBank ? 'pb-3' : 'pb-5 border-b border-[#D3CCC4]'
+              }`}
+            >
+              {promptText}
             </p>
-            {/* Word Bank (항상 표시 + 사용한 단어 취소선) */}
-            <div className="bg-[#F1ECE4] border-b border-[#D3CCC4] px-6 pb-5 flex flex-col items-center">
-              <p className="text-sm font-bold text-muted-foreground mb-4">보기</p>
-              <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
-                {shuffledWordBank.map((word, idx) => {
-                  const isUsed = usedBankWords.has(word);
-                  return (
-                    <Badge
-                      key={idx}
-                      variant="outline"
-                      className={`px-4 py-1.5 rounded-full text-sm font-medium bg-white shadow-sm transition-all ${
-                        isUsed
-                          ? 'line-through text-muted-foreground border-border opacity-60'
-                          : 'text-foreground border-border'
-                      }`}
-                    >
-                      {word}
-                    </Badge>
-                  );
-                })}
+            {/* Word Bank (보기에 낼 문항이 있을 때만 표시 + 사용한 단어 취소선) */}
+            {hasWordBank && (
+              <div className="bg-[#F1ECE4] border-b border-[#D3CCC4] px-6 pb-5 flex flex-col items-center">
+                <p className="text-sm font-bold text-muted-foreground mb-4">보기</p>
+                <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
+                  {shuffledWordBank.map((word, idx) => {
+                    const isUsed = usedBankWords.has(word);
+                    return (
+                      <Badge
+                        key={idx}
+                        variant="outline"
+                        className={`px-4 py-1.5 rounded-full text-sm font-medium bg-white shadow-sm transition-all ${
+                          isUsed
+                            ? 'line-through text-muted-foreground border-border opacity-60'
+                            : 'text-foreground border-border'
+                        }`}
+                      >
+                        {word}
+                      </Badge>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Problems List */}
             <div className="p-6 sm:p-8">

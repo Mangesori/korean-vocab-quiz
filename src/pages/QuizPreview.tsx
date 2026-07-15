@@ -323,6 +323,8 @@ export default function QuizPreview() {
         : (newProblem.translation || "")
       ).replace(/[[\]]/g, "");
 
+      // 동기화된 말하기 문제가 이후 자동 재파생에 덮이지 않도록 수동 편집으로 표시
+      manuallyEditedRecIds.current.add(problemId);
       setDraft((prev) => {
         if (!prev) return null;
         return {
@@ -340,6 +342,12 @@ export default function QuizPreview() {
                 }
               : p
           ),
+          // 같은 문제의 말하기 문장/번역도 새 값으로 동기화
+          recordingProblems: prev.recordingProblems
+            ? prev.recordingProblems.map((r) =>
+                r.problem_id === problemId ? { ...r, sentence: baseText, translation } : r
+              )
+            : prev.recordingProblems,
         };
       });
 
@@ -542,12 +550,15 @@ export default function QuizPreview() {
     });
   };
 
-  // 워드마그넷: base_text 수정 시 타일(items) 자동 재파생, translation은 그대로 반영
+  // 워드마그넷: base_text 수정 시 타일(items) 자동 재파생, translation은 그대로 반영.
+  // 동시에 같은 problem_id의 말하기 연습 문장/번역도 동기화(한 방향: 문장순서 → 말하기).
   const updateWordMagnetProblem = (
     problemId: string,
     field: "base_text" | "translation",
     value: string
   ) => {
+    // 동기화된 말하기 문제가 이후 "빈칸→말하기 자동 재파생"에 덮이지 않도록 수동 편집으로 표시
+    manuallyEditedRecIds.current.add(problemId);
     setDraft((prev) => {
       if (!prev || !prev.wordMagnetProblems) return prev;
       const updated = prev.wordMagnetProblems.map((p) => {
@@ -561,7 +572,14 @@ export default function QuizPreview() {
         }
         return { ...p, translation: value };
       });
-      return { ...prev, wordMagnetProblems: updated };
+      // 같은 문제의 말하기 문장(sentence)/번역(translation)도 함께 갱신
+      const recField = field === "base_text" ? "sentence" : "translation";
+      const recordingProblems = prev.recordingProblems
+        ? prev.recordingProblems.map((r) =>
+            r.problem_id === problemId ? { ...r, [recField]: value } : r
+          )
+        : prev.recordingProblems;
+      return { ...prev, wordMagnetProblems: updated, recordingProblems };
     });
   };
 
