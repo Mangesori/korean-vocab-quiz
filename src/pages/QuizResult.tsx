@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, Navigate } from 'react-router-dom';
+import { useParams, Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -119,11 +119,34 @@ interface MatchupAnswerRow {
   is_correct: boolean;
 }
 
+// 연습 화면(WrongAnswerPractice)에 localStorage로 넘기는 문항 모양.
+// 오답 노트(WrongAnswerNotebook)의 PracticeProblem과 동일해야 한다 —
+// 두 화면이 다르게 넘기면 같은 오답이 화면마다 다른 문제로 출제된다.
+interface PracticeProblem {
+  id: string;
+  word: string;
+  correct_answer: string;
+  sentence: string;
+  translation: string | null;
+  audio_url: string | null;
+  source: string;
+  // word가 문장 전체인 유형(문장 순서)은 보기 배지에 넣으면 정답이 노출되므로 false.
+  in_word_bank?: boolean;
+}
+
+// 2회 연속 정답이면 마스터 (supabase/migrations/20260710000001_add_wrong_answer_progress.sql)
+const MASTER_STREAK = 2;
+
+// 받아쓰기 프롬프트로 쓸 문자열에서 빈칸 ( ) 을 제거한다.
+// 연습 화면의 hasBlank()가 false여야 빈칸 UI가 아닌 받아쓰기 UI로 렌더된다.
+const stripBlanks = (text: string) =>
+  text.replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').trim();
 
 export default function QuizResult() {
   const { id, resultId } = useParams<{ id: string; resultId: string }>();
   const { user, role, loading } = useAuth();
-  
+  const navigate = useNavigate();
+
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -322,6 +345,98 @@ export default function QuizResult() {
     return result.answers.find(a => (a as any).problemId === problemId || (a as any).problem_id === problemId || (a as any).id === problemId);
   };
 
+  // ── 방금 틀린 문제 → 연습 문항 변환 ──────────────────────────────────
+  // 규칙은 오답 노트(WrongAnswerNotebook.practicePlans)와 동일하게 맞춘다.
+  // 단어 단위로 dedup(연습 화면이 word 기준으로 update_wa_progress를 호출하므로
+  // 같은 단어가 두 번 들어가면 진행도가 어긋난다) + 유형 우선순위도 동일:
+  // 빈칸 채우기 → 단어 받아쓰기 → 짝 맞추기 → 문장 순서.
+  // 문장 만들기·말하기는 연습 세션이 지원하지 않아 제외한다.
+  const practiceByWord = new Map<string, PracticeProblem>();
+  const addPractice = (p: PracticeProblem) => {
+    if (!p.word?.trim() || practiceByWord.has(p.word)) return;
+    practiceByWord.set(p.word, p);
+  };
+
+  // 1) 빈칸 채우기 — 그대로. sentence의 ( ) 가 연습 화면에서 빈칸 UI로 렌더된다.
+  if (hasFillBlank) {
+    quiz.problems.forEach((problem) => {
+      if (getAnswerForProblem(problem.id)?.isCorrect) return;
+      addPractice({
+        id: `fill_blank-${problem.id}`,
+        word: problem.word,
+        correct_answer: problem.answer,
+        sentence: problem.sentence,
+        translation: problem.translation || null,
+        audio_url: problem.sentence_audio_url || null,
+        source: 'fill_blank',
+      });
+    });
+  }
+
+  // 2) 단어 받아쓰기 — 그대로. prompt(뜻)가 sentence가 된다. 건너뛴 문제도 오답.
+  if (hasTypeAnswer) {
+    typeAnswerDetail.forEach((r) => {
+      if (r.isCorrect) return;
+      addPractice({
+        id: `type_answer-${r.problemId}`,
+        word: r.correctAnswer,
+        correct_answer: r.correctAnswer,
+        sentence: r.prompt,
+        translation: null,
+        audio_url: null,
+        source: 'type_answer',
+      });
+    });
+  }
+
+  // 3) 짝 맞추기 → 받아쓰기. 단어(korean_text)와 뜻(meaning_text)을 맞바꿔
+  // "뜻: apple" + 입력 → 정답 "사과" 형태로 만든다. 뜻이 없으면 프롬프트가 없어 제외.
+  if (hasMatchup) {
+    matchupProblems.forEach((p) => {
+      if (matchupAnswerMap[p.id]?.is_correct) return;
+      const meaning = stripBlanks(p.meaning_text || '');
+      if (!meaning) return;
+      addPractice({
+        id: `matchup-${p.id}`,
+        word: p.korean_text,
+        correct_answer: p.korean_text,
+        sentence: meaning,
+        translation: null,
+        audio_url: null,
+        source: 'matchup',
+      });
+    });
+  }
+
+  // 4) 문장 순서 → 받아쓰기. 정답이 문장 전체(base_text)라 translation이 프롬프트가 된다.
+  // translation이 없으면 프롬프트를 만들 수 없어 제외.
+  if (hasWordMagnet) {
+    wordMagnetDetail.forEach((r) => {
+      if (r.isCorrect) return;
+      const prompt = stripBlanks(r.translation || '');
+      if (!prompt) return;
+      addPractice({
+        id: `word_magnet-${r.problemId}`,
+        word: r.correctSentence,
+        correct_answer: r.correctSentence,
+        sentence: prompt,
+        translation: null,
+        audio_url: null,
+        source: 'word_magnet',
+        in_word_bank: false,
+      });
+    });
+  }
+
+  const practiceProblems = [...practiceByWord.values()];
+
+  // 오답 노트와 동일하게 localStorage로 넘기고 연습 세션으로 이동
+  const startJustWrongPractice = () => {
+    if (practiceProblems.length === 0) return;
+    localStorage.setItem('practice_problems', JSON.stringify(practiceProblems));
+    navigate('/wrong-answers/practice');
+  };
+
   // 문장 만들기 답안 그룹화 (문제별)
   const getSentenceMakingAnswersForProblem = (problemId: string) => {
     return sentenceMakingAnswers.filter(a => a.problem_id === problemId);
@@ -351,9 +466,9 @@ export default function QuizResult() {
     groupedProblems.push(quiz.problems.slice(i, i + wordsPerSet));
   }
 
-  // 성취도 기준 점수색 헬퍼
+  // 성취도 기준 점수색 헬퍼 — 공유 컴포넌트 QuizTypeScoreBadges와 동일한 90/70 기준.
   const scoreColor = (pct: number) =>
-    pct >= 80 ? "text-success" : pct >= 50 ? "text-warning" : "text-destructive";
+    pct >= 90 ? "text-success" : pct >= 70 ? "text-warning" : "text-destructive";
 
   // 유형별 리뷰 콘텐츠 — 탭 뷰(다중 유형)와 단일 유형 화면에서 그대로 재사용
   const matchupContent = (
@@ -785,20 +900,64 @@ export default function QuizResult() {
             </div>
           )}
 
+          {/* 방금 틀린 문제 바로 복습 CTA — 틀린 직후가 동기 최고점 */}
+          {wrongCount > 0 && (
+            <div className="mt-12 max-w-xl mx-auto">
+              <Card className="border bg-white rounded-xl shadow-sm">
+                <CardContent className="p-6">
+                  {practiceProblems.length > 0 ? (
+                    <>
+                      <p className="text-sm font-bold text-foreground mb-3">
+                        틀린 단어 {practiceProblems.length}개
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 mb-5">
+                        {practiceProblems.map((p) => (
+                          <span
+                            key={p.id}
+                            title={p.word}
+                            className="max-w-[220px] truncate px-3 py-1 rounded-full bg-destructive/10 text-destructive font-semibold text-sm"
+                          >
+                            {p.word}
+                          </span>
+                        ))}
+                      </div>
+                      <Button
+                        onClick={startJustWrongPractice}
+                        className="w-full h-12 text-base rounded-xl font-bold"
+                        size="lg"
+                      >
+                        방금 틀린 {practiceProblems.length}개 바로 복습하기 →
+                      </Button>
+                      <p className="mt-3 text-xs text-muted-foreground text-center">
+                        연습에서 {MASTER_STREAK}번 연속으로 맞히면 ⭐ 마스터가 돼요
+                      </p>
+                    </>
+                  ) : (
+                    // 문장 만들기·말하기만 틀린 경우 — 연습 세션이 지원하지 않는 유형
+                    <p className="text-sm text-muted-foreground text-center">
+                      방금 틀린 문제는 바로 연습할 수 있는 유형이 아니에요
+                    </p>
+                  )}
+                  <div className="text-center mt-3">
+                    <Link
+                      to="/wrong-answers"
+                      className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
+                    >
+                      오답노트에서 전체 보기
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* 피드백 별점 카드 */}
-          <div className="mt-12">
+          <div className="mt-8">
             <FeedbackPromptCard context="quiz_result" />
           </div>
 
           {/* 하단 버튼 */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6 mb-20">
-            {wrongCount > 0 && (
-              <Link to="/wrong-answers">
-                <Button className="w-full sm:w-auto min-w-[200px] h-14 text-base rounded-xl font-bold" size="lg">
-                  틀린 단어 {wrongCount}개 다시 풀기
-                </Button>
-              </Link>
-            )}
             <Link to="/dashboard">
               <Button variant="outline" className="w-full sm:w-auto min-w-[200px] h-14 text-base rounded-xl font-medium" size="lg">
                 <Home className="w-4 h-4 mr-2" /> 대시보드로 돌아가기

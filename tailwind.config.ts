@@ -59,6 +59,15 @@ export default {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
         },
+        // 퀴즈 유형 의미색 — 태그/아이콘/통계 범례 전용. 값은 src/index.css의 --type-* 참조.
+        type: {
+          "fill-blank": "hsl(var(--type-fill-blank))",
+          matchup: "hsl(var(--type-matchup))",
+          "type-answer": "hsl(var(--type-type-answer))",
+          "word-magnet": "hsl(var(--type-word-magnet))",
+          "sentence-making": "hsl(var(--type-sentence-making))",
+          recording: "hsl(var(--type-recording))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

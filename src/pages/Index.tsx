@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { LandingHeader } from '@/components/layout/LandingHeader';
 import { Footer } from '@/components/layout/Footer';
 import { useAuth } from '@/hooks/useAuth';
-import { Sparkles, Layers, Users, ArrowRight } from 'lucide-react';
+import { Sparkles, Layers, Users, ArrowRight, GraduationCap, Backpack, Check } from 'lucide-react';
 import { HeroProductMock } from '@/components/landing/HeroProductMock';
 
 export default function Index() {
@@ -31,7 +31,7 @@ export default function Index() {
                 </h1>
 
                 <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-md break-keep">
-                  단어만 입력하면 빈칸·문장·말하기 퀴즈가{" "}
+                  단어만 입력하면 짝 맞추기부터 말하기까지 6가지 퀴즈가{" "}
                   <strong className="text-foreground font-semibold">10초 안에</strong> 만들어집니다.
                   학생들에게 바로 공유하고 결과까지 한눈에 볼 수 있어요.
                 </p>
@@ -98,20 +98,20 @@ export default function Index() {
                 {
                   icon: <Sparkles className="w-5 h-5" />,
                   title: "AI가 문제를 만듭니다",
-                  desc: "단어만 입력하면 끝. 빈칸·문장·말하기 세 가지 유형을 동시에 생성합니다.",
+                  desc: "단어만 입력하면 끝. 예문과 힌트, 번역, 발음 음성까지 AI가 함께 만듭니다.",
                   stat: "평균 10초",
                 },
                 {
                   icon: <Layers className="w-5 h-5" />,
-                  title: "한 곳에서 모든 유형",
-                  desc: "읽기·쓰기·말하기를 한 클래스 안에서. 학생 수준과 관심사에 맞춘 예문 톤.",
-                  stat: "3가지 퀴즈",
+                  title: "읽기·쓰기·말하기 한 곳에서",
+                  desc: "짝 맞추기부터 말하기 연습까지. 학생 수준과 관심사에 맞춘 예문 톤.",
+                  stat: "6가지 퀴즈 유형",
                 },
                 {
                   icon: <Users className="w-5 h-5" />,
                   title: "클래스와 진척, 자동 정리",
-                  desc: "학생은 회원가입 후 초대 코드로 클래스 가입. 누가 어디서 막혔는지 즉시 확인.",
-                  stat: "학생 무제한",
+                  desc: "학생은 초대 코드로 클래스 가입. 누가 어디서 막혔는지 즉시 확인.",
+                  stat: "실시간 결과 확인",
                 },
               ].map((f, i) => (
                 <div key={i} className="bg-background border border-border rounded-2xl p-7 flex flex-col">
@@ -129,6 +129,56 @@ export default function Index() {
           </div>
         </section>
 
+        {/* ── For teachers / students ── */}
+        <section className="py-20 border-t border-border">
+          <div className="container max-w-5xl">
+            <div className="mb-12 text-center">
+              <div className="text-xs font-ui font-bold text-primary tracking-[0.1em] uppercase mb-3">FOR EVERYONE</div>
+              <h2 className="font-brand font-black text-3xl leading-tight tracking-tight text-foreground break-keep">
+                선생님에게도, 학생에게도.
+              </h2>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-5">
+              {[
+                {
+                  icon: <GraduationCap className="w-3.5 h-3.5" />,
+                  label: "선생님은",
+                  items: [
+                    "단어 목록 붙여넣기만으로 퀴즈 완성 — 수업 준비 시간 절약",
+                    "링크 공유 또는 클래스 배정, 응시 제한·만료일 설정",
+                    "학생별 점수·오답·소요 시간이 자동으로 정리된 리포트",
+                  ],
+                },
+                {
+                  icon: <Backpack className="w-3.5 h-3.5" />,
+                  label: "학생은",
+                  items: [
+                    "링크 하나로 바로 응시 — 클래스 과제는 초대 코드로 참여",
+                    "말하기 연습은 AI가 발음 정확도를 점수와 피드백으로",
+                    "틀린 단어는 오답노트에 자동 저장, 모아서 다시 복습",
+                  ],
+                },
+              ].map((col) => (
+                <div key={col.label} className="bg-card border border-border rounded-2xl p-8">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-bold mb-5">
+                    {col.icon}
+                    {col.label}
+                  </div>
+                  <ul className="flex flex-col gap-3.5">
+                    {col.items.map((item) => (
+                      <li key={item} className="flex gap-2.5 text-[15px] leading-relaxed text-muted-foreground break-keep">
+                        <Check className="w-4 h-4 text-primary shrink-0 mt-1" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* ── CTA Band ── */}
         <section className="bg-primary text-primary-foreground py-16 text-center">
           <div className="container">
@@ -136,7 +186,7 @@ export default function Index() {
               오늘 과제, 10초 만에 끝내세요
             </h2>
             <p className="text-primary-foreground/80 text-base mb-7 max-w-md mx-auto break-keep">
-              구독 없이도 매월 일정량까지 무료. 필요할 때 더 쓰세요.
+              매월 퀴즈 3개까지 무료, 모든 기능 그대로. 수업이 커지면 Pro로 늘리세요.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <Link to={user ? "/dashboard" : "/auth?mode=signup"}>
@@ -144,7 +194,7 @@ export default function Index() {
                   {user ? "대시보드로 이동" : "지금 무료 시작"}
                 </Button>
               </Link>
-              <Link to="#features">
+              <Link to="/pricing">
                 <Button variant="outline" size="lg" className="bg-transparent border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10">
                   요금 보기 →
                 </Button>

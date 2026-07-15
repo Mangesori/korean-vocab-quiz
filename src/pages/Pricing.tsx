@@ -55,7 +55,7 @@ export default function Pricing() {
         {/* 무료 */}
         <div className="rounded-2xl border border-border bg-card p-7 flex flex-col">
           <div className="text-lg font-bold text-foreground">무료</div>
-          <div className="text-sm text-muted-foreground mt-1">처음 시작하는 선생님을 위한 체험판</div>
+          <div className="text-sm text-muted-foreground mt-1">소규모 수업이라면 이대로 충분해요</div>
           <div className="mt-5 flex items-baseline gap-1">
             <span className="font-mono text-3xl font-bold text-foreground">₩0</span>
             <span className="text-sm text-muted-foreground">/월</span>
@@ -65,7 +65,7 @@ export default function Pricing() {
             무료로 시작
           </Link>
           <ul className="mt-6 space-y-2.5 text-sm">
-            {["퀴즈 월 3개", "학생 최대 15명", "빈칸 채우기 유형", "AI 문제 생성 월 10회", "커뮤니티 지원"].map((f) => (
+            {["퀴즈 월 3개", "학생 최대 15명", "6가지 퀴즈 유형 전체", "클래스 관리 · 공지", "오답노트 · 단어장", "기본 성취도 리포트", "커뮤니티 지원"].map((f) => (
               <li key={f} className="flex items-center gap-2 text-muted-foreground">
                 <Check className="h-4 w-4 text-primary shrink-0" />{f}
               </li>
@@ -90,7 +90,7 @@ export default function Pricing() {
             Pro 시작하기
           </Link>
           <ul className="mt-6 space-y-2.5 text-sm">
-            {["무제한 퀴즈", "학생 무제한", "빈칸 · 문장 · 말하기 전체 유형", "AI 문제 생성 무제한", "클래스 무제한 + 배정 · 공지", "오답노트 · 단어장", "성취도 분석 리포트"].map((f) => (
+            {["무료의 모든 기능", "퀴즈 무제한", "학생 · 클래스 무제한", "상세 성취도 분석 리포트", "이메일 우선 지원"].map((f) => (
               <li key={f} className="flex items-center gap-2 text-foreground">
                 <Check className="h-4 w-4 text-primary shrink-0" />{f}
               </li>
@@ -142,11 +142,10 @@ export default function Pricing() {
               {([
                 ["퀴즈 개수", "월 3개", "무제한", "무제한"],
                 ["학생 수", "15명", "무제한", "무제한"],
-                ["퀴즈 유형", "빈칸만", "빈칸 · 문장 · 말하기", "전체"],
-                ["AI 문제 생성", "월 10회", "무제한", "무제한"],
-                ["클래스 관리 · 공지", null, true, true],
-                ["오답노트 · 단어장", null, true, true],
-                ["성취도 분석 리포트", null, true, "고급"],
+                ["퀴즈 유형", "6가지 전체", "6가지 전체", "6가지 전체"],
+                ["클래스 관리 · 공지", true, true, true],
+                ["오답노트 · 단어장", true, true, true],
+                ["성취도 분석 리포트", "기본", "상세", "고급"],
                 ["관리자 대시보드", null, null, true],
                 ["SSO · 통합 청구", null, null, true],
                 ["지원", "커뮤니티", "이메일", "전담 매니저"],
@@ -177,6 +176,7 @@ export default function Pricing() {
         <div className="space-y-4">
           {[
             ["무료 플랜에 기간 제한이 있나요?", "아니요. 무료 플랜은 기간 제한 없이 계속 사용할 수 있습니다. 위 사용량 한도 안에서 자유롭게 쓰세요."],
+            ["무료 한도를 넘으면 어떻게 되나요?", "그 달에는 새 퀴즈 생성만 잠시 멈추고, 이미 만든 퀴즈와 학생 결과는 계속 쓸 수 있습니다. 한도는 매월 1일에 초기화돼요."],
             ["결제 주기를 중간에 바꿀 수 있나요?", "네. 언제든 월간 ↔ 연간, Pro ↔ 무료로 변경할 수 있고 차액은 자동으로 정산됩니다."],
             ["학생도 비용을 내야 하나요?", "아니요. 학생은 언제나 무료입니다. 결제는 선생님과 기관만 진행합니다."],
             ["학교 견적은 어떻게 받나요?", "‘영업팀 문의’를 누르시면 선생님 수와 학생 규모에 맞춘 견적을 영업일 기준 1일 내 보내드립니다."],

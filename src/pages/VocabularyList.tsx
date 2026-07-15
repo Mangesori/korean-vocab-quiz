@@ -14,6 +14,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -34,7 +44,6 @@ interface VocabularyItem {
   meaning: string | null;
   example_sentence: string | null;
   notes: string | null;
-  mastery_level: number;
   is_favorite: boolean;
   created_at: string;
 }
@@ -48,13 +57,15 @@ export default function VocabularyList() {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newWord, setNewWord] = useState({ word: '', meaning: '', example_sentence: '', notes: '' });
+  const [deletingItem, setDeletingItem] = useState<VocabularyItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { data: vocabulary, isLoading } = useQuery({
     queryKey: ['vocabulary', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('vocabulary_lists')
-        .select('*')
+        .select('id, word, meaning, example_sentence, notes, is_favorite, created_at')
         .eq('student_id', user!.id)
         .order('created_at', { ascending: false });
 
@@ -79,10 +90,10 @@ export default function VocabularyList() {
       queryClient.invalidateQueries({ queryKey: ['vocabulary'] });
       setIsAddDialogOpen(false);
       setNewWord({ word: '', meaning: '', example_sentence: '', notes: '' });
-      toast.success('단어가 추가되었습니다.');
+      toast.success('단어를 추가했어요');
     },
     onError: () => {
-      toast.error('단어 추가에 실패했습니다.');
+      toast.error('단어를 추가하지 못했어요');
     },
   });
 
@@ -97,6 +108,9 @@ export default function VocabularyList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vocabulary'] });
     },
+    onError: () => {
+      toast.error('즐겨찾기를 변경하지 못했어요');
+    },
   });
 
   const deleteMutation = useMutation({
@@ -106,9 +120,26 @@ export default function VocabularyList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vocabulary'] });
-      toast.success('단어가 삭제되었습니다.');
+      toast.success('단어를 삭제했어요');
+    },
+    onError: () => {
+      toast.error('단어를 삭제하지 못했어요');
     },
   });
+
+  const handleDelete = async () => {
+    if (!deletingItem) return;
+    setIsDeleting(true);
+    try {
+      await deleteMutation.mutateAsync(deletingItem.id);
+      setDeletingItem(null);
+    } catch (e) {
+      // 실패 토스트는 deleteMutation.onError에서 처리 — 재시도할 수 있게 다이얼로그는 열어 둔다
+      console.error('Error deleting vocabulary item:', e);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (authLoading || isLoading) {
     return (
@@ -134,6 +165,8 @@ export default function VocabularyList() {
     return matchesSearch && matchesFavorite;
   });
 
+  const isFiltering = !!searchTerm || showFavoritesOnly;
+
   return (
     <AppLayout>
       <div className="container max-w-4xl mx-auto px-4 py-8">
@@ -152,11 +185,12 @@ export default function VocabularyList() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
-              <BookMarked className="h-6 w-6" />
+              <BookMarked className="h-6 w-6 text-primary" />
               나만의 단어장
             </h1>
             <p className="text-muted-foreground mt-1">
-              {vocabulary?.length || 0}개의 단어를 학습 중입니다.
+              저장한 단어 {vocabulary?.length || 0}개
+              {isFiltering && ` · 표시 중 ${filteredVocabulary?.length || 0}개`}
             </p>
           </div>
 
@@ -280,7 +314,7 @@ export default function VocabularyList() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => deleteMutation.mutate(item.id)}
+                        onClick={() => setDeletingItem(item)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -307,6 +341,28 @@ export default function VocabularyList() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!deletingItem} onOpenChange={(open) => !open && setDeletingItem(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>단어를 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-medium text-foreground">{deletingItem?.word}</span>
+              {' '}단어가 뜻·예문·메모와 함께 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? '삭제 중...' : '삭제'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

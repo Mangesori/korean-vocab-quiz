@@ -63,6 +63,16 @@
 
     /* Level badge colors — see .level-a1~.level-c2 utility classes below (single source of truth) */
 
+    /* Quiz type colors — single source of truth for the 6 BaseStage types.
+       Tags/icons/chart legends only; never for general UI emphasis.
+       Registered in tailwind.config.ts as `type-*` (e.g. text-type-matchup). */
+    --type-fill-blank: 152 55% 27%; /* #1E6B47 — primary와 동일 */
+    --type-matchup: 224 76% 48%; /* #1D4ED8 */
+    --type-type-answer: 193 82% 31%; /* #0E7490 */
+    --type-word-magnet: 32 81% 29%; /* #854D0E */
+    --type-sentence-making: 263 70% 50%; /* #6D28D9 */
+    --type-recording: 3 60% 47%; /* #C13B2E — destructive와 동일 */
+
     --sidebar-background: 40 15% 97%;
     --sidebar-foreground: 20 8% 10%;
     --sidebar-primary: 152 55% 27%;
@@ -110,6 +120,14 @@
 
     --info: 199 89% 53%;
     --info-foreground: 0 0% 100%;
+
+    /* Quiz type colors (dark) — 포화도 -10%p, 명도 +15%p (--primary의 27%→42% 사례를 따름) */
+    --type-fill-blank: 152 45% 42%;
+    --type-matchup: 224 66% 63%;
+    --type-type-answer: 193 72% 46%;
+    --type-word-magnet: 32 71% 44%;
+    --type-sentence-making: 263 60% 65%;
+    --type-recording: 3 50% 62%;
 
     --sidebar-background: 20 8% 8%;
     --sidebar-foreground: 40 15% 97%;
