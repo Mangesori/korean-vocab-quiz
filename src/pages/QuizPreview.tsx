@@ -21,6 +21,7 @@ import { WordMagnetPreview } from "@/components/quiz/WordMagnetPreview";
 import { parseSentenceToItems } from "@/lib/korean/wordMagnet";
 import { segmentSentences } from "@/lib/korean/segment";
 import { isShortSentenceLevel } from "@/lib/quiz";
+import { quizInsertErrorMessage } from "@/lib/supabaseErrors";
 import { STAGE_ORDER, STAGE_LABELS, type BaseStage } from "@/types/quiz";
 import type { Problem, SentenceMakingProblem, RecordingProblem, MatchupProblem, TypeAnswerProblem, WordMagnetProblem, QuizDraft } from "@/types/quiz";
 
@@ -303,6 +304,7 @@ export default function QuizPreview() {
           wordsPerSet: 1,
           regenerateSingle: true,
           wordMagnetEnabled: true,
+          purpose: "regenerate",
         },
       });
 
@@ -650,6 +652,7 @@ export default function QuizPreview() {
           wordsPerSet: 1,
           regenerateSingle: true,
           recordingEnabled: true,
+          purpose: "regenerate",
         },
       });
 
@@ -717,6 +720,7 @@ export default function QuizPreview() {
           translationLanguage: draft.translationLanguage,
           wordsPerSet: 1,
           regenerateSingle: true,
+          purpose: "regenerate",
         },
       });
 
@@ -839,7 +843,9 @@ export default function QuizPreview() {
 
       const { data, error } = await supabase.from("quizzes").insert(quizData as any).select().single();
 
-      if (error) throw error;
+      // 한도 트리거(enforce_quiz_quota)에 막히면 트리거가 던진 한국어 문구가 여기로 온다.
+      // 그 외 DB 에러는 영문 Postgres 문구라 헬퍼가 아래 fallback으로 덮는다.
+      if (error) throw new Error(quizInsertErrorMessage(error, "저장에 실패했어요"));
 
       const answersToInsert = shuffledProblems.map((problem) => ({
         quiz_id: data.id,
@@ -853,7 +859,8 @@ export default function QuizPreview() {
       if (answersError) {
         console.error("Failed to save quiz answers:", answersError);
         await supabase.from("quizzes").delete().eq("id", data.id);
-        throw new Error("Failed to save quiz answers");
+        // 아래 catch가 message를 그대로 토스트에 띄우므로 사용자에게 보여줄 한국어로 쓴다.
+        throw new Error("문제 정보를 저장하지 못했어요");
       }
 
       if (draft.sentenceMakingEnabled && draft.sentenceMakingProblems && draft.sentenceMakingProblems.length > 0) {
@@ -1028,7 +1035,9 @@ export default function QuizPreview() {
       navigate(`/quiz/${data.id}`);
     } catch (error) {
       console.error("Save error:", error);
-      toast.error("저장에 실패했습니다");
+      // quizzes INSERT는 한도 트리거(enforce_quiz_quota)에 막힐 수 있고, 그때 트리거가 던진
+      // 한국어 문구가 error.message로 그대로 온다. 고정 문구로 덮으면 한도 사실이 가려진다.
+      toast.error(error instanceof Error && error.message ? error.message : "저장에 실패했어요");
     } finally {
       setIsSaving(false);
     }

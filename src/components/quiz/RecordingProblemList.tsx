@@ -344,7 +344,7 @@ export function RecordingProblemList({
     setRegeneratingSentenceId(id);
     try {
       const { data, error } = await supabase.functions.invoke("generate-quiz", {
-        body: { words: [word], difficulty, translationLanguage, wordsPerSet: 1, apiProvider, regenerateSingle: true, recordingEnabled: true },
+        body: { words: [word], difficulty, translationLanguage, wordsPerSet: 1, apiProvider, regenerateSingle: true, recordingEnabled: true, purpose: "regenerate" },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message || "Regeneration failed");
 

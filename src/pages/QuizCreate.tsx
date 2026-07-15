@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/lib/rbac/roles";
 import { isShortSentenceLevel } from "@/lib/quiz";
+import { readEdgeFunctionError, isQuotaExceeded } from "@/lib/supabaseErrors";
 import type { Problem, SentenceMakingProblem, RecordingProblem, MatchupProblem, TypeAnswerProblem } from "@/types/quiz";
 
 const DIFFICULTY_LEVELS = [
@@ -120,6 +121,10 @@ export default function QuizCreate() {
         wordChunks.push(words.slice(i, i + BATCH_SIZE));
       }
 
+      // 한도 초과로 배치가 실패한 경우를 표시한다. 아래 catch에서 "일부만 생성" 경고로
+      // 삼키지 않고 그대로 위로 던지기 위한 플래그.
+      let quotaExceeded = false;
+
       for (let i = 0; i < wordChunks.length; i++) {
         const chunk = wordChunks[i];
         const currentProgress = i * BATCH_SIZE + chunk.length;
@@ -139,10 +144,16 @@ export default function QuizCreate() {
               typeAnswerEnabled,
               wordMagnetEnabled,
               recordingMode: "read",
+              purpose: "create",
             },
           });
 
-          if (error) throw error;
+          // 엣지 함수가 non-2xx를 주면 error.message는 영문 일반 문구라 본문의 한국어를 꺼내 써야 한다.
+          if (error) {
+            const parsed = await readEdgeFunctionError(error, "퀴즈 생성에 실패했어요");
+            if (isQuotaExceeded(parsed)) quotaExceeded = true;
+            throw new Error(parsed.message);
+          }
           if (data.error) throw new Error(data.error);
 
           allProblems.push(...data.problems);
@@ -152,13 +163,14 @@ export default function QuizCreate() {
           if (data.typeAnswerProblems) allTypeAnswerProblems.push(...data.typeAnswerProblems);
         } catch (batchError: any) {
           console.error(`Batch ${i + 1} generation error:`, batchError);
-          if (allProblems.length > 0) {
-            toast.dismiss("quiz-generation");
-            toast.warning(`일부 문제만 생성되었습니다 (${allProblems.length}/${words.length}개).`, { duration: 5000 });
-            break;
-          } else {
+          // 한도 초과는 "일부 문제만 생성되었습니다" 경고로 삼키면 안 된다. 앞 배치가 성공한 뒤
+          // 한도에 걸리면 선생님은 왜 멈췄는지 모른 채 저장 단계에서 트리거에 또 막힌다.
+          if (quotaExceeded || allProblems.length === 0) {
             throw batchError;
           }
+          toast.dismiss("quiz-generation");
+          toast.warning(`일부 문제만 생성되었습니다 (${allProblems.length}/${words.length}개).`, { duration: 5000 });
+          break;
         }
       }
 

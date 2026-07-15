@@ -186,17 +186,12 @@ export default function Index() {
               오늘 과제, 10초 만에 끝내세요
             </h2>
             <p className="text-primary-foreground/80 text-base mb-7 max-w-md mx-auto break-keep">
-              매월 퀴즈 3개까지 무료, 모든 기능 그대로. 수업이 커지면 Pro로 늘리세요.
+              지금은 모든 기능을 무료로 쓸 수 있어요. 바로 시작해 보세요.
             </p>
-            <div className="flex flex-wrap justify-center gap-3">
+            <div className="flex justify-center">
               <Link to={user ? "/dashboard" : "/auth?mode=signup"}>
                 <Button variant="secondary" size="lg" className="font-bold">
                   {user ? "대시보드로 이동" : "지금 무료 시작"}
-                </Button>
-              </Link>
-              <Link to="/pricing">
-                <Button variant="outline" size="lg" className="bg-transparent border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10">
-                  요금 보기 →
                 </Button>
               </Link>
             </div>

@@ -32,7 +32,6 @@ import ClassAnnouncements from "./pages/ClassAnnouncements";
 import WrongAnswerQuizCreate from "./pages/WrongAnswerQuizCreate";
 import QuizUIPreview from "./pages/QuizUIPreview";
 import MyQuizzes from "./pages/MyQuizzes";
-import Pricing from "./pages/Pricing";
 
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -64,7 +63,7 @@ const App = () => (
           <ScrollToTop />
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/pricing" element={<Pricing />} />
+            {/* /pricing 파킹 중 (체험 기간). 복구 방법은 src/pages/Pricing.tsx 상단 주석 참조. */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/dashboard" element={<Dashboard />} />

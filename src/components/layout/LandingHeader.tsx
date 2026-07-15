@@ -33,7 +33,6 @@ export function LandingHeader() {
         <div className="flex-1 hidden md:flex justify-center">
           <nav className="flex items-center gap-6 text-[15px] font-medium text-foreground">
             <a href="#features" className="hover:text-foreground transition-colors">기능</a>
-            <Link to="/pricing" className="hover:text-foreground transition-colors">요금</Link>
             <a href="#help" className="hover:text-foreground transition-colors">도움말</a>
           </nav>
         </div>
