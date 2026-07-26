@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Eye,
   MonitorPlay,
+  Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -479,14 +480,245 @@ function GridPanel({
   );
 }
 
+// ─── QR 자리표시자 (목업용, 실제 스캔은 안 됨) ───────────────────────────────
+function QrPlaceholder({ size = 176 }: { size?: number }) {
+  const N = 25;
+  const cells: { x: number; y: number }[] = [];
+  const inFinder = (x: number, y: number) =>
+    (x < 7 && y < 7) || (x >= N - 7 && y < 7) || (x < 7 && y >= N - 7);
+
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      if (inFinder(x, y)) continue;
+      if ((x * 7919 + y * 104729 + x * y * 31) % 100 > 52) cells.push({ x, y });
+    }
+  }
+
+  const Finder = ({ x, y }: { x: number; y: number }) => (
+    <>
+      <rect x={x} y={y} width={7} height={7} fill="#1A1714" />
+      <rect x={x + 1} y={y + 1} width={5} height={5} fill="#fff" />
+      <rect x={x + 2} y={y + 2} width={3} height={3} fill="#1A1714" />
+    </>
+  );
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${N} ${N}`} className="rounded-lg bg-white">
+      {cells.map((c, i) => (
+        <rect key={i} x={c.x} y={c.y} width={1} height={1} fill="#1A1714" />
+      ))}
+      <Finder x={0} y={0} />
+      <Finder x={N - 7} y={0} />
+      <Finder x={0} y={N - 7} />
+    </svg>
+  );
+}
+
+// ─── 1단계: 준비 ────────────────────────────────────────────────────────────
+type SessionSettings = {
+  anonymize: boolean;
+  watchScreens: boolean;
+  shareBoard: boolean;
+  shuffle: boolean;
+};
+
+function SetupPanel({
+  settings,
+  setSettings,
+  onStart,
+}: {
+  settings: SessionSettings;
+  setSettings: (s: SessionSettings) => void;
+  onStart: () => void;
+}) {
+  const rows: { key: keyof SessionSettings; label: string; desc: string }[] = [
+    {
+      key: "watchScreens",
+      label: "학생 화면 실시간 보기",
+      desc: "학생이 푸는 과정을 선생님이 볼 수 있어요. 끄면 진행률만 보입니다.",
+    },
+    {
+      key: "shareBoard",
+      label: "학생끼리 답 공유",
+      desc: "제출한 문장이 반 전체에 보드로 공유됩니다.",
+    },
+    { key: "anonymize", label: "학생 이름 숨기기", desc: "화면에 이름 대신 번호로 표시합니다." },
+    { key: "shuffle", label: "문제 순서 섞기", desc: "학생마다 문제 순서가 달라집니다." },
+  ];
+
+  return (
+    <div className="max-w-[560px] mx-auto py-4">
+      <h2 className="text-xl font-bold text-foreground mb-1">라이브 세션 준비</h2>
+      <p className="text-sm text-muted-foreground mb-6">일상 어휘 · 빈칸 채우기 · 5문제</p>
+
+      <div className="bg-card border border-border rounded-xl divide-y divide-border mb-4">
+        <div className="p-4 flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-semibold text-sm text-foreground">클래스</p>
+            <p className="text-xs text-muted-foreground mt-0.5">초급반 화요일 · 학생 8명</p>
+          </div>
+          <Button variant="outline" size="sm" className="shrink-0">
+            변경
+          </Button>
+        </div>
+
+        {rows.map((r) => (
+          <label key={r.key} className="p-4 flex items-start justify-between gap-4 cursor-pointer">
+            <div className="min-w-0">
+              <p className="font-semibold text-sm text-foreground">{r.label}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 break-keep">{r.desc}</p>
+            </div>
+            <Switch
+              checked={settings[r.key]}
+              onCheckedChange={(v) => setSettings({ ...settings, [r.key]: v })}
+              className="shrink-0 mt-0.5"
+            />
+          </label>
+        ))}
+      </div>
+
+      <Button size="lg" className="w-full h-12 text-base font-bold gap-2" onClick={onStart}>
+        <Play className="w-4 h-4" />
+        세션 열기
+      </Button>
+      <p className="text-xs text-muted-foreground text-center mt-3">
+        세션을 열면 참여 코드가 생성됩니다. 학생이 들어온 뒤 시작하세요.
+      </p>
+    </div>
+  );
+}
+
+// ─── 2단계: 대기실 ──────────────────────────────────────────────────────────
+function LobbyPanel({
+  code,
+  joined,
+  total,
+  autoStart,
+  setAutoStart,
+  onStart,
+}: {
+  code: string;
+  joined: Student[];
+  total: number;
+  autoStart: boolean;
+  setAutoStart: (v: boolean) => void;
+  onStart: () => void;
+}) {
+  return (
+    <div className="max-w-[880px] mx-auto py-2">
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_300px] gap-4">
+        {/* 참여 안내 */}
+        <div className="bg-card border border-border rounded-xl p-6 flex flex-col items-center text-center">
+          <p className="text-sm text-muted-foreground mb-1">아래 주소로 접속해서</p>
+          <p className="text-xl font-bold text-foreground mb-5">namu.kr/join</p>
+
+          <p className="text-sm text-muted-foreground mb-2">참여 코드를 입력하세요</p>
+          <div className="flex gap-1.5 mb-6">
+            {code.split("").map((d, i) => (
+              <span
+                key={i}
+                className="w-11 h-14 rounded-[10px] bg-accent border border-primary/20 flex items-center justify-center text-2xl font-bold text-primary tabular-nums"
+              >
+                {d}
+              </span>
+            ))}
+          </div>
+
+          <QrPlaceholder />
+          <p className="text-[11px] text-muted-foreground mt-2">
+            QR을 스캔해도 바로 들어올 수 있어요
+          </p>
+        </div>
+
+        {/* 참가자 */}
+        <div className="bg-card border border-border rounded-xl flex flex-col">
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <span className="font-bold text-sm text-foreground">참가자 {joined.length}</span>
+            <span className="text-xs text-muted-foreground ml-auto tabular-nums">/ {total}명</span>
+          </div>
+
+          <div className="p-3 flex-1 min-h-[220px]">
+            {joined.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center gap-2 text-center py-8">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <p className="text-xs text-muted-foreground">학생을 기다리는 중…</p>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {joined.map((s) => (
+                  <span
+                    key={s.id}
+                    className="px-2.5 py-1 rounded-full bg-accent text-accent-foreground text-xs font-semibold"
+                  >
+                    {s.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="p-3 border-t border-border space-y-3">
+            <label className="flex items-center justify-between gap-2 cursor-pointer">
+              <span className="text-xs font-medium text-foreground">전원 입장 시 자동 시작</span>
+              <Switch checked={autoStart} onCheckedChange={setAutoStart} />
+            </label>
+            <Button
+              className="w-full h-11 font-bold gap-2"
+              onClick={onStart}
+              disabled={joined.length === 0}
+            >
+              <Play className="w-4 h-4" />
+              지금 시작 ({joined.length}명)
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── 페이지 ─────────────────────────────────────────────────────────────────
 /** 사이드바에서 고를 수 있는 대상: 선생님 본인 / 학생 / 전체 격자(null) */
 const TEACHER = "teacher";
+type Phase = "setup" | "lobby" | "live";
+const JOIN_CODE = "157685";
 
 export default function LiveSessionPreview() {
+  const [phase, setPhase] = useState<Phase>("setup");
   const [count, setCount] = useState(8);
   const [selected, setSelected] = useState<string | null>(TEACHER);
   const state = useSimulation(count);
+
+  // 세션 설정
+  const [settings, setSettings] = useState<SessionSettings>({
+    anonymize: false,
+    watchScreens: true,
+    shareBoard: false,
+    shuffle: false,
+  });
+
+  // 대기실: 학생이 하나씩 입장하는 것을 흉내낸다
+  const [joinedCount, setJoinedCount] = useState(0);
+  const [autoStart, setAutoStart] = useState(false);
+
+  useEffect(() => {
+    if (phase !== "lobby") return;
+    setJoinedCount(0);
+    const id = setInterval(() => {
+      setJoinedCount((n) => (n >= count ? n : n + 1));
+    }, 900);
+    return () => clearInterval(id);
+  }, [phase, count]);
+
+  const joined = STUDENTS.slice(0, joinedCount);
+
+  useEffect(() => {
+    if (phase === "lobby" && autoStart && joinedCount >= count) {
+      const id = setTimeout(() => setPhase("live"), 800);
+      return () => clearTimeout(id);
+    }
+  }, [phase, autoStart, joinedCount, count]);
 
   // 선생님 화면 상태
   const [teacherAnswers, setTeacherAnswers] = useState<Record<number, string>>({});
@@ -535,15 +767,69 @@ export default function LiveSessionPreview() {
                 </button>
               ))}
             </div>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 text-destructive text-xs font-bold">
-              <Radio className="w-3.5 h-3.5" />
-              LIVE
-            </span>
+
+            {phase !== "setup" && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent text-accent-foreground text-xs font-bold tabular-nums">
+                코드 {JOIN_CODE}
+              </span>
+            )}
+
+            {phase === "live" ? (
+              <>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 text-destructive text-xs font-bold">
+                  <Radio className="w-3.5 h-3.5" />
+                  LIVE
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => setPhase("setup")}
+                >
+                  세션 종료
+                </Button>
+              </>
+            ) : phase === "lobby" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => setPhase("setup")}
+              >
+                취소
+              </Button>
+            ) : null}
           </div>
         </div>
       </header>
 
-      {/* 본문: 모바일은 학생 띠가 위로, 데스크톱은 오른쪽 사이드바 */}
+      {/* 1단계: 준비 */}
+      {phase === "setup" && (
+        <div className="flex-1 overflow-y-auto p-4">
+          <SetupPanel
+            settings={settings}
+            setSettings={setSettings}
+            onStart={() => setPhase("lobby")}
+          />
+        </div>
+      )}
+
+      {/* 2단계: 대기실 */}
+      {phase === "lobby" && (
+        <div className="flex-1 overflow-y-auto p-4">
+          <LobbyPanel
+            code={JOIN_CODE}
+            joined={joined}
+            total={count}
+            autoStart={autoStart}
+            setAutoStart={setAutoStart}
+            onStart={() => setPhase("live")}
+          />
+        </div>
+      )}
+
+      {/* 3단계: 라이브 — 모바일은 학생 띠가 위로, 데스크톱은 오른쪽 사이드바 */}
+      {phase === "live" && (
       <div className="flex-1 flex flex-col-reverse lg:flex-row min-h-0">
         {/* 메인 */}
         <main className="flex-1 min-w-0 p-4 lg:p-6 overflow-y-auto">
@@ -632,6 +918,7 @@ export default function LiveSessionPreview() {
           </div>
         </aside>
       </div>
+      )}
     </div>
   );
 }
