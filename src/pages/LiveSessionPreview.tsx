@@ -16,6 +16,27 @@ import {
   Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { STAGE_LABELS, type BaseStage } from "@/types/quiz";
+
+/** 라이브 세션에 쓸 수 있는 유형. 말하기 연습은 제외 — 다 같이 있는 자리에서
+ *  동시에 녹음하면 서로 소리가 섞이고, AI 채점도 즉시 나오지 않는다. */
+const LIVE_STAGES: BaseStage[] = [
+  "fill_blank",
+  "matchup",
+  "type_answer",
+  "word_magnet",
+  "sentence_making",
+];
+const EXCLUDED_STAGE: BaseStage = "recording";
+
+const STAGE_COLOR: Record<BaseStage, string> = {
+  fill_blank: "bg-type-fill-blank",
+  matchup: "bg-type-matchup",
+  type_answer: "bg-type-type-answer",
+  word_magnet: "bg-type-word-magnet",
+  sentence_making: "bg-type-sentence-making",
+  recording: "bg-type-recording",
+};
 
 /**
  * 라이브 세션 목업 (UI 검토용, 백엔드 연결 없음)
@@ -520,17 +541,24 @@ type SessionSettings = {
   watchScreens: boolean;
   shareBoard: boolean;
   shuffle: boolean;
+  allowGuests: boolean;
 };
 
 function SetupPanel({
   settings,
   setSettings,
+  stages,
+  setStages,
   onStart,
 }: {
   settings: SessionSettings;
   setSettings: (s: SessionSettings) => void;
+  stages: BaseStage[];
+  setStages: (s: BaseStage[]) => void;
   onStart: () => void;
 }) {
+  const toggleStage = (s: BaseStage) =>
+    setStages(stages.includes(s) ? stages.filter((x) => x !== s) : [...stages, s]);
   const rows: { key: keyof SessionSettings; label: string; desc: string }[] = [
     {
       key: "watchScreens",
@@ -542,6 +570,11 @@ function SetupPanel({
       label: "학생끼리 답 공유",
       desc: "제출한 문장이 반 전체에 보드로 공유됩니다.",
     },
+    {
+      key: "allowGuests",
+      label: "비회원 참여 허용",
+      desc: "켜면 로그인 없이 이름만 적고 들어올 수 있어요. 로그인한 학생은 결과가 계정에 저장됩니다.",
+    },
     { key: "anonymize", label: "학생 이름 숨기기", desc: "화면에 이름 대신 번호로 표시합니다." },
     { key: "shuffle", label: "문제 순서 섞기", desc: "학생마다 문제 순서가 달라집니다." },
   ];
@@ -549,7 +582,55 @@ function SetupPanel({
   return (
     <div className="max-w-[560px] mx-auto py-4">
       <h2 className="text-xl font-bold text-foreground mb-1">라이브 세션 준비</h2>
-      <p className="text-sm text-muted-foreground mb-6">일상 어휘 · 빈칸 채우기 · 5문제</p>
+      <p className="text-sm text-muted-foreground mb-6">일상 어휘 · 단어 5개</p>
+
+      {/* 퀴즈 유형 */}
+      <div className="bg-card border border-border rounded-xl p-4 mb-4">
+        <p className="font-semibold text-sm text-foreground mb-0.5">퀴즈 유형</p>
+        <p className="text-xs text-muted-foreground mb-3">
+          선택한 순서대로 진행됩니다. 최소 하나는 골라야 해요.
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          {LIVE_STAGES.map((s) => {
+            const on = stages.includes(s);
+            return (
+              <button
+                key={s}
+                onClick={() => toggleStage(s)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors duration-100",
+                  on
+                    ? "bg-accent border-primary text-accent-foreground"
+                    : "bg-card border-border text-muted-foreground hover:border-primary/40"
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-2 h-2 rounded-full",
+                    on ? STAGE_COLOR[s] : "bg-border"
+                  )}
+                />
+                {STAGE_LABELS[s]}
+              </button>
+            );
+          })}
+
+          {/* 말하기 연습은 라이브에서 제외 */}
+          <span
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-border text-muted-foreground/70 cursor-not-allowed"
+            title="라이브 세션에서는 쓸 수 없어요"
+          >
+            <span className="w-2 h-2 rounded-full bg-border" />
+            {STAGE_LABELS[EXCLUDED_STAGE]}
+          </span>
+        </div>
+
+        <p className="text-[11px] text-muted-foreground mt-3 break-keep">
+          말하기 연습은 라이브 세션에서 빠집니다. 다 같이 동시에 녹음하면 소리가 섞이고, AI 발음
+          채점도 바로 나오지 않아서예요. 숙제로 내주시면 됩니다.
+        </p>
+      </div>
 
       <div className="bg-card border border-border rounded-xl divide-y divide-border mb-4">
         <div className="p-4 flex items-center justify-between gap-4">
@@ -577,7 +658,12 @@ function SetupPanel({
         ))}
       </div>
 
-      <Button size="lg" className="w-full h-12 text-base font-bold gap-2" onClick={onStart}>
+      <Button
+        size="lg"
+        className="w-full h-12 text-base font-bold gap-2"
+        onClick={onStart}
+        disabled={stages.length === 0}
+      >
         <Play className="w-4 h-4" />
         세션 열기
       </Button>
@@ -595,6 +681,7 @@ function LobbyPanel({
   total,
   autoStart,
   setAutoStart,
+  allowGuests,
   onStart,
 }: {
   code: string;
@@ -602,8 +689,11 @@ function LobbyPanel({
   total: number;
   autoStart: boolean;
   setAutoStart: (v: boolean) => void;
+  allowGuests: boolean;
   onStart: () => void;
 }) {
+  // 목업: 비회원 허용이면 일부는 게스트로 들어온 것으로 표시
+  const isGuest = (i: number) => allowGuests && (i === 2 || i === 5);
   return (
     <div className="max-w-[880px] mx-auto py-2">
       <div className="grid lg:grid-cols-[minmax(0,1fr)_300px] gap-4">
@@ -646,12 +736,19 @@ function LobbyPanel({
               </div>
             ) : (
               <div className="flex flex-wrap gap-1.5">
-                {joined.map((s) => (
+                {joined.map((s, i) => (
                   <span
                     key={s.id}
-                    className="px-2.5 py-1 rounded-full bg-accent text-accent-foreground text-xs font-semibold"
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold",
+                      isGuest(i)
+                        ? "bg-muted text-muted-foreground border border-dashed border-border"
+                        : "bg-accent text-accent-foreground"
+                    )}
+                    title={isGuest(i) ? "비회원 — 결과가 저장되지 않아요" : "클래스 학생"}
                   >
                     {s.name}
+                    {isGuest(i) && <span className="text-[10px] font-bold opacity-70">게스트</span>}
                   </span>
                 ))}
               </div>
@@ -696,7 +793,9 @@ export default function LiveSessionPreview() {
     watchScreens: true,
     shareBoard: false,
     shuffle: false,
+    allowGuests: true,
   });
+  const [stages, setStages] = useState<BaseStage[]>(["fill_blank", "sentence_making"]);
 
   // 대기실: 학생이 하나씩 입장하는 것을 흉내낸다
   const [joinedCount, setJoinedCount] = useState(0);
@@ -809,6 +908,8 @@ export default function LiveSessionPreview() {
           <SetupPanel
             settings={settings}
             setSettings={setSettings}
+            stages={stages}
+            setStages={setStages}
             onStart={() => setPhase("lobby")}
           />
         </div>
@@ -823,6 +924,7 @@ export default function LiveSessionPreview() {
             total={count}
             autoStart={autoStart}
             setAutoStart={setAutoStart}
+            allowGuests={settings.allowGuests}
             onStart={() => setPhase("live")}
           />
         </div>
