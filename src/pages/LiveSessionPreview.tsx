@@ -1,17 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronLeft, Volume2, Lightbulb, Users, Radio } from "lucide-react";
+import { ArrowLeft, Volume2, Lightbulb, Users, Radio, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
  * 라이브 세션 목업 (UI 검토용, 백엔드 연결 없음)
  *
- * 선생님이 학생들의 풀이를 실시간으로 보는 화면.
- * 접속 인원에 따라 밀도가 3단계로 자동 전환된다.
- *   1명    → 미러 모드 (학생 화면 그대로)
- *   2~4명  → 카드 모드 (답 내용까지)
- *   5명 이상 → 격자 모드 (진행률·정오답만, 클릭하면 미러)
+ * 레이아웃: 왼쪽 메인 + 오른쪽 학생 목록 (고정)
+ *   - 오른쪽 카드를 누르면 그 학생이 메인에 크게 뜬다
+ *   - "전체 보기"를 누르면 메인이 격자로 돌아온다
+ *   - 모바일에서는 학생 목록이 상단 가로 스크롤 띠가 된다
  */
 
 const PROBLEMS = [
@@ -100,11 +99,12 @@ function useSimulation(count: number) {
 }
 
 const isCorrect = (i: number, given: string) => given === PROBLEMS[i].answer;
+const scoreOf = (p: Progress) => p.committed.filter((a, i) => isCorrect(i, a)).length;
 
 // ─── 진행 점 ────────────────────────────────────────────────────────────────
-function Dots({ p }: { p: Progress }) {
+function Dots({ p, size = "md" }: { p: Progress; size?: "sm" | "md" }) {
   return (
-    <div className="flex gap-1">
+    <div className={cn("flex", size === "sm" ? "gap-[3px]" : "gap-1")}>
       {PROBLEMS.map((_, i) => {
         const given = p.committed[i];
         const active = i === p.index;
@@ -112,7 +112,8 @@ function Dots({ p }: { p: Progress }) {
           <span
             key={i}
             className={cn(
-              "w-2.5 h-2.5 rounded-full transition-colors duration-150",
+              "rounded-full transition-colors duration-150",
+              size === "sm" ? "w-2 h-2" : "w-2.5 h-2.5",
               given === undefined
                 ? active
                   ? "bg-primary/40 ring-2 ring-primary/25"
@@ -128,56 +129,92 @@ function Dots({ p }: { p: Progress }) {
   );
 }
 
-function StatusPill({ p }: { p: Progress }) {
+function StatusText({ p }: { p: Progress }) {
   const done = p.index >= PROBLEMS.length;
   return (
     <span
       className={cn(
-        "px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0",
-        done ? "bg-success/10 text-success" : "bg-accent text-accent-foreground"
+        "text-[11px] font-medium",
+        done ? "text-success" : p.typing ? "text-primary" : "text-muted-foreground"
       )}
     >
-      {done ? "제출 완료" : `${p.index + 1}번 푸는 중`}
+      {done ? `제출 완료 · ${scoreOf(p)}/${PROBLEMS.length}` : p.typing ? "입력 중…" : "생각 중"}
     </span>
   );
 }
 
-// ─── 미러 모드 ──────────────────────────────────────────────────────────────
-function MirrorView({
+// ─── 오른쪽 학생 카드 ───────────────────────────────────────────────────────
+function StudentCard({
   student,
   p,
-  onBack,
+  selected,
+  onClick,
 }: {
   student: Student;
   p: Progress;
-  onBack?: () => void;
+  selected: boolean;
+  onClick: () => void;
 }) {
   const done = p.index >= PROBLEMS.length;
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full text-left rounded-xl border p-3 transition-all duration-150 shrink-0",
+        "min-w-[172px] lg:min-w-0",
+        selected
+          ? "border-primary bg-accent ring-2 ring-primary/20"
+          : "border-border bg-card hover:border-primary/40"
+      )}
+    >
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="font-semibold text-sm text-foreground truncate">{student.name}</span>
+        <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
+          {Math.min(p.index, PROBLEMS.length)}/{PROBLEMS.length}
+        </span>
+      </div>
+
+      <Dots p={p} size="sm" />
+
+      {/* 지금 치고 있는 내용 미리보기 */}
+      <div className="mt-2 h-6 flex items-center">
+        {done ? (
+          <StatusText p={p} />
+        ) : p.typing ? (
+          <span className="text-xs font-semibold text-foreground truncate">
+            {p.typing}
+            <span className="inline-block w-[1.5px] h-3 bg-primary align-middle ml-0.5 animate-pulse" />
+          </span>
+        ) : (
+          <StatusText p={p} />
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ─── 메인: 한 학생 미러 ─────────────────────────────────────────────────────
+function MirrorPanel({ student, p }: { student: Student; p: Progress }) {
+  const done = p.index >= PROBLEMS.length;
   const usedWords = new Set(
-    p.committed.map((_, i) => PROBLEMS[i].word).filter((_, i) => p.committed[i] !== undefined)
+    PROBLEMS.map((prob, i) => (p.committed[i] !== undefined ? prob.word : null)).filter(Boolean) as string[]
   );
 
   return (
     <div className="max-w-[640px] mx-auto">
-      <div className="flex items-center gap-3 mb-4">
-        {onBack && (
-          <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 -ml-2">
-            <ChevronLeft className="w-4 h-4" />
-            전체 보기
-          </Button>
-        )}
-        <div className="flex items-center gap-2 ml-auto">
-          <StatusPill p={p} />
-          <span className="text-sm text-muted-foreground tabular-nums">
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        {/* 누구 화면인지 */}
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center shrink-0">
+              {student.name[0]}
+            </span>
+            <span className="font-bold text-foreground truncate">{student.name}의 화면</span>
+          </div>
+          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
             {Math.min(p.index + (done ? 0 : 1), PROBLEMS.length)} / {PROBLEMS.length}
           </span>
-        </div>
-      </div>
-
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
-          <span className="font-bold text-foreground">{student.name}</span>
-          <span className="text-xs text-muted-foreground">학생 화면 · 빈칸 채우기</span>
         </div>
 
         <div className="p-5">
@@ -220,8 +257,7 @@ function MirrorView({
                   <div className="flex items-start gap-2 mb-2">
                     <span className="text-primary font-bold text-sm shrink-0">{prob.n}.</span>
                     <p className="text-[15px] leading-relaxed text-foreground">
-                      {prob.before}{" "}
-                      <span className="text-muted-foreground">( _____ )</span>
+                      {prob.before} <span className="text-muted-foreground">( _____ )</span>
                       {prob.hint && (
                         <span className="text-primary text-sm font-medium ml-1">{prob.hint}</span>
                       )}
@@ -281,8 +317,8 @@ function MirrorView({
   );
 }
 
-// ─── 카드 모드 (2~4명) ──────────────────────────────────────────────────────
-function CardView({
+// ─── 메인: 전체 격자 ────────────────────────────────────────────────────────
+function GridPanel({
   students,
   state,
   onPick,
@@ -292,120 +328,56 @@ function CardView({
   onPick: (id: string) => void;
 }) {
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {students.map((s) => {
-        const p = state[s.id];
-        const done = p.index >= PROBLEMS.length;
-        const prob = done ? null : PROBLEMS[p.index];
-
-        return (
-          <button
-            key={s.id}
-            onClick={() => onPick(s.id)}
-            className="text-left bg-card border border-border rounded-xl p-4 hover:border-primary/40 hover:shadow-md transition-all duration-150"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-bold text-foreground">{s.name}</span>
-              <StatusPill p={p} />
-            </div>
-
-            <Dots p={p} />
-
-            <div className="mt-3 pt-3 border-t border-border min-h-[72px]">
-              {prob ? (
-                <>
-                  <p className="text-xs text-muted-foreground mb-2 leading-relaxed line-clamp-2">
-                    {prob.before} ( ___ ) {prob.hint}
-                  </p>
-                  <div className="h-9 rounded-[10px] bg-slate-50 border border-border flex items-center px-3 text-sm">
-                    {p.typing ? (
-                      <span className="font-semibold text-foreground">
-                        {p.typing}
-                        <span className="inline-block w-[1.5px] h-[13px] bg-primary align-middle ml-0.5 animate-pulse" />
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">입력 대기 중…</span>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  <span className="text-sm text-success font-semibold">
-                    {p.committed.filter((a, i) => isCorrect(i, a)).length} / {PROBLEMS.length} 정답
-                  </span>
-                </div>
-              )}
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── 격자 모드 (5명 이상) ───────────────────────────────────────────────────
-function GridView({
-  students,
-  state,
-  onPick,
-}: {
-  students: Student[];
-  state: Record<string, Progress>;
-  onPick: (id: string) => void;
-}) {
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-      {students.map((s) => {
-        const p = state[s.id];
-        const done = p.index >= PROBLEMS.length;
-        return (
-          <button
-            key={s.id}
-            onClick={() => onPick(s.id)}
-            className="bg-card border border-border rounded-xl p-3.5 text-left hover:border-primary/40 hover:shadow-md transition-all duration-150"
-          >
-            <div className="flex items-center justify-between mb-2.5 gap-2">
-              <span className="font-semibold text-sm text-foreground truncate">{s.name}</span>
-              <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
-                {Math.min(p.index, PROBLEMS.length)}/{PROBLEMS.length}
-              </span>
-            </div>
-            <Dots p={p} />
-            <p
-              className={cn(
-                "mt-2.5 text-[11px] font-medium",
-                done ? "text-success" : p.typing ? "text-primary" : "text-muted-foreground"
-              )}
+    <div>
+      <p className="text-sm text-muted-foreground mb-4">
+        학생 카드를 누르면 그 학생 화면을 크게 볼 수 있어요.
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+        {students.map((s) => {
+          const p = state[s.id];
+          return (
+            <button
+              key={s.id}
+              onClick={() => onPick(s.id)}
+              className="bg-card border border-border rounded-xl p-4 text-left hover:border-primary/40 hover:shadow-md transition-all duration-150"
             >
-              {done ? "제출 완료" : p.typing ? "입력 중…" : "생각 중"}
-            </p>
-          </button>
-        );
-      })}
+              <div className="flex items-center justify-between mb-2.5 gap-2">
+                <span className="font-semibold text-sm text-foreground truncate">{s.name}</span>
+                <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
+                  {Math.min(p.index, PROBLEMS.length)}/{PROBLEMS.length}
+                </span>
+              </div>
+              <Dots p={p} />
+              <div className="mt-2.5">
+                <StatusText p={p} />
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 // ─── 페이지 ─────────────────────────────────────────────────────────────────
 export default function LiveSessionPreview() {
-  const [count, setCount] = useState(1);
-  const [focused, setFocused] = useState<string | null>(null);
+  const [count, setCount] = useState(8);
+  const [selected, setSelected] = useState<string | null>("s1");
   const state = useSimulation(count);
 
   const visible = STUDENTS.slice(0, count);
-  const focusedStudent = focused ? STUDENTS.find((s) => s.id === focused) : null;
+  const selectedStudent = selected ? visible.find((s) => s.id === selected) ?? null : null;
 
-  // 인원이 바뀌면 포커스 해제
-  useEffect(() => setFocused(null), [count]);
-
-  const mode = focusedStudent || count === 1 ? "mirror" : count <= 4 ? "card" : "grid";
-  const mirrorTarget = focusedStudent ?? visible[0];
+  // 인원이 바뀌면 1명일 때는 자동 선택, 여러 명이면 첫 학생
+  useEffect(() => {
+    setSelected(STUDENTS[0].id);
+  }, [count]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* 헤더 */}
-      <header className="sticky top-0 z-10 bg-background/85 backdrop-blur border-b border-border">
-        <div className="max-w-[1120px] mx-auto px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-0 z-20 bg-background/85 backdrop-blur border-b border-border h-16 shrink-0">
+        <div className="h-full px-4 flex items-center gap-3">
           <Link to="/">
             <Button variant="ghost" size="icon" className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
@@ -415,61 +387,81 @@ export default function LiveSessionPreview() {
             <h1 className="font-bold text-lg leading-tight truncate">라이브 세션</h1>
             <p className="text-xs text-muted-foreground truncate">일상 어휘 · 빈칸 채우기</p>
           </div>
-          <span className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 text-destructive text-xs font-bold shrink-0">
-            <Radio className="w-3.5 h-3.5" />
-            LIVE
-          </span>
+
+          <div className="ml-auto flex items-center gap-2 shrink-0">
+            {/* 목업용 인원 전환 */}
+            <div className="hidden sm:flex items-center gap-1 mr-1">
+              {[1, 3, 8].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setCount(n)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-[8px] text-xs font-semibold border transition-colors duration-100",
+                    count === n
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                  )}
+                >
+                  {n}명
+                </button>
+              ))}
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 text-destructive text-xs font-bold">
+              <Radio className="w-3.5 h-3.5" />
+              LIVE
+            </span>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-[1120px] mx-auto px-4 py-6">
-        {/* 목업 안내 + 인원 전환 */}
-        <div className="bg-card border border-border rounded-xl p-4 mb-6">
-          <p className="text-sm text-muted-foreground mb-3 break-keep">
-            <strong className="text-foreground">목업입니다.</strong> 접속 인원에 따라 화면 밀도가
-            자동으로 바뀝니다. 아래에서 인원을 바꿔가며 확인해보세요. 카드를 누르면 그 학생만
-            자세히 볼 수 있습니다.
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground mr-1">
-              <Users className="w-3.5 h-3.5" />
-              접속 인원
+      {/* 본문: 모바일은 학생 띠가 위로, 데스크톱은 오른쪽 사이드바 */}
+      <div className="flex-1 flex flex-col-reverse lg:flex-row min-h-0">
+        {/* 메인 */}
+        <main className="flex-1 min-w-0 p-4 lg:p-6 overflow-y-auto">
+          {selectedStudent ? (
+            <MirrorPanel student={selectedStudent} p={state[selectedStudent.id]} />
+          ) : (
+            <GridPanel students={visible} state={state} onPick={setSelected} />
+          )}
+        </main>
+
+        {/* 학생 목록 */}
+        <aside
+          className={cn(
+            "shrink-0 bg-card/40 border-border",
+            "border-b lg:border-b-0 lg:border-l",
+            "lg:w-[280px] lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:overflow-y-auto"
+          )}
+        >
+          <div className="px-4 py-3 flex items-center justify-between gap-2 lg:border-b lg:border-border">
+            <span className="inline-flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <Users className="w-4 h-4 text-muted-foreground" />
+              학생 {visible.length}명
             </span>
-            {[
-              { n: 1, label: "1명 · 미러" },
-              { n: 3, label: "3명 · 카드" },
-              { n: 8, label: "8명 · 격자" },
-            ].map((o) => (
-              <button
-                key={o.n}
-                onClick={() => setCount(o.n)}
-                className={cn(
-                  "px-3 py-1.5 rounded-[10px] text-xs font-semibold border transition-colors duration-100",
-                  count === o.n
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card text-muted-foreground border-border hover:border-primary/40"
-                )}
-              >
-                {o.label}
-              </button>
+            <Button
+              variant={selectedStudent ? "outline" : "secondary"}
+              size="sm"
+              className="h-7 text-xs gap-1.5"
+              onClick={() => setSelected(null)}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              전체 보기
+            </Button>
+          </div>
+
+          <div className="px-4 pb-4 lg:pt-3 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible">
+            {visible.map((s) => (
+              <StudentCard
+                key={s.id}
+                student={s}
+                p={state[s.id]}
+                selected={selected === s.id}
+                onClick={() => setSelected(s.id)}
+              />
             ))}
           </div>
-        </div>
-
-        {mode === "mirror" && mirrorTarget && (
-          <MirrorView
-            student={mirrorTarget}
-            p={state[mirrorTarget.id]}
-            onBack={focused ? () => setFocused(null) : undefined}
-          />
-        )}
-        {mode === "card" && (
-          <CardView students={visible} state={state} onPick={setFocused} />
-        )}
-        {mode === "grid" && (
-          <GridView students={visible} state={state} onPick={setFocused} />
-        )}
-      </main>
+        </aside>
+      </div>
     </div>
   );
 }
