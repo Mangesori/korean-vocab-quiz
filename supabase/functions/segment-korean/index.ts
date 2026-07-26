@@ -25,15 +25,24 @@ const buildPrompt = (sentences: { id: string; text: string }[]) => {
 [분절 규칙]
 - 띄어쓰기(어절) 기준으로 의미 단위로 나눕니다.
 - 명사 + 조사 → 명사 / 조사 (예: "학생이" → "학생" / "이")
-- 동사·형용사 활용형 → 어간 / 어미(들) (예: "운동하고" → "운동하" / "고", "싶지만" → "싶" / "지만", "먹었어요" → "먹" / "었어요")
+- 동사·형용사 활용형(서술어)은 어간/어미로 쪼개지 말고 어절 전체를 한 타일로 두며 isParticle=false 로 둡니다. (예: "좋아서", "냈어요", "쓰기로", "했어요", "완성해서", "드렸어요", "낮아졌다고", "해요" 는 각각 통째로 한 타일)
+- 명사·부사·관형사 등도 조사가 붙지 않았다면 어절 전체를 통째로 한 타일(isParticle=false)로 둡니다.
 - 각 타일의 content를 공백 없이 순서대로 이으면 원문 문장(공백 제거)과 정확히 같아야 합니다. 글자를 추가/삭제/변형하지 마세요.
 - 문장 부호(. ? !)는 바로 앞 타일의 content에 붙입니다.
-- isParticle = true: 앞 타일에 붙는 문법 형태소(조사·어미·연결어미·종결어미).
-- isParticle = false: 내용 형태소(명사·동사어간·형용사어간·부사·관형사 등).
+- isParticle = true 는 오직 "명사에서 분리된 조사(격조사·보조사: 은/는/이/가/을/를/의/에/에서/한테/에게/도/만 등)"에만 부여합니다.
+- 어미·연결어미·종결어미에는 절대 isParticle=true 를 부여하지 않습니다(애초에 서술어는 분리하지 않습니다).
+- isParticle = false: 내용 형태소(명사·동사·형용사 활용형 전체·부사·관형사 등).
+
+[동음이의 주의]
+- "많이"의 "이"는 부사의 일부이므로 조사로 보고 분리하지 마세요. ("많이" 통째로)
+- "쓰기로"의 "로"는 어미이므로 분리하거나 오렌지(isParticle=true)로 만들지 마세요. ("쓰기로" 통째로)
+- "낮아졌다고"의 "다고"는 어미이므로 분리하거나 오렌지로 만들지 마세요. ("낮아졌다고" 통째로)
 
 [예시]
 "운동하고 싶지만 시간이 없어요." →
-[{"content":"운동하","isParticle":false},{"content":"고","isParticle":true},{"content":"싶","isParticle":false},{"content":"지만","isParticle":true},{"content":"시간","isParticle":false},{"content":"이","isParticle":true},{"content":"없","isParticle":false},{"content":"어요.","isParticle":true}]
+[{"content":"운동하고","isParticle":false},{"content":"싶지만","isParticle":false},{"content":"시간","isParticle":false},{"content":"이","isParticle":true},{"content":"없어요.","isParticle":false}]
+"요즘 한국은 출산율이 많이 낮아졌다고 해요." →
+[{"content":"요즘","isParticle":false},{"content":"한국","isParticle":false},{"content":"은","isParticle":true},{"content":"출산율","isParticle":false},{"content":"이","isParticle":true},{"content":"많이","isParticle":false},{"content":"낮아졌다고","isParticle":false},{"content":"해요.","isParticle":false}]
 
 [입력 문장]
 [

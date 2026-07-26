@@ -13,13 +13,12 @@ import {
   RefreshCw,
   Lightbulb,
   ChevronLeft,
-  ChevronRight,
-  Ear
+  ChevronRight
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { renderSentenceWithFeedback, renderRecognizedText } from "@/components/quiz/quizResultUtils";
+import { renderSentenceWithFeedback } from "@/components/quiz/quizResultUtils";
 
 interface SpeakingProblem {
   id: string;
@@ -479,18 +478,8 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
 
               {/* 단어별 점수에 따라 빨강/노랑/초록으로 표시 */}
               <p className="text-base sm:text-lg text-center py-2">
-                {renderSentenceWithFeedback(currentProblem.sentence, lastAttempt.wordLevelFeedback, lastAttempt.isPassed, lastAttempt.recognizedText)}
+                {renderSentenceWithFeedback(currentProblem.sentence, lastAttempt.wordLevelFeedback, lastAttempt.isPassed)}
               </p>
-
-              {/* CLOVA가 실제 인식한 문장 */}
-              {lastAttempt.recognizedText && (
-                <div className="flex items-start justify-center gap-2 pt-1">
-                  <Ear className="w-4 h-4 text-slate-400 shrink-0 mt-1" />
-                  <p className="text-sm sm:text-base text-center">
-                    {renderRecognizedText(lastAttempt.recognizedText, currentProblem.sentence)}
-                  </p>
-                </div>
-              )}
             </div>
           )}
           {/* 다음/다시 시도 버튼 */}

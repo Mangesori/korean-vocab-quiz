@@ -1,8 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trophy, Volume2, Lightbulb, Ear } from "lucide-react";
+import { Trophy, Volume2, Lightbulb } from "lucide-react";
 import { useRef, useState } from "react";
-import { renderSentenceWithFeedback, renderRecognizedText, generateSpeakingFeedback } from "@/components/quiz/quizResultUtils";
+import { renderSentenceWithFeedback, generateSpeakingFeedback } from "@/components/quiz/quizResultUtils";
 
 interface SpeakingAttempt {
   attemptNumber: number;
@@ -184,17 +184,8 @@ export function SpeakingResultStage({
 
                 <div className="mt-6 border-t border-slate-100 pt-5 space-y-4 sm:px-3">
                   <div className="text-lg pl-3">
-                    {renderSentenceWithFeedback(problem.sentence, best.wordLevelFeedback, best.isPassed, best.recognizedText)}
+                    {renderSentenceWithFeedback(problem.sentence, best.wordLevelFeedback, best.isPassed)}
                   </div>
-
-                  {best.recognizedText && (
-                    <div className="flex items-start gap-2 pl-3">
-                      <Ear className="w-4 h-4 text-slate-400 shrink-0 mt-1" />
-                      <p className="text-base">
-                        {renderRecognizedText(best.recognizedText, problem.sentence)}
-                      </p>
-                    </div>
-                  )}
 
                   <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
                     <p className="text-sm text-slate-600 leading-relaxed break-keep">{generateSpeakingFeedback(best)}</p>
