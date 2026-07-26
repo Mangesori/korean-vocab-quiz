@@ -30,6 +30,7 @@ import WrongAnswerNotebook from "./pages/WrongAnswerNotebook";
 import WrongAnswerPractice from "./pages/WrongAnswerPractice";
 import ClassAnnouncements from "./pages/ClassAnnouncements";
 import WrongAnswerQuizCreate from "./pages/WrongAnswerQuizCreate";
+import LiveSessionPreview from "./pages/LiveSessionPreview";
 import MyQuizzes from "./pages/MyQuizzes";
 import HelpCenter from "./pages/HelpCenter";
 import HelpArticle from "./pages/HelpArticle";
@@ -136,6 +137,7 @@ const App = () => (
               </ProtectedRoute>
             } />
 
+            <Route path="/live/preview" element={<LiveSessionPreview />} />
             <Route path="/my-quizzes" element={<MyQuizzes />} />
 
             {/* 도움말은 비로그인 방문자도 봐야 하는 공개 페이지라 ProtectedRoute로 감싸지 않는다. */}
