@@ -534,7 +534,6 @@ export default function StudentDashboard() {
             <Home className="h-6 w-6 text-primary" />
             안녕하세요, {displayName}님! 👋
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm">오늘도 한국어 공부 화이팅!</p>
         </div>
 
         {/* Hero card */}

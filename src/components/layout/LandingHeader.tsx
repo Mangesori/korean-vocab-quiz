@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -15,10 +15,19 @@ import { NotificationDropdown } from "@/components/notifications/NotificationDro
 export function LandingHeader() {
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHelpActive = location.pathname.startsWith("/help");
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
+  };
+
+  const handleFeaturesClick = (e: React.MouseEvent) => {
+    if (location.pathname !== "/") {
+      e.preventDefault();
+      navigate("/#features");
+    }
   };
 
   const getInitials = (email: string) => email.substring(0, 2).toUpperCase();
@@ -30,10 +39,21 @@ export function LandingHeader() {
           <img src="/Namu_logo_text_right.png" className="h-8 w-auto" alt="나무 Korean" />
         </Link>
 
-        <div className="flex-1 hidden md:flex justify-center">
+        <div className="flex-1 flex justify-center">
           <nav className="flex items-center gap-6 text-[15px] font-medium text-foreground">
-            <a href="#features" className="hover:text-foreground transition-colors">기능</a>
-            <a href="#help" className="hover:text-foreground transition-colors">도움말</a>
+            <a
+              href="/#features"
+              onClick={handleFeaturesClick}
+              className="hidden sm:inline hover:text-foreground transition-colors"
+            >
+              기능
+            </a>
+            <Link
+              to="/help"
+              className={`hover:text-foreground transition-colors ${isHelpActive ? "text-primary font-bold" : ""}`}
+            >
+              도움말
+            </Link>
           </nav>
         </div>
 

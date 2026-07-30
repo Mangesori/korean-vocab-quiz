@@ -1,4 +1,5 @@
-import { Link, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { LandingHeader } from '@/components/layout/LandingHeader';
 import { Footer } from '@/components/layout/Footer';
@@ -8,6 +9,15 @@ import { HeroProductMock } from '@/components/landing/HeroProductMock';
 
 export default function Index() {
   const { user, loading } = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      const el = document.querySelector(location.hash);
+      el?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [location.hash]);
+
   if (!loading && user) return <Navigate to="/dashboard" replace />;
 
   return (
@@ -146,9 +156,10 @@ export default function Index() {
                   label: "선생님은",
                   items: [
                     "단어 목록 붙여넣기만으로 퀴즈 완성 — 수업 준비 시간 절약",
-                    "링크 공유 또는 클래스 배정, 응시 제한·만료일 설정",
-                    "학생별 점수·오답·소요 시간이 자동으로 정리된 리포트",
+                    "공유 링크 한 줄 또는 클래스 배정으로 배포 — 링크당 3회 응시",
+                    "학생별 점수와 오답이 자동으로 정리된 결과 리포트",
                   ],
+                  guideHref: "/help?role=teacher",
                 },
                 {
                   icon: <Backpack className="w-3.5 h-3.5" />,
@@ -158,6 +169,7 @@ export default function Index() {
                     "말하기 연습은 AI가 발음 정확도를 점수와 피드백으로",
                     "틀린 단어는 오답노트에 자동 저장, 모아서 다시 복습",
                   ],
+                  guideHref: "/help?role=student",
                 },
               ].map((col) => (
                 <div key={col.label} className="bg-card border border-border rounded-2xl p-8">
@@ -173,6 +185,12 @@ export default function Index() {
                       </li>
                     ))}
                   </ul>
+                  <Link
+                    to={col.guideHref}
+                    className="mt-5 inline-block text-sm font-semibold text-primary hover:underline"
+                  >
+                    {col.label === "선생님은" ? "선생님 가이드 보기" : "학생 가이드 보기"} →
+                  </Link>
                 </div>
               ))}
             </div>

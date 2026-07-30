@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle, ChevronLeft, ChevronRight, Lightbulb } from "lucide-react";
+import { Loader2, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { QuizStageHeader } from "@/components/quiz/shared/QuizStageHeader";
+import { HintButton } from "@/components/quiz/shared/HintButton";
 
 interface SentenceMakingProblem {
   id: string;
@@ -294,33 +296,21 @@ export function SentenceMakingStage({
     <Card className="w-full max-w-5xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl overflow-hidden bg-transparent sm:bg-white mb-4 sm:mb-8 mt-4">
 
       <CardContent className="p-0 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
-        {/* 단어 표시 */}
-          <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px] mt-0 sm:mt-1">
-            <div className="flex w-full items-center justify-end mb-2 sm:mb-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowHint(!showHint)}
-                className="bg-white text-xs h-8 px-3 rounded-xl shadow-sm text-slate-600"
-              >
-                <Lightbulb className={`w-3.5 h-3.5 mr-1.5 ${showHint ? "text-warning" : ""}`} />
-                힌트
-              </Button>
-            </div>
+        <QuizStageHeader
+          instruction="이 단어를 사용하여 문장을 만드세요"
+          action={<HintButton active={showHint} onToggle={() => setShowHint(!showHint)} />}
+        />
 
-            <div className="flex-1 flex flex-col items-center justify-center w-full">
-              <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold mb-3 sm:mb-5">
-                이 단어를 사용하여 문장을 만드세요
-              </p>
-              <Badge variant="outline" className="text-lg sm:text-xl lg:text-2xl px-6 py-2 sm:py-3 font-bold bg-white shadow-sm border-slate-200 rounded-2xl text-slate-800">
-                {currentProblem.word}
-              </Badge>
-              
-              <p className={`text-sm sm:text-base text-muted-foreground mt-4 sm:mt-6 text-center transition-opacity duration-200 ${showHint && currentProblem.word_meaning ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-                {currentProblem.word_meaning || ""}
-              </p>
-            </div>
-          </div>
+        {/* 제시 단어 — 회색 박스는 "이 문제의 재료"만 */}
+        <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col items-center justify-center min-h-[180px] sm:min-h-[200px]">
+          <Badge variant="outline" className="text-lg sm:text-xl lg:text-2xl px-6 py-2 sm:py-3 font-bold bg-white shadow-sm border-slate-200 rounded-2xl text-slate-800">
+            {currentProblem.word}
+          </Badge>
+
+          <p className={`text-sm sm:text-base text-muted-foreground mt-4 sm:mt-6 text-center transition-opacity duration-200 ${showHint && currentProblem.word_meaning ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+            {currentProblem.word_meaning || ""}
+          </p>
+        </div>
 
           {/* 입력 */}
           <div className="px-1">

@@ -40,6 +40,10 @@ dist-ssr
 # Supabase 로컬 임시
 supabase/.temp/
 
+# 도움말 스크린샷 캡처 (로컬 전용 — 로컬 Supabase 접속 정보 + 로그인 세션)
+.env.capture
+scripts/help-shots/.auth/
+
 # 디버그/임시 스크립트 (커밋 대상 아님)
 _debug*.mjs
 _verify-*.mjs

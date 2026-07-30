@@ -309,6 +309,56 @@ function PaneTypeAnswer({ isActive, isMobile = false }: { isActive: boolean; isM
 }
 
 // ─── Pane: 빈칸 채우기 ───────────────────────────────────────────────────────
+/**
+ * 실물 `GrammarHintButton`과 같은 모양의 "정적" pill.
+ * 마케팅 목업이라 Popover 상호작용은 없고 모양만 맞춘다.
+ * 실물 비율: 버튼 h-8 ÷ 입력칸 h-10 = 0.8, text-xs ÷ text-base = 0.75 → 목업 값도 같은 비율.
+ */
+/** 실물 GrammarHintButton과 동일하게 입력칸에 맞붙는 접합 버튼 — 독립 알약(rounded-full) 아님 */
+function MockHintPill({ S, height }: { S: number; height: number }) {
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+      height, padding: `0 ${9 * S}px`,
+      borderRadius: `0 ${9 * S}px ${9 * S}px 0`,
+      background: "#E8F5EE", color: "#1E6B47",
+      borderTop: "1px solid rgba(30,107,71,0.3)", borderRight: "1px solid rgba(30,107,71,0.3)",
+      borderBottom: "1px solid rgba(30,107,71,0.3)", borderLeft: "none",
+      fontSize: 9.5 * S, fontWeight: 600, whiteSpace: "nowrap",
+    }}>문법</span>
+  );
+}
+
+/** 실물 FillBlankStage 예시 칩(흰 배경, 결합 문법 요소만 primary) */
+function MockExampleChip({ S, parts, result }: { S: number; parts: string[]; result: [string, string] }) {
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 3 * S,
+      borderRadius: 9, border: "1px solid #E2E8F0", background: "#F8FAFC",
+      padding: `${4 * S}px ${8 * S}px`, fontSize: 9 * S, color: "#6B6460", whiteSpace: "nowrap",
+    }}>
+      {parts.map((part, i) => (
+        // index 0=단어, 홀수="+", 짝수(>0)=결합되는 문법 요소 → 문법 요소만 강조
+        <span key={i} style={i > 0 && i % 2 === 0 ? { fontWeight: 700, color: "#1E6B47" } : part === "+" ? { color: "#CBD5E1" } : undefined}>{part}</span>
+      ))}
+      <span style={{ margin: `0 ${2 * S}px`, color: "#CBD5E1" }}>→</span>
+      <span style={{ fontWeight: 700, color: "#1A1714" }}>{result[0]}<span style={{ color: "#1E6B47" }}>{result[1]}</span></span>
+    </span>
+  );
+}
+
+/** 실물 Popover(side="top")를 흉내 낸 정적 말풍선 — 1번 문항에만 열린 상태로 그린다 */
+function MockHintBubble({ S, hint }: { S: number; hint: string }) {
+  return (
+    <span style={{
+      position: "absolute", bottom: `calc(100% + ${3 * S}px)`, left: "50%", transform: "translateX(-50%)",
+      padding: `${3 * S}px ${7 * S}px`, borderRadius: 6,
+      background: "#fff", border: "1px solid #E2DDD8", boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+      fontSize: 9.5 * S, fontWeight: 600, color: "#1E6B47", whiteSpace: "nowrap", pointerEvents: "none",
+    }}>{hint}</span>
+  );
+}
+
 function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile?: boolean }) {
   const S = isMobile ? 1 : 1.3;
   const Q1_ANS = "자요";
@@ -367,12 +417,16 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Fixed header */}
       {isMobile ? (
-        /* 모바일: 안내 문구 + 보기 박스가 이어진 하나의 베이지 블록(실제 FillBlankStage 스타일) */
+        /* 모바일: 안내(흰 면) + 예시 칩 2개 + 보기(회색 박스) — 실제 FillBlankStage와 동일한 뒤집기 */
         <div style={{ flexShrink: 0 }}>
-          <p style={{ margin: 0, background: "#F1ECE4", padding: "10px 16px 6px", fontSize: 11, fontWeight: 700, color: "#1A1714", textAlign: "center" }}>
-            빈칸에 알맞은 단어를 입력하세요
-          </p>
-          <div style={{ background: "#F1ECE4", borderBottom: "1px solid #D3CCC4", padding: "0 16px 10px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ padding: "10px 16px 4px", textAlign: "center" }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#1A1714" }}>빈칸에 알맞은 단어를 문법 형태와 함께 입력하세요</p>
+            <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
+              <MockExampleChip S={1} parts={["미술관", "+", "에"]} result={["미술관", "에"]} />
+              <MockExampleChip S={1} parts={["가다", "+", "-고 있다", "+", "아/어요"]} result={["가", "고 있어요"]} />
+            </div>
+          </div>
+          <div style={{ margin: "4px 12px 8px", borderRadius: 14, background: "#F8FAFC", padding: "10px 14px", display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div style={{ fontSize: 9.5, fontWeight: 700, color: "#64748B", textAlign: "center", marginBottom: 6, letterSpacing: "0.05em" }}>보기</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
               {bankWords.map((p, i) => (
@@ -391,12 +445,16 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
           </div>
         </div>
       ) : (
-        /* 데스크톱: 안내 문구 + 보기 박스가 이어진 하나의 베이지 블록(실제 FillBlankStage 스타일) */
+        /* 데스크톱: 안내(흰 면) + 예시 칩 2개 + 보기(회색 박스) — 실제 FillBlankStage와 동일한 뒤집기 */
         <div style={{ flexShrink: 0 }}>
-          <p style={{ margin: 0, background: "#F1ECE4", padding: `${10 * S}px ${18 * S}px 6px`, fontSize: 11.5 * S, fontWeight: 700, color: "#1A1714", textAlign: "center" }}>
-            빈칸에 알맞은 단어를 입력하세요
-          </p>
-          <div style={{ background: "#F1ECE4", borderBottom: "1px solid #D3CCC4", padding: `0 ${18 * S}px ${10 * S}px`, display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ padding: `${10 * S}px ${18 * S}px 4px`, textAlign: "center" }}>
+            <p style={{ margin: 0, fontSize: 11.5 * S, fontWeight: 700, color: "#1A1714" }}>빈칸에 알맞은 단어를 문법 형태와 함께 입력하세요</p>
+            <div style={{ marginTop: 6 * S, display: "flex", flexWrap: "wrap", gap: 6 * S, justifyContent: "center" }}>
+              <MockExampleChip S={S} parts={["미술관", "+", "에"]} result={["미술관", "에"]} />
+              <MockExampleChip S={S} parts={["가다", "+", "-고 있다", "+", "아/어요"]} result={["가", "고 있어요"]} />
+            </div>
+          </div>
+          <div style={{ margin: `${5 * S}px ${18 * S}px ${8 * S}px`, borderRadius: 16, background: "#F8FAFC", padding: `${9 * S}px ${16 * S}px` , display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div style={{ fontSize: 10 * S, fontWeight: 700, color: "#64748B", textAlign: "center", marginBottom: 7, letterSpacing: "0.05em" }}>보기</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7, justifyContent: "center" }}>
               {bankWords.map((p, i) => (
@@ -417,7 +475,10 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
       )}
 
       {/* Scrollable questions */}
-      <div style={{ flex: 1, overflowY: "auto", padding: `4px ${16 * S}px 0` }}>
+      {/* 상단 여백 19*S — 1번 문항의 `문법` 말풍선이 위로 뜨는데, 이 컨테이너가
+          overflowY: auto라 여백이 부족하면 말풍선 윗부분이 잘린다(14*S에서 3.5px 잘렸다).
+          실측값이니 말풍선 크기·오프셋을 바꾸면 다시 잴 것 */}
+      <div style={{ flex: 1, overflowY: "auto", padding: `${isMobile ? 4 : 19 * S}px ${13 * S}px 0` }}>
         {PROBLEMS.map((p, idx) => isMobile ? (
           // ── 모바일: 세로 스택 레이아웃 ──
           <div key={p.n} style={{
@@ -427,30 +488,35 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
           }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 5, marginBottom: 8 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: "#1E6B47", minWidth: 16, flexShrink: 0 }}>{p.n}.</span>
+              {/* 문장 줄에는 문법 힌트를 두지 않는다 — 입력칸 오른쪽 `문법` 버튼으로 이동 */}
               <p style={{ fontSize: 12, color: "#1E293B", lineHeight: 1.65, margin: 0 }}>
                 {p.sentBefore}{" "}
                 <span style={{ color: "#94A3B8", fontWeight: 500 }}>( ____ )</span>
-                {p.hint && <span style={{ fontSize: 10, color: "rgba(30, 107, 71, 0.7)", marginLeft: 3, fontWeight: 500 }}>{p.hint}</span>}
                 {p.sentAfter && <span> {p.sentAfter}</span>}
               </p>
             </div>
-            <div style={{
-              width: "100%", boxSizing: "border-box" as const,
-              border: p.qs === "done" ? "1.5px solid #B6DFC8" : "1.5px solid #E2E8F0",
-              borderRadius: 11, padding: "9px 12px",
-              background: "#F3F4F6",
-              fontSize: 12.5,
-              fontWeight: p.qs === "done" || p.qs === "typing" ? 600 : 400,
-              color: p.qs === "done" ? "#1E6B47" : p.qs === "typing" ? "#1A1714" : "#94A3B8",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              marginBottom: 7,
-              transition: "border 200ms ease",
-            }}>
-              {p.qs === "done" ? p.answer
-                : p.qs === "typing" ? (
-                  <>{p.answer}<span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} /></>
-                ) : "정답 입력"
-              }
+            {/* 입력칸 + `문법` 버튼 — 힌트가 있으면 서로 맞붙는 접합 버튼(gap 0), 행은 1단 유지 */}
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 7 }}>
+              <div style={{
+                flex: 1, minWidth: 0, height: 36, boxSizing: "border-box" as const,
+                border: p.qs === "done" ? "1.5px solid #B6DFC8" : "1.5px solid #E2E8F0",
+                borderRadius: p.hint ? "11px 0 0 11px" : 11,
+                borderRight: p.hint ? "none" : undefined,
+                padding: "0 12px",
+                background: "#F3F4F6",
+                fontSize: 12.5,
+                fontWeight: p.qs === "done" || p.qs === "typing" ? 600 : 400,
+                color: p.qs === "done" ? "#1E6B47" : p.qs === "typing" ? "#1A1714" : "#94A3B8",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "border 200ms ease",
+              }}>
+                {p.qs === "done" ? p.answer
+                  : p.qs === "typing" ? (
+                    <>{p.answer}<span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} /></>
+                  ) : "정답 입력"
+                }
+              </div>
+              {p.hint && <MockHintPill S={1} height={36} />}
             </div>
             <div style={{ display: "flex", gap: 7 }}>
               <button style={{ flex: 1, padding: "6px", borderRadius: 8, background: "#fff", border: "1px solid #E2E8F0", fontSize: 11, fontWeight: 600, color: "#6B7280", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
@@ -459,55 +525,65 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
               </button>
               <button style={{ flex: 1, padding: "6px", borderRadius: 8, background: "#fff", border: "1px solid #E2E8F0", fontSize: 11, fontWeight: 600, color: "#6B7280", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" /></svg>
-                힌트
+                번역
               </button>
             </div>
           </div>
         ) : (
           // ── 데스크톱: 가로 행 레이아웃 (실제 FillBlankStage 스타일) ──
           <div key={p.n} style={{
-            display: "flex", alignItems: "center", gap: 8 * S,
-            paddingTop: 16 * S, paddingBottom: 16 * S,
+            // `문법` 버튼이 입력칸 오른쪽 인라인이라 행이 1단 — 단순 수직 중앙 정렬로 충분하다
+            // (2차의 flex-end + 하단 보정 패딩 트릭은 제거했다)
+            display: "flex", alignItems: "center", gap: 6 * S,
+            paddingTop: 6 * S, paddingBottom: 6 * S,
             borderBottom: idx < PROBLEMS.length - 1 ? "1px solid #F1F5F9" : "none",
           }}>
-            {/* 번호 */}
-            <span style={{ fontSize: 11 * S, fontWeight: 700, color: "#1E6B47", minWidth: 18, flexShrink: 0 }}>
-              {p.n}.
-            </span>
-
-            {/* 문장 + 인라인 입력 박스 */}
-            <div style={{ flex: 1, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4, lineHeight: 1.9 }}>
+            {/* 문장 + 인라인 입력 박스. 번호는 바깥 행의 형제가 아니라 이 그룹 안 첫 항목 */}
+            <div style={{ flex: 1, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4, lineHeight: 1.6 }}>
+              <span style={{ fontSize: 11 * S, fontWeight: 700, color: "#1E6B47", minWidth: 18, flexShrink: 0 }}>
+                {p.n}.
+              </span>
               {p.sentBefore && (
                 <span style={{ fontSize: 12 * S, color: "#1E293B" }}>{p.sentBefore}</span>
               )}
-              <span style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
-                minWidth: 140 * S, height: 28 * S, padding: `0 ${10 * S}px`,
-                border: isGlow(p.qs) ? "1.5px solid #1E6B47"
-                      : p.qs === "done" ? "1.5px solid #B6DFC8"
-                      : "1.5px solid #E2E8F0",
-                borderRadius: 9,
-                background: p.qs === "done" ? "#F0FAF4" : "#F8F9FA",
-                boxShadow: isGlow(p.qs) ? "0 0 0 3px #E8F5EE" : "none",
-                fontSize: 12 * S,
-                fontWeight: p.qs === "done" || p.qs === "typing" ? 600 : 400,
-                color: p.qs === "done" ? "#1E6B47" : p.qs === "typing" ? "#1A1714" : "#94A3B8",
-                transition: "border 200ms ease, background 200ms ease, box-shadow 200ms ease",
-              }}>
-                {p.qs === "done" ? p.answer
-                  : p.qs === "typing" ? (
-                    <>{p.answer}<span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} /></>
-                  ) : <span style={{ fontSize: 11 * S, color: "#94A3B8" }}>정답 입력</span>}
+              {/* 입력칸 + `문법` 버튼은 한 덩어리 — 힌트가 있으면 서로 맞붙는 접합 버튼(gap 0),
+                  줄바꿈 시 둘이 갈라지지 않게 묶는다 */}
+              <span style={{ display: "inline-flex", alignItems: "center" }}>
+                <span style={{
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  minWidth: 132 * S, height: 28 * S, padding: `0 ${10 * S}px`,
+                  border: isGlow(p.qs) ? "1.5px solid #1E6B47"
+                        : p.qs === "done" ? "1.5px solid #B6DFC8"
+                        : "1.5px solid #E2E8F0",
+                  borderRadius: p.hint ? "9px 0 0 9px" : 9,
+                  borderRight: p.hint ? "none" : undefined,
+                  background: p.qs === "done" ? "#F0FAF4" : "#F8F9FA",
+                  boxShadow: isGlow(p.qs) ? "0 0 0 3px #E8F5EE" : "none",
+                  fontSize: 12 * S,
+                  fontWeight: p.qs === "done" || p.qs === "typing" ? 600 : 400,
+                  color: p.qs === "done" ? "#1E6B47" : p.qs === "typing" ? "#1A1714" : "#94A3B8",
+                  transition: "border 200ms ease, background 200ms ease, box-shadow 200ms ease",
+                }}>
+                  {p.qs === "done" ? p.answer
+                    : p.qs === "typing" ? (
+                      <>{p.answer}<span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} /></>
+                    ) : <span style={{ fontSize: 12 * S, color: "#94A3B8" }}>정답 입력</span>}
+                </span>
+                {/* `hint`가 빈 문항(3번)은 버튼 자체를 렌더하지 않는다.
+                    1번 문항만 말풍선이 열린 상태로 그려 기능이 무엇인지 보이게 한다 */}
+                {p.hint && (
+                  <span style={{ position: "relative", display: "inline-flex" }}>
+                    {p.n === 1 && <MockHintBubble S={S} hint={p.hint} />}
+                    <MockHintPill S={S} height={28 * S} />
+                  </span>
+                )}
               </span>
-              {p.hint && (
-                <span style={{ fontSize: 10.5 * S, color: "rgba(30, 107, 71, 0.7)", fontWeight: 500 }}>{p.hint}</span>
-              )}
               {p.sentAfter && (
                 <span style={{ fontSize: 12 * S, color: "#1E293B" }}>{p.sentAfter}</span>
               )}
             </div>
 
-            {/* 듣기/힌트 버튼 — 오른쪽 고정 */}
+            {/* 듣기/번역 버튼 — 오른쪽 고정 */}
             <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
               <button style={{ padding: `${5 * S}px ${9 * S}px`, borderRadius: 9, background: "#fff", border: "1px solid #E2E8F0", fontSize: 10.5 * S, fontWeight: 600, color: "#6B7280", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
@@ -515,7 +591,7 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
               </button>
               <button style={{ padding: `${5 * S}px ${9 * S}px`, borderRadius: 9, background: "#fff", border: "1px solid #E2E8F0", fontSize: 10.5 * S, fontWeight: 600, color: "#6B7280", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" /></svg>
-                힌트
+                번역
               </button>
             </div>
           </div>

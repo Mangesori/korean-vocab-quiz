@@ -6,9 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Loader2, Volume2, Lightbulb, Lock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Volume2, Lightbulb, Lock, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { toast } from "sonner";
 import { maskTranslation } from "@/utils/maskTranslation";
+import { GrammarHintButton } from "@/components/quiz/shared/GrammarHintButton";
+import { QuizStageHeader } from "@/components/quiz/shared/QuizStageHeader";
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export interface FillBlankProblem {
   id: string;
@@ -25,6 +28,9 @@ interface FillBlankStageProps {
   isAnonymous: boolean;
   hasNextStage: boolean;
   userAnswers: Record<string, string>;
+  // 세트당 제한 시간이 다 됐을 때 QuizTake가 증가시키는 카운터. 값이 바뀔 때마다(마운트 시
+  // 최초 값은 무시) 안 채워진 문제가 있어도 강제로 다음 세트로 넘기거나(마지막 세트면) 제출한다.
+  timeUpToken?: number;
   onAnswerChange: (problemId: string, value: string) => void;
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: () => void;
@@ -36,6 +42,7 @@ export function FillBlankStage({
   isAnonymous,
   hasNextStage,
   userAnswers,
+  timeUpToken,
   onAnswerChange,
   onProgressUpdate,
   onComplete,
@@ -169,24 +176,94 @@ export function FillBlankStage({
     return problems.every((p) => userAnswers[p.id]?.trim());
   };
 
-  const handleComplete = () => {
-    if (!allAnswered() || isSubmitting) return;
+  // force: 시간 초과로 강제 제출할 때 미답 문제가 있어도 진행한다(오답 처리는 QuizTake 쪽 채점에서 됨).
+  const handleComplete = (force = false) => {
+    if (isSubmitting) return;
+    if (!force && !allAnswered()) return;
     setIsSubmitting(true);
     onComplete();
   };
+
+  // 세트당 제한 시간 초과 처리. prevTimeUpToken은 마운트 시 받은 초기값(다른 스테이지에서
+  // 이미 증가해 있던 값일 수 있음)을 기준으로 삼아, 이후 "진짜 증가"에만 반응한다.
+  const prevTimeUpTokenRef = useRef(timeUpToken ?? 0);
+  useEffect(() => {
+    const prev = prevTimeUpTokenRef.current;
+    const current = timeUpToken ?? 0;
+    prevTimeUpTokenRef.current = current;
+    if (current <= prev) return;
+
+    if (currentSetIndex < totalSets - 1) {
+      handleNextSet();
+    } else {
+      handleComplete(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeUpToken]);
 
   return (
     <div className="w-full">
       {/* Main Card */}
       <Card className="border shadow-sm rounded-2xl overflow-hidden mb-8 bg-white max-w-5xl mx-auto mt-4">
         <CardContent className="p-0">
-          <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold bg-[#F1ECE4] px-6 pt-5 pb-3">
-            빈칸에 알맞은 단어를 입력하세요
-          </p>
-          {/* Word Bank */}
-          <div className="bg-[#F1ECE4] border-b border-[#D3CCC4] px-6 pb-5 flex flex-col items-center">
-            <p className="text-sm font-bold text-muted-foreground mb-4">보기</p>
-            <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
+          {/* 안내 — 흰 면 = 읽는 것(안내), 회색 박스 = 푸는 재료(보기).
+              예시는 안내문구 끝("입력하세요") 바로 옆 정보 아이콘의 Popover로 옮겼다
+              (GrammarHintButton과 같은 패턴) — 항상 클릭으로만 열리고 바깥 클릭 시 닫힌다.
+              세트가 바뀌어도 자동으로 열리지 않는다 — Popover는 오버레이라 자동으로 뜨면
+              어색하다(클릭 안 했는데 떠 있다가 아무 데나 눌러 바로 닫히는 경험이 됨).
+              헤더의 action(우측) 슬롯이 아니라 instruction 안에 인라인으로 넣어야 문구
+              바로 옆에 붙는다 — action은 헤더 맨 오른쪽 끝으로 밀려나 문구와 멀어진다.
+              트리거(아이콘)와 앵커(위치 기준)를 분리한다 — 트리거만 앵커로 쓰면 팝오버가
+              아이콘 위치 기준으로 떠서 카드 중앙이 아니라 오른쪽으로 치우쳐 보인다.
+              PopoverAnchor로 안내문구 wrapper 전체를 감싸 카드 콘텐츠 폭을 앵커로 삼는다. */}
+          <Popover>
+            <PopoverAnchor asChild>
+              <div className="px-4 sm:px-8 pt-6 sm:pt-7 md:pt-8 pb-2 text-center">
+                {/* md:pt-8(32px)로 다른 3개 유형의 데스크톱 상단 패딩과 맞춘다 */}
+                <QuizStageHeader
+                  instruction={
+                    <span className="inline-flex items-center gap-1">
+                      빈칸에 알맞은 단어를 문법 형태와 함께 입력하세요
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label="예제 보기"
+                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-primary transition-colors"
+                        >
+                          <Info className="w-3.5 h-3.5" />
+                        </button>
+                      </PopoverTrigger>
+                    </span>
+                  }
+                />
+              </div>
+            </PopoverAnchor>
+            <PopoverContent side="bottom" className="w-auto max-w-[90vw] sm:max-w-lg flex flex-wrap items-center justify-center gap-2 p-3">
+              {/* 예시는 칩 2개로 감싼다 — 결합되는 문법 요소만 text-primary로 칠해
+                  "무엇이 결합되는지"를 색으로 말한다. 기본은 한 줄, 폭이 부족하면 줄바꿈 */}
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm text-muted-foreground">
+                미술관
+                <span className="text-slate-400">+</span>
+                <span className="font-bold text-primary">에</span>
+                <span className="mx-0.5 text-slate-400">→</span>
+                <span className="font-bold text-foreground">미술관<span className="text-primary">에</span></span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm text-muted-foreground">
+                가다
+                <span className="text-slate-400">+</span>
+                <span className="font-bold text-primary">-고 있다</span>
+                <span className="text-slate-400">+</span>
+                <span className="font-bold text-primary">아/어요</span>
+                <span className="mx-0.5 text-slate-400">→</span>
+                <span className="font-bold text-foreground">가<span className="text-primary">고 있어요</span></span>
+              </span>
+            </PopoverContent>
+          </Popover>
+
+          {/* Word Bank — 회색 박스는 "이 문제의 재료"만. 칩은 흰색이라 배경 위에서 떠 보인다 */}
+          <div className="mx-4 sm:mx-8 mb-2 rounded-2xl bg-slate-50 px-5 py-4 sm:py-5 flex flex-col items-center">
+            <p className="mb-1.5 text-xs font-bold tracking-wide text-muted-foreground">보기</p>
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-3 w-full max-w-lg">
               {shuffledWordBank.map((word, idx) => {
                 const isUsed = usedBankWords.has(word);
                 return (
@@ -207,7 +284,7 @@ export function FillBlankStage({
           </div>
 
           {/* Problems List */}
-          <div className="p-6 sm:p-8">
+          <div className="px-6 sm:px-8 pt-4 pb-6 sm:pb-8">
             <div className="space-y-0 divide-y">
               {currentSet.map((problem, idx) => {
                 const problemNumber = currentSetIndex * wordsPerSet + idx + 1;
@@ -219,24 +296,29 @@ export function FillBlankStage({
                 return (
                   <div key={problem.id} className="py-6 sm:py-5 first:pt-2 last:pb-2">
                     {/* Mobile Layout */}
-                    <div className="flex flex-col gap-3 sm:hidden">
+                    <div className="flex flex-col gap-2 sm:hidden">
                       <div className="flex gap-2">
                         <span className="text-primary font-bold text-base min-w-[20px]">{problemNumber}.</span>
                         <span className="text-base font-medium leading-relaxed text-foreground">
                           {parts[0]}
                           <span className="text-muted-foreground mx-1">( _____ )</span>
-                          {problem.hint && <span className="text-primary/70 font-medium mx-1">{problem.hint}</span>}
                           {parts[1]}
                         </span>
                       </div>
-                      <div className="w-full space-y-3 mt-1">
-                        <Input
-                          value={userAnswers[problem.id] || ""}
-                          onChange={(e) => onAnswerChange(problem.id, e.target.value)}
-                          className="h-11 w-full text-center text-sm rounded-xl border-border bg-slate-50"
-                          placeholder="정답 입력"
-                          autoComplete="off"
-                        />
+                      <div className="w-full space-y-2">
+                        {/* 문법 버튼은 입력칸 "오른쪽" — 행이 1단으로 유지된다.
+                            포커스 링은 이 래퍼가 focus-within으로 그린다 — 입력칸에 포커스가
+                            가면 문법 버튼까지 하나의 링으로 감싸이게(입력칸 자체 링은 꺼둠) */}
+                        <div className="flex items-center rounded-xl focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                          <Input
+                            value={userAnswers[problem.id] || ""}
+                            onChange={(e) => onAnswerChange(problem.id, e.target.value)}
+                            className={`h-11 flex-1 min-w-0 text-center text-sm border-border bg-slate-50 focus-visible:ring-0 focus-visible:ring-offset-0 ${problem.hint ? "rounded-l-xl rounded-r-none border-r-0" : "rounded-xl"}`}
+                            placeholder="정답 입력"
+                            autoComplete="off"
+                          />
+                          {problem.hint && <GrammarHintButton hint={problem.hint} heightClass="h-11" />}
+                        </div>
                         <div className="flex gap-2 w-full">
                           <TooltipProvider>
                             <Tooltip>
@@ -270,10 +352,10 @@ export function FillBlankStage({
                             variant="outline"
                             tabIndex={-1}
                             onClick={() => toggleTranslation(problem.id)}
-                            className={`flex-1 h-10 rounded-xl font-medium transition-all ${showTranslations[problem.id] ? "bg-amber-50 text-amber-600 border-amber-200" : "text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30"}`}
+                            className={`flex-1 h-10 rounded-xl font-medium transition-all ${showTranslations[problem.id] ? "bg-warning/10 text-warning border-warning/30" : "text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30"}`}
                             size="sm"
                           >
-                            <Lightbulb className={`w-4 h-4 mr-2 ${showTranslations[problem.id] ? "text-amber-500" : ""}`} /> 힌트
+                            <Lightbulb className={`w-4 h-4 mr-2 ${showTranslations[problem.id] ? "text-warning" : ""}`} /> 번역
                           </Button>
                         </div>
                       </div>
@@ -286,18 +368,26 @@ export function FillBlankStage({
 
                     {/* Desktop Layout */}
                     <div className="hidden sm:block">
+                      {/* 문법 버튼이 입력칸 오른쪽 인라인이라 행이 1단 — 단순 수직 중앙 정렬로 충분하다.
+                          번호는 바깥 행의 형제가 아니라 문장 그룹 안 첫 항목 — 형제로 두면
+                          문장이 두 줄로 접힐 때 번호만 마지막 줄로 내려간다 */}
                       <div className="flex items-center gap-3">
-                        <span className="text-primary font-bold text-lg min-w-[24px]">{problemNumber}.</span>
-                        <div className="flex-1 flex items-center flex-wrap gap-1 leading-loose">
+                        <div className="flex-1 flex items-center flex-wrap gap-1 leading-normal">
+                          <span className="text-primary font-bold text-lg min-w-[24px]">{problemNumber}.</span>
                           <span className="text-lg font-medium text-foreground whitespace-nowrap">{parts[0]?.trim()}</span>
-                          <Input
-                            value={userAnswers[problem.id] || ""}
-                            onChange={(e) => onAnswerChange(problem.id, e.target.value)}
-                            className="w-48 h-10 mx-1 text-center text-base inline-block rounded-xl border-border bg-slate-50"
-                            placeholder="정답 입력"
-                            autoComplete="off"
-                          />
-                          {problem.hint && <span className="text-primary/70 text-base font-medium whitespace-nowrap">{problem.hint}</span>}
+                          {/* 입력칸+문법 버튼은 한 덩어리 — 줄바꿈 시 둘이 갈라지지 않게 묶는다.
+                              포커스 링은 이 래퍼가 focus-within으로 그린다 — 입력칸에 포커스가
+                              가면 문법 버튼까지 하나의 링으로 감싸이게(입력칸 자체 링은 꺼둠) */}
+                          <span className="inline-flex items-center mx-1 rounded-xl focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                            <Input
+                              value={userAnswers[problem.id] || ""}
+                              onChange={(e) => onAnswerChange(problem.id, e.target.value)}
+                              className={`w-48 h-10 text-center text-base border-border bg-slate-50 focus-visible:ring-0 focus-visible:ring-offset-0 ${problem.hint ? "rounded-l-xl rounded-r-none border-r-0" : "rounded-xl"}`}
+                              placeholder="정답 입력"
+                              autoComplete="off"
+                            />
+                            {problem.hint && <GrammarHintButton hint={problem.hint} />}
+                          </span>
                           <span className="text-lg font-medium text-foreground whitespace-nowrap">{parts[1]?.trim()}</span>
                         </div>
                         <div className="flex gap-2 shrink-0">
@@ -334,9 +424,9 @@ export function FillBlankStage({
                             size="sm"
                             tabIndex={-1}
                             onClick={() => toggleTranslation(problem.id)}
-                            className={`h-9 px-3 rounded-xl text-sm font-medium transition-all ${showTranslations[problem.id] ? "bg-amber-50 text-amber-600 border-amber-200" : "text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30"}`}
+                            className={`h-9 px-3 rounded-xl text-sm font-medium transition-all ${showTranslations[problem.id] ? "bg-warning/10 text-warning border-warning/30" : "text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30"}`}
                           >
-                            <Lightbulb className={`w-4 h-4 mr-1.5 ${showTranslations[problem.id] ? "text-amber-500" : ""}`} /> 힌트
+                            <Lightbulb className={`w-4 h-4 mr-1.5 ${showTranslations[problem.id] ? "text-warning" : ""}`} /> 번역
                           </Button>
                         </div>
                       </div>
@@ -375,7 +465,7 @@ export function FillBlankStage({
           </Button>
         ) : (
           <Button
-            onClick={handleComplete}
+            onClick={() => handleComplete()}
             disabled={isSubmitting || !allAnswered()}
             className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
           >

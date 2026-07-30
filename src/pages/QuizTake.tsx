@@ -11,7 +11,7 @@ import { TypeAnswerStage, type TypeAnswerProblemData, type TypeAnswerGradeResult
 import { TypeAnswerResultStage } from "@/components/quiz/TypeAnswerResultStage";
 import { WordMagnetStage, type WordMagnetProblemData } from "@/components/quiz/WordMagnetStage";
 import { WordMagnetResultStage, type WordMagnetGradeResult } from "@/components/quiz/WordMagnetResultStage";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -101,8 +101,14 @@ export default function QuizTake() {
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // QuizShare.tsx를 거치지 않고 /quiz/:id/take?share=<token>으로 직접 진입하는 경로를
+  // 막기 위한 게이트. sessionStorage 같은 클라이언트 플래그는 우회에 취약하므로 매번
+  // quiz_shares.allow_anonymous를 서버에서 다시 조회한다(fetchQuiz 내부).
+  const [needsLogin, setNeedsLogin] = useState(false);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  // 세트 기반 스테이지(빈칸/매치업)에서 시간 초과 시 Stage 내부에 "강제 진행" 신호를 보내는 카운터.
+  const [timeUpToken, setTimeUpToken] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [wordsPerSet, setWordsPerSet] = useState(5);
   const [searchParams] = useSearchParams();
@@ -230,11 +236,24 @@ export default function QuizTake() {
     }
   }, [user?.id, shareToken, id]);
 
+  // 결과/완료 화면 여부 — 이 동안엔 타이머를 완전히 멈춘다(표시도, 카운트다운도).
+  const isResultView = currentStage.endsWith("_result") || currentStage === "completed";
+  // "세트" 개념이 있는 스테이지는 빈칸/매치업뿐이다(Phase 0 조사 결과). 이 둘만 세트가
+  // 바뀔 때(stageProgress.current, FillBlank/MatchUp이 onProgressUpdate로 넘기는 세트 번호)
+  // 타이머를 다시 채운다. 나머지 4개 유형은 세트가 없으므로 스테이지 자체가 바뀔 때만 리셋한다.
+  const isSetBasedStage = currentStage === "fill_blank" || currentStage === "matchup";
+  const timerResetKey = isSetBasedStage ? `${currentStage}:${stageProgress.current}` : currentStage;
+
+  // 세트/스테이지 전환마다 타이머 리셋 — 예전엔 timeLeft===null 가드 때문에 퀴즈 로드 시
+  // 딱 한 번만 실행돼 "세트당 제한시간"이 아니라 "퀴즈 전체 1회 카운트다운"으로 동작했다.
   useEffect(() => {
-    if (quiz?.timer_enabled && quiz.timer_seconds && timeLeft === null) {
-      setTimeLeft(quiz.timer_seconds);
+    if (!quiz?.timer_enabled || !quiz.timer_seconds) return;
+    if (isResultView) {
+      setTimeLeft(null);
+      return;
     }
-  }, [quiz]);
+    setTimeLeft(quiz.timer_seconds);
+  }, [quiz?.id, quiz?.timer_enabled, quiz?.timer_seconds, timerResetKey, isResultView]);
 
   // 첫 활성 스테이지에서 시작 (정규 순서 기준, resume은 checkProgress가 덮어씀)
   // currentStage 기본값은 "fill_blank"이지만, 새 순서에서는 보통 matchup이 먼저다.
@@ -247,22 +266,20 @@ export default function QuizTake() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quiz?.id]);
 
+  // 카운트다운 인터벌 — 의존성을 timeLeft가 아니라 timerResetKey로 둬서 매초 effect가
+  // 재생성되지 않게 한다(예전엔 [timeLeft]라서 매초 clearInterval+setInterval이 반복됐다).
+  // 0 도달 시의 부수효과(제출/강제진행)는 별도 effect(아래 handleTimeUp 감지)로 분리했다 —
+  // setState 업데이터 안에서 handleSubmit() 같은 부수효과를 직접 부르면 React 18 StrictMode에서
+  // 업데이터가 두 번 호출될 수 있어 위험하다.
   useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0) return;
+    if (!quiz?.timer_enabled || !quiz.timer_seconds || isResultView) return;
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev === null || prev <= 1) {
-          clearInterval(timer);
-          handleSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((prev) => (prev === null || prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [quiz?.id, quiz?.timer_enabled, quiz?.timer_seconds, timerResetKey, isResultView]);
 
   // 이전 진행 상태 확인 — 로그인 학생이 같은 퀴즈에 재진입할 때 완료된 단계 건너뜀
   useEffect(() => {
@@ -415,6 +432,24 @@ export default function QuizTake() {
       let quizData: Quiz;
 
       if (shareToken) {
+        // 익명 게이트: QuizShare.tsx의 게이트를 우회해 이 페이지로 직접 들어오는 경우
+        // (?share=<token>&name=...)를 막기 위해 여기서도 매번 서버에서 다시 확인한다.
+        // 주의: UX 차원의 접근 제어일 뿐이며, matchup_problems 등의 익명 SELECT RLS는
+        // allow_anonymous 값을 검사하지 않는다(QuizShare.tsx와 동일한 범위 밖 사항).
+        if (!user) {
+          const { data: shareGate } = await supabase
+            .from("quiz_shares")
+            .select("allow_anonymous")
+            .eq("share_token", shareToken)
+            .single();
+
+          if (shareGate?.allow_anonymous === false) {
+            setNeedsLogin(true);
+            setIsLoading(false);
+            return;
+          }
+        }
+
         // Shared link access (Anonymous or Logged-in): load quiz directly
         const { data: quiz, error: quizError } = await supabase
           .from("quizzes")
@@ -1035,6 +1070,36 @@ export default function QuizTake() {
     }
   }, [quiz, user, userAnswers, navigate, isSubmitting, isAnonymous, shareToken, anonymousName, sentenceMakingResults, stageResults, sentenceMakingProblems, recordingProblems, quizResultId, savedFillBlankScore, matchupProblems, matchupResults, typeAnswerResults, wordMagnetResults, typeAnswerSkippedIds, wordMagnetSkippedIds, enabledBases, doneMap, typeAnswerProblems, wordMagnetProblems]);
 
+  // 시간 초과 처리. handleSubmit을 참조하므로 반드시 그 아래에 선언해야 한다(useCallback의
+  // 의존성 배열은 즉시 평가되므로 위에 두면 TDZ로 ReferenceError가 난다).
+  // - 세트 기반 스테이지(빈칸/매치업): Stage에 timeUpToken을 흘려보낸다. 세트가 남아있으면
+  //   Stage가 내부적으로 다음 세트로 강제 진행하고, 마지막 세트면 Stage가 스스로
+  //   onComplete를 호출해(미답 문제는 오답 처리) 결과 화면으로 넘어간다.
+  // - 그 외 스테이지(세트 개념 없음): 답을 쥐고 있는 건 QuizTake가 아니라 각 Stage
+  //   컴포넌트 내부 상태이므로 여기서 강제로 채점할 수 없다. handleSubmit()을 그대로
+  //   호출하면 기존 "아직 안 푼 유형" 가드가 알아서 처리한다 — 이미 완료된 상태면 그대로
+  //   제출되고, 아직 못 끝냈으면 토스트로 안내하고 같은 스테이지에 머문다(예전처럼 진짜
+  //   프리즈가 아니라, 이 스테이지는 타이머 배지 자체를 숨기므로 사용자는 계속 풀 수 있다).
+  const handleTimeUp = useCallback(() => {
+    toast.warning("시간이 다 됐어요!");
+    if (currentStage === "fill_blank" || currentStage === "matchup") {
+      setTimeUpToken((n) => n + 1);
+      return;
+    }
+    handleSubmit();
+  }, [currentStage, handleSubmit]);
+
+  // timeLeft가 0에 도달하는 "전이"에만 반응한다 — handleTimeUp을 deps에 넣지 않는 이유는,
+  // 강제진행으로 currentStage가 바뀌면 handleTimeUp 참조도 바뀌는데 그 시점에 timeLeft가
+  // 아직 리셋 전(0)이라 재실행되어 중복 호출될 수 있기 때문이다(리셋 effect가 그 다음에
+  // timeLeft를 되돌려 놓는다). timeLeft 값 자체의 변화만 트리거로 삼으면 0→0 재렌더는
+  // effect를 재실행하지 않으므로 정확히 한 번만 호출된다.
+  useEffect(() => {
+    if (timeLeft !== 0) return;
+    handleTimeUp();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -1045,6 +1110,20 @@ export default function QuizTake() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (needsLogin) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-center px-6">
+        <p className="text-foreground">이 퀴즈는 로그인한 학생만 응시할 수 있어요.</p>
+        <Link to="/auth" className="text-primary font-semibold underline">
+          로그인하고 풀기
+        </Link>
+        <p className="text-xs text-muted-foreground">
+          로그인 후 이 링크로 다시 돌아오세요.
+        </p>
       </div>
     );
   }
@@ -1548,6 +1627,7 @@ export default function QuizTake() {
           <MatchUpStage
             problems={matchupProblems}
             wordsPerSet={wordsPerSet}
+            timeUpToken={timeUpToken}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleMatchupComplete}
             onBack={goBackToPrev("matchup")}
@@ -1747,6 +1827,7 @@ export default function QuizTake() {
           isAnonymous={isAnonymous}
           hasNextStage={enabledBases.indexOf("fill_blank") < enabledBases.length - 1}
           userAnswers={userAnswers}
+          timeUpToken={timeUpToken}
           onAnswerChange={handleAnswerChange}
           onProgressUpdate={handleProgressUpdate}
           onComplete={handleFillBlankComplete}
@@ -1813,9 +1894,12 @@ export default function QuizTake() {
                 </div>
               )}
 
-              {/* 오른쪽: 타이머 */}
+              {/* 오른쪽: 타이머 — "세트당 제한 시간"이라는 문구가 세트 개념 없는 유형
+                  (답 입력/워드마그넷/문장 만들기/말하기)에서는 의미가 없으므로 배지만 숨긴다.
+                  백엔드 timeLeft 카운트다운 자체는 계속 돌아간다(그 유형들은 handleTimeUp이
+                  handleSubmit()의 기존 미완료 가드를 그대로 타므로 굳이 멈출 필요가 없다). */}
               <div className="shrink-0">
-                {quiz.timer_enabled && timeLeft !== null && (
+                {quiz.timer_enabled && timeLeft !== null && isSetBasedStage && (
                   <div className={`flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold border ${timeLeft < 30 ? "bg-destructive/10 text-destructive border-transparent" : "bg-slate-100 text-slate-600 border-slate-200"}`}>
                     <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span className="font-mono">{formatTime(timeLeft)}</span>

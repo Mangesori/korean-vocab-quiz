@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { assembleForDisplay } from "@/lib/korean/wordMagnet";
 import { WordMagnetTile } from "@/components/quiz/shared/WordMagnetTile";
+import { QuizStageHeader } from "@/components/quiz/shared/QuizStageHeader";
 
 interface Tile {
   id: string;
@@ -309,11 +310,9 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
   return (
     <Card className="w-full max-w-5xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl bg-transparent sm:bg-white mt-4">
       <CardContent className="p-0 sm:p-6 md:p-8 space-y-5">
-        <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold">
-          단어를 끌거나 탭해서 문장을 완성하세요
-        </p>
+        <QuizStageHeader instruction="단어를 끌거나 탭해서 문장을 완성하세요" />
 
-        {/* 프롬프트(번역) */}
+        {/* 프롬프트(번역) — 회색 박스는 "읽을 재료"만 */}
         <div className="p-5 sm:p-6 bg-slate-50 rounded-2xl text-center">
           <p className="text-lg sm:text-xl font-semibold text-foreground break-keep">{currentProblem.translation}</p>
         </div>

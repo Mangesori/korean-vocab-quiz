@@ -274,14 +274,30 @@ export default function WrongAnswerQuizCreate() {
   const { data: students, isLoading: studentsLoading } = useQuery({
     queryKey: ['class-students', selectedClassId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // class_members.student_id와 profiles.user_id는 둘 다 auth.users를 참조할 뿐
+      // 서로 직접 FK가 없다. 그래서 예전의 `profiles!inner(name)` 조인은 PostgREST에서
+      // 항상 PGRST200("Could not find a relationship")으로 실패했고, 학생 목록이 비어
+      // 학생을 고를 수 없으니 '다음 · 문제로'가 영구 비활성이 되어 이 화면이 통째로
+      // 막혀 있었다. 조인 대신 두 번 조회해서 이름을 붙인다.
+      const { data: members, error: membersError } = await supabase
         .from('class_members')
-        .select('student_id, profiles!inner(name)')
+        .select('student_id')
         .eq('class_id', selectedClassId);
-      if (error) throw error;
-      return (data as unknown as ClassMemberRow[]).map((d) => ({
-        student_id: d.student_id,
-        name: d.profiles.name,
+      if (membersError) throw membersError;
+
+      const studentIds = (members ?? []).map((m) => m.student_id);
+      if (studentIds.length === 0) return [] as StudentInfo[];
+
+      const { data: profileRows, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, name')
+        .in('user_id', studentIds);
+      if (profilesError) throw profilesError;
+
+      const nameByUserId = new Map((profileRows ?? []).map((p) => [p.user_id, p.name]));
+      return studentIds.map((id) => ({
+        student_id: id,
+        name: nameByUserId.get(id) ?? '이름 없음',
       })) as StudentInfo[];
     },
     enabled: !!selectedClassId,
@@ -650,9 +666,6 @@ export default function WrongAnswerQuizCreate() {
             <FileX className="h-6 w-6" />
             오답 기반 복습 퀴즈 만들기
           </h1>
-          <p className="text-muted-foreground mt-1">
-            학생들이 자주 틀린 문제로 복습 퀴즈를 생성합니다.
-          </p>
         </div>
 
         {/* Step Indicator */}

@@ -79,10 +79,10 @@ interface Growth {
 // 사이드바로 전환되는 현재 뷰에 맞춘 페이지 헤더 (본문 탭 바 제거 후 위치 안내 역할)
 // 아이콘 색은 전 페이지 공통 규격(text-primary)이라 h1에서 한 번만 적용한다.
 const PAGE_HEADINGS = {
-  dashboard: { icon: Shield, title: "관리자 대시보드", desc: "시스템 전체 사용자와 콘텐츠를 관리합니다" },
-  teachers: { icon: GraduationCap, title: "선생님 관리", desc: "선생님 계정의 권한과 역할을 관리합니다" },
-  report: { icon: FileText, title: "시스템 리포트", desc: "학습 활동과 사용량을 분석합니다" },
-  feedback: { icon: MessageSquare, title: "피드백", desc: "사용자가 남긴 의견을 확인합니다" },
+  dashboard: { icon: Shield, title: "관리자 대시보드" },
+  teachers: { icon: GraduationCap, title: "선생님 관리" },
+  report: { icon: FileText, title: "시스템 리포트" },
+  feedback: { icon: MessageSquare, title: "피드백" },
 } as const;
 
 const CONTEXT_LABEL: Record<string, string> = {
@@ -90,6 +90,10 @@ const CONTEXT_LABEL: Record<string, string> = {
   share_result: '공유 퀴즈 결과',
   footer: '푸터',
   pricing_enterprise: '요금(기관 문의)',
+  help_center: '도움말 센터',
+  help_search_empty: '도움말 검색(결과 없음)',
+  help_article: '도움말 문서',
+  not_found: '404 페이지',
 };
 
 // 역할 분포 도넛 색 — 역할(role) 축 전용.
@@ -768,9 +772,6 @@ export default function AdminDashboard() {
             <PageHeading.icon className="h-6 w-6 text-primary" />
             {PageHeading.title}
           </h1>
-          <p className="text-muted-foreground mt-1">
-            {PageHeading.desc}
-          </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setSearchParams(v === "dashboard" ? {} : { tab: v })}>
