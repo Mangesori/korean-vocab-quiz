@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { WordMagnetTile } from "@/components/quiz/shared/WordMagnetTile";
+import { QuizStageHeader } from "@/components/quiz/shared/QuizStageHeader";
 
 export interface WordMagnetStudentItem {
   translation: string | null;
@@ -48,9 +49,7 @@ export function WordMagnetStudentView({ problems }: { problems: WordMagnetStuden
   return (
     <Card className="w-full max-w-5xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl bg-transparent sm:bg-white">
       <CardContent className="p-0 sm:p-6 md:p-8 space-y-5">
-        <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold">
-          단어를 끌거나 탭해서 문장을 완성하세요
-        </p>
+        <QuizStageHeader instruction="단어를 끌거나 탭해서 문장을 완성하세요" />
 
         {/* 프롬프트(번역) */}
         <div className="p-5 sm:p-6 bg-slate-50 rounded-2xl text-center">

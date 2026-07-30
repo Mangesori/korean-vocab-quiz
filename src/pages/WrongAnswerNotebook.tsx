@@ -425,6 +425,18 @@ export default function WrongAnswerNotebook() {
     return <Navigate to="/auth" replace />;
   }
 
+  // role은 profiles 조회 결과라 authLoading이 끝난 뒤에도 잠깐 null이다. 그 틈에
+  // role !== 'student'로 판단하면 정상적인 학생도 대시보드로 튕긴다(북마크나 새로고침으로
+  // 이 URL을 직접 열 때 간헐적으로 발생. 스크린샷 캡처에서 실제로 재현됐다).
+  // role이 확정되기 전에는 판단을 보류하고 로딩만 보여준다.
+  if (role === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (role !== 'student') {
     return <Navigate to="/dashboard" replace />;
   }

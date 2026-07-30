@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { maskTranslation } from '@/utils/maskTranslation';
 import { toJamo } from '@/utils/hangul';
+import { QuizStageHeader } from '@/components/quiz/shared/QuizStageHeader';
 
 interface PracticeProblem {
   id: string;
@@ -408,18 +409,15 @@ export default function WrongAnswerPractice() {
         {/* Main Card */}
         <Card className="border shadow-sm rounded-2xl overflow-hidden mb-8 bg-white max-w-5xl mx-auto">
           <CardContent className="p-0">
-            <p
-              className={`text-center text-sm text-muted-foreground bg-[#F1ECE4] px-6 pt-5 ${
-                hasWordBank ? 'pb-3' : 'pb-5 border-b border-[#D3CCC4]'
-              }`}
-            >
-              {promptText}
-            </p>
-            {/* Word Bank (보기에 낼 문항이 있을 때만 표시 + 사용한 단어 취소선) */}
+            {/* 안내 — 흰 면 = 읽는 것. 보기(재료)는 회색 박스로 별도 분리 */}
+            <div className="px-4 sm:px-8 pt-6 sm:pt-7 pb-4 text-center">
+              <QuizStageHeader instruction={promptText} />
+            </div>
+            {/* Word Bank (보기에 낼 문항이 있을 때만 표시 + 사용한 단어 취소선) — 회색 박스는 "이 문제의 재료"만 */}
             {hasWordBank && (
-              <div className="bg-[#F1ECE4] border-b border-[#D3CCC4] px-6 pb-5 flex flex-col items-center">
-                <p className="text-sm font-bold text-muted-foreground mb-4">보기</p>
-                <div className="flex flex-wrap justify-center gap-3 w-full max-w-lg">
+              <div className="mx-4 sm:mx-8 mb-2 rounded-2xl bg-slate-50 px-5 py-4 sm:py-5 flex flex-col items-center">
+                <p className="mb-3 text-xs font-bold tracking-wide text-muted-foreground">보기</p>
+                <div className="flex flex-wrap justify-center gap-2 sm:gap-3 w-full max-w-lg">
                   {shuffledWordBank.map((word, idx) => {
                     const isUsed = usedBankWords.has(word);
                     return (
@@ -441,7 +439,7 @@ export default function WrongAnswerPractice() {
             )}
 
             {/* Problems List */}
-            <div className="p-6 sm:p-8">
+            <div className="px-6 sm:px-8 pt-4 pb-6 sm:pb-8">
               <div className="space-y-0 divide-y">
                 {currentSet.map((problem, idx) => {
                   const problemNumber = currentSetIndex * WORDS_PER_SET + idx + 1;
@@ -573,7 +571,7 @@ export default function WrongAnswerPractice() {
                               <Lightbulb
                                 className={`w-4 h-4 mr-1 ${showTranslations[problem.id] ? 'text-warning' : ''}`}
                               />
-                              힌트
+                              번역
                             </Button>
                           </div>
                         </div>

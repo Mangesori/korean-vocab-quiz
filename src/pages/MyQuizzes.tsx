@@ -40,9 +40,6 @@ export default function MyQuizzes() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">전체 퀴즈</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              가입된 모든 클래스의 퀴즈를 한 눈에
-            </p>
           </div>
           <div className="flex gap-2">
             <Badge variant="secondary">{pendingCount}개 미완료</Badge>

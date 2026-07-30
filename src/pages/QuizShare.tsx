@@ -12,6 +12,8 @@ export default function QuizShare() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [needsLogin, setNeedsLogin] = useState(false);
+  const [allowAnonymous, setAllowAnonymous] = useState(true);
   const [quiz, setQuiz] = useState<any>(null);
   const [teacherName, setTeacherName] = useState<string>("");
   const [remainingAttempts, setRemainingAttempts] = useState<number>(0);
@@ -55,26 +57,39 @@ export default function QuizShare() {
         return;
       }
 
-      // 3. Check attempt limit
+      // 3. 익명 게이트: allow_anonymous=false인데 비로그인이면 로그인 유도 화면으로 전환.
+      // 응시 횟수/조회수 체크보다 먼저 걸어야 한다 — 여기서 튕기는 사용자의 view_count는
+      // 올라가면 안 되므로 view_count 증가(구 4번)는 이 검사 뒤로 옮겼다.
+      // 주의: 이 게이트는 UX 차원의 접근 제어일 뿐이다. matchup_problems 등 문제 테이블의
+      // 익명 SELECT RLS 정책은 해당 quiz의 quiz_shares 행 존재 여부만 보고 allow_anonymous
+      // 값은 검사하지 않으므로, 실제 데이터 접근 차단은 아니다(별도 마이그레이션 필요, 범위 밖).
+      setAllowAnonymous(shareData.allow_anonymous !== false);
+      if (shareData.allow_anonymous === false && !user) {
+        setNeedsLogin(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // 4. Check attempt limit
       const maxAttempts = shareData.max_attempts || 3;
       const completionCount = shareData.completion_count || 0;
       const remaining = maxAttempts - completionCount;
-      
+
       if (remaining <= 0) {
         setError("응시 가능 횟수를 초과했습니다");
         setIsLoading(false);
         return;
       }
-      
+
       setRemainingAttempts(remaining);
 
-      // 4. Increment view count
+      // 5. Increment view count
       await supabase
         .from("quiz_shares")
         .update({ view_count: shareData.view_count + 1 })
         .eq("id", shareData.id);
 
-      // 5. Load quiz
+      // 6. Load quiz
       const { data: quizData, error: quizError } = await supabase
         .from("quizzes")
         .select("*")
@@ -87,7 +102,7 @@ export default function QuizShare() {
         return;
       }
 
-      // 6. Load teacher name
+      // 7. Load teacher name
       const { data: profileData } = await supabase
         .from("profiles")
         .select("name")
@@ -143,6 +158,22 @@ export default function QuizShare() {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (needsLogin) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto px-4 py-8 max-w-2xl text-center space-y-4">
+          <p className="text-foreground">이 퀴즈는 로그인한 학생만 응시할 수 있어요.</p>
+          <Link to="/auth" className="inline-block text-primary font-semibold underline">
+            로그인하고 풀기
+          </Link>
+          <p className="text-xs text-muted-foreground">
+            로그인 후 이 링크로 다시 돌아오세요.
+          </p>
         </div>
       </AppLayout>
     );
@@ -216,7 +247,10 @@ export default function QuizShare() {
                   </p>
                   <p className="text-sm text-muted-foreground">준비되셨나요?</p>
                 </div>
-              ) : (
+              ) : allowAnonymous ? (
+                // allow_anonymous=false인 경우는 이미 loadSharedQuiz에서 needsLogin으로
+                // 걸러지므로 이 분기까지 오지 않는다. 그래도 상태값이 어긋나는 경우를 대비해
+                // allowAnonymous 조건을 명시적으로 둔다(방어적 렌더).
                 <div>
                   <label className="block text-[12.5px] font-semibold text-foreground mb-2 ml-1">
                     이름을 입력하세요
@@ -233,7 +267,7 @@ export default function QuizShare() {
                     <p className="text-xs text-destructive mt-1">이름은 2글자 이상 입력해주세요</p>
                   )}
                 </div>
-              )}
+              ) : null}
 
               <button
                 onClick={startQuiz}

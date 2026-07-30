@@ -153,7 +153,6 @@ export default function Quizzes() {
               <BookOpen className="h-8 w-8 text-primary" />
               내 퀴즈
             </h1>
-            <p className="text-muted-foreground mt-1">생성한 모든 퀴즈를 관리하세요</p>
           </div>
           <Link to="/quiz/create">
             <Button className="w-full sm:w-auto">

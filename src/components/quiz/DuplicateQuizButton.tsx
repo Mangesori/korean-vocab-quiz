@@ -32,6 +32,10 @@ interface Quiz {
   api_provider?: string;
   recording_enabled?: boolean;
   sentence_making_enabled?: boolean;
+  matchup_enabled?: boolean;
+  type_answer_enabled?: boolean;
+  word_magnet_enabled?: boolean;
+  fill_blank_enabled?: boolean;
 }
 
 interface DuplicateQuizButtonProps {
@@ -39,6 +43,59 @@ interface DuplicateQuizButtonProps {
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   showLabel?: boolean;
+}
+
+// 문제 데이터가 흩어져 있는 7개 테이블 = select(quiz_id) → insert(newQuiz.id) 패턴이 전부 동일하다.
+// 예전에는 테이블마다 이 패턴을 손으로 복붙했는데, 그래서 matchup/type_answer/word_magnet
+// 유형이 추가됐을 때 복제 코드가 갱신되지 않아 복사본에서 해당 유형이 통째로 사라지는
+// 버그가 났다. 배열 하나로 묶어두면 다음 유형 추가 시 항목 하나만 더하면 되므로
+// 같은 실수가 재발하지 않는다. quiz_id/id/created_at은 복사 대상이 아니므로 cols에서 제외한다.
+const PROBLEM_TABLES = [
+  { table: 'quiz_answers', cols: ['problem_id', 'correct_answer', 'word'] },
+  {
+    table: 'quiz_problems',
+    cols: [
+      'problem_id',
+      'word',
+      'sentence',
+      'hint',
+      'translation',
+      'sentence_audio_url',
+      'hint_audio_url',
+    ],
+  },
+  { table: 'matchup_problems', cols: ['problem_id', 'korean_text', 'meaning_text', 'sort_order'] },
+  { table: 'type_answer_problems', cols: ['problem_id', 'prompt', 'answer', 'sort_order'] },
+  {
+    table: 'word_magnet_problems',
+    cols: ['problem_id', 'base_text', 'translation', 'items', 'sort_order'],
+  },
+  {
+    table: 'sentence_making_problems',
+    cols: ['problem_id', 'word', 'model_answer', 'word_meaning', 'grading_criteria', 'sort_order'],
+  },
+  {
+    table: 'recording_problems',
+    cols: [
+      'problem_id',
+      'sentence',
+      'mode',
+      'source_type',
+      'source_problem_id',
+      'sentence_audio_url',
+      'translation',
+      'sort_order',
+      'label',
+    ],
+  },
+] as const;
+
+function pick(row: Record<string, unknown>, cols: readonly string[]) {
+  const result: Record<string, unknown> = {};
+  for (const col of cols) {
+    result[col] = row[col];
+  }
+  return result;
 }
 
 export function DuplicateQuizButton({
@@ -71,112 +128,51 @@ export function DuplicateQuizButton({
           api_provider: quiz.api_provider,
           recording_enabled: quiz.recording_enabled ?? false,
           sentence_making_enabled: quiz.sentence_making_enabled ?? false,
+          matchup_enabled: quiz.matchup_enabled ?? false,
+          type_answer_enabled: quiz.type_answer_enabled ?? false,
+          word_magnet_enabled: quiz.word_magnet_enabled ?? false,
+          // fill_blank_enabled만 DB 기본값이 true다(원래 유일한 퀴즈 유형이라 나중에
+          // 컬럼이 추가됐을 때 기존 행이 전부 활성으로 남아야 했음). 그래서 여기만
+          // `?? false`가 아니라 `!== false`를 써야 한다 — 안 그러면 빈칸 채우기를
+          // 켠 채로 만든 퀴즈를 복제했을 때 복사본에서 오히려 꺼지는 반대 방향
+          // 버그가 생긴다. src/types/quiz.ts의 isStageEnabled와 동일한 규칙.
+          fill_blank_enabled: quiz.fill_blank_enabled !== false,
         })
         .select()
         .single();
 
       if (quizError) throw quizError;
 
-      // 2. Copy quiz_answers
-      const { data: answers, error: answersError } = await supabase
-        .from('quiz_answers')
-        .select('*')
-        .eq('quiz_id', quiz.id);
+      try {
+        for (const { table, cols } of PROBLEM_TABLES) {
+          const { data: rows, error: selectError } = await supabase
+            .from(table)
+            .select('*')
+            .eq('quiz_id', quiz.id);
 
-      if (answersError) throw answersError;
+          if (selectError) throw selectError;
 
-      if (answers && answers.length > 0) {
-        const newAnswers = answers.map((answer) => ({
-          quiz_id: newQuiz.id,
-          problem_id: answer.problem_id,
-          correct_answer: answer.correct_answer,
-          word: answer.word,
-        }));
+          if (rows && rows.length > 0) {
+            const newRows = rows.map((row) => ({
+              ...pick(row as Record<string, unknown>, cols),
+              quiz_id: newQuiz.id,
+            }));
 
-        const { error: insertAnswersError } = await supabase
-          .from('quiz_answers')
-          .insert(newAnswers);
+            // 7개 테이블을 하나의 루프로 도는 이상, insert()가 요구하는 테이블별
+            // 정확한 Row 타입을 정적으로 좁힐 수 없다. cols는 위 PROBLEM_TABLES에서
+            // 마이그레이션 스키마와 대조해 손으로 맞췄으므로 런타임 형태는 안전하다.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { error: insertError } = await supabase.from(table).insert(newRows as any);
 
-        if (insertAnswersError) throw insertAnswersError;
-      }
-
-      // 3. Copy quiz_problems (audio data)
-      const { data: problems, error: problemsError } = await supabase
-        .from('quiz_problems')
-        .select('*')
-        .eq('quiz_id', quiz.id);
-
-      if (problemsError) throw problemsError;
-
-      if (problems && problems.length > 0) {
-        const newProblems = problems.map((problem) => ({
-          quiz_id: newQuiz.id,
-          problem_id: problem.problem_id,
-          word: problem.word,
-          sentence: problem.sentence,
-          hint: problem.hint,
-          translation: problem.translation,
-          sentence_audio_url: problem.sentence_audio_url,
-          hint_audio_url: problem.hint_audio_url,
-        }));
-
-        const { error: insertProblemsError } = await supabase
-          .from('quiz_problems')
-          .insert(newProblems);
-
-        if (insertProblemsError) throw insertProblemsError;
-      }
-
-      // 4. Copy sentence_making_problems
-      const { data: sentenceProblems, error: sentenceProblemsError } = await supabase
-        .from('sentence_making_problems')
-        .select('*')
-        .eq('quiz_id', quiz.id);
-
-      if (sentenceProblemsError) throw sentenceProblemsError;
-
-      if (sentenceProblems && sentenceProblems.length > 0) {
-        const newSentenceProblems = sentenceProblems.map((p) => ({
-          quiz_id: newQuiz.id,
-          problem_id: p.problem_id,
-          word: p.word,
-          model_answer: p.model_answer,
-          word_meaning: p.word_meaning,
-          grading_criteria: p.grading_criteria,
-        }));
-
-        const { error: insertSentenceError } = await supabase
-          .from('sentence_making_problems')
-          .insert(newSentenceProblems);
-
-        if (insertSentenceError) throw insertSentenceError;
-      }
-
-      // 5. Copy recording_problems
-      const { data: recordingProblems, error: recordingProblemsError } = await supabase
-        .from('recording_problems')
-        .select('*')
-        .eq('quiz_id', quiz.id);
-
-      if (recordingProblemsError) throw recordingProblemsError;
-
-      if (recordingProblems && recordingProblems.length > 0) {
-        const newRecordingProblems = recordingProblems.map((p) => ({
-          quiz_id: newQuiz.id,
-          problem_id: p.problem_id,
-          sentence: p.sentence,
-          mode: p.mode,
-          source_type: p.source_type,
-          source_problem_id: p.source_problem_id,
-          sentence_audio_url: p.sentence_audio_url,
-          translation: p.translation,
-        }));
-
-        const { error: insertRecordingError } = await supabase
-          .from('recording_problems')
-          .insert(newRecordingProblems);
-
-        if (insertRecordingError) throw insertRecordingError;
+            if (insertError) throw insertError;
+          }
+        }
+      } catch (err) {
+        // 트랜잭션이 없어서 7개 테이블 중 하나라도 insert가 실패하면 반쯤 복사된
+        // 퀴즈가 남는다. 모든 문제 테이블의 quiz_id FK가 ON DELETE CASCADE이므로
+        // quizzes 행만 지우면 이미 복사된 자식 행들도 함께 정리된다.
+        await supabase.from('quizzes').delete().eq('id', newQuiz.id);
+        throw err;
       }
 
       return newQuiz;

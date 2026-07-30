@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Volume2, Lightbulb, ChevronLeft, ChevronRight, Mic } from "lucide-react";
+import { Volume2, ChevronLeft, ChevronRight, Mic } from "lucide-react";
+import { QuizStageHeader } from "@/components/quiz/shared/QuizStageHeader";
+import { HintButton } from "@/components/quiz/shared/HintButton";
 
 export interface RecordingStudentItem {
   sentence: string;
@@ -31,34 +33,31 @@ export function RecordingStudentView({ problems }: { problems: RecordingStudentI
   return (
     <Card className="w-full max-w-5xl mx-auto border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl overflow-hidden bg-transparent sm:bg-white mb-4 sm:mb-8 mt-4">
       <CardContent className="p-0 sm:p-4 md:p-8 space-y-4 sm:space-y-6">
-        <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col min-h-[220px] sm:min-h-[250px] mt-0 sm:mt-1">
-          <div className="flex w-full items-center justify-between mb-2 sm:mb-3">
-            <div className="text-xs sm:text-sm font-semibold text-[#8B5CF6] bg-[#8B5CF6]/10 px-3 py-1.5 rounded-full inline-flex items-center">
+        <QuizStageHeader
+          badge={
+            <span className="text-xs sm:text-sm font-semibold text-[#8B5CF6] bg-[#8B5CF6]/10 px-3 py-1.5 rounded-full inline-flex items-center">
               {problem.mode === "listen" ? "듣고 말하기" : "보고 말하기"}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowHint(!showHint)}
-              className="bg-white text-xs h-8 px-3 rounded-xl shadow-sm text-slate-600"
-            >
-              <Lightbulb className={`w-3.5 h-3.5 mr-1.5 ${showHint ? "text-warning" : ""}`} />
-              힌트
-            </Button>
-          </div>
-          {problem.mode === "read" && (
-            <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold mb-2">문장을 보고 따라 말해보세요</p>
-          )}
+            </span>
+          }
+          instruction={
+            problem.mode === "read"
+              ? "문장을 보고 따라 말해보세요"
+              : "음성을 듣고 따라 녹음하세요"
+          }
+          action={<HintButton active={showHint} onToggle={() => setShowHint(!showHint)} />}
+        />
+
+        {/* 문장 표시 — 회색 박스는 "읽을/들을 재료"만 */}
+        <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col min-h-[180px] sm:min-h-[210px]">
           <div className="flex-1 flex flex-col items-center justify-center w-full">
             {problem.mode === "read" ? (
               <>
-                <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold mt-4 mb-4 sm:mb-6 text-foreground leading-relaxed text-center drop-shadow-sm">
+                <h3 className="text-lg sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-4 text-foreground leading-relaxed text-center drop-shadow-sm">
                   {problem.sentence}
                 </h3>
               </>
             ) : (
               <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-6">
-                <p className="text-center text-sm sm:text-base lg:text-lg text-foreground font-bold mb-2">음성을 듣고 따라 녹음하세요</p>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"

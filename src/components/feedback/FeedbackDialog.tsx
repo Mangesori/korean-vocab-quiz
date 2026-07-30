@@ -23,13 +23,21 @@ interface FeedbackDialogProps {
   context: string;
   /** 별점 카드에서 별을 눌러 열었을 때 미리 채울 점수 */
   initialRating?: number | null;
+  /** 특정 문맥(예: 도움말 문서 제목)을 미리 채워 넣고 싶을 때의 초기 메시지 */
+  initialMessage?: string;
 }
 
 /**
  * 피드백 입력 모달 (controlled). 누구나(익명 게스트 포함) 제출 가능.
  * feedback 테이블 RLS가 INSERT를 anon에도 허용하고, 읽기는 관리자만.
  */
-export function FeedbackDialog({ open, onOpenChange, context, initialRating = null }: FeedbackDialogProps) {
+export function FeedbackDialog({
+  open,
+  onOpenChange,
+  context,
+  initialRating = null,
+  initialMessage,
+}: FeedbackDialogProps) {
   const { user } = useAuth();
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
@@ -41,6 +49,11 @@ export function FeedbackDialog({ open, onOpenChange, context, initialRating = nu
   useEffect(() => {
     if (open) setRating(initialRating ?? null);
   }, [open, initialRating]);
+
+  // 모달이 열릴 때마다 넘어온 초기 메시지(예: 도움말 문서 제목 프리필)를 반영
+  useEffect(() => {
+    if (open && initialMessage) setMessage(initialMessage);
+  }, [open, initialMessage]);
 
   const reset = () => {
     setMessage('');

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, BookOpen, PenLine, PenSquare, Mic, Type, Sparkles, Link2, Keyboard, Magnet, Check } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,12 +19,12 @@ import { readEdgeFunctionError, isQuotaExceeded } from "@/lib/supabaseErrors";
 import type { Problem, SentenceMakingProblem, RecordingProblem, MatchupProblem, TypeAnswerProblem } from "@/types/quiz";
 
 const DIFFICULTY_LEVELS = [
-  { level: "A1", label: "입문", bg: "bg-[#DCFCE7]", text: "text-[#15803D]", border: "border-[#15803D]" },
-  { level: "A2", label: "기초", bg: "bg-[#CFFAFE]", text: "text-[#0E7490]", border: "border-[#0E7490]" },
-  { level: "B1", label: "중급", bg: "bg-[#DBEAFE]", text: "text-[#1D4ED8]", border: "border-[#1D4ED8]" },
-  { level: "B2", label: "중상급", bg: "bg-[#EDE9FE]", text: "text-[#6D28D9]", border: "border-[#6D28D9]" },
-  { level: "C1", label: "고급", bg: "bg-[#FCE7F3]", text: "text-[#9D174D]", border: "border-[#9D174D]" },
-  { level: "C2", label: "최상급", bg: "bg-[#FEF9C3]", text: "text-[#854D0E]", border: "border-[#854D0E]" },
+  { level: "A1", bg: "bg-[#DCFCE7]", text: "text-[#15803D]", border: "border-[#15803D]" },
+  { level: "A2", bg: "bg-[#CFFAFE]", text: "text-[#0E7490]", border: "border-[#0E7490]" },
+  { level: "B1", bg: "bg-[#DBEAFE]", text: "text-[#1D4ED8]", border: "border-[#1D4ED8]" },
+  { level: "B2", bg: "bg-[#EDE9FE]", text: "text-[#6D28D9]", border: "border-[#6D28D9]" },
+  { level: "C1", bg: "bg-[#FCE7F3]", text: "text-[#9D174D]", border: "border-[#9D174D]" },
+  { level: "C2", bg: "bg-[#FEF9C3]", text: "text-[#854D0E]", border: "border-[#854D0E]" },
 ] as const;
 
 const TRANSLATION_LANGUAGES = [
@@ -40,12 +41,39 @@ const TRANSLATION_LANGUAGES = [
   { value: "ru", label: "러시아어 (Русский)" },
 ];
 
+/** 입력 방식. words = 단어 목록을 파싱해 15개씩 배치 생성, prompt = 쓴 글을 통째로 전달. */
+type InputMode = "words" | "prompt";
+
+/** 프롬프트 한 번에 보낼 수 있는 최대 글자 수. 넘으면 입력 자체를 막는다. */
+const PROMPT_MAX_LENGTH = 8000;
+
+/** 프롬프트 모드의 문제 수 선택지. 배치 분할이 없어 40문제가 현실적인 상한이다. */
+const PROBLEM_COUNT_OPTIONS = [5, 10, 15, 20, 25, 30, 35, 40];
+
+const WORDS_PLACEHOLDER = `예시)
+학생, 선생님, 먹다, 마시다, 마음에 들다, 예쁘다
+
+또는 한 줄에 하나씩
+학생
+선생님`;
+
+const PROMPT_PLACEHOLDER = `예시)
+어제 서울 지하철 2호선에서 작은 화재가 났다. 승객들은 안내 방송에 따라 침착하게 대피했고, 다친 사람은 없었다. 소방서는 전선 문제로 불이 난 것으로 보고 있다.
+
+단어: 화재, 승객, 대피하다, 침착하다, 전선
+
+이번 수업에서 '-느라고'를 배웠으니 3문제는 그 문법으로 만들어 주세요.`;
+
 export default function QuizCreate() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
 
+  const [inputMode, setInputMode] = useState<InputMode>("words");
   const [wordsText, setWordsText] = useState("");
+  const [promptText, setPromptText] = useState("");
+  /** null = 자동(엣지 함수가 프롬프트 속 단어 개수에 맞춰 정함) */
+  const [problemCount, setProblemCount] = useState<number | null>(null);
   const [title, setTitle] = useState("");
   const [difficulty, setDifficulty] = useState<string>("A1");
   const [translationLanguage, setTranslationLanguage] = useState("en");
@@ -60,41 +88,28 @@ export default function QuizCreate() {
   const [typeAnswerEnabled, setTypeAnswerEnabled] = useState(false);
   const [wordMagnetEnabled, setWordMagnetEnabled] = useState(false);
 
-  const words = wordsText
-    .split(/[,\n]/)
-    .map((w) => w.trim())
-    .filter((w) => w.length > 0);
+  // handleGenerate가 useCallback이라 words의 참조가 매 렌더 바뀌면 안 된다.
+  const words = useMemo(
+    () =>
+      wordsText
+        .split(/[,\n]/)
+        .map((w) => w.trim())
+        .filter((w) => w.length > 0),
+    [wordsText],
+  );
 
-  // Cmd/Ctrl+Enter shortcut
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-        if (!isGenerating && words.length > 0 && title.trim()) {
-          handleGenerate();
-        }
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [isGenerating, words.length, title]);
+  // 모드마다 "입력이 채워졌는가"의 기준이 다르다. 단어 모드는 파싱된 단어 개수,
+  // 프롬프트 모드는 선생님이 쓴 글의 유무.
+  const hasInput = inputMode === "words" ? words.length > 0 : promptText.trim().length > 0;
+  const canGenerate = !isGenerating && hasInput && title.trim().length > 0;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user || !can(PERMISSIONS.CREATE_QUIZ)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  const isMac = navigator.platform.toUpperCase().includes("MAC");
-
-  const handleGenerate = async () => {
-    if (words.length === 0) {
+  const handleGenerate = useCallback(async () => {
+    if (inputMode === "words" && words.length === 0) {
       toast.error("단어를 입력해주세요");
+      return;
+    }
+    if (inputMode === "prompt" && !promptText.trim()) {
+      toast.error("프롬프트를 입력해주세요");
       return;
     }
     if (!title.trim()) {
@@ -109,73 +124,124 @@ export default function QuizCreate() {
     setIsGenerating(true);
 
     try {
-      const BATCH_SIZE = 15;
       const allProblems: Problem[] = [];
       const allSentenceMakingProblems: SentenceMakingProblem[] = [];
       const allRecordingProblems: RecordingProblem[] = [];
       const allMatchupProblems: MatchupProblem[] = [];
       const allTypeAnswerProblems: TypeAnswerProblem[] = [];
 
-      const wordChunks: string[][] = [];
-      for (let i = 0; i < words.length; i += BATCH_SIZE) {
-        wordChunks.push(words.slice(i, i + BATCH_SIZE));
-      }
+      if (inputMode === "prompt") {
+        // 코드가 단어 개수를 모르기 때문에 배치 분할을 할 수 없다. 한 번에 호출한다.
+        toast.loading("문제 생성 중...", { id: "quiz-generation" });
 
-      // 한도 초과로 배치가 실패한 경우를 표시한다. 아래 catch에서 "일부만 생성" 경고로
-      // 삼키지 않고 그대로 위로 던지기 위한 플래그.
-      let quotaExceeded = false;
+        const { data, error } = await supabase.functions.invoke("generate-quiz", {
+          body: {
+            mode: "prompt",
+            promptText,
+            problemCount,
+            difficulty,
+            translationLanguage,
+            wordsPerSet,
+            sentenceMakingEnabled,
+            recordingEnabled,
+            matchupEnabled,
+            typeAnswerEnabled,
+            wordMagnetEnabled,
+            recordingMode: "read",
+            purpose: "create",
+          },
+        });
 
-      for (let i = 0; i < wordChunks.length; i++) {
-        const chunk = wordChunks[i];
-        const currentProgress = i * BATCH_SIZE + chunk.length;
-
-        toast.loading(`문제 생성 중... (${currentProgress}/${words.length})`, { id: "quiz-generation" });
-
-        try {
-          const { data, error } = await supabase.functions.invoke("generate-quiz", {
-            body: {
-              words: chunk,
-              difficulty,
-              translationLanguage,
-              wordsPerSet,
-              sentenceMakingEnabled,
-              recordingEnabled,
-              matchupEnabled,
-              typeAnswerEnabled,
-              wordMagnetEnabled,
-              recordingMode: "read",
-              purpose: "create",
-            },
-          });
-
-          // 엣지 함수가 non-2xx를 주면 error.message는 영문 일반 문구라 본문의 한국어를 꺼내 써야 한다.
-          if (error) {
-            const parsed = await readEdgeFunctionError(error, "퀴즈 생성에 실패했어요");
-            if (isQuotaExceeded(parsed)) quotaExceeded = true;
-            throw new Error(parsed.message);
+        // 엣지 함수가 non-2xx를 주면 error.message는 영문 일반 문구라 본문의 한국어를 꺼내 써야 한다.
+        if (error) {
+          const parsed = await readEdgeFunctionError(error, "퀴즈 생성에 실패했어요");
+          // 배치가 없으니 "일부만 생성"이라는 상태 자체가 없다. 한도 초과(429)는 서버가 준
+          // 한국어 안내에 조치 방법이 들어 있어 읽을 시간을 두고 보여준다.
+          if (isQuotaExceeded(parsed)) {
+            toast.dismiss("quiz-generation");
+            toast.error(parsed.message, { duration: 6000 });
+            return;
           }
-          if (data.error) throw new Error(data.error);
-
-          allProblems.push(...data.problems);
-          if (data.sentenceMakingProblems) allSentenceMakingProblems.push(...data.sentenceMakingProblems);
-          if (data.recordingProblems) allRecordingProblems.push(...data.recordingProblems);
-          if (data.matchupProblems) allMatchupProblems.push(...data.matchupProblems);
-          if (data.typeAnswerProblems) allTypeAnswerProblems.push(...data.typeAnswerProblems);
-        } catch (batchError: any) {
-          console.error(`Batch ${i + 1} generation error:`, batchError);
-          // 한도 초과는 "일부 문제만 생성되었습니다" 경고로 삼키면 안 된다. 앞 배치가 성공한 뒤
-          // 한도에 걸리면 선생님은 왜 멈췄는지 모른 채 저장 단계에서 트리거에 또 막힌다.
-          if (quotaExceeded || allProblems.length === 0) {
-            throw batchError;
-          }
-          toast.dismiss("quiz-generation");
-          toast.warning(`일부 문제만 생성되었습니다 (${allProblems.length}/${words.length}개).`, { duration: 5000 });
-          break;
+          throw new Error(parsed.message);
         }
-      }
+        if (data.error) throw new Error(data.error);
 
-      toast.dismiss("quiz-generation");
-      toast.success(`${allProblems.length}개 문제 생성 완료!`);
+        allProblems.push(...data.problems);
+        if (data.sentenceMakingProblems) allSentenceMakingProblems.push(...data.sentenceMakingProblems);
+        if (data.recordingProblems) allRecordingProblems.push(...data.recordingProblems);
+        if (data.matchupProblems) allMatchupProblems.push(...data.matchupProblems);
+        if (data.typeAnswerProblems) allTypeAnswerProblems.push(...data.typeAnswerProblems);
+
+        toast.dismiss("quiz-generation");
+        toast.success(`${allProblems.length}개 문제가 만들어졌어요`);
+        // 프롬프트 모드는 몇 개가 나올지 미리 알 수 없다. 지정한 수와 어긋나면 알려준다.
+        if (problemCount !== null && allProblems.length !== problemCount) {
+          toast.info(`요청하신 ${problemCount}개와 달라요. 미리보기에서 확인해 주세요.`, { duration: 6000 });
+        }
+      } else {
+        const BATCH_SIZE = 15;
+
+        const wordChunks: string[][] = [];
+        for (let i = 0; i < words.length; i += BATCH_SIZE) {
+          wordChunks.push(words.slice(i, i + BATCH_SIZE));
+        }
+
+        // 한도 초과로 배치가 실패한 경우를 표시한다. 아래 catch에서 "일부만 생성" 경고로
+        // 삼키지 않고 그대로 위로 던지기 위한 플래그.
+        let quotaExceeded = false;
+
+        for (let i = 0; i < wordChunks.length; i++) {
+          const chunk = wordChunks[i];
+          const currentProgress = i * BATCH_SIZE + chunk.length;
+
+          toast.loading(`문제 생성 중... (${currentProgress}/${words.length})`, { id: "quiz-generation" });
+
+          try {
+            const { data, error } = await supabase.functions.invoke("generate-quiz", {
+              body: {
+                words: chunk,
+                difficulty,
+                translationLanguage,
+                wordsPerSet,
+                sentenceMakingEnabled,
+                recordingEnabled,
+                matchupEnabled,
+                typeAnswerEnabled,
+                wordMagnetEnabled,
+                recordingMode: "read",
+                purpose: "create",
+              },
+            });
+
+            // 엣지 함수가 non-2xx를 주면 error.message는 영문 일반 문구라 본문의 한국어를 꺼내 써야 한다.
+            if (error) {
+              const parsed = await readEdgeFunctionError(error, "퀴즈 생성에 실패했어요");
+              if (isQuotaExceeded(parsed)) quotaExceeded = true;
+              throw new Error(parsed.message);
+            }
+            if (data.error) throw new Error(data.error);
+
+            allProblems.push(...data.problems);
+            if (data.sentenceMakingProblems) allSentenceMakingProblems.push(...data.sentenceMakingProblems);
+            if (data.recordingProblems) allRecordingProblems.push(...data.recordingProblems);
+            if (data.matchupProblems) allMatchupProblems.push(...data.matchupProblems);
+            if (data.typeAnswerProblems) allTypeAnswerProblems.push(...data.typeAnswerProblems);
+          } catch (batchError: any) {
+            console.error(`Batch ${i + 1} generation error:`, batchError);
+            // 한도 초과는 "일부 문제만 생성되었습니다" 경고로 삼키면 안 된다. 앞 배치가 성공한 뒤
+            // 한도에 걸리면 선생님은 왜 멈췄는지 모른 채 저장 단계에서 트리거에 또 막힌다.
+            if (quotaExceeded || allProblems.length === 0) {
+              throw batchError;
+            }
+            toast.dismiss("quiz-generation");
+            toast.warning(`일부 문제만 생성되었습니다 (${allProblems.length}/${words.length}개).`, { duration: 5000 });
+            break;
+          }
+        }
+
+        toast.dismiss("quiz-generation");
+        toast.success(`${allProblems.length}개 문제 생성 완료!`);
+      }
 
       // 말하기 연습 문제는 fillBlankEnabled 여부와 무관하게 빈칸 채우기 원본 문장에서
       // 즉시 파생 (엣지 함수는 항상 빈 배열을 반환하므로 여기서 직접 생성)
@@ -198,11 +264,17 @@ export default function QuizCreate() {
           })
         : allRecordingProblems;
 
+      // 프롬프트 모드는 입력 단어 배열이 없다. 생성된 문제에서 단어를 되뽑아 draft를 채운다.
+      const draftWords =
+        inputMode === "prompt"
+          ? allProblems.map((p) => p.word).filter(Boolean)
+          : words.slice(0, allProblems.length);
+
       sessionStorage.setItem(
         "quizDraft",
         JSON.stringify({
           title,
-          words: words.slice(0, allProblems.length),
+          words: draftWords,
           difficulty,
           translationLanguage,
           wordsPerSet,
@@ -232,7 +304,52 @@ export default function QuizCreate() {
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [
+    inputMode,
+    words,
+    promptText,
+    problemCount,
+    title,
+    difficulty,
+    translationLanguage,
+    wordsPerSet,
+    timerEnabled,
+    timerSeconds,
+    fillBlankEnabled,
+    sentenceMakingEnabled,
+    recordingEnabled,
+    matchupEnabled,
+    typeAnswerEnabled,
+    wordMagnetEnabled,
+    navigate,
+  ]);
+
+  // Cmd/Ctrl+Enter 단축키.
+  // handleGenerate 자체를 의존성에 넣어야 한다. 예전엔 [isGenerating, words.length, title]만
+  // 봐서, 단어 개수가 같은 채 내용·난이도·유형만 바꾸면 이전 렌더의 값으로 제출됐다.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && canGenerate) {
+        handleGenerate();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [canGenerate, handleGenerate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user || !can(PERMISSIONS.CREATE_QUIZ)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  const isMac = navigator.platform.toUpperCase().includes("MAC");
 
   return (
     <AppLayout>
@@ -242,7 +359,6 @@ export default function QuizCreate() {
             <PenSquare className="h-8 w-8 text-primary" />
             퀴즈 만들기
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm">단어를 붙여넣고 유형만 고르면 10초면 완성돼요</p>
         </div>
 
         <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6 md:p-8 space-y-8">
@@ -259,22 +375,71 @@ export default function QuizCreate() {
             />
           </section>
 
-          {/* ── 섹션 2: 단어 입력 ── */}
+          {/* ── 섹션 2: 단어 입력 / 프롬프트 입력 ── */}
           <section>
             <div className="flex items-center gap-3 mb-3">
               <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">2</span>
-              <h2 className="font-semibold text-foreground">단어 입력</h2>
+              <h2 className="font-semibold text-foreground">입력 방식</h2>
             </div>
-            <Textarea
-              placeholder="학생, 선생님, 먹다, 마시다, 마음에 들다, 예쁘다"
-              value={wordsText}
-              onChange={(e) => setWordsText(e.target.value)}
-              className="min-h-[160px] font-medium resize-none"
-            />
-            <div className="flex items-center justify-between mt-2 px-0.5">
-              <span className="text-sm text-muted-foreground">입력된 단어: <span className="font-semibold text-foreground">{words.length}</span>개</span>
-              <span className="text-xs font-mono text-muted-foreground">쉼표(,) 또는 줄바꿈으로 구분</span>
-            </div>
+
+            <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as InputMode)} className="mb-3">
+              <TabsList className="w-full grid grid-cols-2">
+                <TabsTrigger value="words">단어 입력</TabsTrigger>
+                <TabsTrigger value="prompt">프롬프트 입력</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {inputMode === "words" ? (
+              <>
+                <Textarea
+                  placeholder={WORDS_PLACEHOLDER}
+                  value={wordsText}
+                  onChange={(e) => setWordsText(e.target.value)}
+                  className="min-h-[200px] font-medium resize-none"
+                />
+                <div className="flex items-center justify-between mt-2 px-0.5">
+                  <span className="text-sm text-muted-foreground">입력된 단어: <span className="font-semibold text-foreground">{words.length}</span>개</span>
+                  <span className="text-xs font-mono text-muted-foreground">쉼표(,) 또는 줄바꿈으로 구분</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <Textarea
+                  placeholder={PROMPT_PLACEHOLDER}
+                  value={promptText}
+                  onChange={(e) => setPromptText(e.target.value)}
+                  maxLength={PROMPT_MAX_LENGTH}
+                  className="min-h-[280px] resize-none leading-relaxed"
+                />
+                <div className="flex items-center justify-between mt-2 px-0.5">
+                  <span className="text-sm text-muted-foreground">기사, 단어 목록, 요청사항을 그대로 붙여넣으세요</span>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {promptText.length.toLocaleString()} / {PROMPT_MAX_LENGTH.toLocaleString()}자
+                  </span>
+                </div>
+
+                <div className="mt-4 space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">문제 수</label>
+                  <Select
+                    value={problemCount === null ? "auto" : String(problemCount)}
+                    onValueChange={(v) => setProblemCount(v === "auto" ? null : Number(v))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">자동</SelectItem>
+                      {PROBLEM_COUNT_OPTIONS.map((n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n}개
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">자동으로 두면 적어주신 단어 개수에 맞춰 만들어요</p>
+                </div>
+              </>
+            )}
           </section>
 
           {/* ── 섹션 3: CEFR 레벨 ── */}
@@ -298,12 +463,6 @@ export default function QuizCreate() {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {(() => {
-                const selected = DIFFICULTY_LEVELS.find((d) => d.level === difficulty);
-                return selected ? `${selected.level} · ${selected.label}` : null;
-              })()}
-            </p>
           </section>
 
           {/* ── 섹션 4: 퀴즈 유형 ── */}
@@ -488,7 +647,7 @@ export default function QuizCreate() {
               size="lg"
               className="w-full gap-2"
               onClick={handleGenerate}
-              disabled={isGenerating || words.length === 0 || !title.trim()}
+              disabled={!canGenerate}
             >
               {isGenerating ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> 생성 중...</>

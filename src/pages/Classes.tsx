@@ -174,7 +174,6 @@ export default function Classes() {
               <Users className="h-8 w-8 text-primary" />
               내 클래스
             </h1>
-            <p className="text-muted-foreground mt-1">클래스를 만들고 학생을 초대하세요</p>
           </div>
           
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

@@ -135,7 +135,6 @@ export default function TeacherDashboard() {
             <GraduationCap className="h-8 w-8 text-primary" />
             선생님 대시보드
           </h1>
-          <p className="text-muted-foreground mt-1">수업과 퀴즈를 관리하세요</p>
         </div>
 
         {/* Stats Grid */}

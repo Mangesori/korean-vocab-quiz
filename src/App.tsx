@@ -30,8 +30,9 @@ import WrongAnswerNotebook from "./pages/WrongAnswerNotebook";
 import WrongAnswerPractice from "./pages/WrongAnswerPractice";
 import ClassAnnouncements from "./pages/ClassAnnouncements";
 import WrongAnswerQuizCreate from "./pages/WrongAnswerQuizCreate";
-import QuizUIPreview from "./pages/QuizUIPreview";
 import MyQuizzes from "./pages/MyQuizzes";
+import HelpCenter from "./pages/HelpCenter";
+import HelpArticle from "./pages/HelpArticle";
 
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -135,8 +136,10 @@ const App = () => (
               </ProtectedRoute>
             } />
 
-            <Route path="/quiz/ui-preview" element={<QuizUIPreview />} />
             <Route path="/my-quizzes" element={<MyQuizzes />} />
+
+            <Route path="/help" element={<HelpCenter />} />
+            <Route path="/help/:articleId" element={<HelpArticle />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

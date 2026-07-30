@@ -34,7 +34,16 @@ interface QuotaStatus {
 }
 
 interface QuizRequest {
-  words: string[];
+  // "words"(기본) = 단어 배열을 받아 AI가 문장을 짓는 기존 방식.
+  // "prompt" = 선생님이 쓴 자유 텍스트(기사 원문 + 단어 목록 + 요청사항)를 통째로 AI에 넘긴다.
+  //            코드는 그 텍스트를 파싱하지 않는다. mode가 없으면 "words"로 본다(하위 호환).
+  mode?: "words" | "prompt";
+  // mode === "prompt"일 때만 사용. 선생님이 작성한 글 전체.
+  promptText?: string;
+  // mode === "prompt"일 때만 사용. null이면 AI가 자료를 보고 개수를 정한다.
+  problemCount?: number | null;
+  // mode === "prompt"에서는 안 온다.
+  words?: string[];
   difficulty: string;
   translationLanguage: string;
   wordsPerSet: number;
@@ -451,7 +460,190 @@ ${shortSection}
 }`;
 };
 
+// 프롬프트 모드 — 선생님이 쓴 자유 텍스트를 그대로 넘긴다.
+//
+// generateDetailedPrompt와의 결정적 차이는 §2 [Step 1]이다. 기존 프롬프트는
+// "단어마다 서로 다른 상황을 설정하세요. 비슷한 소재가 반복되면 안 됩니다"라며
+// 맥락을 일부러 흩는데, 수업 자료로 배운 단어에는 그게 독이다(기사를 읽었는데
+// 카페·쇼핑 문장이 나오는 원인). 여기서는 반대로 자료의 맥락으로 통일한다.
+//
+// §4·§5·§6·§6-2·§6-3과 출력 형식 JSON 블록은 generateDetailedPrompt에서
+// 글자 그대로 복사한 것이다. 다운스트림 파생 로직(매치업·답 입력·문장 만들기,
+// QuizPreview의 녹음 문장 생성)이 이 규칙들의 결과 형태를 전제로 하기 때문에
+// 한 글자도 바꾸면 안 된다. 저쪽을 고치면 여기도 같이 고칠 것.
+const generatePromptModePrompt = (
+  promptText: string,
+  problemCount: number | null,
+  difficulty: string,
+  languageName: string,
+  includeShort = false,
+) => {
+  const selectedGuide = shuffleGrammarGuide(DIFFICULTY_GUIDES[difficulty] || DIFFICULTY_GUIDES["A1"]);
 
+  // ── 아래 shortSection / shortOutputFields는 generateDetailedPrompt와 동일 문구 ──
+  const shortSection = includeShort ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§6-3. 짧은 문장(short_sentence·short_translation) 규칙 — 필수
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· short_sentence: 대상 단어를 포함한 완성형 한국어 문장. 괄호·빈칸 없이 정답까지 채운 자연스러운 문장.
+· 공백 포함 20~30자 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
+· 위 빈칸 채우기 문장(sentence)과는 다른, 더 짧고 쉬운 표현을 사용하세요. (같은 문장 복사 금지)
+· short_translation: short_sentence 전체를 ${languageName}로 자연스럽게 번역. 대괄호 없이 적으세요.
+` : "";
+
+  const shortOutputFields = includeShort ? `,
+      "short_sentence": "대상 단어가 들어간 20~30자의 짧은 완성형 문장.",
+      "short_translation": "${languageName}로 된 short_sentence 번역"` : "";
+
+  const countSection = problemCount === null
+    ? `· 선생님이 위 글에서 단어를 직접 나열했으면 그 단어 개수만큼 문제를 만드세요.
+· 나열하지 않았으면 15개 내외로 만드세요.`
+    : `· 정확히 ${problemCount}개의 문제를 만드세요.
+· 선생님이 나열한 단어가 그보다 적으면 제공된 자료에서 중요한 단어를 더 뽑아 채우고, 더 많으면 학습 가치가 높은 것부터 고르세요.`;
+
+  return `당신은 한국어 교육 전문가이자 TOPIK 문제 출제 전문가입니다.
+선생님이 제공한 수업 자료를 바탕으로 ${difficulty} 수준의 빈칸 채우기 문제를 출제하세요.
+선생님이 직접 작성한 요청은 이 지시문 아래쪽(§9)에 있습니다.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§1. 핵심 원칙: 자연스러움 최우선
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· 가장 중요한 것은 한국인이 실제 일상에서 말하는 것처럼 자연스러운 문장을 만드는 것입니다.
+· 문법은 자연스러운 문장 안에 녹아들어야 하며, 문법을 보여주기 위해 문장을 억지로 만들지 마세요.
+· "이 상황에서 한국 사람이 정말 이렇게 말할까?"를 항상 자문하세요.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§2. 문장 생성 프로세스 (반드시 이 순서를 따르세요)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Step 1 - 맥락 유지] 선생님이 제공한 자료의 맥락 안에서 문장을 만드세요.
+  · 자료의 주제·소재·상황을 그대로 이어받아, 학생이 그 자료를 다시 읽는 느낌이 들게 하세요.
+  · 자료와 무관한 새 소재를 임의로 끌어오지 마세요.
+
+[Step 2 - 후보 생성 및 선택] 각 단어마다 다음 과정을 머릿속에서 수행하세요 (출력 금지).
+  ① 해당 단어를 사용한 후보 문장 3개를 떠올리세요. 문법 패턴을 서로 다르게 적용하세요.
+  ② 각 후보를 다음 기준으로 평가하세요:
+     - "한국인이 실제로 이렇게 말할까?" (자연스러움)
+     - 문법이 억지로 끼워 넣어진 느낌이 없는가?
+     - 어색한 어휘 조합이 없는가?
+     - 선생님이 제공한 자료의 맥락에 맞는가?
+  ③ 세 후보 중 가장 자연스러운 문장 1개만 최종 선택하세요.
+
+[Step 3 - 문법 다양성] 문제 전체에서 같은 문법 패턴만 반복되지 않도록 조정하세요.
+  · 단순 종결 회피: "-아요/어요", "-습니다" 같은 기본 종결 어미만으로 끝내지 마세요.
+  · 단, 선생님이 특정 문법을 지정했다면 그 지정이 우선입니다.
+
+⚠️ 출력에는 최종 JSON 결과만 포함하세요. Step 1~3의 사고 과정은 출력하지 마세요.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§3. 난이도별 문법 가이드 (${difficulty}) — 참고용
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+아래 목록은 참고용입니다. 아래 선생님 요청과 충돌하면 선생님 요청을 따르세요.
+${selectedGuide}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§4. 빈칸·정답 작성 규칙
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+▶ 명사 어휘:
+  · answer = "명사 + 조사"만. 동사·형용사는 sentence에 남깁니다.
+  · sentence의 ( ) 뒤에 동사가 이어져야 합니다.
+  · 조사를 sentence에 쓰지 마세요 — 조사는 answer에 포함됩니다.
+  · 예: word "미술관" → sentence "내일 친구하고 ( ) 가요.", answer "미술관에", hint "에"
+  · 예: word "지구력" → sentence "( ) 필요해요.", answer "지구력이", hint "이/가"
+
+▶ 동사/형용사 어휘:
+  · answer = "어휘 활용형 + 문법 패턴" 전체를 포함. 문법을 answer와 sentence에 쪼개지 마세요.
+  · sentence의 ( ) 뒤에 문법 요소가 남아있으면 안 됩니다. (문장 부호는 가능)
+  · 관형사형일 때: ( ) 바로 뒤에 수식 대상 명사가 옵니다.
+  · 예: word "오다" → sentence "하늘을 보니 비가 ( ).", answer "올 것 같아요", hint "-(으)ㄹ 것 같다 + 아요/어요"
+  · 예: word "가다" → sentence "학교에 ( ) 밥 먹었어요.", answer "가기 전에", hint "-기 전에"
+  · 예: word "주요하다" → sentence "경제에 ( ) 역할을 합니다.", answer "주요한", hint "-(으)ㄴ"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§5. hint 작성 규칙
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· hint에는 설명·의미를 쓰지 말고 문법 형태만 간결하게 표기하세요.
+· 명사: 사용된 조사만 표기 (예: "에", "을/를"). 조사 없는 부사형이면 빈 문자열 "".
+· 동사/형용사 단독 활용: "-아요/어요", "-기 전에", "-느라고", "-게 되다" 등.
+· 관형사형: "-(으)ㄴ", "-는", "-(으)ㄹ"
+· 복합 구성: "기본 문법 + 종결 어미" 형식.
+  예: "가기로 했습니다" → "-기로 하다 + 습니다"
+  예: "할 수 있었어요" → "-(으)ㄹ 수 있다 + 았어요/었어요"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§6. 번역(translation) 규칙
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· ( )가 아닌 answer가 들어간 완전한 문장을 ${languageName}로 자연스럽게 번역하세요.
+· 정답 단어의 핵심 의미(순수 어휘)만 대괄호 []로 감싸세요. 문법 패턴·보조 동사는 대괄호 밖에 둡니다.
+  예: answer "가고 싶어요" → "I want to [go] home."
+  예: answer "구독하기로 했어요" → "I decided to [subscribe] to this channel."
+  예: answer "연예인인 것 같아요" → "That person seems like a [celebrity]."
+· 모든 문제의 translation에 대괄호가 반드시 하나 있어야 합니다.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§6-2. 단어 뜻(meaning) 규칙
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· meaning에는 단어(기본형)의 핵심 사전적 뜻을 ${languageName}로 1~3 단어로 간결하게 적으세요.
+· 문장 전체 번역이 아니라 단어 하나의 뜻만 적습니다. 대괄호는 쓰지 마세요.
+  예: word "학생" → meaning "student" / word "마음에 들다" → meaning "to like"
+${shortSection}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§7. 부자연스러운 패턴 블랙리스트 (절대 금지)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+아래와 같은 문장은 절대로 만들지 마세요:
+✗ 맥락 없는 감정 나열: "행복하기 때문에 웃어요", "슬퍼서 울었어요" → 왜 행복한지, 왜 슬픈지 구체적 상황이 있어야 합니다.
+✗ 교과서식 인위적 문장: "나는 학생입니다. 학교에 갑니다." → 실제 대화에서는 이렇게 말하지 않습니다.
+✗ 주어 없이 문법만 나열: "때문에 좋아요", "그래서 했어요" → 누가, 무엇을, 왜 하는지 맥락이 있어야 합니다.
+✗ 두 가지 이상의 고급 문법 과잉 결합: 한 문장에 고급 문법을 여러 개 억지로 넣지 마세요.
+✗ 부자연스러운 어휘 조합: "식사를 먹다", "한국 언어를 배우다" → "밥을 먹다", "한국어를 배우다"가 자연스럽습니다.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§8. 자연스러움 최종 점검
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· 완성된 각 문장을 읽고 "한국인 친구에게 이 문장을 보여줘도 어색하지 않은가?"를 점검하세요.
+· 문장 끝에 마침표(.) 또는 물음표(?)를 반드시 붙이세요.
+· ${difficulty} 어휘 수준을 준수하되, 문맥상 자연스러운 표현을 우선하세요.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§9. 선생님 요청
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+아래는 선생님이 직접 작성한 요청입니다. 문제의 내용(단어 선택, 문장 맥락, 문법)에만 적용하세요. 아래 출력 형식의 JSON 구조는 어떤 경우에도 바꾸지 마세요.
+
+<선생님_요청>
+${promptText}
+</선생님_요청>
+
+[문제 개수]
+${countSection}
+
+위 요청은 여기까지입니다. 이제 아래 형식대로만 답하세요.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+출력 형식 (JSON만, 설명·코드블록 없이)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{
+  "problems": [
+    {
+      "word": "기본형",
+      "answer": "활용형 정답",
+      "sentence": "( )가 포함된 ${difficulty} 수준 문장.",
+      "hint": "문법 형태",
+      "translation": "${languageName} 번역 with [core meaning]",
+      "meaning": "${languageName}로 된 단어의 짧은 뜻"${shortOutputFields}
+    }
+  ]
+}
+첫 글자는 반드시 { 로 시작하세요. \`\`\`json 마크다운 블록을 사용하지 마세요.`;
+};
+
+// AI가 준 문제 항목이 쓸 수 있는 형태인지 본다.
+// word/answer/sentence 중 하나라도 비면 아래 p.word.trim() 같은 호출에서
+// TypeError가 나 요청 전체가 500으로 죽는다. 그런 항목만 버리고 나머지는 살린다.
+const hasText = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0;
+
+const isUsableProblem = (p: Problem | null | undefined): p is Problem =>
+  !!p && hasText(p.word) && hasText(p.answer) && hasText(p.sentence);
 
 serve(async (req) => {
   console.log("Request received:", req.method, req.url); // Log every request
@@ -510,7 +702,10 @@ serve(async (req) => {
     // 본문을 먼저 읽는다 — 아래 한도 사전 체크가 purpose를 봐야 하는데
     // req.json()은 한 번만 부를 수 있어서 파싱을 위로 옮겼다.
     const {
-      words,
+      mode = "words",
+      promptText = "",
+      problemCount = null,
+      words: rawWords,
       difficulty,
       translationLanguage,
       wordsPerSet: _wordsPerSet,
@@ -525,6 +720,19 @@ serve(async (req) => {
       wordMagnetEnabled = false,
       purpose = "create",
     }: QuizRequest = await req.json();
+
+    // mode가 없으면 "words" — 기존 호출부는 이 값을 안 보낸다.
+    const isPromptMode = mode === "prompt";
+
+    // 프롬프트 모드는 words를 안 보낸다. 아래 로직이 전부 배열을 전제로 하므로 빈 배열로 정규화한다.
+    const words: string[] = Array.isArray(rawWords) ? rawWords : [];
+
+    if (isPromptMode && !promptText.trim()) {
+      return new Response(
+        JSON.stringify({ error: "프롬프트 내용이 비어 있습니다." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // 퀴즈 생성 한도 사전 체크.
     //
@@ -590,12 +798,19 @@ serve(async (req) => {
 
     // skipFillBlank가 false일 때만 빈칸 채우기 생성
     if (!skipFillBlank) {
-      // regenerateSingle이 true이면 가벼운 프롬프트 사용
-      const prompt = regenerateSingle
+      // 프롬프트 모드가 최우선(입력 단어 배열 자체가 없어 나머지 두 빌더를 쓸 수 없다).
+      // 그 다음 regenerateSingle이 true이면 가벼운 프롬프트 사용
+      const prompt = isPromptMode
+        ? generatePromptModePrompt(promptText, problemCount, difficulty, languageName, includeShortDetailed)
+        : regenerateSingle
         ? generateSimplePrompt(words, difficulty, languageName, isB1Plus)
         : generateDetailedPrompt(words, difficulty, languageName, includeShortDetailed);
 
-      console.log(`Generating quiz using Claude for ${words.length} words at ${difficulty} level`);
+      console.log(
+        isPromptMode
+          ? `Generating quiz using Claude in prompt mode (problemCount=${problemCount ?? "auto"}) at ${difficulty} level`
+          : `Generating quiz using Claude for ${words.length} words at ${difficulty} level`
+      );
 
       const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
       if (!ANTHROPIC_API_KEY) {
@@ -674,34 +889,52 @@ serve(async (req) => {
         throw new Error("생성된 문제가 없습니다");
       }
 
-      // Keep problems in original order (same as input words)
-      const orderedProblems: (Problem | null)[] = [];
-      const availableProblems: Problem[] = [...parsed.problems];
-
-      for (const word of words) {
-        const matchIndex = availableProblems.findIndex((p: Problem) => p.word.trim() === word.trim());
-        if (matchIndex !== -1) {
-          orderedProblems.push(availableProblems[matchIndex]);
-          availableProblems.splice(matchIndex, 1);
-        } else {
-          orderedProblems.push(null);
-        }
+      // 필드 검증을 재정렬보다 먼저 한다 — 아래 p.word.trim()이 word 없는 항목에서 터진다.
+      // 일부만 망가진 응답 때문에 전체를 버리지 않도록, 못 쓰는 항목만 걸러내고 계속 간다.
+      const usableProblems: Problem[] = (parsed.problems as Problem[]).filter(isUsableProblem);
+      const droppedCount = parsed.problems.length - usableProblems.length;
+      if (droppedCount > 0) {
+        console.warn(`Dropped ${droppedCount} malformed problem(s) missing word/answer/sentence`);
+      }
+      if (usableProblems.length === 0) {
+        throw new Error("생성된 문제가 없습니다");
       }
 
-      // Fill any unmatched slots with remaining problems
-      for (let i = 0; i < orderedProblems.length; i++) {
-        if (orderedProblems[i] === null) {
-          if (availableProblems.length > 0) {
-            const shifted = availableProblems.shift();
-            if (shifted) {
-              orderedProblems[i] = shifted;
+      let validProblems: Problem[];
+
+      if (isPromptMode) {
+        // 프롬프트 모드는 기준이 될 입력 단어 배열이 없다. AI가 준 순서를 그대로 쓴다.
+        validProblems = usableProblems;
+      } else {
+        // Keep problems in original order (same as input words)
+        const orderedProblems: (Problem | null)[] = [];
+        const availableProblems: Problem[] = [...usableProblems];
+
+        for (const word of words) {
+          const matchIndex = availableProblems.findIndex((p: Problem) => p.word.trim() === word.trim());
+          if (matchIndex !== -1) {
+            orderedProblems.push(availableProblems[matchIndex]);
+            availableProblems.splice(matchIndex, 1);
+          } else {
+            orderedProblems.push(null);
+          }
+        }
+
+        // Fill any unmatched slots with remaining problems
+        for (let i = 0; i < orderedProblems.length; i++) {
+          if (orderedProblems[i] === null) {
+            if (availableProblems.length > 0) {
+              const shifted = availableProblems.shift();
+              if (shifted) {
+                orderedProblems[i] = shifted;
+              }
             }
           }
         }
-      }
 
-      // Filter out any remaining nulls
-      const validProblems = orderedProblems.filter((p): p is Problem => p !== null);
+        // Filter out any remaining nulls
+        validProblems = orderedProblems.filter((p): p is Problem => p !== null);
+      }
 
       problems = validProblems.map((p: Problem, index: number) => ({
         id: `problem-${Date.now()}-${index}`,
@@ -735,12 +968,18 @@ serve(async (req) => {
       problems.map((p) => [p.word.trim(), p.meaning || ""])
     );
 
+    // 파생 유형(문장 만들기·매치업·답 입력)이 돌릴 단어 목록.
+    // 프롬프트 모드는 입력 단어 배열이 없다(선생님 글을 파싱하지 않는다).
+    // 그래서 AI가 실제로 뽑아낸 단어, 즉 빈칸 문제의 word를 단어 목록으로 쓴다.
+    // words 모드는 지금까지처럼 입력 순서 그대로.
+    const derivedWords = isPromptMode ? problems.map((p) => p.word) : words;
+
     // 문장 만들기 퀴즈 생성 (AI 호출 불필요 - 단어 목록만 반환)
     if (sentenceMakingEnabled && !regenerateSingle) {
-      console.log(`Creating sentence making problems for ${words.length} words`);
+      console.log(`Creating sentence making problems for ${derivedWords.length} words`);
       // 단어 목록으로 문제 생성 (AI 채점은 학생이 제출할 때 진행)
       // word_meaning은 빈칸 생성에서 나온 단어 뜻으로 자동 채움 (선생님이 미리보기에서 수정 가능)
-      const smProblems: SentenceMakingProblem[] = words.map((word, index) => ({
+      const smProblems: SentenceMakingProblem[] = derivedWords.map((word, index) => ({
         problem_id: `sm-${Date.now()}-${index}`,
         word: word,
         word_meaning: meaningByWord.get(word.trim()) || "",
@@ -752,8 +991,8 @@ serve(async (req) => {
 
     // 매치업 퀴즈 생성 (단어 ↔ 뜻) — 빈칸 생성 결과의 단어/뜻을 재사용
     if (matchupEnabled && !regenerateSingle) {
-      console.log(`Creating matchup problems for ${words.length} words`);
-      const muProblems: MatchupProblem[] = words.map((word, index) => ({
+      console.log(`Creating matchup problems for ${derivedWords.length} words`);
+      const muProblems: MatchupProblem[] = derivedWords.map((word, index) => ({
         problem_id: `mu-${Date.now()}-${index}`,
         korean_text: word,
         meaning_text: meaningByWord.get(word.trim()) || "",
@@ -764,8 +1003,8 @@ serve(async (req) => {
 
     // 답 입력 퀴즈 생성 (뜻 → 한국어 단어) — 빈칸 생성 결과의 단어/뜻 재사용
     if (typeAnswerEnabled && !regenerateSingle) {
-      console.log(`Creating type-answer problems for ${words.length} words`);
-      const taProblems: TypeAnswerProblem[] = words.map((word, index) => ({
+      console.log(`Creating type-answer problems for ${derivedWords.length} words`);
+      const taProblems: TypeAnswerProblem[] = derivedWords.map((word, index) => ({
         problem_id: `ta-${Date.now()}-${index}`,
         prompt: meaningByWord.get(word.trim()) || "",
         answer: word,

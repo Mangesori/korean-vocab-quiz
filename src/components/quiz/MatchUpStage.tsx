@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft } from "lucide-react";
@@ -18,6 +18,9 @@ export interface MatchUpResult {
 interface MatchUpStageProps {
   problems: MatchUpProblemData[];
   wordsPerSet?: number;
+  // 세트당 제한 시간이 다 됐을 때 QuizTake가 증가시키는 카운터. 값이 바뀔 때마다(마운트 시
+  // 최초 값은 무시) 안 맞춘 짝이 있어도 강제로 다음 세트로 넘기거나(마지막 세트면) 제출한다.
+  timeUpToken?: number;
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (results: Record<string, MatchUpResult>) => void;
   onBack?: () => void;
@@ -33,7 +36,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-export function MatchUpStage({ problems, wordsPerSet = 5, onProgressUpdate, onComplete, onBack, backLabel }: MatchUpStageProps) {
+export function MatchUpStage({ problems, wordsPerSet = 5, timeUpToken, onProgressUpdate, onComplete, onBack, backLabel }: MatchUpStageProps) {
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
 
   // 문제를 세트 단위로 분할
@@ -132,8 +135,9 @@ export function MatchUpStage({ problems, wordsPerSet = 5, onProgressUpdate, onCo
     setSelectedRight((prev) => (prev === rightId ? null : rightId));
   };
 
-  const handleSubmit = () => {
-    if (!allMatched) return;
+  // force: 시간 초과로 강제 제출할 때 안 맞춘 짝이 있어도 진행한다(짝 없는 문제는 자동 오답 처리).
+  const handleSubmit = (force = false) => {
+    if (!force && !allMatched) return;
     const results: Record<string, MatchUpResult> = {};
     for (const p of problems) {
       const selectedProblemId = matches[p.id];
@@ -146,6 +150,23 @@ export function MatchUpStage({ problems, wordsPerSet = 5, onProgressUpdate, onCo
     }
     onComplete(results);
   };
+
+  // 세트당 제한 시간 초과 처리. prevTimeUpToken은 마운트 시 받은 초기값(다른 스테이지에서
+  // 이미 증가해 있던 값일 수 있음)을 기준으로 삼아, 이후 "진짜 증가"에만 반응한다.
+  const prevTimeUpTokenRef = useRef(timeUpToken ?? 0);
+  useEffect(() => {
+    const prev = prevTimeUpTokenRef.current;
+    const current = timeUpToken ?? 0;
+    prevTimeUpTokenRef.current = current;
+    if (current <= prev) return;
+
+    if (currentSetIndex < totalSets - 1) {
+      handleNextSet();
+    } else {
+      handleSubmit(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeUpToken]);
 
   const tileClass = (state: "matched" | "selected" | "left" | "right") => {
     const base =
@@ -237,7 +258,7 @@ export function MatchUpStage({ problems, wordsPerSet = 5, onProgressUpdate, onCo
             </Button>
           ) : (
             <Button
-              onClick={handleSubmit}
+              onClick={() => handleSubmit()}
               disabled={!allMatched}
               className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-primary text-white text-xs sm:text-sm font-semibold hover:bg-primary/90 shadow-md transition-colors"
             >
