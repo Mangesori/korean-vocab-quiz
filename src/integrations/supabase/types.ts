@@ -1461,6 +1461,11 @@ export type Database = {
       }
       generate_invite_code: { Args: never; Returns: string }
       generate_live_join_code: { Args: never; Returns: string }
+      is_live_participant: { Args: { p_session_id: string }; Returns: boolean }
+      join_live_session_as_guest: {
+        Args: { p_code: string; p_name: string }
+        Returns: Database["public"]["Tables"]["live_participants"]["Row"]
+      }
       get_class_by_invite_code: {
         Args: { _invite_code: string }
         Returns: {

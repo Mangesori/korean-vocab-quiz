@@ -21,14 +21,16 @@ export function useJoinLiveSession() {
   const [participant, setParticipant] = useState<LiveParticipant | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 게스트 입장 함수가 코드를 다시 요구하므로 조회에 쓴 코드를 들고 있는다.
+  const [code, setCode] = useState("");
 
   /** 코드로 세션 찾기 — 아직 입장하지는 않는다. */
-  const lookup = useCallback(async (code: string) => {
+  const lookup = useCallback(async (inputCode: string) => {
     setError(null);
     setIsBusy(true);
 
     const { data, error: e } = await supabase.rpc("find_live_session_by_code", {
-      p_code: code,
+      p_code: inputCode,
     });
 
     setIsBusy(false);
@@ -44,6 +46,7 @@ export function useJoinLiveSession() {
       return null;
     }
 
+    setCode(inputCode);
     setFound(row);
     return row;
   }, []);
@@ -57,10 +60,30 @@ export function useJoinLiveSession() {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id ?? null;
 
-      if (!userId && !session.allow_guests) {
+      // 비회원은 auth.uid()가 없어 INSERT 정책을 통과하지 못한다. 코드·allowGuests
+      // 확인까지 서버에서 하는 전용 함수로 들어간다.
+      if (!userId) {
+        if (!session.allow_guests) {
+          setIsBusy(false);
+          setError("이 수업은 로그인한 학생만 참여할 수 있어요.");
+          return null;
+        }
+
+        const { data, error: e } = await supabase.rpc("join_live_session_as_guest", {
+          p_code: code,
+          p_name: displayName,
+        });
+
         setIsBusy(false);
-        setError("이 수업은 로그인한 학생만 참여할 수 있어요.");
-        return null;
+
+        if (e) {
+          setError(e.message);
+          return null;
+        }
+
+        const p = data as unknown as LiveParticipant;
+        setParticipant(p);
+        return p;
       }
 
       const { data, error: e } = await supabase
@@ -70,7 +93,7 @@ export function useJoinLiveSession() {
             session_id: session.id,
             student_id: userId,
             display_name: displayName,
-            is_guest: !userId,
+            is_guest: false,
             left_at: null,
           },
           { onConflict: "session_id,student_id", ignoreDuplicates: false }
@@ -89,7 +112,7 @@ export function useJoinLiveSession() {
       setParticipant(p);
       return p;
     },
-    []
+    [code]
   );
 
   const leave = useCallback(async () => {

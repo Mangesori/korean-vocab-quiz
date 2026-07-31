@@ -36,9 +36,11 @@ CREATE TABLE IF NOT EXISTS public.live_sessions (
 );
 
 -- 말하기 연습은 라이브에서 쓰지 않는다 (동시 녹음 충돌 + 즉시 채점 불가).
+-- 빈 배열 검사에 array_length를 쓰면 안 된다 — 빈 배열에 대해 0이 아니라 NULL을
+-- 돌려주고, CHECK는 NULL을 통과시키므로 빈 stages가 그대로 들어간다.
 ALTER TABLE public.live_sessions
   ADD CONSTRAINT live_sessions_stages_exclude_recording
-  CHECK (NOT ('recording' = ANY(stages)) AND array_length(stages, 1) >= 1);
+  CHECK (NOT ('recording' = ANY(stages)) AND cardinality(stages) >= 1);
 
 -- 살아 있는 세션끼리는 코드가 겹치면 안 된다. 끝난 세션의 코드는 재사용 가능.
 CREATE UNIQUE INDEX IF NOT EXISTS live_sessions_active_join_code_idx
@@ -129,6 +131,63 @@ AS $$
   LIMIT 1;
 $$;
 
+-- ── 게스트 입장 ─────────────────────────────────────────────────────────────
+-- 비회원은 auth.uid()가 없어서 INSERT 정책을 통과할 수 없다. 그래서 입장만
+-- SECURITY DEFINER 함수로 뚫어주되, 코드가 맞는지 · 세션이 살아 있는지 ·
+-- allowGuests가 켜져 있는지를 서버에서 직접 확인한 뒤에만 넣는다.
+CREATE OR REPLACE FUNCTION public.join_live_session_as_guest(p_code text, p_name text)
+RETURNS public.live_participants
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_session public.live_sessions;
+  v_row     public.live_participants;
+BEGIN
+  IF btrim(coalesce(p_name, '')) = '' THEN
+    RAISE EXCEPTION '이름을 입력해주세요.';
+  END IF;
+
+  SELECT * INTO v_session
+  FROM public.live_sessions
+  WHERE join_code = p_code AND status <> 'ended';
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION '코드를 다시 확인해주세요.';
+  END IF;
+
+  IF NOT COALESCE((v_session.settings ->> 'allowGuests')::boolean, true) THEN
+    RAISE EXCEPTION '이 수업은 로그인한 학생만 참여할 수 있어요.';
+  END IF;
+
+  INSERT INTO public.live_participants (session_id, student_id, display_name, is_guest)
+  VALUES (v_session.id, NULL, btrim(p_name), true)
+  RETURNING * INTO v_row;
+
+  RETURN v_row;
+END;
+$$;
+
+-- ── RLS 도우미 ──────────────────────────────────────────────────────────────
+-- live_participants의 정책 안에서 다시 live_participants를 조회하면 Postgres가
+-- 정책을 무한 재귀로 평가해 "infinite recursion detected in policy" 오류가 난다.
+-- SECURITY DEFINER 함수는 RLS를 우회하므로 이 고리를 끊어준다.
+CREATE OR REPLACE FUNCTION public.is_live_participant(p_session_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.live_participants
+    WHERE session_id = p_session_id
+      AND student_id = auth.uid()
+      AND left_at IS NULL
+  );
+$$;
+
 -- ── RLS ─────────────────────────────────────────────────────────────────────
 ALTER TABLE public.live_sessions     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.live_participants ENABLE ROW LEVEL SECURITY;
@@ -144,11 +203,7 @@ CREATE POLICY "선생님은 자기 세션을 관리한다"
 CREATE POLICY "참가자는 자기 세션을 읽는다"
   ON public.live_sessions
   FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM public.live_participants p
-    WHERE p.session_id = live_sessions.id
-      AND p.student_id = auth.uid()
-  ));
+  USING (public.is_live_participant(id));
 
 -- 참가자: 선생님은 자기 세션의 참가자를 모두 본다.
 CREATE POLICY "선생님은 자기 세션 참가자를 관리한다"
@@ -179,14 +234,11 @@ CREATE POLICY "학생은 열린 세션에 입장한다"
   );
 
 -- 참가자: 같은 세션에 있는 사람끼리는 서로 보인다 (대기실 명단).
+-- 재귀를 피하려고 SECURITY DEFINER 도우미를 쓴다 (위 주석 참고).
 CREATE POLICY "같은 세션 참가자끼리 보인다"
   ON public.live_participants
   FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM public.live_participants me
-    WHERE me.session_id = live_participants.session_id
-      AND me.student_id = auth.uid()
-  ));
+  USING (public.is_live_participant(session_id));
 
 -- 참가자: 자기 줄만 수정(퇴장 표시)할 수 있다.
 CREATE POLICY "학생은 자기 참가 기록만 수정한다"
