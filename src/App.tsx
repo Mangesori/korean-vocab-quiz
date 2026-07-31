@@ -31,6 +31,8 @@ import WrongAnswerPractice from "./pages/WrongAnswerPractice";
 import ClassAnnouncements from "./pages/ClassAnnouncements";
 import WrongAnswerQuizCreate from "./pages/WrongAnswerQuizCreate";
 import MyQuizzes from "./pages/MyQuizzes";
+import HelpCenter from "./pages/HelpCenter";
+import HelpArticle from "./pages/HelpArticle";
 
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -135,6 +137,10 @@ const App = () => (
             } />
 
             <Route path="/my-quizzes" element={<MyQuizzes />} />
+
+            {/* 도움말은 비로그인 방문자도 봐야 하는 공개 페이지라 ProtectedRoute로 감싸지 않는다. */}
+            <Route path="/help" element={<HelpCenter />} />
+            <Route path="/help/:articleId" element={<HelpArticle />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
