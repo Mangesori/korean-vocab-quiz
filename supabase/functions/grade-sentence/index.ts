@@ -191,8 +191,16 @@ async function callClaude(prompt: string, systemInstruction: string): Promise<st
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 4096,
+        model: "claude-sonnet-5",
+        // Sonnet 5는 thinking(adaptive)이 기본이고 thinking도 이 예산을 쓴다.
+        // 배치 채점(문제 여러 개)에서 잘리지 않도록 4096 → 8192.
+        max_tokens: 8192,
+        // temperature는 넣지 말 것 — Sonnet 5는 기본값이 아닌 sampling 파라미터를 400으로
+        // 거부한다. (이 함수는 원래 안 쓰고 있었다.)
+        //
+        // effort: Sonnet 5 medium ≈ Sonnet 4.6 high. 학생이 대기하는 동기 호출이라
+        // 기본값 high보다 낮춰 지연을 줄인다. 위 55초 타임아웃 대비 실측이 필요하다.
+        output_config: { effort: "medium" },
         system: systemInstruction,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -207,7 +215,11 @@ async function callClaude(prompt: string, systemInstruction: string): Promise<st
     }
 
     const data = await response.json();
-    const content = data.content?.[0]?.text;
+    // Sonnet 5는 adaptive thinking이 기본이라 content[0]이 thinking 블록일 수 있다.
+    // 인덱스로 집지 말고 type === "text"인 블록을 찾아야 한다.
+    const content = data.content?.find(
+      (block: { type?: string; text?: string }) => block?.type === "text"
+    )?.text;
 
     if (!content) {
       throw new Error("No content received from AI");

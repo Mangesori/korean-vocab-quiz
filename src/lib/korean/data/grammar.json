@@ -1,0 +1,3417 @@
+{
+  "source": "국립국어원 2017 국제 통용 한국어 표준 교육과정 적용 연구(4단계) 어휘·문법 등급 목록",
+  "sourceUrl": "https://www.korean.go.kr/front/reportData/reportDataView.do?mn_id=207&report_seq=932",
+  "gradeToCefr": {
+    "1": "A1",
+    "2": "A2",
+    "3": "B1",
+    "4": "B2",
+    "5": "C1",
+    "6": "C2"
+  },
+  "builtAt": "2026-07-31T02:29:42.502Z",
+  "note": "이 파일은 scripts/build-korean-data.ts가 생성한다. 직접 수정하지 말 것.",
+  "items": [
+    {
+      "form": "이",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [
+        "가"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "과",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [
+        "와"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "까지",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": "부터/까지"
+    },
+    {
+      "form": "께서",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "은",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [
+        "는",
+        "ㄴ"
+      ],
+      "meaning": "대조"
+    },
+    {
+      "form": "도",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "을",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [
+        "를",
+        "ㄹ"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "이랑",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [
+        "랑"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "으로",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [
+        "로"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "부터",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [
+        "에서부터(서부터)"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "에",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [
+        "다가",
+        "에다가(에다)"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "에게",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [
+        "에게로",
+        "에게서"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "에서",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [
+        "서"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "의",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "하고",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "만",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": "단독"
+    },
+    {
+      "form": "이다",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": "지정사"
+    },
+    {
+      "form": "한테",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "보다",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-겠-",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "선어말어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-었-",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "선어말어미",
+      "aliases": [
+        "-았-",
+        "-였-"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-으시-",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "선어말어미",
+      "aliases": [
+        "-시-"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-고",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": "나열"
+    },
+    {
+      "form": "-으니까",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "연결어미",
+      "aliases": [
+        "-니까"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-으러",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "연결어미",
+      "aliases": [
+        "-러"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어서",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "연결어미",
+      "aliases": [
+        "-아서",
+        "-여서",
+        "-어",
+        "-아",
+        "-여",
+        "-라서",
+        "-라"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-지만",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-으려고",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "연결어미",
+      "aliases": [
+        "-려고",
+        "으려",
+        "려"
+      ],
+      "meaning": "의도"
+    },
+    {
+      "form": "-습니까",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "종결어미",
+      "aliases": [
+        "-ㅂ니까"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-습니다",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "종결어미",
+      "aliases": [
+        "-ㅂ니다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-읍시다",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "종결어미",
+      "aliases": [
+        "-ㅂ시다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-으세요",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "종결어미",
+      "aliases": [
+        "-세요. -으셔요",
+        "-셔요",
+        "-으시어요",
+        "-시어요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-으십시오",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "종결어미",
+      "aliases": [
+        "-십시오"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-고",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "종결어미",
+      "aliases": [
+        "-고요"
+      ],
+      "meaning": "덧붙여 서술"
+    },
+    {
+      "form": "-을까",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "종결어미",
+      "aliases": [
+        "-ㄹ까",
+        "을까요",
+        "-ㄹ까요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "종결어미",
+      "aliases": [
+        "-아",
+        "-여",
+        "-야",
+        "-어요",
+        "-아요",
+        "-여요",
+        "-에요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "이 아니다",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "표현",
+      "aliases": [
+        "가 아니다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-고 싶다",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-고 있다",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-어야 되다",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "표현",
+      "aliases": [
+        "-아야 되다",
+        "-여야 되다",
+        "<유의> -어야 하다",
+        "-아야 하다",
+        "-어야 하다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-지 않다",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-을 수 있다",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 수 있다",
+        "<반의> -ㄹ 수 없다",
+        "-을 수 없다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-지 못하다",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-기 전에",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "표현",
+      "aliases": [
+        "-기 전"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-은 후에",
+      "grade": 1,
+      "cefr": "A1",
+      "category": "표현",
+      "aliases": [
+        "-은 후",
+        "-ㄴ 후",
+        "<유의> -은 뒤에",
+        "-ㄴ 뒤에",
+        "-은 뒤",
+        "-ㄴ 뒤"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "께",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "마다",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "밖에",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "처럼",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "에서부터(서부터)",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "에다가",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "조사",
+      "aliases": [
+        "에다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "에게로",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "에게서",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "한테서",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "이나",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "조사",
+      "aliases": [
+        "나"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-거나",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-는데",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "연결어미",
+      "aliases": [
+        "-은데",
+        "-ㄴ데"
+      ],
+      "meaning": "대립, 배경"
+    },
+    {
+      "form": "-으면",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "연결어미",
+      "aliases": [
+        "-면"
+      ],
+      "meaning": "가정"
+    },
+    {
+      "form": "-으면서",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "연결어미",
+      "aliases": [
+        "-면서"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-게",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": "목적"
+    },
+    {
+      "form": "-다가(1)",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "연결어미",
+      "aliases": [
+        "-다",
+        "다가도"
+      ],
+      "meaning": "중단"
+    },
+    {
+      "form": "-기",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "전성어미",
+      "aliases": [],
+      "meaning": "명사형"
+    },
+    {
+      "form": "-는",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "전성어미",
+      "aliases": [
+        "-은",
+        "-ㄴ"
+      ],
+      "meaning": "관형사형(현재)"
+    },
+    {
+      "form": "-은",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "전성어미",
+      "aliases": [
+        "-ㄴ"
+      ],
+      "meaning": "관형사형(과거)"
+    },
+    {
+      "form": "-을",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "전성어미",
+      "aliases": [
+        "-ㄹ"
+      ],
+      "meaning": "관형사형"
+    },
+    {
+      "form": "-은",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "전성어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-음",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "전성어미",
+      "aliases": [
+        "-ㅁ"
+      ],
+      "meaning": "명사형"
+    },
+    {
+      "form": "-는군",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "종결어미",
+      "aliases": [
+        "-군",
+        "-는군요",
+        "-군요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을게",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "종결어미",
+      "aliases": [
+        "-ㄹ게",
+        "을게요",
+        "-ㄹ게요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-지",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "종결어미",
+      "aliases": [
+        "-지요(-죠)"
+      ],
+      "meaning": "서술, 물음, 명령, 요청"
+    },
+    {
+      "form": "-는데",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "종결어미",
+      "aliases": [
+        "-ㄴ데",
+        "-은데",
+        "-는데요",
+        "-ㄴ데요",
+        "-은데요"
+      ],
+      "meaning": "감탄"
+    },
+    {
+      "form": "-네",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "종결어미",
+      "aliases": [
+        "-네요"
+      ],
+      "meaning": "감탄"
+    },
+    {
+      "form": "-을래",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "종결어미",
+      "aliases": [
+        "-을래요",
+        "-ㄹ래요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-게 되다",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-기 때문에",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-기 때문이다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-기로 하다",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-는 것 같다",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 것 같다",
+        "-은 것 같다",
+        "-ㄹ 것 같다",
+        "-을 것 같다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-은 지",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 지"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 것",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-은 것",
+        "-ㄴ 것",
+        "-을 것",
+        "-ㄹ 것"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 동안에",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-는 동안"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-은 적이 있다",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 적이 있다",
+        "-는 적이 있다 <반의> -은 적이 없다",
+        "-ㄴ 적이 없다",
+        "-는 적이 없다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을 것",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 것"
+      ],
+      "meaning": "명령/지시"
+    },
+    {
+      "form": "-을 때",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 때"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을까 보다",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ까 보다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어 보다",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-아 보다",
+        "-여 보다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어 있다",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-아 있다",
+        "-여 있다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어 주다",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-아 주다",
+        "-여 주다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어도 되다",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-아도 되다",
+        "-여도 되다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-지 말다",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-을 수밖에 없다",
+      "grade": 2,
+      "cefr": "A2",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 수밖에 없다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "같이",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "이고",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "조사",
+      "aliases": [
+        "고"
+      ],
+      "meaning": "모두 포함"
+    },
+    {
+      "form": "대로",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "으로부터",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "만큼",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "조사",
+      "aliases": [
+        "<유의> 만치"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "보고",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "뿐",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "아",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "조사",
+      "aliases": [
+        "야"
+      ],
+      "meaning": "호격"
+    },
+    {
+      "form": "요",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": "존대"
+    },
+    {
+      "form": "이라고",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "조사",
+      "aliases": [
+        "라고",
+        "라",
+        "이라"
+      ],
+      "meaning": "직접 인용"
+    },
+    {
+      "form": "-었었-",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "선어말어미",
+      "aliases": [
+        "-았었-",
+        "-였었-"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-거든",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "거들랑"
+      ],
+      "meaning": "조건"
+    },
+    {
+      "form": "-는다거나",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "-ㄴ다거나",
+        "-다거나",
+        "-라거나"
+      ],
+      "meaning": "나열"
+    },
+    {
+      "form": "-는다고",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "-다고",
+        "-라고",
+        "-으라고",
+        "-자고"
+      ],
+      "meaning": "이유"
+    },
+    {
+      "form": "-으나",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "-나"
+      ],
+      "meaning": "대립"
+    },
+    {
+      "form": "-느라고",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "-느라"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-도록",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-어다가",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "-아다가",
+        "-여다가",
+        "-어다",
+        "-아다",
+        "-여다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어도",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "-아도",
+        "-여도",
+        "-라도",
+        "이라도"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어야",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "-아야",
+        "-여야",
+        "-어야만",
+        "-아야만",
+        "-여야만"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어야지",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "-아야지",
+        "-여야지"
+      ],
+      "meaning": "필수 조건"
+    },
+    {
+      "form": "-었더니",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "-았더니",
+        "-였더니"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-자마자",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "-자"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-다가(2)",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "-다",
+        "다가도"
+      ],
+      "meaning": "중단"
+    },
+    {
+      "form": "-으니",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "-니"
+      ],
+      "meaning": "이유"
+    },
+    {
+      "form": "-으려면",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "연결어미",
+      "aliases": [
+        "-려면"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-던-",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "전성어미",
+      "aliases": [],
+      "meaning": "관형사형"
+    },
+    {
+      "form": "-거든",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "종결어미",
+      "aliases": [
+        "거든요"
+      ],
+      "meaning": "이유"
+    },
+    {
+      "form": "-는구나",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "종결어미",
+      "aliases": [
+        "-구나"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "종결어미",
+      "aliases": [
+        "-ㄴ다",
+        "-다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-던데",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "종결어미",
+      "aliases": [
+        "-던데요"
+      ],
+      "meaning": "감탄"
+    },
+    {
+      "form": "-잖아",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "종결어미",
+      "aliases": [
+        "-잖아요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-자",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": "청유"
+    },
+    {
+      "form": "-니",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "종결어미",
+      "aliases": [
+        "-으니"
+      ],
+      "meaning": "의문"
+    },
+    {
+      "form": "-게 하다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "<유의> -게 만들다",
+        "-도록 하다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-고 나다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-고 말다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-고 싶어 하다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-은 결과",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 결과"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-은 다음에",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 다음에"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 대신에",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 대신에",
+        "-은 대신에"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 만큼",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 만큼",
+        "-은 만큼",
+        "-ㄹ 만큼",
+        "-을 만큼"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 반면",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 반면에",
+        "-은 반면에"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-나 보다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-을 텐데",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 텐데",
+        "-을 텐데요",
+        "-ㄹ 텐데요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-기 위해",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-기 위해서",
+        "-기 위한",
+        "을 위해",
+        "를 위해"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "만 아니면",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-으면 안 되다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-면 안 되다",
+        "<반의> -으면 되다",
+        "-면 되다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-으면 좋겠다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-면 좋겠다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어 가다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-아 가다",
+        "-여 가다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어 가지고",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-아 가지고",
+        "-여 가지고"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어 놓다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-아 놓다",
+        "-여 놓다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어 두다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-아 두다",
+        "-여 두다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어 드리다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-아 드리다",
+        "-여 드리다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어야겠-",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-아야겠-",
+        "-여야겠-"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어지다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-아지다",
+        "-여지다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "에 대하여",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "에 대해",
+        "에 대해서",
+        "에 대한"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을 테니",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 테니",
+        "-을 테니까",
+        "-ㄹ 테니까"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어 오다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-아 오다",
+        "-여 오다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-기는",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-긴",
+        "-기는요",
+        "-긴요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 모양이다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 모양이다",
+        "-은 모양이다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 편이다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-는가 보다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-는 중이다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-으려다가",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-려다가",
+        "-으려다",
+        "려다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어 보이다",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-아보이다",
+        "-여 보이다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는다고",
+      "grade": 3,
+      "cefr": "B1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ다고",
+        "-다고",
+        "-라고",
+        "-느냐고",
+        "-냐고",
+        "-으냐고",
+        "-자고",
+        "-으라고"
+      ],
+      "meaning": "인용"
+    },
+    {
+      "form": "커녕",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "조사",
+      "aliases": [
+        "ㄴ커녕",
+        "는커녕",
+        "은커녕"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "이나마",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "조사",
+      "aliases": [
+        "나마"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "이며",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "조사",
+      "aliases": [
+        "며",
+        "이니",
+        "니",
+        "하며",
+        "하고",
+        "이다"
+      ],
+      "meaning": "나열"
+    },
+    {
+      "form": "이든",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "조사",
+      "aliases": [
+        "든",
+        "이든지",
+        "든지",
+        "이든가",
+        "든가"
+      ],
+      "meaning": "선택"
+    },
+    {
+      "form": "이란",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "조사",
+      "aliases": [
+        "란"
+      ],
+      "meaning": "정의"
+    },
+    {
+      "form": "이면",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "조사",
+      "aliases": [
+        "면"
+      ],
+      "meaning": "지정"
+    },
+    {
+      "form": "이야",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "조사",
+      "aliases": [
+        "야"
+      ],
+      "meaning": "강조"
+    },
+    {
+      "form": "치고",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "까지",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "조사",
+      "aliases": [],
+      "meaning": "마저"
+    },
+    {
+      "form": "이라도",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "조사",
+      "aliases": [
+        "라도"
+      ],
+      "meaning": "차선"
+    },
+    {
+      "form": "으로서",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "조사",
+      "aliases": [
+        "로서"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "으로써",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "조사",
+      "aliases": [
+        "로써"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "마저",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-거니와",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-고도",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-고자",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-기에",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-는지",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [
+        "-ㄴ지",
+        "-은지",
+        "-을지"
+      ],
+      "meaning": "의문"
+    },
+    {
+      "form": "-다시피",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-더라도",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-든지",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [
+        "-든",
+        "<유의> -든가"
+      ],
+      "meaning": "선택"
+    },
+    {
+      "form": "-으므로",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [
+        "-므로"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을래야",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [
+        "-ㄹ래야"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-고서",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [
+        "-고서는",
+        "-고서야"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는다면",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [
+        "-ㄴ다면",
+        "-다면",
+        "-라면"
+      ],
+      "meaning": "조건"
+    },
+    {
+      "form": "-더니",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-던데",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": "대립, 배경"
+    },
+    {
+      "form": "-듯이",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-을수록",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [
+        "-ㄹ수록"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-으며",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "연결어미",
+      "aliases": [
+        "-며"
+      ],
+      "meaning": "나열/동시"
+    },
+    {
+      "form": "-는다니",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "종결어미",
+      "aliases": [
+        "-ㄴ다니",
+        "-다니",
+        "-라니"
+      ],
+      "meaning": "의문"
+    },
+    {
+      "form": "-더군",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "종결어미",
+      "aliases": [
+        "-더군요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-더라",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-어라",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "종결어미",
+      "aliases": [
+        "-아라",
+        "-여라"
+      ],
+      "meaning": "명령"
+    },
+    {
+      "form": "-게",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "종결어미",
+      "aliases": [
+        "-게요"
+      ],
+      "meaning": "의문"
+    },
+    {
+      "form": "-는다면서",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "종결어미",
+      "aliases": [
+        "-ㄴ다면서",
+        "-다면서",
+        "-라면서",
+        "-는다면서요",
+        "-다면서요",
+        "-라면서요"
+      ],
+      "meaning": "의문"
+    },
+    {
+      "form": "-나",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "종결어미",
+      "aliases": [
+        "-나요"
+      ],
+      "meaning": "의문"
+    },
+    {
+      "form": "-을걸",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "종결어미",
+      "aliases": [
+        "-ㄹ걸",
+        "-을걸요",
+        "-ㄹ걸요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어야지",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "종결어미",
+      "aliases": [
+        "-아야지",
+        "-여야지",
+        "-어야지요",
+        "-아야지요",
+        "-여야지요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-고",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "종결어미",
+      "aliases": [
+        "-고요"
+      ],
+      "meaning": "덧붙여 질문"
+    },
+    {
+      "form": "-다니",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "종결어미",
+      "aliases": [
+        "-다니요",
+        "-라니",
+        "-라니요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을 따름이다",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 따름이다",
+        "<유의> -을 뿐이다",
+        "ㄹ 뿐이다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-고 들다",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-고 보다",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-고 해서",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-는 김에",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 김에",
+        "-은 김에"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 대로",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 대로",
+        "-은 대로"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 사이에",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-는 사이"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 듯",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 듯",
+        "은 듯 -ㄹ 듯",
+        "-을 듯"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 줄",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 줄",
+        "-은 줄",
+        "ㄹ 줄",
+        "-을 줄"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 탓에",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 탓에",
+        "-은 탓에",
+        "<반의 관계> -는 덕분에"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는다거나",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ다거나",
+        "-다거나",
+        "-라거나"
+      ],
+      "meaning": "선택"
+    },
+    {
+      "form": "-나 싶다",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-는 바람에",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-는 한",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "으로 인하여",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "로 인하여",
+        "으로 인해",
+        "로 인해"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "만 같아도",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-어 대다",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-아 대다",
+        "-여 대다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어서인지",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-아서인지",
+        "-여서인지"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "에 따라",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "에 따르면"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "에 비하여",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "에 비하면"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "에 의하여",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "에 의하면"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어 버리다",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-아 버리다",
+        "-여 버리다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을 모양이다",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 모양이다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을 뻔하다",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 뻔하다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는대",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ대",
+        "-는대요",
+        "-대",
+        "-대요",
+        "-래",
+        "-래요",
+        "-으래",
+        "-으래요",
+        "-재",
+        "-재요"
+      ],
+      "meaning": "인용"
+    },
+    {
+      "form": "-는 통에",
+      "grade": 4,
+      "cefr": "B2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "이라든가",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "조사",
+      "aliases": [
+        "라든가",
+        "이라든지",
+        "라든지"
+      ],
+      "meaning": "선택"
+    },
+    {
+      "form": "따라",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "조차",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-지",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": "대조"
+    },
+    {
+      "form": "-을뿐더러",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "연결어미",
+      "aliases": [
+        "-ㄹ뿐더러"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-고는",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "연결어미",
+      "aliases": [
+        "-곤",
+        "-고는 하다",
+        "-곤 하다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-길래",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-다가는",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "연결어미",
+      "aliases": [
+        "-다간",
+        "-단"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을지라도",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "연결어미",
+      "aliases": [
+        "-ㄹ지라도"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-느니",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "연결어미",
+      "aliases": [
+        "-느니보다",
+        "-느니보다는"
+      ],
+      "meaning": "비교"
+    },
+    {
+      "form": "-네",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": "감탄"
+    },
+    {
+      "form": "-다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": "서술(신문)"
+    },
+    {
+      "form": "-다니",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "종결어미",
+      "aliases": [
+        "-다니요",
+        "-라니",
+        "-라니요",
+        "으라니",
+        "-으라니요"
+      ],
+      "meaning": "감탄"
+    },
+    {
+      "form": "­으려고",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "종결어미",
+      "aliases": [
+        "­려고",
+        "­려고요",
+        "­으려고요"
+      ],
+      "meaning": "의심"
+    },
+    {
+      "form": "-거라",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-고말고",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "종결어미",
+      "aliases": [
+        "-고말고요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는가",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "종결어미",
+      "aliases": [
+        "-ㄴ가",
+        "-은가"
+      ],
+      "meaning": "의문"
+    },
+    {
+      "form": "-는걸",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "종결어미",
+      "aliases": [
+        "-ㄴ걸",
+        "-은걸",
+        "-ㄴ걸요",
+        "-는걸요",
+        "-은걸요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-데",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "종결어미",
+      "aliases": [
+        "-데요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-더라고",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "종결어미",
+      "aliases": [
+        "-더라고요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는다니",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-다니",
+        "-라니",
+        "-으라니",
+        "-자니"
+      ],
+      "meaning": "명령 내용 질문"
+    },
+    {
+      "form": "-었던",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-았던",
+        "-였던"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "에 관하여",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "에 관한"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-자기에",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-게 마련이다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-기 마련이다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-게 생겼다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-기 나름이다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-을 나름이다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-기가 바쁘게",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "<유의> -기가 무섭게"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-기가 쉽다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "<유의> -기 십상이다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-기만 하다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-기에 따라",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-기에 앞서(서)",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-은 나머지",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 나머지"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 데다가",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ데다가",
+        "-은 데다가",
+        "-ㄴ 데다가"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 동시에",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 동시에"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 듯하다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ듯하다",
+        "-은 듯하다",
+        "-ㄹ 듯하다",
+        "-을 듯하다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 법이다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 법이다",
+        "-은 법이다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 이상",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 이상",
+        "-은 이상"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-은 채로",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 채로"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 척하다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 척하다",
+        "-은 척하다",
+        "<유의> -는 체하다",
+        "-은 체하다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 가운데",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-은 가운데"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "는 말할 것도 없고",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "은 말할 것도 없고",
+        "<유의> 는 고사하고",
+        "은 고사하고"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을 만하다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 만하다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을 법하다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 법하다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을 테다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 테다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을 테면",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 테면"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을 테지만",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 테지만"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-으려나 보다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-려나 보다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "를 가지고",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "을 가지고"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-으면 몰라도",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-면 몰라도"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "에도 불구하고",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-는데도",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ데도",
+        "-은데도"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어 내다",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-아 내다",
+        "-여 내다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는다기에",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ다기에",
+        "-다기에",
+        "-라기에"
+      ],
+      "meaning": "이유"
+    },
+    {
+      "form": "-는다는 것이",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ다는 것이"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는데도 불구하고",
+      "grade": 5,
+      "cefr": "C1",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ데도 불구하고",
+        "-은데도 불구하고"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "마는",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "조사",
+      "aliases": [
+        "만"
+      ],
+      "meaning": "상반"
+    },
+    {
+      "form": "깨나",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "이라고",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "조사",
+      "aliases": [
+        "라고"
+      ],
+      "meaning": "보잘것없음"
+    },
+    {
+      "form": "을랑",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "조사",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "이라면",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "조사",
+      "aliases": [
+        "라면"
+      ],
+      "meaning": "강조"
+    },
+    {
+      "form": "-거들랑",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [
+        "-걸랑"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-노라면",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-건대",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-건만",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [
+        "-건마는"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-기로서니",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-느니만큼",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [
+        "-니만큼",
+        "-으니만큼",
+        "<유의> -느니만치",
+        "니만치",
+        "-으니만치"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-되",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [
+        "-으되",
+        "-로되"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-디",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": "강조"
+    },
+    {
+      "form": "-이라야",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [
+        "-라야",
+        "-이라야만",
+        "-라야만"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-으련마는",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [
+        "-련마는",
+        "-으련만",
+        "-련만"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-자니",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [
+        "-자",
+        "-자니까"
+      ],
+      "meaning": "의도"
+    },
+    {
+      "form": "-는다고",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [
+        "-다고",
+        "-라고",
+        "으라고",
+        "-자고"
+      ],
+      "meaning": "의도"
+    },
+    {
+      "form": "-자면",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [],
+      "meaning": "의도"
+    },
+    {
+      "form": "-은들",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [
+        "-ㄴ들",
+        "인들"
+      ],
+      "meaning": "양보"
+    },
+    {
+      "form": "-을망정,",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [
+        "-ㄹ망정 <유의> -ㄹ지언정",
+        "-을지언정"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을라치면",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "연결어미",
+      "aliases": [
+        "-ㄹ라치면"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는구려",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [
+        "-구려"
+      ],
+      "meaning": "감탄"
+    },
+    {
+      "form": "-는구먼",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [
+        "-구먼",
+        "-구먼요",
+        "-는구먼요"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-그려",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-으리라",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [
+        "-리라"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-으오",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [
+        "-오"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-으니",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": "비난"
+    },
+    {
+      "form": "-거들랑",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [
+        "-걸랑"
+      ],
+      "meaning": "이유"
+    },
+    {
+      "form": "-게",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": "명령"
+    },
+    {
+      "form": "-게",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": "환기"
+    },
+    {
+      "form": "-구려",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": "명령"
+    },
+    {
+      "form": "-네",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": "서술"
+    },
+    {
+      "form": "-는구만",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [
+        "-구만"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는가",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [
+        "-ㄴ가",
+        "-은가"
+      ],
+      "meaning": "문제 제기"
+    },
+    {
+      "form": "-나",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": "의문"
+    },
+    {
+      "form": "-던",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": "의문"
+    },
+    {
+      "form": "-던가",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": "의문(경험)"
+    },
+    {
+      "form": "-던가",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": "의문(추측)"
+    },
+    {
+      "form": "-라",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": "서술"
+    },
+    {
+      "form": "-으리오",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [
+        "-리오"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-소",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "종결어미",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-기 일쑤이다",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "-기 짝이 없다",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": ""
+    },
+    {
+      "form": "는 마당에",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ 마당에",
+        "-은 마당에"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는 한이 있어도",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [
+        "-는 한이 있더라도"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-을 바에",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [
+        "-ㄹ 바에"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-으려도",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [
+        "-려도"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-으리라는",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [
+        "-리라는"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "를 막론하고",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [
+        "을 막론하고",
+        "<유의> 를 불문하고",
+        "을 불문하고"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-어 치우다",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [
+        "-아 치우다",
+        "-여 치우다"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는다는",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [
+        "-ㄴ다는",
+        "-는단",
+        "-다는",
+        "-단",
+        "-라는",
+        "-란"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "이라고는",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [
+        "라고는",
+        "이라곤",
+        "라곤"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-는다던가",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [
+        "-다던가",
+        "-라던가"
+      ],
+      "meaning": "명령 확인 질문"
+    },
+    {
+      "form": "-으래서야",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [
+        "-래서야"
+      ],
+      "meaning": "의문 제기"
+    },
+    {
+      "form": "-으리라고",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [
+        "-리라고"
+      ],
+      "meaning": ""
+    },
+    {
+      "form": "-자면",
+      "grade": 6,
+      "cefr": "C2",
+      "category": "표현",
+      "aliases": [],
+      "meaning": "권유"
+    }
+  ]
+}

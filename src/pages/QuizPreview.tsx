@@ -21,7 +21,7 @@ import { WordMagnetPreview } from "@/components/quiz/WordMagnetPreview";
 import { parseSentenceToItems } from "@/lib/korean/wordMagnet";
 import { segmentSentences } from "@/lib/korean/segment";
 import { isShortSentenceLevel } from "@/lib/quiz";
-import { quizInsertErrorMessage } from "@/lib/supabaseErrors";
+import { quizInsertErrorMessage, readEdgeFunctionError } from "@/lib/supabaseErrors";
 import { STAGE_ORDER, STAGE_LABELS, type BaseStage } from "@/types/quiz";
 import type { Problem, SentenceMakingProblem, RecordingProblem, MatchupProblem, TypeAnswerProblem, WordMagnetProblem, QuizDraft } from "@/types/quiz";
 
@@ -308,8 +308,14 @@ export default function QuizPreview() {
         },
       });
 
-      if (error || data?.error) {
-        throw new Error(data?.error || error?.message || error?.toString() || "Regeneration failed");
+      // 서버가 보낸 한국어 사유는 error.context(Response) 본문에 있다. Error로 감싸면
+      // Response가 사라지므로 여기서 읽어야 한다(본문은 한 번만 읽을 수 있음).
+      if (error) {
+        const parsed = await readEdgeFunctionError(error, "재생성에 실패했습니다");
+        throw new Error(parsed.message);
+      }
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       const newProblem = data.problems[0];
@@ -365,7 +371,7 @@ export default function QuizPreview() {
       toast.success("문제가 재생성되었습니다");
     } catch (err) {
       console.error("Regenerate word magnet error:", err);
-      toast.error("재생성에 실패했습니다");
+      toast.error(err instanceof Error && err.message ? err.message : "재생성에 실패했습니다");
     } finally {
       setRegeneratingWordMagnetId(null);
     }
@@ -656,8 +662,14 @@ export default function QuizPreview() {
         },
       });
 
-      if (error || data?.error) {
-        throw new Error(data?.error || error?.message || error?.toString() || "Regeneration failed");
+      // 서버가 보낸 한국어 사유는 error.context(Response) 본문에 있다. Error로 감싸면
+      // Response가 사라지므로 여기서 읽어야 한다(본문은 한 번만 읽을 수 있음).
+      if (error) {
+        const parsed = await readEdgeFunctionError(error, "재생성에 실패했습니다");
+        throw new Error(parsed.message);
+      }
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       const newProblem = data.problems[0];
@@ -686,7 +698,7 @@ export default function QuizPreview() {
       toast.success("새 문장으로 재생성되었습니다");
     } catch (err) {
       console.error("Regenerate recording error:", err);
-      toast.error("재생성에 실패했습니다");
+      toast.error(err instanceof Error && err.message ? err.message : "재생성에 실패했습니다");
     } finally {
       setRegeneratingRecId(null);
     }
@@ -724,8 +736,14 @@ export default function QuizPreview() {
         },
       });
 
-      if (error || data?.error) {
-        throw new Error(data?.error || error?.message || error?.toString() || "Regeneration failed");
+      // 서버가 보낸 한국어 사유는 error.context(Response) 본문에 있다. Error로 감싸면
+      // Response가 사라지므로 여기서 읽어야 한다(본문은 한 번만 읽을 수 있음).
+      if (error) {
+        const parsed = await readEdgeFunctionError(error, "재생성에 실패했습니다");
+        throw new Error(parsed.message);
+      }
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       const newProblem = data.problems[0];
@@ -737,7 +755,7 @@ export default function QuizPreview() {
       toast.success("문제가 재생성되었습니다");
     } catch (error) {
       console.error("Regenerate error:", error);
-      toast.error("재생성에 실패했습니다");
+      toast.error(error instanceof Error && error.message ? error.message : "재생성에 실패했습니다");
     } finally {
       setRegeneratingId(null);
     }
