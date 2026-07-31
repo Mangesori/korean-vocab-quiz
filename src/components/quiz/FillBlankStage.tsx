@@ -263,7 +263,7 @@ export function FillBlankStage({
           {/* Word Bank — 회색 박스는 "이 문제의 재료"만. 칩은 흰색이라 배경 위에서 떠 보인다 */}
           <div className="mx-4 sm:mx-8 mb-2 rounded-2xl bg-slate-50 px-5 py-4 sm:py-5 flex flex-col items-center">
             <p className="mb-1.5 text-xs font-bold tracking-wide text-muted-foreground">보기</p>
-            <div className="flex flex-wrap justify-center gap-2 sm:gap-3 w-full max-w-lg">
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-3 w-full max-w-3xl">
               {shuffledWordBank.map((word, idx) => {
                 const isUsed = usedBankWords.has(word);
                 return (
@@ -369,16 +369,17 @@ export function FillBlankStage({
                     {/* Desktop Layout */}
                     <div className="hidden sm:block">
                       {/* 문법 버튼이 입력칸 오른쪽 인라인이라 행이 1단 — 단순 수직 중앙 정렬로 충분하다.
-                          번호는 바깥 행의 형제가 아니라 문장 그룹 안 첫 항목 — 형제로 두면
-                          문장이 두 줄로 접힐 때 번호만 마지막 줄로 내려간다 */}
+                          문장을 flex가 아니라 일반 인라인 흐름(p)으로 둔다 — flex-wrap은 각 span을
+                          "덩어리" 단위로 통째로 다음 줄에 내려버려서, 입력칸 뒤에 붙는 짧은 구절도
+                          자리가 남아도 무조건 줄바꿈됐다. 일반 텍스트 흐름이어야 단어 단위로 줄바꿈된다. */}
                       <div className="flex items-center gap-3">
-                        <div className="flex-1 flex items-center flex-wrap gap-1 leading-normal">
-                          <span className="text-primary font-bold text-lg min-w-[24px]">{problemNumber}.</span>
-                          <span className="text-lg font-medium text-foreground whitespace-nowrap">{parts[0]?.trim()}</span>
+                        <p className="flex-1 text-lg leading-relaxed">
+                          <span className="text-primary font-bold">{problemNumber}.</span>{" "}
+                          <span className="font-medium text-foreground">{parts[0]?.trim()}</span>{" "}
                           {/* 입력칸+문법 버튼은 한 덩어리 — 줄바꿈 시 둘이 갈라지지 않게 묶는다.
                               포커스 링은 이 래퍼가 focus-within으로 그린다 — 입력칸에 포커스가
                               가면 문법 버튼까지 하나의 링으로 감싸이게(입력칸 자체 링은 꺼둠) */}
-                          <span className="inline-flex items-center mx-1 rounded-xl focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                          <span className="inline-flex items-center align-middle mx-1 rounded-xl focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
                             <Input
                               value={userAnswers[problem.id] || ""}
                               onChange={(e) => onAnswerChange(problem.id, e.target.value)}
@@ -387,9 +388,9 @@ export function FillBlankStage({
                               autoComplete="off"
                             />
                             {problem.hint && <GrammarHintButton hint={problem.hint} />}
-                          </span>
-                          <span className="text-lg font-medium text-foreground whitespace-nowrap">{parts[1]?.trim()}</span>
-                        </div>
+                          </span>{" "}
+                          <span className="font-medium text-foreground">{parts[1]?.trim()}</span>
+                        </p>
                         <div className="flex gap-2 shrink-0">
                           <TooltipProvider>
                             <Tooltip>

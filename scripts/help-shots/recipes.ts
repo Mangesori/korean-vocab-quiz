@@ -57,7 +57,11 @@ const HIGHLIGHT_SECTION_SELECTOR =
   'button, section, [class*="rounded-2xl"], [class*="rounded-xl"], [class*="rounded-lg"]';
 
 /** 강조 테두리 스펙. 대상 요소와의 간격과 모서리 곡률을 여기서만 조절한다. */
-const HIGHLIGHT = { color: "#1E6B47", width: 3, gap: 12, radius: 12 };
+// 사진 위에 얹는 주석 표시라 앱 UI 색이 아니라 눈에 띄는 쪽을 고른다. 브랜드 그린은
+// 초록이 많은 화면(오답노트 선택 바, 기본 버튼) 위에서 배경에 묻혀 안 보였다. 빨강은
+// DESIGN.md의 error 토큰을 그대로 쓰고, 안팎에 흰 선(halo)을 덧대 흰 배경에서도
+// 초록 배경에서도 경계가 살아 있게 한다.
+const HIGHLIGHT = { color: "#C13B2E", width: 3, halo: 2, gap: 12, radius: 12 };
 
 /** 강조/스크롤 대상은 본문(header + main) 안에서만 찾는다. 사이드바가 DOM상 본문보다
  *  앞이라 그냥 getByText를 쓰면 사이드바 메뉴 텍스트를 먼저 잡는다 —
@@ -94,7 +98,8 @@ async function clipTopOf(page: Page): Promise<number> {
 async function measureHighlight(target: ElementHandle<HTMLElement>) {
   return await target.evaluate((el, spec) => {
     const rect = el.getBoundingClientRect();
-    const pad = spec.gap + spec.width;
+    // halo(바깥 흰 선)까지 더해야 캡처 영역 맞춤 계산이 실제 두께를 반영한다.
+    const pad = spec.gap + spec.width + spec.halo;
     return { top: rect.top - pad, bottom: rect.bottom + pad };
   }, HIGHLIGHT);
 }
@@ -212,6 +217,9 @@ async function drawHighlight(page: Page, target: ElementHandle<HTMLElement>, lab
       overlay.style.width = `${rect.width + spec.gap * 2}px`;
       overlay.style.height = `${rect.height + spec.gap * 2}px`;
       overlay.style.border = `${spec.width}px solid ${spec.color}`;
+      // 안팎으로 흰 선을 한 겹씩 둘러 어떤 배경색 위에서도 테두리가 분리돼 보이게 한다.
+      // box-shadow는 borderRadius를 그대로 따라가므로 둥근 모서리가 유지된다.
+      overlay.style.boxShadow = `0 0 0 ${spec.halo}px #fff, inset 0 0 0 ${spec.halo}px #fff`;
       overlay.style.borderRadius = `${spec.radius}px`;
       overlay.style.boxSizing = "border-box";
       overlay.style.pointerEvents = "none";
@@ -464,27 +472,40 @@ export const RECIPES: Record<string, Recipe> = {
   },
 
   // ── t-share ─────────────────────────────────────────────────────────
+  // 세 장이 실제로 누르는 순서를 그대로 따라간다: 퀴즈 보내기 → 링크 공유 탭 → 링크 생성.
+  // ⚠ '링크 생성'은 절대 누르지 않는다 — 누르면 quiz_shares에 행이 생겨 시드가 변형된다.
   "t-share:1": {
     role: "teacher",
     run: async (page) => {
-      await page.goto(`/quiz/${F.QUIZ_A_ID}`);
+      await gotoStable(page, `/quiz/${F.QUIZ_A_ID}`);
+      await settle(page);
+      await applyHighlight(page, "퀴즈 보내기");
+    },
+  },
+  "t-share:2": {
+    role: "teacher",
+    run: async (page) => {
+      await gotoStable(page, `/quiz/${F.QUIZ_A_ID}`);
       await settle(page);
       await page.getByRole("button", { name: "퀴즈 보내기" }).click();
+      await page.waitForSelector('[role="dialog"]');
       await page.waitForTimeout(300);
-      await page.getByRole("tab", { name: "링크 공유" }).click().catch(() => {});
-      await page.waitForTimeout(200);
+      // 탭을 누르지 않는다 — 기본값인 '클래스에 할당'이 선택된 상태에서
+      // "여기를 눌러 링크 공유로 바꾸세요"를 보여주는 단계다.
+      await applyHighlight(page, "링크 공유");
     },
   },
   "t-share:3": {
     role: "teacher",
     run: async (page) => {
-      await page.goto(`/quiz/${F.QUIZ_A_ID}`);
+      await gotoStable(page, `/quiz/${F.QUIZ_A_ID}`);
       await settle(page);
       await page.getByRole("button", { name: "퀴즈 보내기" }).click();
+      await page.waitForSelector('[role="dialog"]');
       await page.waitForTimeout(300);
       await page.getByRole("tab", { name: "링크 공유" }).click().catch(() => {});
-      await page.waitForTimeout(200);
-      await scrollTo(page, "익명 응시 허용");
+      await page.waitForTimeout(300);
+      await applyHighlight(page, "링크 생성");
     },
   },
 

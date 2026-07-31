@@ -412,7 +412,7 @@ export default function QuizCreate() {
                   className="min-h-[280px] resize-none leading-relaxed"
                 />
                 <div className="flex items-center justify-between mt-2 px-0.5">
-                  <span className="text-sm text-muted-foreground">기사, 단어 목록, 요청사항을 그대로 붙여넣으세요</span>
+                  <span className="text-sm text-muted-foreground">읽기 지문, 기사, 단어 목록, 요청사항 등을 붙여넣으세요</span>
                   <span className="text-xs font-mono text-muted-foreground">
                     {promptText.length.toLocaleString()} / {PROMPT_MAX_LENGTH.toLocaleString()}자
                   </span>

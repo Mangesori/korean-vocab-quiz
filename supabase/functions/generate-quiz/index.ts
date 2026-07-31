@@ -821,6 +821,7 @@ serve(async (req) => {
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 130000);
+      const startedAt = Date.now();
 
       try {
         const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -831,9 +832,20 @@ serve(async (req) => {
             "content-type": "application/json",
           },
           body: JSON.stringify({
-            model: "claude-sonnet-4-6",
-            max_tokens: 8192,
-            temperature: 0.7,
+            model: "claude-sonnet-5",
+            // Sonnet 5는 thinking(adaptive)이 기본으로 켜지고, thinking과 응답이 이 예산을
+            // 함께 나눠 쓴다. 예전 8192로는 15문제 JSON을 다 뽑기 전에 잘릴 수 있다.
+            // 16000을 넘기면 비스트리밍 요청이 HTTP 타임아웃 위험에 들어가므로,
+            // 스트리밍 없이 갈 수 있는 상한에 맞췄다.
+            max_tokens: 16000,
+            // temperature는 넣지 말 것 — Sonnet 5는 기본값이 아닌 sampling 파라미터를
+            // 400으로 거부한다. 예전의 temperature: 0.7이 담당하던 다양성은
+            // 프롬프트 §2(후보 3개 생성 후 선택)가 대신한다.
+            //
+            // effort: Sonnet 5 medium ≈ Sonnet 4.6 high. 지정 안 하면 기본 high라
+            // 불필요하게 느리고 비싸진다. low는 쓰지 말 것 — 낮은 effort에서는 지시를
+            // 곧이곧대로 따라 §2의 후보 생성 과정을 건너뛴다.
+            output_config: { effort: "medium" },
             messages: [{ role: "user", content: prompt }],
           }),
           signal: controller.signal,
@@ -855,7 +867,22 @@ serve(async (req) => {
         }
 
         const data = await response.json();
-        content = data.content?.[0]?.text;
+        // Sonnet 5는 adaptive thinking이 기본이라 content[0]이 thinking 블록일 수 있다.
+        // 인덱스로 집지 말고 type === "text"인 블록을 찾아야 한다.
+        // (thinking 블록에는 .text가 없어 undefined가 되고 "No content received from AI"로 떨어진다.)
+        content = data.content?.find(
+          (block: { type?: string; text?: string }) => block?.type === "text"
+        )?.text;
+
+        // 비용·지연 기준선. Sonnet 5는 thinking도 출력 토큰으로 과금되므로 output이
+        // 입력보다 비용에 크게 기여한다($3 vs $15 per MTok). stop_reason이 max_tokens면
+        // 잘린 것이니 max_tokens를 올려야 한다.
+        console.log(
+          `[usage] mode=${isPromptMode ? "prompt" : "words"} difficulty=${difficulty} ` +
+            `words=${words.length} ms=${Date.now() - startedAt} ` +
+            `in=${data.usage?.input_tokens} out=${data.usage?.output_tokens} ` +
+            `stop=${data.stop_reason} blocks=${data.content?.map((b: { type?: string }) => b?.type).join(",")}`
+        );
       } catch (error) {
         clearTimeout(timeoutId);
         throw error;
