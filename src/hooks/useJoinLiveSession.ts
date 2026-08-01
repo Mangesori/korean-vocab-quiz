@@ -2,6 +2,21 @@ import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { LiveParticipant } from "@/types/liveSession";
 
+/**
+ * 학생에게 보여줄 문구로 바꾼다. 원시 에러(TypeError: Failed to fetch 같은)를
+ * 그대로 노출하면 학생이 뭘 해야 할지 알 수 없다.
+ * 서버가 의도적으로 던진 메시지(한글)는 그대로 쓴다.
+ */
+function friendlyError(e: { message?: string } | null): string {
+  const raw = e?.message ?? "";
+  if (/[가-힣]/.test(raw)) return raw;
+  if (/fetch|network|timeout|failed to fetch/i.test(raw))
+    return "연결이 불안정해요. 인터넷을 확인하고 다시 시도해주세요.";
+  if (/does not exist|schema cache|PGRST/i.test(raw))
+    return "지금은 참여할 수 없어요. 선생님께 알려주세요.";
+  return "참여하지 못했어요. 잠시 후 다시 시도해주세요.";
+}
+
 export type FoundSession = {
   id: string;
   quiz_id: string;
@@ -36,7 +51,7 @@ export function useJoinLiveSession() {
     setIsBusy(false);
 
     if (e) {
-      setError(e.message);
+      setError(friendlyError(e));
       return null;
     }
 
@@ -77,7 +92,7 @@ export function useJoinLiveSession() {
         setIsBusy(false);
 
         if (e) {
-          setError(e.message);
+          setError(friendlyError(e));
           return null;
         }
 
@@ -104,7 +119,7 @@ export function useJoinLiveSession() {
       setIsBusy(false);
 
       if (e) {
-        setError(e.message);
+        setError(friendlyError(e));
         return null;
       }
 

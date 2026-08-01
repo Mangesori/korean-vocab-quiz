@@ -26,6 +26,7 @@ import { LevelBadge } from "@/components/ui/level-badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { maskTranslation } from "@/utils/maskTranslation";
 import { STAGE_ORDER, STAGE_LABELS, type BaseStage } from "@/types/quiz";
+import { useLiveProgress } from "@/hooks/useLiveProgress";
 
 interface Problem {
   id: string;
@@ -148,6 +149,15 @@ export default function QuizTake() {
   const [isRedo, setIsRedo] = useState(false);
   
   const [stageProgress, setStageProgress] = useState({ current: 0, total: 0, label: "" });
+
+  // ── 라이브 세션 중계 ──
+  // ?live=<세션id>&participant=<참가자id> 가 붙어 있을 때만 동작한다.
+  // 없으면 sendProgress가 아무 일도 하지 않으므로 기존 숙제 모드는 그대로다.
+  const liveSessionId = searchParams.get("live") || undefined;
+  const liveParticipantId = searchParams.get("participant") || "";
+  const { sendProgress, control: liveControl } = useLiveProgress(liveSessionId, "student");
+  // 방금 고친 답 — 선생님 화면에 "지금 입력 중"으로 보여줄 값.
+  const [lastEditedId, setLastEditedId] = useState<string | null>(null);
 
   const handleProgressUpdate = useCallback((current: number, total: number, label: string) => {
     setStageProgress({ current, total, label });
@@ -632,7 +642,44 @@ export default function QuizTake() {
 
   const handleAnswerChange = (problemId: string, value: string) => {
     setUserAnswers({ ...userAnswers, [problemId]: value });
+    if (liveSessionId) setLastEditedId(problemId);
   };
+
+  // 답이 바뀌거나 단계가 넘어갈 때마다 선생님에게 진행 상황을 쏜다.
+  // 훅 내부에서 250ms로 묶어 보내므로 타이핑마다 호출해도 괜찮다.
+  useEffect(() => {
+    if (!liveSessionId || !liveParticipantId) return;
+    const base = currentStage.replace(/_result$/, "") as BaseStage;
+    // 빈칸 채우기는 문제 순서가 명확해서 답 내용까지 같이 보낸다.
+    const ordered =
+      base === "fill_blank"
+        ? ((quiz?.problems as any[]) || []).map((pr: any) => userAnswers[pr.id] ?? "")
+        : [];
+    sendProgress({
+      participantId: liveParticipantId,
+      name: anonymousName || user?.email || "학생",
+      stage: base,
+      index: stageProgress.current,
+      total: stageProgress.total,
+      typing: lastEditedId ? userAnswers[lastEditedId] ?? "" : "",
+      committed: ordered,
+      // 학생 화면에는 정답이 내려오지 않으므로 풀이 중 정오답은 알 수 없다.
+      correct: ordered.map(() => null),
+      done: currentStage === "completed",
+    });
+  }, [
+    liveSessionId,
+    liveParticipantId,
+    userAnswers,
+    lastEditedId,
+    currentStage,
+    stageProgress.current,
+    stageProgress.total,
+    sendProgress,
+    quiz?.problems,
+    anonymousName,
+    user?.email,
+  ]);
 
   const handleSubmit = useCallback(async () => {
     if (!quiz || isSubmitting) return;
@@ -1080,6 +1127,16 @@ export default function QuizTake() {
   //   호출하면 기존 "아직 안 푼 유형" 가드가 알아서 처리한다 — 이미 완료된 상태면 그대로
   //   제출되고, 아직 못 끝냈으면 토스트로 안내하고 같은 스테이지에 머문다(예전처럼 진짜
   //   프리즈가 아니라, 이 스테이지는 타이머 배지 자체를 숨기므로 사용자는 계속 풀 수 있다).
+  // 선생님이 세션을 끝내면 학생 화면도 즉시 제출한다.
+  // handleSubmit을 참조하므로 그 아래에 둔다(위 handleTimeUp 주석의 이유와 동일).
+  const liveEnded = useRef(false);
+  useEffect(() => {
+    if (!liveSessionId || liveControl?.type !== "end" || liveEnded.current) return;
+    liveEnded.current = true;
+    toast.info("선생님이 세션을 종료했어요. 지금까지 푼 내용을 제출합니다.");
+    handleSubmit();
+  }, [liveSessionId, liveControl, handleSubmit]);
+
   const handleTimeUp = useCallback(() => {
     toast.warning("시간이 다 됐어요!");
     if (currentStage === "fill_blank" || currentStage === "matchup") {

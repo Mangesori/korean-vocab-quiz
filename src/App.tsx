@@ -30,6 +30,8 @@ import WrongAnswerNotebook from "./pages/WrongAnswerNotebook";
 import WrongAnswerPractice from "./pages/WrongAnswerPractice";
 import ClassAnnouncements from "./pages/ClassAnnouncements";
 import WrongAnswerQuizCreate from "./pages/WrongAnswerQuizCreate";
+import LiveSession from "./pages/LiveSession";
+import LiveJoin from "./pages/LiveJoin";
 import LiveSessionPreview from "./pages/LiveSessionPreview";
 import LiveJoinPreview from "./pages/LiveJoinPreview";
 import MyQuizzes from "./pages/MyQuizzes";
@@ -138,8 +140,11 @@ const App = () => (
               </ProtectedRoute>
             } />
 
+            {/* 정적 경로를 먼저 — /live/preview 가 /live/:id 로 잡히지 않도록 */}
             <Route path="/live/preview" element={<LiveSessionPreview />} />
             <Route path="/live/join-preview" element={<LiveJoinPreview />} />
+            <Route path="/live/:id" element={<LiveSession />} />
+            <Route path="/join" element={<LiveJoin />} />
             <Route path="/my-quizzes" element={<MyQuizzes />} />
 
             {/* 도움말은 비로그인 방문자도 봐야 하는 공개 페이지라 ProtectedRoute로 감싸지 않는다. */}

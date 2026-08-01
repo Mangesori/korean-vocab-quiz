@@ -69,9 +69,15 @@ export type LiveProgress = {
   stage: BaseStage;
   /** 현재 문제 번호 (0-based) */
   index: number;
+  /** 이 단계의 전체 문제 수 — 진행 점을 몇 개 그릴지 결정한다. */
+  total: number;
   /** 지금 입력 중인 내용. watchScreens가 꺼져 있으면 빈 문자열로 보낸다. */
   typing: string;
-  /** 확정된 답. watchScreens가 꺼져 있으면 정오답만 담고 내용은 비운다. */
+  /**
+   * 지금까지 입력한 답(문제 순서대로). 텍스트 입력형에서만 채워진다.
+   * 정답 여부는 채점 전까지 알 수 없으므로 correct는 풀이 중엔 전부 null이다
+   * (학생 화면에 정답을 내려주지 않기 때문).
+   */
   committed: string[];
   correct: (boolean | null)[];
   done: boolean;
