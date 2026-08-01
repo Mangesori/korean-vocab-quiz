@@ -7,11 +7,13 @@ interface TypeAnswerResultStageProps {
   results: TypeAnswerGradeResult[];
   onNext: () => void;
   nextLabel: string;
+  /** 라이브 세션에서 선생님이 학생 결과를 그대로 볼 때, 학생용 이동 버튼은 숨긴다. */
+  hideActions?: boolean;
   onBack?: () => void;
   backLabel?: string;
 }
 
-export function TypeAnswerResultStage({ results, onNext, nextLabel, onBack, backLabel }: TypeAnswerResultStageProps) {
+export function TypeAnswerResultStage({ results, onNext, nextLabel, hideActions, onBack, backLabel }: TypeAnswerResultStageProps) {
   const correctCount = results.filter((r) => r.isCorrect).length;
   const total = results.length;
   const score = total > 0 ? Math.round((correctCount / total) * 100) : 0;
@@ -38,6 +40,7 @@ export function TypeAnswerResultStage({ results, onNext, nextLabel, onBack, back
         ))}
       </div>
 
+      {!hideActions && (
       <div className="flex justify-between items-center">
         {onBack ? (
           <Button
@@ -57,6 +60,7 @@ export function TypeAnswerResultStage({ results, onNext, nextLabel, onBack, back
           {nextLabel} <ChevronRight className="w-5 h-5 ml-2" />
         </Button>
       </div>
+      )}
     </div>
   );
 }

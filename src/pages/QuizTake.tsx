@@ -179,7 +179,7 @@ export default function QuizTake() {
   // 없으면 sendProgress가 아무 일도 하지 않으므로 기존 숙제 모드는 그대로다.
   const liveSessionId = searchParams.get("live") || undefined;
   const liveParticipantId = searchParams.get("participant") || "";
-  const { sendProgress, control: liveControl } = useLiveProgress(liveSessionId, "student");
+  const { sendProgress, sendResult, control: liveControl } = useLiveProgress(liveSessionId, "student");
   // 방금 고친 답 — 빈칸 채우기에서 어느 칸을 치고 있는지 표시하는 데 쓴다.
   const [lastEditedId, setLastEditedId] = useState<string | null>(null);
   // 빈칸 외 유형은 답을 각자 컴포넌트가 들고 있어서, 바뀔 때마다 여기로 올려받는다.
@@ -193,6 +193,37 @@ export default function QuizTake() {
   // 채점이 끝난 단계의 정오답 — 선생님 화면에서 초록/빨강으로 보여준다.
   // 단계가 바뀌면 비운다(다음 단계는 아직 채점 전이므로).
   const [gradedCorrect, setGradedCorrect] = useState<(boolean | null)[]>([]);
+
+  // 결과 화면에 들어가면 그 화면이 받는 데이터를 그대로 선생님에게 보낸다.
+  // 선생님 쪽에서 같은 컴포넌트로 렌더하므로 학생이 보는 화면과 동일하다.
+  useEffect(() => {
+    if (!liveSessionId || !liveParticipantId) return;
+    const send = (stage: BaseStage, data: Record<string, unknown>) =>
+      sendResult({ participantId: liveParticipantId, stage, data });
+
+    if (currentStage === "fill_blank_result" && fillBlankAnswers.length > 0) {
+      send("fill_blank", { answers: fillBlankAnswers });
+    } else if (currentStage === "type_answer_result" && typeAnswerResults.length > 0) {
+      send("type_answer", { results: typeAnswerResults });
+    } else if (currentStage === "word_magnet_result" && wordMagnetResults.length > 0) {
+      send("word_magnet", { results: wordMagnetResults });
+    } else if (currentStage === "sentence_making_result") {
+      send("sentence_making", {
+        problems: sentenceMakingProblems,
+        results: sentenceMakingResults,
+      });
+    }
+  }, [
+    liveSessionId,
+    liveParticipantId,
+    currentStage,
+    fillBlankAnswers,
+    typeAnswerResults,
+    wordMagnetResults,
+    sentenceMakingProblems,
+    sentenceMakingResults,
+    sendResult,
+  ]);
 
   // 결과 화면을 지나 다음 풀이 단계로 들어가면 이전 채점 결과를 버린다.
   // 그대로 두면 선생님 화면에서 새 단계 문항에 옛 정오답이 칠해진다.

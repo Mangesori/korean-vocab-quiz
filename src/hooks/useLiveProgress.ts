@@ -6,6 +6,7 @@ import {
   liveChannel,
   type LiveControl,
   type LiveProgress,
+  type LiveResult,
 } from "@/types/liveSession";
 
 /** 진행 상황을 너무 자주 보내지 않도록 하는 최소 간격 (ms) */
@@ -25,6 +26,8 @@ export function useLiveProgress(sessionId: string | undefined, role: "teacher" |
   const [control, setControl] = useState<LiveControl | null>(null);
   /** 선생님이 화면을 쏘고 있는지 */
   const [casting, setCasting] = useState(false);
+  /** 학생별 최신 결과 화면 데이터 (선생님 화면에서 그대로 그린다) */
+  const [results, setResults] = useState<Record<string, LiveResult>>({});
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const lastSentAt = useRef(0);
@@ -52,6 +55,14 @@ export function useLiveProgress(sessionId: string | undefined, role: "teacher" |
       })
       .on("broadcast", { event: LIVE_EVENT.cast }, ({ payload }) => {
         setCasting(Boolean((payload as { on: boolean }).on));
+      })
+      .on("broadcast", { event: LIVE_EVENT.result }, ({ payload }) => {
+        const r = payload as LiveResult;
+        setResults((prev) => {
+          const cur = prev[r.participantId];
+          if (cur && cur.at > r.at) return prev;
+          return { ...prev, [r.participantId]: r };
+        });
       })
       .subscribe();
 
@@ -101,6 +112,17 @@ export function useLiveProgress(sessionId: string | undefined, role: "teacher" |
     }
   }, []);
 
+  // ── 학생 → 전체: 결과 화면 ──
+  // 단계가 끝날 때 한 번만 보내므로 묶음 처리(throttle)는 하지 않는다.
+  const sendResult = useCallback((r: Omit<LiveResult, "at">) => {
+    if (!channelRef.current) return;
+    channelRef.current.send({
+      type: "broadcast",
+      event: LIVE_EVENT.result,
+      payload: { ...r, at: Date.now() } satisfies LiveResult,
+    });
+  }, []);
+
   // ── 선생님 → 전체 ──
   const sendControl = useCallback(
     (c: LiveControl) => {
@@ -119,5 +141,5 @@ export function useLiveProgress(sessionId: string | undefined, role: "teacher" |
     [role]
   );
 
-  return { progress, control, casting, sendProgress, sendControl, sendCast };
+  return { progress, results, control, casting, sendProgress, sendResult, sendControl, sendCast };
 }

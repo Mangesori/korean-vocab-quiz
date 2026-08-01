@@ -19,7 +19,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLiveSession } from "@/hooks/useLiveSession";
 import { useLiveProgress } from "@/hooks/useLiveProgress";
 import { STAGE_LABELS } from "@/types/quiz";
-import type { LiveProgress } from "@/types/liveSession";
+import type { LiveProgress, LiveResult } from "@/types/liveSession";
+import { FillBlankResultStage } from "@/components/quiz/FillBlankResultStage";
+import { TypeAnswerResultStage } from "@/components/quiz/TypeAnswerResultStage";
+import { WordMagnetResultStage } from "@/components/quiz/WordMagnetResultStage";
+import { SentenceMakingResultStage } from "@/components/quiz/SentenceMakingResultStage";
 import { QrBlock } from "@/components/live/QrBlock";
 
 /**
@@ -35,7 +39,7 @@ export default function LiveSession() {
   const { user, loading: authLoading } = useAuth();
 
   const { session, participants, isLoading, error, startSession, endSession } = useLiveSession(id);
-  const { progress, sendControl, sendCast, casting } = useLiveProgress(id, "teacher");
+  const { progress, results, sendControl, sendCast, casting } = useLiveProgress(id, "teacher");
 
   const [selected, setSelected] = useState<string | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
@@ -205,6 +209,7 @@ export default function LiveSession() {
               <StudentPanel
                 name={selectedParticipant.display_name}
                 p={progress[selectedParticipant.id]}
+                result={results[selectedParticipant.id]}
                 watchScreens={session.settings.watchScreens}
               />
             ) : (
@@ -377,15 +382,61 @@ function ParticipantCard({
   );
 }
 
+/** 학생이 보고 있는 결과 화면을 같은 컴포넌트로 그대로 그린다. */
+function MirroredResult({ result }: { result: LiveResult }) {
+  const noop = () => {};
+  // 학생용 이동 버튼은 선생님 화면에서 숨긴다.
+  const common = { onNext: noop, nextLabel: "", hideActions: true };
+  const d = result.data as any;
+
+  switch (result.stage) {
+    case "fill_blank":
+      return <FillBlankResultStage answers={d.answers ?? []} {...common} />;
+    case "type_answer":
+      return <TypeAnswerResultStage results={d.results ?? []} {...common} />;
+    case "word_magnet":
+      return <WordMagnetResultStage results={d.results ?? []} {...common} />;
+    case "sentence_making":
+      return (
+        <SentenceMakingResultStage
+          problems={d.problems ?? []}
+          results={d.results ?? {}}
+          {...common}
+        />
+      );
+    default:
+      return null;
+  }
+}
+
 function StudentPanel({
   name,
   p,
+  result,
   watchScreens,
 }: {
   name: string;
   p?: LiveProgress;
+  result?: LiveResult;
   watchScreens: boolean;
 }) {
+  // 학생이 결과 화면을 보고 있으면 같은 화면을 그대로 보여준다.
+  const showingResult = !!result && (!p || result.stage === p.stage || p.done);
+
+  if (showingResult && result) {
+    return (
+      <div className="max-w-[720px] mx-auto">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="font-bold text-foreground">{name}</span>
+          <span className="text-xs text-muted-foreground">
+            — {STAGE_LABELS[result.stage]} 결과 (학생이 지금 보는 화면)
+          </span>
+        </div>
+        <MirroredResult result={result} />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-[640px] mx-auto">
       <div className="bg-card border border-border rounded-xl overflow-hidden">

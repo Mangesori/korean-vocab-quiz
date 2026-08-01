@@ -15,6 +15,8 @@ interface WordMagnetResultStageProps {
   results: WordMagnetGradeResult[];
   onNext: () => void;
   nextLabel: string;
+  /** 라이브 세션에서 선생님이 학생 결과를 그대로 볼 때, 학생용 이동 버튼은 숨긴다. */
+  hideActions?: boolean;
   onBack?: () => void;
   backLabel?: string;
 }
@@ -24,7 +26,7 @@ interface WordMagnetResultStageProps {
  * 카드 패턴으로 통일: 번호 배지(정답=success/오답=destructive) + 영문 번역 배지 +
  * 우측 상태 아이콘, 아래 '내 답변 / 정답' 라벨 행.
  */
-export function WordMagnetResultStage({ results, onNext, nextLabel, onBack, backLabel }: WordMagnetResultStageProps) {
+export function WordMagnetResultStage({ results, onNext, nextLabel, hideActions, onBack, backLabel }: WordMagnetResultStageProps) {
   const correctCount = results.filter((r) => r.isCorrect).length;
   const total = results.length;
   const score = total > 0 ? Math.round((correctCount / total) * 100) : 0;
@@ -47,6 +49,7 @@ export function WordMagnetResultStage({ results, onNext, nextLabel, onBack, back
       </div>
 
       {/* 다음 단계 */}
+      {!hideActions && (
       <div className="flex justify-between items-center mt-8 pt-4">
         {onBack ? (
           <Button
@@ -66,6 +69,7 @@ export function WordMagnetResultStage({ results, onNext, nextLabel, onBack, back
           {nextLabel} <ChevronRight className="w-5 h-5 ml-2" />
         </Button>
       </div>
+      )}
     </div>
   );
 }

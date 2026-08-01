@@ -97,7 +97,22 @@ export const LIVE_EVENT = {
   control: "control",
   /** 선생님 → 전체: 내 화면 보여주기 */
   cast: "cast",
+  /** 학생 → 전체: 한 단계를 마친 결과 화면 데이터 */
+  result: "result",
 } as const;
+
+/**
+ * 학생이 보고 있는 결과 화면을 선생님도 똑같이 그리기 위한 데이터.
+ * 각 결과 컴포넌트가 받는 props를 그대로 실어 보낸다 — 선생님 쪽에서 같은
+ * 컴포넌트로 렌더하므로 화면이 어긋날 일이 없다.
+ */
+export type LiveResult = {
+  participantId: string;
+  stage: BaseStage;
+  /** 해당 결과 컴포넌트의 props (fill_blank는 answers, 나머지는 results 등) */
+  data: Record<string, unknown>;
+  at: number;
+};
 
 export type LiveControl =
   | { type: "start" }

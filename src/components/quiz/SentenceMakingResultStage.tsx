@@ -25,6 +25,8 @@ interface SentenceMakingResultStageProps {
   results: Record<string, SentenceAttempt[]>;
   onNext: () => void;
   nextLabel: string;
+  /** 라이브 세션에서 선생님이 학생 결과를 그대로 볼 때, 학생용 이동 버튼은 숨긴다. */
+  hideActions?: boolean;
   onBack?: () => void;
   backLabel?: string;
 }
@@ -34,6 +36,7 @@ export function SentenceMakingResultStage({
   results,
   onNext,
   nextLabel,
+  hideActions,
   onBack,
   backLabel,
 }: SentenceMakingResultStageProps) {
@@ -126,6 +129,7 @@ export function SentenceMakingResultStage({
       </div>
 
       {/* 다음 단계 버튼 */}
+      {!hideActions && (
       <div className="flex justify-between items-center mt-8 pt-4">
         {onBack ? (
           <Button
@@ -147,6 +151,7 @@ export function SentenceMakingResultStage({
           <ChevronRight className="w-5 h-5 ml-2" />
         </Button>
       </div>
+      )}
     </div>
   );
 }
