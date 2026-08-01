@@ -86,6 +86,22 @@ interface UserAnswer {
   isCorrect: boolean;
 }
 
+/**
+ * 채점 실패 사유를 화면에 그대로 보여준다. 예전엔 "채점에 실패했습니다"만 띄워
+ * 콘솔을 열지 않으면 원인을 알 수 없었다(권한, 함수 없음, 네트워크가 다 같은 문구).
+ */
+function gradingErrorMessage(err: unknown): string {
+  const raw =
+    (err as { message?: string })?.message ??
+    (typeof err === "string" ? err : "") ??
+    "";
+  if (/fetch|network|timeout/i.test(raw)) return "채점 실패 — 연결이 불안정해요. 다시 시도해주세요.";
+  if (/does not exist|schema cache|PGRST202/i.test(raw))
+    return "채점 실패 — 서버 설정이 최신이 아니에요. 선생님께 알려주세요.";
+  if (/permission|denied|42501/i.test(raw)) return "채점 실패 — 권한이 없어요. 선생님께 알려주세요.";
+  return raw ? `채점 실패 — ${raw}` : "채점에 실패했습니다.";
+}
+
 // recording_answers insert 실패는 quiz_results.recording_score(집계 점수)와
 // 무관하게 계속 진행되므로, 실패한 채 넘어가면 점수는 저장되고 상세 기록만
 // 유실된다. 일시적 네트워크 문제로 인한 실패를 흡수하기 위해 재시도한다.
@@ -556,9 +572,11 @@ export default function QuizTake() {
       // 선생님이 "3번 문제"를 학생끼리 비교할 수 없어 실시간 관찰이 무의미해진다.
       // 선생님이 준비 화면에서 켰을 때만 섞는다.
       const shouldShuffle = liveSessionId ? quizData.live_shuffle === true : true;
-      const shuffled = shouldShuffle
-        ? [...quizData.problems].sort(() => Math.random() - 0.5)
-        : [...quizData.problems];
+      // 유형별 문제 목록에도 같은 규칙을 적용한다. 하나라도 빠지면 그 유형만
+      // 학생마다 순서가 달라져 선생님 화면에서 번호가 어긋난다.
+      const order = <T,>(arr: T[]): T[] =>
+        shouldShuffle ? [...arr].sort(() => Math.random() - 0.5) : [...arr];
+      const shuffled = order(quizData.problems);
       
       // quiz_problems 테이블에서 audio URL 가져오기 (if not already loaded)
       if (!isAnonymous) {
@@ -593,7 +611,7 @@ export default function QuizTake() {
 
         if (smProblems && smProblems.length > 0) {
           // 문제 순서 셔플
-          const shuffledSM = [...smProblems].sort(() => Math.random() - 0.5);
+          const shuffledSM = order(smProblems);
           setSentenceMakingProblems(shuffledSM);
         }
       }
@@ -607,7 +625,7 @@ export default function QuizTake() {
 
         if (muProblems && muProblems.length > 0) {
           // 문제 순서 셔플 (다른 유형과 동일 — 세트 구성이 로드마다 랜덤)
-          const shuffledMU = [...muProblems].sort(() => Math.random() - 0.5);
+          const shuffledMU = order(muProblems);
           setMatchupProblems(
             shuffledMU.map((p) => ({
               id: p.problem_id,
@@ -624,7 +642,7 @@ export default function QuizTake() {
           _quiz_id: id,
         });
         if (Array.isArray(taData) && taData.length > 0) {
-          const shuffledTA = [...taData].sort(() => Math.random() - 0.5);
+          const shuffledTA = order(taData);
           setTypeAnswerProblems(
             shuffledTA.map((p: any) => ({ id: p.problem_id, prompt: p.prompt }))
           );
@@ -637,7 +655,7 @@ export default function QuizTake() {
           _quiz_id: id,
         });
         if (Array.isArray(wmData) && wmData.length > 0) {
-          const shuffledWM = [...wmData].sort(() => Math.random() - 0.5);
+          const shuffledWM = order(wmData);
           setWordMagnetProblems(
             shuffledWM.map((p: any) => ({
               id: p.problem_id,
@@ -673,7 +691,7 @@ export default function QuizTake() {
           }
 
           // 문제 순서 셔플
-          const shuffledRec = [...recProblems].sort(() => Math.random() - 0.5);
+          const shuffledRec = order(recProblems);
           setRecordingProblems(shuffledRec.map(p => ({
             id: p.id,
             sentence: p.sentence,
@@ -1478,7 +1496,7 @@ export default function QuizTake() {
       }));
     } catch (err) {
       console.error("Type answer grading error:", err);
-      toast.error("채점에 실패했습니다.");
+      toast.error(gradingErrorMessage(err));
       return;
     }
 
@@ -1548,7 +1566,7 @@ export default function QuizTake() {
       }));
     } catch (err) {
       console.error("Word magnet grading error:", err);
-      toast.error("채점에 실패했습니다.");
+      toast.error(gradingErrorMessage(err));
       return;
     }
 
