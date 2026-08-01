@@ -53,6 +53,8 @@ interface Quiz {
   // 새로운 퀴즈 유형 옵션
   // 빈칸 채우기는 기본 활성이라 값이 없을 수 있다 — false일 때만 꺼진 것으로 본다.
   fill_blank_enabled?: boolean;
+  // 라이브 세션에서만 채워진다. 선생님이 그 세션에서 고른 유형 목록.
+  live_stages?: BaseStage[];
   sentence_making_enabled?: boolean;
   recording_enabled?: boolean;
   matchup_enabled?: boolean;
@@ -178,7 +180,16 @@ export default function QuizTake() {
       sentence_making: !!quiz.sentence_making_enabled,
       recording: !!quiz.recording_enabled,
     };
-    return STAGE_ORDER.filter((s) => isEnabled[s]);
+    const base = STAGE_ORDER.filter((s) => isEnabled[s]);
+
+    // 라이브 세션이면 선생님이 그 세션에서 고른 유형만 진행한다.
+    // (퀴즈에 말하기 연습이 켜져 있어도 라이브에서는 빠져야 한다.)
+    const live = quiz.live_stages;
+    if (live && live.length > 0) {
+      const picked = base.filter((s) => live.includes(s));
+      if (picked.length > 0) return picked;
+    }
+    return base;
   }, [quiz]);
 
   // 전역 단계(Stepper) 구성을 위한 배열 계산
