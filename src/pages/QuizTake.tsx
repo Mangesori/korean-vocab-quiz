@@ -28,6 +28,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { maskTranslation } from "@/utils/maskTranslation";
 import { STAGE_ORDER, STAGE_LABELS, type BaseStage } from "@/types/quiz";
 import { useLiveProgress } from "@/hooks/useLiveProgress";
+import { seededShuffle } from "@/lib/seededShuffle";
 
 interface Problem {
   id: string;
@@ -649,11 +650,18 @@ export default function QuizTake() {
       // 문제 순서. 라이브 세션은 기본적으로 섞지 않는다 — 학생마다 순서가 다르면
       // 선생님이 "3번 문제"를 학생끼리 비교할 수 없어 실시간 관찰이 무의미해진다.
       // 선생님이 준비 화면에서 켰을 때만 섞는다.
-      const shouldShuffle = liveSessionId ? quizData.live_shuffle === true : true;
-      // 유형별 문제 목록에도 같은 규칙을 적용한다. 하나라도 빠지면 그 유형만
+      // 문제 순서. 유형별 목록에도 똑같이 적용한다 — 하나라도 빠지면 그 유형만
       // 학생마다 순서가 달라져 선생님 화면에서 번호가 어긋난다.
+      //
+      //  숙제(라이브 아님)        → 학생마다 무작위 (기존 동작)
+      //  라이브 + 섞기 켬          → 학생마다 무작위
+      //  라이브 + 섞기 끔(기본)    → 세션 id를 씨앗으로 한 번 섞어 전원이 공유.
+      //                             원본 순서 그대로가 아니라 "모두 같은 무작위".
+      const perStudentRandom = liveSessionId ? quizData.live_shuffle === true : true;
       const order = <T,>(arr: T[]): T[] =>
-        shouldShuffle ? [...arr].sort(() => Math.random() - 0.5) : [...arr];
+        perStudentRandom
+          ? [...arr].sort(() => Math.random() - 0.5)
+          : seededShuffle(arr, liveSessionId!);
       const shuffled = order(quizData.problems);
       
       // quiz_problems 테이블에서 audio URL 가져오기 (if not already loaded)

@@ -1056,11 +1056,14 @@ export default function QuizDetail() {
             <QuizWords words={quiz.words} />
 
             {/* 문제 유형 서브 탭 */}
+            {/* 모바일은 2열 격자 — 가운데 정렬 flex-wrap이면 라벨 길이에 따라
+                한 줄에 1개만 들어가는 줄이 생겨 들쭉날쭉해진다. 격자로 두면
+                "문장 순서 맞추기"처럼 긴 라벨도 항상 2개씩 나란히 놓인다. */}
             <div className="flex justify-center mb-6">
-              <div className="inline-flex items-center bg-muted border border-border/50 p-1 rounded-lg gap-1 flex-wrap justify-center">
+              <div className="grid grid-cols-2 w-full sm:w-auto sm:inline-flex sm:items-center bg-muted border border-border/50 p-1 rounded-lg gap-1 sm:flex-wrap sm:justify-center">
                 <button
                   onClick={() => quiz.matchup_enabled ? setProblemTab("matchup") : setConfirmDialog("matchup")}
-                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-1.5 rounded-md text-[13px] sm:text-sm font-medium transition-all whitespace-nowrap ${
                     quiz.matchup_enabled
                       ? problemTab === "matchup"
                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -1085,7 +1088,7 @@ export default function QuizDetail() {
                 </button>
                 <button
                   onClick={() => quiz.type_answer_enabled ? setProblemTab("type_answer") : setConfirmDialog("type_answer")}
-                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-1.5 rounded-md text-[13px] sm:text-sm font-medium transition-all whitespace-nowrap ${
                     quiz.type_answer_enabled
                       ? problemTab === "type_answer"
                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -1110,7 +1113,7 @@ export default function QuizDetail() {
                 </button>
                 <button
                   onClick={() => quiz.fill_blank_enabled !== false ? setProblemTab("fill_blank") : setConfirmDialog("fill_blank")}
-                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-1.5 rounded-md text-[13px] sm:text-sm font-medium transition-all whitespace-nowrap ${
                     quiz.fill_blank_enabled !== false
                       ? problemTab === "fill_blank"
                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -1135,7 +1138,7 @@ export default function QuizDetail() {
                 </button>
                 <button
                   onClick={() => quiz.word_magnet_enabled ? setProblemTab("word_magnet") : setConfirmDialog("word_magnet")}
-                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-1.5 rounded-md text-[13px] sm:text-sm font-medium transition-all whitespace-nowrap ${
                     quiz.word_magnet_enabled
                       ? problemTab === "word_magnet"
                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -1160,7 +1163,7 @@ export default function QuizDetail() {
                 </button>
                 <button
                   onClick={() => quiz.sentence_making_enabled ? setProblemTab("sentence_making") : setConfirmDialog("sentence_making")}
-                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-1.5 rounded-md text-[13px] sm:text-sm font-medium transition-all whitespace-nowrap ${
                     quiz.sentence_making_enabled
                       ? problemTab === "sentence_making"
                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -1185,7 +1188,7 @@ export default function QuizDetail() {
                 </button>
                 <button
                   onClick={() => quiz.recording_enabled ? setProblemTab("recording") : setConfirmDialog("recording")}
-                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-1.5 rounded-md text-[13px] sm:text-sm font-medium transition-all whitespace-nowrap ${
                     quiz.recording_enabled
                       ? problemTab === "recording"
                         ? "bg-primary text-primary-foreground shadow-sm"
