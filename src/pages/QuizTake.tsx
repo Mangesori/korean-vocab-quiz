@@ -190,6 +190,17 @@ export default function QuizTake() {
   const handleAnswerPeek = useCallback((answers: string[], activeIndex: number) => {
     setPeek({ answers, activeIndex });
   }, []);
+  // 채점이 끝난 단계의 정오답 — 선생님 화면에서 초록/빨강으로 보여준다.
+  // 단계가 바뀌면 비운다(다음 단계는 아직 채점 전이므로).
+  const [gradedCorrect, setGradedCorrect] = useState<(boolean | null)[]>([]);
+
+  // 결과 화면을 지나 다음 풀이 단계로 들어가면 이전 채점 결과를 버린다.
+  // 그대로 두면 선생님 화면에서 새 단계 문항에 옛 정오답이 칠해진다.
+  useEffect(() => {
+    if (!currentStage.endsWith("_result") && currentStage !== "completed") {
+      setGradedCorrect([]);
+    }
+  }, [currentStage]);
 
   const handleProgressUpdate = useCallback((current: number, total: number, label: string) => {
     setStageProgress({ current, total, label });
@@ -742,8 +753,10 @@ export default function QuizTake() {
       total: stageProgress.total || answers.length,
       answers,
       activeIndex,
-      // 학생 화면에는 정답이 내려오지 않으므로 풀이 중 정오답은 알 수 없다.
-      correct: answers.map(() => null),
+      // 풀이 중엔 정답을 모르므로 전부 null. 그 단계 채점이 끝나면 서버가 준
+      // 정오답을 실어 보내 선생님 화면에 초록/빨강으로 뜬다.
+      correct:
+        gradedCorrect.length === answers.length ? gradedCorrect : answers.map(() => null),
       done: currentStage === "completed",
     });
   }, [
@@ -752,6 +765,7 @@ export default function QuizTake() {
     userAnswers,
     lastEditedId,
     peek,
+    gradedCorrect,
     currentStage,
     stageProgress.current,
     stageProgress.total,
@@ -1345,32 +1359,36 @@ export default function QuizTake() {
       return;
     }
 
-    // 서버에서 정답 가져와서 채점 (임시, 최종 제출은 나중에)
+    // 서버 채점 — 정답을 클라이언트로 내려받지 않는다. 예전에는 quizzes 테이블을
+    // 직접 읽었는데, 라이브 세션 학생(특히 비회원)은 그 권한이 없어 막혔다.
     try {
-      const { data: fullQuiz, error } = await supabase
-        .from("quizzes")
-        .select("problems")
-        .eq("id", quiz.id)
-        .single();
+      const studentAnswersForGrading: Record<string, string> = {};
+      quiz.problems.forEach((problem) => {
+        studentAnswersForGrading[problem.id] = (userAnswers[problem.id] || "").trim();
+      });
 
-      if (error || !fullQuiz) {
-        toast.error("결과를 계산할 수 없습니다.");
+      const { data: gradedRaw, error } = await supabase.rpc("grade_fill_blank", {
+        _quiz_id: quiz.id,
+        _answers: studentAnswersForGrading,
+      });
+
+      if (error || !Array.isArray(gradedRaw)) {
+        console.error("Fill blank grading error:", error);
+        toast.error(gradingErrorMessage(error));
         return;
       }
 
-      const fullProblems = (fullQuiz.problems as any[]) || [];
-      const normalizeAnswer = (s: string) => s.toLowerCase().trim().replace(/[.。!?！？,，\s]+$/, "");
+      // 서버는 퀴즈에 저장된 순서로 돌려주므로, 화면에 보이는 순서에 맞춰 재정렬한다.
+      const byId = new Map(
+        (gradedRaw as any[]).map((r: any) => [r.problemId as string, r])
+      );
       const detailedAnswers = quiz.problems.map((problem) => {
-        const userAnswer = (userAnswers[problem.id] || "").trim();
-        const fullProblem = fullProblems.find((p: any) => p.id === problem.id);
-        const correctAnswer = fullProblem?.answer || "";
-        const isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
-
+        const g = byId.get(problem.id);
         return {
           problemId: problem.id,
-          userAnswer,
-          correctAnswer,
-          isCorrect,
+          userAnswer: g?.userAnswer ?? (userAnswers[problem.id] || "").trim(),
+          correctAnswer: g?.correctAnswer ?? "",
+          isCorrect: !!g?.isCorrect,
           sentence: problem.sentence,
           word: problem.word,
           hint: problem.hint,
@@ -1378,6 +1396,9 @@ export default function QuizTake() {
           sentence_audio_url: problem.sentence_audio_url,
         };
       });
+
+      // 선생님 화면에 정오답을 보여주기 위해 방송용으로 보관한다.
+      setGradedCorrect(detailedAnswers.map((a) => a.isCorrect));
 
       // 인증된 사용자 + 추가 스테이지: 빈칸 결과 중간 저장
       if (!isAnonymous && user && (quiz.matchup_enabled || quiz.type_answer_enabled || quiz.word_magnet_enabled || quiz.sentence_making_enabled || quiz.recording_enabled)) {
@@ -1501,6 +1522,7 @@ export default function QuizTake() {
     }
 
     setTypeAnswerResults(graded);
+    setGradedCorrect(graded.map((r) => r.isCorrect));
     setTypeAnswerSkippedIds(skippedSet);
     const taTotal = graded.length;
     const taScore = graded.filter((r) => r.isCorrect).length;
@@ -1571,6 +1593,7 @@ export default function QuizTake() {
     }
 
     setWordMagnetResults(graded);
+    setGradedCorrect(graded.map((r) => r.isCorrect));
     setWordMagnetSkippedIds(skippedSet);
     const wmTotal = graded.length;
     const wmScore = graded.filter((r) => r.isCorrect).length;

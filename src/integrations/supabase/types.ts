@@ -1459,6 +1459,7 @@ export type Database = {
           status: string
         }[]
       }
+      grade_fill_blank: { Args: { _answers: Json; _quiz_id: string }; Returns: Json }
       generate_invite_code: { Args: never; Returns: string }
       get_quiz_for_live_session: {
         Args: { _participant_id: string; _session_id: string }

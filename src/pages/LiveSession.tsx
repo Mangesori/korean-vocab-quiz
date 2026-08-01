@@ -391,9 +391,16 @@ function StudentPanel({
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-3">
           <span className="font-bold text-foreground truncate">{name}의 화면</span>
-          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-            {p ? `${p.index} / ${p.total}` : "대기 중"}
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            {p && p.correct.some((c) => c !== null) && (
+              <span className="px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-[11px] font-bold">
+                채점 완료 {p.correct.filter((c) => c === true).length}/{p.correct.length}
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {p ? `${p.index} / ${p.total}` : "대기 중"}
+            </span>
+          </div>
         </div>
 
         <div className="p-5">
