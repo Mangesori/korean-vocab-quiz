@@ -24,6 +24,7 @@ import { FillBlankResultStage } from "@/components/quiz/FillBlankResultStage";
 import { TypeAnswerResultStage } from "@/components/quiz/TypeAnswerResultStage";
 import { WordMagnetResultStage } from "@/components/quiz/WordMagnetResultStage";
 import { SentenceMakingResultStage } from "@/components/quiz/SentenceMakingResultStage";
+import { MatchUpResultStage } from "@/components/quiz/MatchUpResultStage";
 import { QrBlock } from "@/components/live/QrBlock";
 
 /**
@@ -396,6 +397,10 @@ function MirroredResult({ result }: { result: LiveResult }) {
       return <TypeAnswerResultStage results={d.results ?? []} {...common} />;
     case "word_magnet":
       return <WordMagnetResultStage results={d.results ?? []} {...common} />;
+    case "matchup":
+      return (
+        <MatchUpResultStage problems={d.problems ?? []} results={d.results ?? {}} {...common} />
+      );
     case "sentence_making":
       return (
         <SentenceMakingResultStage

@@ -239,6 +239,8 @@ export default function QuizTake() {
       send("type_answer", { results: typeAnswerResults });
     } else if (currentStage === "word_magnet_result" && wordMagnetResults.length > 0) {
       send("word_magnet", { results: wordMagnetResults });
+    } else if (currentStage === "matchup_result" && Object.keys(matchupResults).length > 0) {
+      send("matchup", { problems: matchupProblems, results: matchupResults });
     } else if (currentStage === "sentence_making_result") {
       send("sentence_making", {
         problems: sentenceMakingProblems,
@@ -252,6 +254,8 @@ export default function QuizTake() {
     fillBlankAnswers,
     typeAnswerResults,
     wordMagnetResults,
+    matchupProblems,
+    matchupResults,
     sentenceMakingProblems,
     sentenceMakingResults,
     sendResult,

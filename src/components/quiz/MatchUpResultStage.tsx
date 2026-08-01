@@ -8,11 +8,13 @@ interface MatchUpResultStageProps {
   results: Record<string, MatchUpResult>;
   onNext: () => void;
   nextLabel: string;
+  /** 라이브 세션에서 선생님이 학생 결과를 그대로 볼 때, 학생용 이동 버튼은 숨긴다. */
+  hideActions?: boolean;
   onBack?: () => void;
   backLabel?: string;
 }
 
-export function MatchUpResultStage({ problems, results, onNext, nextLabel, onBack, backLabel }: MatchUpResultStageProps) {
+export function MatchUpResultStage({ problems, results, onNext, nextLabel, hideActions, onBack, backLabel }: MatchUpResultStageProps) {
   const correctCount = problems.filter((p) => results[p.id]?.isCorrect).length;
   const total = problems.length;
   const score = total > 0 ? Math.round((correctCount / total) * 100) : 0;
@@ -42,6 +44,7 @@ export function MatchUpResultStage({ problems, results, onNext, nextLabel, onBac
         })}
       </div>
 
+      {!hideActions && (
       <div className="flex justify-between items-center">
         {onBack ? (
           <Button
@@ -61,6 +64,7 @@ export function MatchUpResultStage({ problems, results, onNext, nextLabel, onBac
           {nextLabel} <ChevronRight className="w-5 h-5 ml-2" />
         </Button>
       </div>
+      )}
     </div>
   );
 }
