@@ -38,6 +38,9 @@ CREATE TABLE IF NOT EXISTS public.live_sessions (
 -- 말하기 연습은 라이브에서 쓰지 않는다 (동시 녹음 충돌 + 즉시 채점 불가).
 -- 빈 배열 검사에 array_length를 쓰면 안 된다 — 빈 배열에 대해 0이 아니라 NULL을
 -- 돌려주고, CHECK는 NULL을 통과시키므로 빈 stages가 그대로 들어간다.
+-- 중간에 실패해도 다시 돌릴 수 있게 제약을 먼저 떨어뜨린다.
+ALTER TABLE public.live_sessions
+  DROP CONSTRAINT IF EXISTS live_sessions_stages_exclude_recording;
 ALTER TABLE public.live_sessions
   ADD CONSTRAINT live_sessions_stages_exclude_recording
   CHECK (NOT ('recording' = ANY(stages)) AND cardinality(stages) >= 1);
@@ -193,6 +196,7 @@ ALTER TABLE public.live_sessions     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.live_participants ENABLE ROW LEVEL SECURITY;
 
 -- 세션: 만든 선생님이 전권을 갖는다.
+DROP POLICY IF EXISTS "선생님은 자기 세션을 관리한다" ON public.live_sessions;
 CREATE POLICY "선생님은 자기 세션을 관리한다"
   ON public.live_sessions
   FOR ALL
@@ -200,12 +204,14 @@ CREATE POLICY "선생님은 자기 세션을 관리한다"
   WITH CHECK (auth.uid() = teacher_id);
 
 -- 세션: 참가자는 자기가 들어간 세션을 읽을 수 있다.
+DROP POLICY IF EXISTS "참가자는 자기 세션을 읽는다" ON public.live_sessions;
 CREATE POLICY "참가자는 자기 세션을 읽는다"
   ON public.live_sessions
   FOR SELECT
   USING (public.is_live_participant(id));
 
 -- 참가자: 선생님은 자기 세션의 참가자를 모두 본다.
+DROP POLICY IF EXISTS "선생님은 자기 세션 참가자를 관리한다" ON public.live_participants;
 CREATE POLICY "선생님은 자기 세션 참가자를 관리한다"
   ON public.live_participants
   FOR ALL
@@ -221,6 +227,7 @@ CREATE POLICY "선생님은 자기 세션 참가자를 관리한다"
   ));
 
 -- 참가자: 로그인 학생은 아직 안 끝난 세션에 자기 이름으로 입장한다.
+DROP POLICY IF EXISTS "학생은 열린 세션에 입장한다" ON public.live_participants;
 CREATE POLICY "학생은 열린 세션에 입장한다"
   ON public.live_participants
   FOR INSERT
@@ -235,12 +242,14 @@ CREATE POLICY "학생은 열린 세션에 입장한다"
 
 -- 참가자: 같은 세션에 있는 사람끼리는 서로 보인다 (대기실 명단).
 -- 재귀를 피하려고 SECURITY DEFINER 도우미를 쓴다 (위 주석 참고).
+DROP POLICY IF EXISTS "같은 세션 참가자끼리 보인다" ON public.live_participants;
 CREATE POLICY "같은 세션 참가자끼리 보인다"
   ON public.live_participants
   FOR SELECT
   USING (public.is_live_participant(session_id));
 
 -- 참가자: 자기 줄만 수정(퇴장 표시)할 수 있다.
+DROP POLICY IF EXISTS "학생은 자기 참가 기록만 수정한다" ON public.live_participants;
 CREATE POLICY "학생은 자기 참가 기록만 수정한다"
   ON public.live_participants
   FOR UPDATE
