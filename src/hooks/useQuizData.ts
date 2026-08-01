@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -23,8 +24,9 @@ export interface Quiz {
   id: string;
   title: string;
   words: string[];
-  difficulty: string;
-  translation_language: string;
+  // DB가 enum이라 string으로 두면 insert/update 오버로드가 어긋난다.
+  difficulty: Database["public"]["Enums"]["difficulty_level"];
+  translation_language: Database["public"]["Enums"]["translation_language"];
   words_per_set: number;
   timer_enabled: boolean;
   timer_seconds: number | null;

@@ -19,7 +19,9 @@ export function useSubmissionTimes(
     if (times) return;
     setIsLoading(true);
 
-    const queries: Promise<string | null>[] = [];
+    // Supabase 쿼리 빌더의 .then()은 Promise가 아니라 PromiseLike를 돌려주므로
+    // 배열 타입을 PromiseLike로 맞춘다 (Promise.all은 둘 다 받는다).
+    const queries: PromiseLike<string | null>[] = [];
 
     if (sentenceMakingEnabled) {
       queries.push(

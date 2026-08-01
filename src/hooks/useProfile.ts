@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -9,7 +10,7 @@ export interface ProfileData {
   name: string;
   avatar_url: string | null;
   bio: string | null;
-  preferred_language: string | null;
+  preferred_language: PreferredLanguage;
   study_goal: string | null;
   daily_word_count: number | null;
   theme_preference: string | null;
@@ -18,11 +19,15 @@ export interface ProfileData {
   updated_at: string;
 }
 
+/** profiles.preferred_language 는 DB에서 enum이라 임의 문자열을 넣을 수 없다. */
+export type PreferredLanguage =
+  Database["public"]["Tables"]["profiles"]["Row"]["preferred_language"];
+
 export interface ProfileUpdateData {
   name?: string;
   avatar_url?: string | null;
   bio?: string | null;
-  preferred_language?: string | null;
+  preferred_language?: PreferredLanguage;
   study_goal?: string | null;
   daily_word_count?: number | null;
   theme_preference?: string | null;

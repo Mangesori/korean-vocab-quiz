@@ -14,6 +14,7 @@ import { WordMagnetResultStage, type WordMagnetGradeResult } from "@/components/
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +51,8 @@ interface Quiz {
   words_per_set: number;
   translation_language: string;
   // 새로운 퀴즈 유형 옵션
+  // 빈칸 채우기는 기본 활성이라 값이 없을 수 있다 — false일 때만 꺼진 것으로 본다.
+  fill_blank_enabled?: boolean;
   sentence_making_enabled?: boolean;
   recording_enabled?: boolean;
   matchup_enabled?: boolean;
@@ -83,7 +86,7 @@ interface UserAnswer {
 // 무관하게 계속 진행되므로, 실패한 채 넘어가면 점수는 저장되고 상세 기록만
 // 유실된다. 일시적 네트워크 문제로 인한 실패를 흡수하기 위해 재시도한다.
 async function insertRecordingAnswersWithRetry(
-  recAnswers: Record<string, unknown>[],
+  recAnswers: Database["public"]["Tables"]["recording_answers"]["Insert"][],
   retries = 3
 ): Promise<boolean> {
   for (let attempt = 1; attempt <= retries; attempt++) {

@@ -208,7 +208,10 @@ export default function WrongAnswerPractice() {
       const { data: mastered } = await supabase.rpc('update_wa_progress', {
         _items: practiceResults.map((r) => ({ word: r.problem.word, correct: r.isCorrect })),
       });
-      setMasteredWords(Array.isArray(mastered) ? mastered : []);
+      // RPC 반환형이 Json이라 문자열 배열로 좁혀서 넣는다.
+      setMasteredWords(
+        Array.isArray(mastered) ? mastered.filter((w): w is string => typeof w === "string") : []
+      );
     } catch (e) {
       console.error('Failed to update wrong answer progress:', e);
     }

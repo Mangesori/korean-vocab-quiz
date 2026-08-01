@@ -37,8 +37,11 @@ export function useMyQuizzes(studentId: string) {
   const fetchQuizzes = async () => {
     setIsLoading(true);
     try {
+      // class_members에는 "Students can view their own memberships"(student_id = auth.uid())
+      // 정책이 있어 학생이 자기 소속을 그대로 읽을 수 있다. 예전엔 존재하지 않는
+      // student_class_members 뷰를 조회해 이 화면이 항상 비어 있었다.
       const { data: memberships, error: memberError } = await supabase
-        .from("student_class_members")
+        .from("class_members")
         .select("class_id, classes(id, name)")
         .eq("student_id", studentId);
 

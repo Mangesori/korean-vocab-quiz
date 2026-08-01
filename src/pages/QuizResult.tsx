@@ -86,6 +86,8 @@ interface Quiz {
   difficulty: string;
   problems: Problem[];
   words_per_set: number;
+  // 빈칸 채우기는 기본 활성이라 값이 없을 수 있다 — false일 때만 꺼진 것으로 본다.
+  fill_blank_enabled?: boolean;
   matchup_enabled?: boolean;
   type_answer_enabled?: boolean;
   word_magnet_enabled?: boolean;
@@ -231,7 +233,8 @@ export default function QuizResult() {
         const { data: taDetail } = await supabase.rpc('get_type_answer_result_detail', {
           _result_id: resultId,
         });
-        if (taDetail) setTypeAnswerDetail(taDetail as TypeAnswerGradeResult[]);
+        // RPC 반환형이 Json이라 직접 단언이 막힌다. 모양은 SQL 함수가 보장한다.
+        if (taDetail) setTypeAnswerDetail(taDetail as unknown as TypeAnswerGradeResult[]);
       }
 
       // 워드마그넷 데이터 로드 — 정답 포함 조회는 본인 결과에 한해 RPC로만 가능
@@ -239,7 +242,7 @@ export default function QuizResult() {
         const { data: wmDetail } = await supabase.rpc('get_word_magnet_result_detail', {
           _result_id: resultId,
         });
-        if (wmDetail) setWordMagnetDetail(wmDetail as WordMagnetGradeResult[]);
+        if (wmDetail) setWordMagnetDetail(wmDetail as unknown as WordMagnetGradeResult[]);
       }
 
       // 문장 만들기 퀴즈 데이터 로드
