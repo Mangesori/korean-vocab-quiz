@@ -1460,6 +1460,10 @@ export type Database = {
         }[]
       }
       generate_invite_code: { Args: never; Returns: string }
+      get_quiz_for_live_session: {
+        Args: { _participant_id: string; _session_id: string }
+        Returns: Json
+      }
       generate_live_join_code: { Args: never; Returns: string }
       is_live_participant: { Args: { p_session_id: string }; Returns: boolean }
       join_live_session_as_guest: {

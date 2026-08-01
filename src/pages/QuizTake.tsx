@@ -118,7 +118,8 @@ export default function QuizTake() {
   const [searchParams] = useSearchParams();
   const shareToken = searchParams.get('share');
   const anonymousName = searchParams.get('name') || "";
-  const isAnonymous = !!shareToken && !user;
+  // 라이브 세션 비회원도 익명이다 — 로그인 전용 조회(오디오 URL 등)를 건너뛰게 한다.
+  const isAnonymous = (!!shareToken || !!searchParams.get("live")) && !user;
   const [isInitialized, setIsInitialized] = useState(false);
 
   // 멀티 스테이지 퀴즈 지원
@@ -244,10 +245,12 @@ export default function QuizTake() {
     // quiz가 이미 로드되었으면 다시 로드하지 않음 (창 포커스 시 재실행 방지)
     if (quiz) return;
 
-    if ((user || shareToken) && id) {
+    // 라이브 세션 학생은 user도 shareToken도 없을 수 있다(비회원 참여).
+    // 참가자 id가 곧 입장 증표이므로 그것만 있으면 불러온다.
+    if ((user || shareToken || liveParticipantId) && id) {
       fetchQuiz();
     }
-  }, [user?.id, shareToken, id]);
+  }, [user?.id, shareToken, liveParticipantId, id]);
 
   // 결과/완료 화면 여부 — 이 동안엔 타이머를 완전히 멈춘다(표시도, 카운트다운도).
   const isResultView = currentStage.endsWith("_result") || currentStage === "completed";
@@ -444,7 +447,22 @@ export default function QuizTake() {
     try {
       let quizData: Quiz;
 
-      if (shareToken) {
+      if (liveSessionId && liveParticipantId) {
+        // 라이브 세션: 클래스 배정이 아니라 "이 세션의 참가자인가"로 확인한다.
+        const { data, error } = await supabase.rpc("get_quiz_for_live_session", {
+          _session_id: liveSessionId,
+          _participant_id: liveParticipantId,
+        });
+
+        if (error || !data) {
+          console.error("Live quiz fetch error:", error);
+          toast.error(error?.message || "퀴즈를 불러올 수 없습니다");
+          navigate("/join");
+          return;
+        }
+
+        quizData = data as unknown as Quiz;
+      } else if (shareToken) {
         // 익명 게이트: QuizShare.tsx의 게이트를 우회해 이 페이지로 직접 들어오는 경우
         // (?share=<token>&name=...)를 막기 위해 여기서도 매번 서버에서 다시 확인한다.
         // 주의: UX 차원의 접근 제어일 뿐이며, matchup_problems 등의 익명 SELECT RLS는
