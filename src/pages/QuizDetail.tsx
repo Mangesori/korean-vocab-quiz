@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, TextCursorInput, PenLine, Mic, Link2, Keyboard, Magnet, X } from "lucide-react";
+import { Loader2, ArrowLeft, TextCursorInput, PenLine, Mic, Link2, Keyboard, Magnet, X, Radio } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Dialog } from "@/components/ui/dialog";
 import {
@@ -33,6 +33,9 @@ import { QuizHeader } from "@/components/quiz/QuizHeader";
 import { QuizWords } from "@/components/quiz/QuizWords";
 import { FillBlankProblemList } from "@/components/quiz/FillBlankProblemList";
 import { ShareQuizDialogContent } from "@/components/quiz/ShareQuizDialog";
+import { StartLiveDialog } from "@/components/live/StartLiveDialog";
+import { LIVE_STAGES } from "@/types/liveSession";
+import type { BaseStage } from "@/types/quiz";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuizResultsList } from "@/components/quiz/QuizResultsList";
 import { SentenceMakingProblemList, SentenceMakingProblem } from "@/components/quiz/SentenceMakingProblemList";
@@ -113,6 +116,23 @@ export default function QuizDetail() {
     ];
     const first = order.find(([, enabled]) => enabled)?.[0];
     if (first) setProblemTab(first);
+  }, [quiz]);
+
+  const [liveDialogOpen, setLiveDialogOpen] = useState(false);
+
+  // 이 퀴즈에 켜져 있는 유형 — 라이브 세션 다이얼로그에 넘긴다.
+  const enabledStages = useMemo<BaseStage[]>(() => {
+    if (!quiz) return [];
+    return ([
+      ["matchup", !!quiz.matchup_enabled],
+      ["type_answer", !!quiz.type_answer_enabled],
+      ["fill_blank", quiz.fill_blank_enabled !== false],
+      ["word_magnet", !!quiz.word_magnet_enabled],
+      ["sentence_making", !!quiz.sentence_making_enabled],
+      ["recording", !!quiz.recording_enabled],
+    ] as [BaseStage, boolean][])
+      .filter(([, on]) => on)
+      .map(([s]) => s);
   }, [quiz]);
 
   // 짝 맞추기 문제 조회
@@ -905,6 +925,23 @@ export default function QuizDetail() {
           onUpdateTitle={handleUpdateTitle} 
           onDelete={handleDelete} 
           onOpenSendDialog={() => setSendDialogOpen(true)} 
+        />
+
+        {enabledStages.some((s) => LIVE_STAGES.includes(s)) && (
+          <div className="mb-6">
+            <Button variant="outline" className="gap-2" onClick={() => setLiveDialogOpen(true)}>
+              <Radio className="w-4 h-4 text-destructive" />
+              라이브 세션 시작
+            </Button>
+          </div>
+        )}
+
+        <StartLiveDialog
+          open={liveDialogOpen}
+          onOpenChange={setLiveDialogOpen}
+          quizId={id!}
+          availableStages={enabledStages}
+          classId={selectedClassId || null}
         />
 
         <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>

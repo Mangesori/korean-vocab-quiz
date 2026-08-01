@@ -1,0 +1,1026 @@
+import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import {
+  ArrowLeft,
+  Volume2,
+  Lightbulb,
+  Users,
+  Radio,
+  LayoutGrid,
+  GraduationCap,
+  Eye,
+  MonitorPlay,
+  Play,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { STAGE_LABELS, type BaseStage } from "@/types/quiz";
+
+/** 라이브 세션에 쓸 수 있는 유형. 말하기 연습은 제외 — 다 같이 있는 자리에서
+ *  동시에 녹음하면 서로 소리가 섞이고, AI 채점도 즉시 나오지 않는다. */
+const LIVE_STAGES: BaseStage[] = [
+  "fill_blank",
+  "matchup",
+  "type_answer",
+  "word_magnet",
+  "sentence_making",
+];
+const EXCLUDED_STAGE: BaseStage = "recording";
+
+const STAGE_COLOR: Record<BaseStage, string> = {
+  fill_blank: "bg-type-fill-blank",
+  matchup: "bg-type-matchup",
+  type_answer: "bg-type-type-answer",
+  word_magnet: "bg-type-word-magnet",
+  sentence_making: "bg-type-sentence-making",
+  recording: "bg-type-recording",
+};
+
+/**
+ * 라이브 세션 목업 (UI 검토용, 백엔드 연결 없음)
+ *
+ * 레이아웃: 왼쪽 메인 + 오른쪽 학생 목록 (고정)
+ *   - 오른쪽 카드를 누르면 그 학생이 메인에 크게 뜬다
+ *   - "전체 보기"를 누르면 메인이 격자로 돌아온다
+ *   - 모바일에서는 학생 목록이 상단 가로 스크롤 띠가 된다
+ */
+
+const PROBLEMS = [
+  { n: 1, before: "피곤할 때는 일찍", after: "", hint: "-아/어요", answer: "자요", word: "자다" },
+  { n: 2, before: "집에서도 한국어를", after: "", hint: "-았/었어요", answer: "연습했어요", word: "연습하다" },
+  { n: 3, before: "오늘은", after: "밥을 먹었어요", hint: "", answer: "혼자", word: "혼자" },
+  { n: 4, before: "여기서 역까지", after: "", hint: "-아/어요", answer: "가까워요", word: "가깝다" },
+  { n: 5, before: "집에서 학교까지 10분이", after: "", hint: "-아/어요", answer: "걸려요", word: "걸리다" },
+];
+
+const WORD_BANK = ["걸리다", "자다", "가깝다", "혼자", "연습하다"];
+
+type Student = {
+  id: string;
+  name: string;
+  /** 문제별로 학생이 실제로 칠 내용. 정답과 다르면 오답 처리된다. */
+  script: string[];
+  speed: number;
+  offset: number;
+};
+
+const STUDENTS: Student[] = [
+  { id: "s1", name: "김민수", script: ["자요", "연습했어요", "혼자", "가까와요", "걸려요"], speed: 4, offset: 0 },
+  { id: "s2", name: "이지은", script: ["자요", "연습했어요", "혼자", "가까워요", "걸려요"], speed: 3, offset: 2 },
+  { id: "s3", name: "박서준", script: ["자요", "연습해요", "혼자서", "가까워요", "걸려요"], speed: 6, offset: 1 },
+  { id: "s4", name: "최유진", script: ["자요", "연습했어요", "혼자", "가까워요", "걸려요"], speed: 5, offset: 3 },
+  { id: "s5", name: "정하늘", script: ["잤어요", "연습했어요", "혼자", "가까워요", "걸렸어요"], speed: 4, offset: 5 },
+  { id: "s6", name: "강태윤", script: ["자요", "연습했어요", "혼자", "가까워요", "걸려요"], speed: 7, offset: 2 },
+  { id: "s7", name: "윤서아", script: ["자요", "연습했어요", "혼자", "가까워요", "걸려요"], speed: 3, offset: 6 },
+  { id: "s8", name: "임도현", script: ["자요", "연습핬어요", "혼자", "가까워요", "걸려요"], speed: 8, offset: 4 },
+];
+
+/** 시뮬레이션 상태 — 실제 구현에서는 Realtime 채널로 들어올 데이터 */
+type Progress = {
+  index: number;
+  typing: string;
+  committed: string[];
+  hold: number;
+};
+
+const initProgress = (): Progress => ({ index: 0, typing: "", committed: [], hold: 0 });
+
+function useSimulation(count: number) {
+  const [state, setState] = useState<Record<string, Progress>>(() =>
+    Object.fromEntries(STUDENTS.map((s) => [s.id, initProgress()]))
+  );
+  const tick = useRef(0);
+
+  useEffect(() => {
+    setState(Object.fromEntries(STUDENTS.map((s) => [s.id, initProgress()])));
+    tick.current = 0;
+  }, [count]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      tick.current += 1;
+      const t = tick.current;
+      setState((prev) => {
+        const next = { ...prev };
+        for (const s of STUDENTS.slice(0, count)) {
+          const p = next[s.id];
+          if (p.index >= PROBLEMS.length) continue;
+          if ((t + s.offset) % s.speed !== 0) continue;
+
+          const target = s.script[p.index];
+          if (p.typing.length < target.length) {
+            next[s.id] = { ...p, typing: target.slice(0, p.typing.length + 1) };
+          } else if (p.hold < 2) {
+            next[s.id] = { ...p, hold: p.hold + 1 };
+          } else {
+            next[s.id] = {
+              index: p.index + 1,
+              typing: "",
+              committed: [...p.committed, target],
+              hold: 0,
+            };
+          }
+        }
+        return next;
+      });
+    }, 140);
+    return () => clearInterval(id);
+  }, [count]);
+
+  return state;
+}
+
+const isCorrect = (i: number, given: string) => given === PROBLEMS[i].answer;
+const scoreOf = (p: Progress) => p.committed.filter((a, i) => isCorrect(i, a)).length;
+
+// ─── 진행 점 ────────────────────────────────────────────────────────────────
+function Dots({ p, size = "md" }: { p: Progress; size?: "sm" | "md" }) {
+  return (
+    <div className={cn("flex", size === "sm" ? "gap-[3px]" : "gap-1")}>
+      {PROBLEMS.map((_, i) => {
+        const given = p.committed[i];
+        const active = i === p.index;
+        return (
+          <span
+            key={i}
+            className={cn(
+              "rounded-full transition-colors duration-150",
+              size === "sm" ? "w-2 h-2" : "w-2.5 h-2.5",
+              given === undefined
+                ? active
+                  ? "bg-primary/40 ring-2 ring-primary/25"
+                  : "bg-border"
+                : isCorrect(i, given)
+                ? "bg-success"
+                : "bg-destructive"
+            )}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function StatusText({ p }: { p: Progress }) {
+  const done = p.index >= PROBLEMS.length;
+  return (
+    <span
+      className={cn(
+        "text-[11px] font-medium",
+        done ? "text-success" : p.typing ? "text-primary" : "text-muted-foreground"
+      )}
+    >
+      {done ? `제출 완료 · ${scoreOf(p)}/${PROBLEMS.length}` : p.typing ? "입력 중…" : "생각 중"}
+    </span>
+  );
+}
+
+// ─── 오른쪽 학생 카드 ───────────────────────────────────────────────────────
+function StudentCard({
+  student,
+  p,
+  selected,
+  onClick,
+}: {
+  student: Student;
+  p: Progress;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  const done = p.index >= PROBLEMS.length;
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full text-left rounded-xl border p-3 transition-all duration-150 shrink-0",
+        "min-w-[172px] lg:min-w-0",
+        selected
+          ? "border-primary bg-accent ring-2 ring-primary/20"
+          : "border-border bg-card hover:border-primary/40"
+      )}
+    >
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="font-semibold text-sm text-foreground truncate">{student.name}</span>
+        <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
+          {Math.min(p.index, PROBLEMS.length)}/{PROBLEMS.length}
+        </span>
+      </div>
+
+      <Dots p={p} size="sm" />
+
+      {/* 지금 치고 있는 내용 미리보기 */}
+      <div className="mt-2 h-6 flex items-center">
+        {done ? (
+          <StatusText p={p} />
+        ) : p.typing ? (
+          <span className="text-xs font-semibold text-foreground truncate">
+            {p.typing}
+            <span className="inline-block w-[1.5px] h-3 bg-primary align-middle ml-0.5 animate-pulse" />
+          </span>
+        ) : (
+          <StatusText p={p} />
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ─── 메인: 한 학생 미러 ─────────────────────────────────────────────────────
+function MirrorPanel({ student, p }: { student: Student; p: Progress }) {
+  const done = p.index >= PROBLEMS.length;
+  const usedWords = new Set(
+    PROBLEMS.map((prob, i) => (p.committed[i] !== undefined ? prob.word : null)).filter(Boolean) as string[]
+  );
+
+  return (
+    <div className="max-w-[640px] mx-auto">
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        {/* 누구 화면인지 */}
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center shrink-0">
+              {student.name[0]}
+            </span>
+            <span className="font-bold text-foreground truncate">{student.name}의 화면</span>
+          </div>
+          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+            {Math.min(p.index + (done ? 0 : 1), PROBLEMS.length)} / {PROBLEMS.length}
+          </span>
+        </div>
+
+        <div className="p-5">
+          {/* 보기 */}
+          <div
+            className="rounded-xl px-4 py-3 mb-5 border"
+            style={{ background: "#F1ECE4", borderColor: "#D3CCC4" }}
+          >
+            <p className="text-[11px] font-bold text-muted-foreground text-center mb-2 tracking-wide">
+              보기
+            </p>
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {WORD_BANK.map((w) => {
+                const struck = usedWords.has(w);
+                return (
+                  <span
+                    key={w}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs font-medium bg-card border border-border transition-all duration-200",
+                      struck && "line-through text-muted-foreground opacity-60"
+                    )}
+                  >
+                    {w}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 문제들 */}
+          <div className="divide-y divide-border">
+            {PROBLEMS.map((prob, i) => {
+              const given = p.committed[i];
+              const answered = given !== undefined;
+              const active = i === p.index && !done;
+              const ok = answered && isCorrect(i, given);
+
+              return (
+                <div key={prob.n} className="py-4 first:pt-0 last:pb-0">
+                  <div className="flex items-start gap-2 mb-2">
+                    <span className="text-primary font-bold text-sm shrink-0">{prob.n}.</span>
+                    <p className="text-[15px] leading-relaxed text-foreground">
+                      {prob.before} <span className="text-muted-foreground">( _____ )</span>
+                      {prob.hint && (
+                        <span className="text-primary text-sm font-medium ml-1">{prob.hint}</span>
+                      )}
+                      {prob.after && <span> {prob.after}</span>}
+                    </p>
+                  </div>
+
+                  <div className="pl-6 space-y-2">
+                    <div
+                      className={cn(
+                        "h-10 rounded-[10px] border flex items-center justify-center px-3 text-[15px] transition-all duration-200",
+                        active
+                          ? "bg-slate-50 border-border ring-2 ring-primary ring-offset-2"
+                          : answered
+                          ? ok
+                            ? "bg-success/5 border-success/30 font-semibold text-success"
+                            : "bg-destructive/5 border-destructive/30 font-semibold text-destructive"
+                          : "bg-slate-50 border-border text-muted-foreground"
+                      )}
+                    >
+                      {answered ? (
+                        given
+                      ) : active ? (
+                        <span className="text-foreground font-medium">
+                          {p.typing}
+                          <span className="inline-block w-[1.5px] h-[15px] bg-primary align-middle ml-0.5 animate-pulse" />
+                        </span>
+                      ) : (
+                        "정답을 입력하세요"
+                      )}
+                    </div>
+
+                    {answered && !ok && (
+                      <p className="text-xs text-muted-foreground">
+                        정답: <span className="text-success font-semibold">{prob.answer}</span>
+                      </p>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" disabled>
+                        <Volume2 className="w-3.5 h-3.5 mr-1.5" />
+                        듣기
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" disabled>
+                        <Lightbulb className="w-3.5 h-3.5 mr-1.5" />
+                        힌트
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 메인: 선생님 화면 ──────────────────────────────────────────────────────
+function TeacherPanel({
+  answers,
+  setAnswers,
+  showAnswers,
+  setShowAnswers,
+  casting,
+  setCasting,
+}: {
+  answers: Record<number, string>;
+  setAnswers: (v: Record<number, string>) => void;
+  showAnswers: boolean;
+  setShowAnswers: (v: boolean) => void;
+  casting: boolean;
+  setCasting: (v: boolean) => void;
+}) {
+  return (
+    <div className="max-w-[640px] mx-auto">
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-7 h-7 rounded-full bg-foreground text-background flex items-center justify-center shrink-0">
+              <GraduationCap className="w-4 h-4" />
+            </span>
+            <span className="font-bold text-foreground truncate">내 화면</span>
+            {casting && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold shrink-0">
+                <MonitorPlay className="w-3 h-3" />
+                학생에게 표시 중
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* 선생님 전용 컨트롤 */}
+        <div className="px-5 py-3 bg-muted/40 border-b border-border flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Switch checked={showAnswers} onCheckedChange={setShowAnswers} />
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+              <Eye className="w-4 h-4 text-muted-foreground" />
+              정답 보기
+            </span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Switch checked={casting} onCheckedChange={setCasting} />
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+              <MonitorPlay className="w-4 h-4 text-muted-foreground" />
+              학생에게 보여주기
+            </span>
+          </label>
+        </div>
+
+        <div className="p-5">
+          <div
+            className="rounded-xl px-4 py-3 mb-5 border"
+            style={{ background: "#F1ECE4", borderColor: "#D3CCC4" }}
+          >
+            <p className="text-[11px] font-bold text-muted-foreground text-center mb-2 tracking-wide">
+              보기
+            </p>
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {WORD_BANK.map((w) => (
+                <span
+                  key={w}
+                  className="px-3 py-1 rounded-full text-xs font-medium bg-card border border-border"
+                >
+                  {w}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="divide-y divide-border">
+            {PROBLEMS.map((prob, i) => (
+              <div key={prob.n} className="py-4 first:pt-0 last:pb-0">
+                <div className="flex items-start gap-2 mb-2">
+                  <span className="text-primary font-bold text-sm shrink-0">{prob.n}.</span>
+                  <p className="text-[15px] leading-relaxed text-foreground">
+                    {prob.before} <span className="text-muted-foreground">( _____ )</span>
+                    {prob.hint && (
+                      <span className="text-primary text-sm font-medium ml-1">{prob.hint}</span>
+                    )}
+                    {prob.after && <span> {prob.after}</span>}
+                  </p>
+                </div>
+
+                <div className="pl-6 space-y-2">
+                  <Input
+                    value={answers[i] ?? ""}
+                    onChange={(e) => setAnswers({ ...answers, [i]: e.target.value })}
+                    placeholder="직접 입력해서 시범을 보일 수 있어요"
+                    className="h-10 text-center text-[15px] bg-slate-50"
+                  />
+                  {showAnswers && (
+                    <p className="text-xs text-muted-foreground">
+                      정답: <span className="text-success font-semibold">{prob.answer}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 메인: 전체 격자 ────────────────────────────────────────────────────────
+function GridPanel({
+  students,
+  state,
+  onPick,
+}: {
+  students: Student[];
+  state: Record<string, Progress>;
+  onPick: (id: string) => void;
+}) {
+  return (
+    <div>
+      <p className="text-sm text-muted-foreground mb-4">
+        학생 카드를 누르면 그 학생 화면을 크게 볼 수 있어요.
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+        {students.map((s) => {
+          const p = state[s.id];
+          return (
+            <button
+              key={s.id}
+              onClick={() => onPick(s.id)}
+              className="bg-card border border-border rounded-xl p-4 text-left hover:border-primary/40 hover:shadow-md transition-all duration-150"
+            >
+              <div className="flex items-center justify-between mb-2.5 gap-2">
+                <span className="font-semibold text-sm text-foreground truncate">{s.name}</span>
+                <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
+                  {Math.min(p.index, PROBLEMS.length)}/{PROBLEMS.length}
+                </span>
+              </div>
+              <Dots p={p} />
+              <div className="mt-2.5">
+                <StatusText p={p} />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── QR 자리표시자 (목업용, 실제 스캔은 안 됨) ───────────────────────────────
+function QrPlaceholder({ size = 176 }: { size?: number }) {
+  const N = 25;
+  const cells: { x: number; y: number }[] = [];
+  const inFinder = (x: number, y: number) =>
+    (x < 7 && y < 7) || (x >= N - 7 && y < 7) || (x < 7 && y >= N - 7);
+
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      if (inFinder(x, y)) continue;
+      if ((x * 7919 + y * 104729 + x * y * 31) % 100 > 52) cells.push({ x, y });
+    }
+  }
+
+  const Finder = ({ x, y }: { x: number; y: number }) => (
+    <>
+      <rect x={x} y={y} width={7} height={7} fill="#1A1714" />
+      <rect x={x + 1} y={y + 1} width={5} height={5} fill="#fff" />
+      <rect x={x + 2} y={y + 2} width={3} height={3} fill="#1A1714" />
+    </>
+  );
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${N} ${N}`} className="rounded-lg bg-white">
+      {cells.map((c, i) => (
+        <rect key={i} x={c.x} y={c.y} width={1} height={1} fill="#1A1714" />
+      ))}
+      <Finder x={0} y={0} />
+      <Finder x={N - 7} y={0} />
+      <Finder x={0} y={N - 7} />
+    </svg>
+  );
+}
+
+// ─── 1단계: 준비 ────────────────────────────────────────────────────────────
+type SessionSettings = {
+  anonymize: boolean;
+  watchScreens: boolean;
+  shareBoard: boolean;
+  shuffle: boolean;
+  allowGuests: boolean;
+};
+
+function SetupPanel({
+  settings,
+  setSettings,
+  stages,
+  setStages,
+  onStart,
+}: {
+  settings: SessionSettings;
+  setSettings: (s: SessionSettings) => void;
+  stages: BaseStage[];
+  setStages: (s: BaseStage[]) => void;
+  onStart: () => void;
+}) {
+  const toggleStage = (s: BaseStage) =>
+    setStages(stages.includes(s) ? stages.filter((x) => x !== s) : [...stages, s]);
+  const rows: { key: keyof SessionSettings; label: string; desc: string }[] = [
+    {
+      key: "watchScreens",
+      label: "학생 화면 실시간 보기",
+      desc: "학생이 푸는 과정을 선생님이 볼 수 있어요. 끄면 진행률만 보입니다.",
+    },
+    {
+      key: "shareBoard",
+      label: "학생끼리 답 공유",
+      desc: "제출한 문장이 반 전체에 보드로 공유됩니다.",
+    },
+    {
+      key: "allowGuests",
+      label: "비회원 참여 허용",
+      desc: "켜면 로그인 없이 이름만 적고 들어올 수 있어요. 로그인한 학생은 결과가 계정에 저장됩니다.",
+    },
+    { key: "anonymize", label: "학생 이름 숨기기", desc: "화면에 이름 대신 번호로 표시합니다." },
+    { key: "shuffle", label: "문제 순서 섞기", desc: "학생마다 문제 순서가 달라집니다." },
+  ];
+
+  return (
+    <div className="max-w-[560px] mx-auto py-4">
+      <h2 className="text-xl font-bold text-foreground mb-1">라이브 세션 준비</h2>
+      <p className="text-sm text-muted-foreground mb-6">일상 어휘 · 단어 5개</p>
+
+      {/* 퀴즈 유형 */}
+      <div className="bg-card border border-border rounded-xl p-4 mb-4">
+        <p className="font-semibold text-sm text-foreground mb-0.5">퀴즈 유형</p>
+        <p className="text-xs text-muted-foreground mb-3">
+          선택한 순서대로 진행됩니다. 최소 하나는 골라야 해요.
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          {LIVE_STAGES.map((s) => {
+            const on = stages.includes(s);
+            return (
+              <button
+                key={s}
+                onClick={() => toggleStage(s)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors duration-100",
+                  on
+                    ? "bg-accent border-primary text-accent-foreground"
+                    : "bg-card border-border text-muted-foreground hover:border-primary/40"
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-2 h-2 rounded-full",
+                    on ? STAGE_COLOR[s] : "bg-border"
+                  )}
+                />
+                {STAGE_LABELS[s]}
+              </button>
+            );
+          })}
+
+          {/* 말하기 연습은 라이브에서 제외 */}
+          <span
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-dashed border-border text-muted-foreground/70 cursor-not-allowed"
+            title="라이브 세션에서는 쓸 수 없어요"
+          >
+            <span className="w-2 h-2 rounded-full bg-border" />
+            {STAGE_LABELS[EXCLUDED_STAGE]}
+          </span>
+        </div>
+
+        <p className="text-[11px] text-muted-foreground mt-3 break-keep">
+          말하기 연습은 라이브 세션에서 빠집니다. 다 같이 동시에 녹음하면 소리가 섞이고, AI 발음
+          채점도 바로 나오지 않아서예요. 숙제로 내주시면 됩니다.
+        </p>
+      </div>
+
+      <div className="bg-card border border-border rounded-xl divide-y divide-border mb-4">
+        <div className="p-4 flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-semibold text-sm text-foreground">클래스</p>
+            <p className="text-xs text-muted-foreground mt-0.5">초급반 화요일 · 학생 8명</p>
+          </div>
+          <Button variant="outline" size="sm" className="shrink-0">
+            변경
+          </Button>
+        </div>
+
+        {rows.map((r) => (
+          <label key={r.key} className="p-4 flex items-start justify-between gap-4 cursor-pointer">
+            <div className="min-w-0">
+              <p className="font-semibold text-sm text-foreground">{r.label}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 break-keep">{r.desc}</p>
+            </div>
+            <Switch
+              checked={settings[r.key]}
+              onCheckedChange={(v) => setSettings({ ...settings, [r.key]: v })}
+              className="shrink-0 mt-0.5"
+            />
+          </label>
+        ))}
+      </div>
+
+      <Button
+        size="lg"
+        className="w-full h-12 text-base font-bold gap-2"
+        onClick={onStart}
+        disabled={stages.length === 0}
+      >
+        <Play className="w-4 h-4" />
+        세션 열기
+      </Button>
+      <p className="text-xs text-muted-foreground text-center mt-3">
+        세션을 열면 참여 코드가 생성됩니다. 학생이 들어온 뒤 시작하세요.
+      </p>
+    </div>
+  );
+}
+
+// ─── 2단계: 대기실 ──────────────────────────────────────────────────────────
+function LobbyPanel({
+  code,
+  joined,
+  total,
+  autoStart,
+  setAutoStart,
+  allowGuests,
+  onStart,
+}: {
+  code: string;
+  joined: Student[];
+  total: number;
+  autoStart: boolean;
+  setAutoStart: (v: boolean) => void;
+  allowGuests: boolean;
+  onStart: () => void;
+}) {
+  // 목업: 비회원 허용이면 일부는 게스트로 들어온 것으로 표시
+  const isGuest = (i: number) => allowGuests && (i === 2 || i === 5);
+  return (
+    <div className="max-w-[880px] mx-auto py-2">
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_300px] gap-4">
+        {/* 참여 안내 */}
+        <div className="bg-card border border-border rounded-xl p-6 flex flex-col items-center text-center">
+          <p className="text-sm text-muted-foreground mb-1">아래 주소로 접속해서</p>
+          <p className="text-xl font-bold text-foreground mb-5">namu.kr/join</p>
+
+          <p className="text-sm text-muted-foreground mb-2">참여 코드를 입력하세요</p>
+          <div className="flex gap-1.5 mb-6">
+            {code.split("").map((d, i) => (
+              <span
+                key={i}
+                className="w-11 h-14 rounded-[10px] bg-accent border border-primary/20 flex items-center justify-center text-2xl font-bold text-primary tabular-nums"
+              >
+                {d}
+              </span>
+            ))}
+          </div>
+
+          <QrPlaceholder />
+          <p className="text-[11px] text-muted-foreground mt-2">
+            QR을 스캔해도 바로 들어올 수 있어요
+          </p>
+        </div>
+
+        {/* 참가자 */}
+        <div className="bg-card border border-border rounded-xl flex flex-col">
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <span className="font-bold text-sm text-foreground">참가자 {joined.length}</span>
+            <span className="text-xs text-muted-foreground ml-auto tabular-nums">/ {total}명</span>
+          </div>
+
+          <div className="p-3 flex-1 min-h-[220px]">
+            {joined.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center gap-2 text-center py-8">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <p className="text-xs text-muted-foreground">학생을 기다리는 중…</p>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {joined.map((s, i) => (
+                  <span
+                    key={s.id}
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold",
+                      isGuest(i)
+                        ? "bg-muted text-muted-foreground border border-dashed border-border"
+                        : "bg-accent text-accent-foreground"
+                    )}
+                    title={isGuest(i) ? "비회원 — 결과가 저장되지 않아요" : "클래스 학생"}
+                  >
+                    {s.name}
+                    {isGuest(i) && <span className="text-[10px] font-bold opacity-70">게스트</span>}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="p-3 border-t border-border space-y-3">
+            <label className="flex items-center justify-between gap-2 cursor-pointer">
+              <span className="text-xs font-medium text-foreground">전원 입장 시 자동 시작</span>
+              <Switch checked={autoStart} onCheckedChange={setAutoStart} />
+            </label>
+            <Button
+              className="w-full h-11 font-bold gap-2"
+              onClick={onStart}
+              disabled={joined.length === 0}
+            >
+              <Play className="w-4 h-4" />
+              지금 시작 ({joined.length}명)
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 페이지 ─────────────────────────────────────────────────────────────────
+/** 사이드바에서 고를 수 있는 대상: 선생님 본인 / 학생 / 전체 격자(null) */
+const TEACHER = "teacher";
+type Phase = "setup" | "lobby" | "live";
+const JOIN_CODE = "157685";
+
+export default function LiveSessionPreview() {
+  const [phase, setPhase] = useState<Phase>("setup");
+  const [count, setCount] = useState(8);
+  const [selected, setSelected] = useState<string | null>(TEACHER);
+  const state = useSimulation(count);
+
+  // 세션 설정
+  const [settings, setSettings] = useState<SessionSettings>({
+    anonymize: false,
+    watchScreens: true,
+    shareBoard: false,
+    shuffle: false,
+    allowGuests: true,
+  });
+  const [stages, setStages] = useState<BaseStage[]>(["fill_blank", "sentence_making"]);
+
+  // 대기실: 학생이 하나씩 입장하는 것을 흉내낸다
+  const [joinedCount, setJoinedCount] = useState(0);
+  const [autoStart, setAutoStart] = useState(false);
+
+  useEffect(() => {
+    if (phase !== "lobby") return;
+    setJoinedCount(0);
+    const id = setInterval(() => {
+      setJoinedCount((n) => (n >= count ? n : n + 1));
+    }, 900);
+    return () => clearInterval(id);
+  }, [phase, count]);
+
+  const joined = STUDENTS.slice(0, joinedCount);
+
+  useEffect(() => {
+    if (phase === "lobby" && autoStart && joinedCount >= count) {
+      const id = setTimeout(() => setPhase("live"), 800);
+      return () => clearTimeout(id);
+    }
+  }, [phase, autoStart, joinedCount, count]);
+
+  // 선생님 화면 상태
+  const [teacherAnswers, setTeacherAnswers] = useState<Record<number, string>>({});
+  const [showAnswers, setShowAnswers] = useState(false);
+  const [casting, setCasting] = useState(false);
+
+  const visible = STUDENTS.slice(0, count);
+  const selectedStudent =
+    selected && selected !== TEACHER ? visible.find((s) => s.id === selected) ?? null : null;
+
+  // 인원이 바뀌면 선생님 화면으로 되돌린다
+  useEffect(() => {
+    setSelected(TEACHER);
+  }, [count]);
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* 헤더 */}
+      <header className="sticky top-0 z-20 bg-background/85 backdrop-blur border-b border-border h-16 shrink-0">
+        <div className="h-full px-4 flex items-center gap-3">
+          <Link to="/">
+            <Button variant="ghost" size="icon" className="shrink-0">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div className="min-w-0">
+            <h1 className="font-bold text-lg leading-tight truncate">라이브 세션</h1>
+            <p className="text-xs text-muted-foreground truncate">일상 어휘 · 빈칸 채우기</p>
+          </div>
+
+          <div className="ml-auto flex items-center gap-2 shrink-0">
+            {/* 목업용 인원 전환 */}
+            <div className="hidden sm:flex items-center gap-1 mr-1">
+              {[1, 3, 8].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setCount(n)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-[8px] text-xs font-semibold border transition-colors duration-100",
+                    count === n
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                  )}
+                >
+                  {n}명
+                </button>
+              ))}
+            </div>
+
+            {phase !== "setup" && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent text-accent-foreground text-xs font-bold tabular-nums">
+                코드 {JOIN_CODE}
+              </span>
+            )}
+
+            {phase === "live" ? (
+              <>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 text-destructive text-xs font-bold">
+                  <Radio className="w-3.5 h-3.5" />
+                  LIVE
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => setPhase("setup")}
+                >
+                  세션 종료
+                </Button>
+              </>
+            ) : phase === "lobby" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => setPhase("setup")}
+              >
+                취소
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </header>
+
+      {/* 1단계: 준비 */}
+      {phase === "setup" && (
+        <div className="flex-1 overflow-y-auto p-4">
+          <SetupPanel
+            settings={settings}
+            setSettings={setSettings}
+            stages={stages}
+            setStages={setStages}
+            onStart={() => setPhase("lobby")}
+          />
+        </div>
+      )}
+
+      {/* 2단계: 대기실 */}
+      {phase === "lobby" && (
+        <div className="flex-1 overflow-y-auto p-4">
+          <LobbyPanel
+            code={JOIN_CODE}
+            joined={joined}
+            total={count}
+            autoStart={autoStart}
+            setAutoStart={setAutoStart}
+            allowGuests={settings.allowGuests}
+            onStart={() => setPhase("live")}
+          />
+        </div>
+      )}
+
+      {/* 3단계: 라이브 — 모바일은 학생 띠가 위로, 데스크톱은 오른쪽 사이드바 */}
+      {phase === "live" && (
+      <div className="flex-1 flex flex-col-reverse lg:flex-row min-h-0">
+        {/* 메인 */}
+        <main className="flex-1 min-w-0 p-4 lg:p-6 overflow-y-auto">
+          {selected === TEACHER ? (
+            <TeacherPanel
+              answers={teacherAnswers}
+              setAnswers={setTeacherAnswers}
+              showAnswers={showAnswers}
+              setShowAnswers={setShowAnswers}
+              casting={casting}
+              setCasting={setCasting}
+            />
+          ) : selectedStudent ? (
+            <MirrorPanel student={selectedStudent} p={state[selectedStudent.id]} />
+          ) : (
+            <GridPanel students={visible} state={state} onPick={setSelected} />
+          )}
+        </main>
+
+        {/* 학생 목록 */}
+        <aside
+          className={cn(
+            "shrink-0 bg-card/40 border-border",
+            "border-b lg:border-b-0 lg:border-l",
+            "lg:w-[280px] lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:overflow-y-auto"
+          )}
+        >
+          <div className="px-4 py-3 flex items-center justify-between gap-2 lg:border-b lg:border-border">
+            <span className="inline-flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <Users className="w-4 h-4 text-muted-foreground" />
+              학생 {visible.length}명
+            </span>
+            <Button
+              variant={selectedStudent ? "outline" : "secondary"}
+              size="sm"
+              className="h-7 text-xs gap-1.5"
+              onClick={() => setSelected(null)}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              전체 보기
+            </Button>
+          </div>
+
+          <div className="px-4 pb-4 lg:pt-3 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible">
+            {/* 선생님 본인 화면 */}
+            <button
+              onClick={() => setSelected(TEACHER)}
+              className={cn(
+                "w-full text-left rounded-xl border p-3 transition-all duration-150 shrink-0",
+                "min-w-[172px] lg:min-w-0",
+                selected === TEACHER
+                  ? "border-primary bg-accent ring-2 ring-primary/20"
+                  : "border-border bg-card hover:border-primary/40"
+              )}
+            >
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-sm text-foreground truncate">
+                  <GraduationCap className="w-4 h-4 shrink-0" />내 화면
+                </span>
+                <span className="text-[10px] font-bold text-muted-foreground shrink-0">선생님</span>
+              </div>
+              <div className="h-6 flex items-center">
+                {casting ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                    <MonitorPlay className="w-3 h-3" />
+                    학생에게 표시 중
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">시범·정답 확인용</span>
+                )}
+              </div>
+            </button>
+
+            {/* 구분선 — 데스크톱에서만 */}
+            <div className="hidden lg:block h-px bg-border my-1" />
+
+            {visible.map((s) => (
+              <StudentCard
+                key={s.id}
+                student={s}
+                p={state[s.id]}
+                selected={selected === s.id}
+                onClick={() => setSelected(s.id)}
+              />
+            ))}
+          </div>
+        </aside>
+      </div>
+      )}
+    </div>
+  );
+}

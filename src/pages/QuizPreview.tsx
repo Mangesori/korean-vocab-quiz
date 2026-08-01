@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -942,7 +943,7 @@ export default function QuizPreview() {
             translation: p.translation || null,
             items: p.items,
             sort_order: index,
-          }));
+          })) as unknown as Database["public"]["Tables"]["word_magnet_problems"]["Insert"][];
 
         if (wmProblemsToInsert.length > 0) {
           const { error: wmError } = await supabase.from("word_magnet_problems").insert(wmProblemsToInsert);

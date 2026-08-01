@@ -173,14 +173,15 @@ export function useQuizResultDetail(resultId: string | null, quizId: string | nu
       const { data: taDetail } = await supabase.rpc("get_type_answer_result_detail", {
         _result_id: resultId,
       });
-      if (taDetail) typeAnswerResults = taDetail as TypeAnswerResultDetail[];
+      // RPC 반환형이 Json이라 직접 단언이 막힌다. 모양은 SQL 함수가 보장한다.
+      if (taDetail) typeAnswerResults = taDetail as unknown as TypeAnswerResultDetail[];
     }
 
     if (wordMagnetEnabled) {
       const { data: wmDetail } = await supabase.rpc("get_word_magnet_result_detail", {
         _result_id: resultId,
       });
-      if (wmDetail) wordMagnetResults = wmDetail as WordMagnetResultDetail[];
+      if (wmDetail) wordMagnetResults = wmDetail as unknown as WordMagnetResultDetail[];
     }
 
     if (sentenceMakingEnabled) {
