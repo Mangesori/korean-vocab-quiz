@@ -249,8 +249,13 @@ export default function QuizTake() {
     // 참가자 id가 곧 입장 증표이므로 그것만 있으면 불러온다.
     if ((user || shareToken || liveParticipantId) && id) {
       fetchQuiz();
+    } else if (!loading) {
+      // 불러올 근거가 없으면(로그인·공유토큰·라이브 참가자 모두 없음) 로딩을 끝낸다.
+      // 예전엔 여기서 isLoading이 true로 남아 아래 로그인 안내까지 가지 못하고
+      // 스피너만 계속 돌았다.
+      setIsLoading(false);
     }
-  }, [user?.id, shareToken, liveParticipantId, id]);
+  }, [user?.id, loading, shareToken, liveParticipantId, id]);
 
   // 결과/완료 화면 여부 — 이 동안엔 타이머를 완전히 멈춘다(표시도, 카운트다운도).
   const isResultView = currentStage.endsWith("_result") || currentStage === "completed";
@@ -992,6 +997,16 @@ export default function QuizTake() {
       return navigate(`/quiz/share/result?token=${shareToken}`);
     }
 
+    // 라이브 세션 비회원: 저장할 계정이 없다. 결과를 남기지 않는 건 의도된 동작이지만
+    // (세션 설정에 "비회원은 결과가 저장되지 않아요"로 안내), 여기서 그냥 return하면
+    // 제출 버튼이 아무 반응도 없는 것처럼 보인다. 완료 상태로 넘겨 선생님 화면에도
+    // 제출됨으로 표시되게 한다.
+    if (!user && liveSessionId) {
+      setCurrentStage("completed");
+      toast.success("제출했어요! 선생님 화면에 표시됩니다.");
+      return;
+    }
+
     if (!user) return; // Should not happen if shareToken logic covers it, but for safety
 
     setIsSubmitting(true);
@@ -1206,13 +1221,17 @@ export default function QuizTake() {
     );
   }
 
-  // Allow anonymous users with share token - check shareToken first!
-  if (!user && !shareToken) {
+  // 공유 링크(shareToken)와 라이브 세션(liveParticipantId)은 로그인 없이도 푼다.
+  // 라이브는 참가자 id 자체가 입장 증표이고, 퀴즈도 그 id로만 내려온다.
+  const hasGuestPass = !!shareToken || !!liveParticipantId;
+
+  if (!user && !hasGuestPass) {
     return <Navigate to="/auth" replace />;
   }
 
-  // Logged in users must be students (unless they have a share token)
-  if (user && role !== "student" && !shareToken) {
+  // 로그인 사용자는 학생이어야 한다 — 단, 선생님이 라이브 세션에 직접 참여해
+  // 시범을 보이는 경우가 있으므로 게스트 통행증이 있으면 막지 않는다.
+  if (user && role !== "student" && !hasGuestPass) {
     return <Navigate to="/dashboard" replace />;
   }
 
