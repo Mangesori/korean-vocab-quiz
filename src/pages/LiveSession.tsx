@@ -472,33 +472,44 @@ function StudentPanel({
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {p.answers.map((ans, i) => {
                 const active = i === p.activeIndex && !p.done;
                 const filled = ans.trim().length > 0;
+                const prompt = p.prompts?.[i];
                 return (
-                  <div
-                    key={i}
-                    className={cn(
-                      "rounded-[10px] border px-3 py-2 text-[15px] flex items-center gap-2 transition-all duration-150",
-                      p.correct[i] === true
-                        ? "bg-success/5 border-success/30 text-success font-semibold"
-                        : p.correct[i] === false
-                        ? "bg-destructive/5 border-destructive/30 text-destructive font-semibold"
-                        : active
-                        ? "bg-slate-50 border-border ring-2 ring-primary ring-offset-2 text-foreground font-medium"
-                        : filled
-                        ? "bg-slate-50 border-border text-foreground"
-                        : "bg-slate-50 border-border text-muted-foreground"
+                  <div key={i} className="space-y-1">
+                    {/* 문제를 답 위에 같이 보여준다 — 답만 보이면 무슨 문제인지 알 수 없다. */}
+                    {prompt && (
+                      <p className="text-[13px] text-muted-foreground leading-snug break-keep pl-1">
+                        <span className="text-primary font-bold mr-1">{i + 1}.</span>
+                        {prompt}
+                      </p>
                     )}
-                  >
-                    <span className="text-primary font-bold text-sm shrink-0">{i + 1}.</span>
-                    <span className="truncate">
-                      {ans || (active ? "" : "—")}
-                      {active && (
-                        <span className="inline-block w-[1.5px] h-[15px] bg-primary align-middle ml-0.5 animate-pulse" />
+                    <div
+                      className={cn(
+                        "rounded-[10px] border px-3 py-2 text-[15px] flex items-center gap-2 transition-all duration-150",
+                        p.correct[i] === true
+                          ? "bg-success/5 border-success/30 text-success font-semibold"
+                          : p.correct[i] === false
+                          ? "bg-destructive/5 border-destructive/30 text-destructive font-semibold"
+                          : active
+                          ? "bg-slate-50 border-border ring-2 ring-primary ring-offset-2 text-foreground font-medium"
+                          : filled
+                          ? "bg-slate-50 border-border text-foreground"
+                          : "bg-slate-50 border-border text-muted-foreground"
                       )}
-                    </span>
+                    >
+                      {!prompt && (
+                        <span className="text-primary font-bold text-sm shrink-0">{i + 1}.</span>
+                      )}
+                      <span className="truncate">
+                        {ans || (active ? "" : "—")}
+                        {active && (
+                          <span className="inline-block w-[1.5px] h-[15px] bg-primary align-middle ml-0.5 animate-pulse" />
+                        )}
+                      </span>
+                    </div>
                   </div>
                 );
               })}

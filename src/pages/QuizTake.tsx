@@ -216,13 +216,17 @@ export default function QuizTake() {
   // 방금 고친 답 — 빈칸 채우기에서 어느 칸을 치고 있는지 표시하는 데 쓴다.
   const [lastEditedId, setLastEditedId] = useState<string | null>(null);
   // 빈칸 외 유형은 답을 각자 컴포넌트가 들고 있어서, 바뀔 때마다 여기로 올려받는다.
-  const [peek, setPeek] = useState<{ answers: string[]; activeIndex: number }>({
-    answers: [],
-    activeIndex: -1,
-  });
-  const handleAnswerPeek = useCallback((answers: string[], activeIndex: number) => {
-    setPeek({ answers, activeIndex });
-  }, []);
+  const [peek, setPeek] = useState<{
+    answers: string[];
+    activeIndex: number;
+    prompts: string[];
+  }>({ answers: [], activeIndex: -1, prompts: [] });
+  const handleAnswerPeek = useCallback(
+    (answers: string[], activeIndex: number, prompts: string[] = []) => {
+      setPeek({ answers, activeIndex, prompts });
+    },
+    []
+  );
   // 채점이 끝난 단계의 정오답 — 선생님 화면에서 초록/빨강으로 보여준다.
   // 단계가 바뀌면 비운다(다음 단계는 아직 채점 전이므로).
   const [gradedCorrect, setGradedCorrect] = useState<(boolean | null)[]>([]);
@@ -811,13 +815,17 @@ export default function QuizTake() {
     // 각 Stage가 onAnswerPeek로 올려준 값을 쓴다.
     let answers: string[];
     let activeIndex: number;
+    let prompts: string[];
     if (base === "fill_blank") {
       const problems = (quiz?.problems as any[]) || [];
       answers = problems.map((pr: any) => userAnswers[pr.id] ?? "");
       activeIndex = lastEditedId ? problems.findIndex((pr: any) => pr.id === lastEditedId) : -1;
+      // 빈칸은 문장 자체가 문제다. 괄호 안 정답은 이미 서버에서 지워져 내려온다.
+      prompts = problems.map((pr: any) => pr.sentence ?? pr.word ?? "");
     } else {
       answers = peek.answers;
       activeIndex = peek.activeIndex;
+      prompts = peek.prompts;
     }
 
     sendProgress({
@@ -827,6 +835,7 @@ export default function QuizTake() {
       index: stageProgress.current,
       total: stageProgress.total || answers.length,
       answers,
+      prompts,
       activeIndex,
       // 풀이 중엔 정답을 모르므로 전부 null. 그 단계 채점이 끝나면 서버가 준
       // 정오답을 실어 보내 선생님 화면에 초록/빨강으로 뜬다.

@@ -77,6 +77,11 @@ export type LiveProgress = {
    * watchScreens가 꺼져 있으면 빈 배열로 보낸다.
    */
   answers: string[];
+  /**
+   * 문항별 문제 문구(순서 동일). 선생님 화면에서 답 위에 같이 보여준다 —
+   * 답만 보이면 무슨 문제인지 알 수 없어 쓸모가 반감된다.
+   */
+  prompts: string[];
   /** 지금 만지고 있는 문항 번호. 커서를 어디에 그릴지 결정한다. -1이면 없음. */
   activeIndex: number;
   /**
