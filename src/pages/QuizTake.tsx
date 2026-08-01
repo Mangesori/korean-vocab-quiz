@@ -87,6 +87,36 @@ interface UserAnswer {
 }
 
 /**
+ * 채점 RPC 재시도. 모바일에서 첫 요청이 네트워크 문제로 실패하는 일이 잦은데
+ * (Safari는 "Load failed"), 사용자에게는 "채점 실패"로만 보여서 버튼을 다시
+ * 누르게 만들었다. 네트워크성 실패만 짧게 되재본다 — 권한·함수 없음 같은
+ * 진짜 오류는 즉시 돌려준다.
+ */
+async function rpcWithRetry<T>(
+  // Supabase 쿼리 빌더는 Promise가 아니라 PromiseLike를 돌려준다.
+  call: () => PromiseLike<{ data: T; error: { message?: string } | null }>,
+  retries = 3
+): Promise<{ data: T; error: { message?: string } | null }> {
+  let last: { data: T; error: { message?: string } | null } | undefined;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    let res: { data: T; error: { message?: string } | null };
+    try {
+      res = await call();
+    } catch (e) {
+      res = { data: null as T, error: { message: (e as Error)?.message ?? "network" } };
+    }
+    if (!res.error) return res;
+    last = res;
+    const transient = /fetch|network|timeout|load failed|networkerror/i.test(
+      res.error.message ?? ""
+    );
+    if (!transient || attempt === retries) return res;
+    await new Promise((r) => setTimeout(r, attempt * 400));
+  }
+  return last!;
+}
+
+/**
  * 채점 실패 사유를 화면에 그대로 보여준다. 예전엔 "채점에 실패했습니다"만 띄워
  * 콘솔을 열지 않으면 원인을 알 수 없었다(권한, 함수 없음, 네트워크가 다 같은 문구).
  */
@@ -95,7 +125,9 @@ function gradingErrorMessage(err: unknown): string {
     (err as { message?: string })?.message ??
     (typeof err === "string" ? err : "") ??
     "";
-  if (/fetch|network|timeout/i.test(raw)) return "채점 실패 — 연결이 불안정해요. 다시 시도해주세요.";
+  // Safari는 "Load failed", 크롬은 "Failed to fetch"를 쓴다.
+  if (/fetch|network|timeout|load failed|networkerror/i.test(raw))
+    return "채점 실패 — 연결이 불안정해요. 다시 시도해주세요.";
   if (/does not exist|schema cache|PGRST202/i.test(raw))
     return "채점 실패 — 서버 설정이 최신이 아니에요. 선생님께 알려주세요.";
   if (/permission|denied|42501/i.test(raw)) return "채점 실패 — 권한이 없어요. 선생님께 알려주세요.";
@@ -1398,10 +1430,12 @@ export default function QuizTake() {
         studentAnswersForGrading[problem.id] = (userAnswers[problem.id] || "").trim();
       });
 
-      const { data: gradedRaw, error } = await supabase.rpc("grade_fill_blank", {
-        _quiz_id: quiz.id,
-        _answers: studentAnswersForGrading,
-      });
+      const { data: gradedRaw, error } = await rpcWithRetry(() =>
+        supabase.rpc("grade_fill_blank", {
+          _quiz_id: quiz.id,
+          _answers: studentAnswersForGrading,
+        })
+      );
 
       if (error || !Array.isArray(gradedRaw)) {
         console.error("Fill blank grading error:", error);
@@ -1533,10 +1567,9 @@ export default function QuizTake() {
     // 서버 채점 (정답 노출 방지)
     let graded: TypeAnswerGradeResult[] = [];
     try {
-      const { data, error } = await supabase.rpc("grade_type_answers", {
-        _quiz_id: quiz!.id,
-        _answers: answers,
-      });
+      const { data, error } = await rpcWithRetry(() =>
+        supabase.rpc("grade_type_answers", { _quiz_id: quiz!.id, _answers: answers })
+      );
       if (error) throw error;
       graded = (Array.isArray(data) ? data : []).map((r: any) => ({
         problemId: r.problemId,
@@ -1604,10 +1637,9 @@ export default function QuizTake() {
     const skippedSet = new Set(skippedIds);
     let graded: WordMagnetGradeResult[] = [];
     try {
-      const { data, error } = await supabase.rpc("grade_word_magnets", {
-        _quiz_id: quiz!.id,
-        _answers: answers,
-      });
+      const { data, error } = await rpcWithRetry(() =>
+        supabase.rpc("grade_word_magnets", { _quiz_id: quiz!.id, _answers: answers })
+      );
       if (error) throw error;
       graded = (Array.isArray(data) ? data : []).map((r: any) => ({
         problemId: r.problemId,
