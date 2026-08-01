@@ -36,6 +36,9 @@ export interface WordMagnetProblemData {
 
 interface WordMagnetStageProps {
   problems: WordMagnetProblemData[];
+  /** 라이브 세션 중계용. 조립 중인 문장을 문항별로 알린다.
+   *  라이브가 아닐 땐 전달되지 않으므로 기존 동작에 영향이 없다. */
+  onAnswerPeek?: (answers: string[], activeIndex: number) => void;
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (answers: Record<string, string>, skippedIds: string[]) => void;
   onBack?: () => void;
@@ -131,7 +134,7 @@ function DroppableArea({
   );
 }
 
-export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack, backLabel }: WordMagnetStageProps) {
+export function WordMagnetStage({ problems, onAnswerPeek, onProgressUpdate, onComplete, onBack, backLabel }: WordMagnetStageProps) {
   // 문제별 타일 목록 (고유 id 부여)
   const tilesByProblem = useMemo(() => {
     const map: Record<string, Tile[]> = {};
@@ -162,6 +165,18 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
   const [savedAnswers, setSavedAnswers] = useState<Record<string, Tile[]>>({});
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
+
+  // 라이브 중계: 지금까지 조립한 문장을 문항별로 알린다.
+  // 현재 문항은 화면의 타일(answerItems), 나머지는 저장된 타일에서 만든다.
+  useEffect(() => {
+    if (!onAnswerPeek) return;
+    onAnswerPeek(
+      problems.map((p, i) =>
+        assembleForDisplay(i === currentIndex ? answerItems : savedAnswers[p.id] ?? [])
+      ),
+      currentIndex
+    );
+  }, [answerItems, savedAnswers, currentIndex, problems, onAnswerPeek]);
 
   const total = problems.length;
   const currentProblem = problems[currentIndex];

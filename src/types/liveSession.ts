@@ -71,14 +71,18 @@ export type LiveProgress = {
   index: number;
   /** 이 단계의 전체 문제 수 — 진행 점을 몇 개 그릴지 결정한다. */
   total: number;
-  /** 지금 입력 중인 내용. watchScreens가 꺼져 있으면 빈 문자열로 보낸다. */
-  typing: string;
   /**
-   * 지금까지 입력한 답(문제 순서대로). 텍스트 입력형에서만 채워진다.
-   * 정답 여부는 채점 전까지 알 수 없으므로 correct는 풀이 중엔 전부 null이다
-   * (학생 화면에 정답을 내려주지 않기 때문).
+   * 문항별 현재 입력값(문제 순서대로). 아직 다 안 친 글자도 그대로 들어간다 —
+   * 선생님이 "지금 치고 있는 중"을 문항 제자리에서 보기 위해서다.
+   * watchScreens가 꺼져 있으면 빈 배열로 보낸다.
    */
-  committed: string[];
+  answers: string[];
+  /** 지금 만지고 있는 문항 번호. 커서를 어디에 그릴지 결정한다. -1이면 없음. */
+  activeIndex: number;
+  /**
+   * 정답 여부. 풀이 중엔 전부 null이다 — 학생 화면에 정답을 내려주지 않으므로
+   * 클라이언트가 채점할 수 없다.
+   */
   correct: (boolean | null)[];
   done: boolean;
   /** 보낸 시각 (ms). 순서가 뒤집힌 패킷을 버리는 데 쓴다. */

@@ -55,6 +55,8 @@ interface Quiz {
   fill_blank_enabled?: boolean;
   // 라이브 세션에서만 채워진다. 선생님이 그 세션에서 고른 유형 목록.
   live_stages?: BaseStage[];
+  // 라이브 세션에서 문제 순서를 학생마다 섞을지. 기본은 안 섞음.
+  live_shuffle?: boolean;
   sentence_making_enabled?: boolean;
   recording_enabled?: boolean;
   matchup_enabled?: boolean;
@@ -162,8 +164,16 @@ export default function QuizTake() {
   const liveSessionId = searchParams.get("live") || undefined;
   const liveParticipantId = searchParams.get("participant") || "";
   const { sendProgress, control: liveControl } = useLiveProgress(liveSessionId, "student");
-  // 방금 고친 답 — 선생님 화면에 "지금 입력 중"으로 보여줄 값.
+  // 방금 고친 답 — 빈칸 채우기에서 어느 칸을 치고 있는지 표시하는 데 쓴다.
   const [lastEditedId, setLastEditedId] = useState<string | null>(null);
+  // 빈칸 외 유형은 답을 각자 컴포넌트가 들고 있어서, 바뀔 때마다 여기로 올려받는다.
+  const [peek, setPeek] = useState<{ answers: string[]; activeIndex: number }>({
+    answers: [],
+    activeIndex: -1,
+  });
+  const handleAnswerPeek = useCallback((answers: string[], activeIndex: number) => {
+    setPeek({ answers, activeIndex });
+  }, []);
 
   const handleProgressUpdate = useCallback((current: number, total: number, label: string) => {
     setStageProgress({ current, total, label });
@@ -542,8 +552,13 @@ export default function QuizTake() {
         quizData = data as unknown as Quiz;
       }
 
-      // Shuffle problems
-      const shuffled = [...quizData.problems].sort(() => Math.random() - 0.5);
+      // 문제 순서. 라이브 세션은 기본적으로 섞지 않는다 — 학생마다 순서가 다르면
+      // 선생님이 "3번 문제"를 학생끼리 비교할 수 없어 실시간 관찰이 무의미해진다.
+      // 선생님이 준비 화면에서 켰을 때만 섞는다.
+      const shouldShuffle = liveSessionId ? quizData.live_shuffle === true : true;
+      const shuffled = shouldShuffle
+        ? [...quizData.problems].sort(() => Math.random() - 0.5)
+        : [...quizData.problems];
       
       // quiz_problems 테이블에서 audio URL 가져오기 (if not already loaded)
       if (!isAnonymous) {
@@ -687,21 +702,30 @@ export default function QuizTake() {
   useEffect(() => {
     if (!liveSessionId || !liveParticipantId) return;
     const base = currentStage.replace(/_result$/, "") as BaseStage;
-    // 빈칸 채우기는 문제 순서가 명확해서 답 내용까지 같이 보낸다.
-    const ordered =
-      base === "fill_blank"
-        ? ((quiz?.problems as any[]) || []).map((pr: any) => userAnswers[pr.id] ?? "")
-        : [];
+
+    // 빈칸 채우기만 답이 QuizTake에 올라와 있고(userAnswers), 나머지 유형은
+    // 각 Stage가 onAnswerPeek로 올려준 값을 쓴다.
+    let answers: string[];
+    let activeIndex: number;
+    if (base === "fill_blank") {
+      const problems = (quiz?.problems as any[]) || [];
+      answers = problems.map((pr: any) => userAnswers[pr.id] ?? "");
+      activeIndex = lastEditedId ? problems.findIndex((pr: any) => pr.id === lastEditedId) : -1;
+    } else {
+      answers = peek.answers;
+      activeIndex = peek.activeIndex;
+    }
+
     sendProgress({
       participantId: liveParticipantId,
       name: anonymousName || user?.email || "학생",
       stage: base,
       index: stageProgress.current,
-      total: stageProgress.total,
-      typing: lastEditedId ? userAnswers[lastEditedId] ?? "" : "",
-      committed: ordered,
+      total: stageProgress.total || answers.length,
+      answers,
+      activeIndex,
       // 학생 화면에는 정답이 내려오지 않으므로 풀이 중 정오답은 알 수 없다.
-      correct: ordered.map(() => null),
+      correct: answers.map(() => null),
       done: currentStage === "completed",
     });
   }, [
@@ -709,6 +733,7 @@ export default function QuizTake() {
     liveParticipantId,
     userAnswers,
     lastEditedId,
+    peek,
     currentStage,
     stageProgress.current,
     stageProgress.total,
@@ -1773,6 +1798,7 @@ export default function QuizTake() {
         <div className="container mx-auto px-4 py-8">
           <TypeAnswerStage
             problems={typeAnswerProblems}
+          onAnswerPeek={handleAnswerPeek}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleTypeAnswerComplete}
             onBack={goBackToPrev("type_answer")}
@@ -1809,6 +1835,7 @@ export default function QuizTake() {
         <div className="container mx-auto px-4 py-8">
           <WordMagnetStage
             problems={wordMagnetProblems}
+          onAnswerPeek={handleAnswerPeek}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleWordMagnetComplete}
             onBack={goBackToPrev("word_magnet")}
@@ -1848,6 +1875,7 @@ export default function QuizTake() {
             problems={sentenceMakingProblems}
             difficulty={quiz.difficulty}
             translationLanguage={quiz.translation_language}
+          onAnswerPeek={handleAnswerPeek}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleSentenceMakingComplete}
             onBack={goBackToPrev("sentence_making")}

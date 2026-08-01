@@ -34,6 +34,9 @@ interface SentenceMakingStageProps {
   problems: SentenceMakingProblem[];
   difficulty: string;
   translationLanguage?: string;
+  /** 라이브 세션 중계용. 답이 바뀔 때마다 문항별 현재 입력값과 활성 문항을 알린다.
+   *  라이브가 아닐 땐 전달되지 않으므로 기존 동작에 영향이 없다. */
+  onAnswerPeek?: (answers: string[], activeIndex: number) => void;
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (results: Record<string, SentenceAttempt[]>) => void;
   onBack?: () => void;
@@ -47,6 +50,7 @@ export function SentenceMakingStage({
   problems,
   difficulty,
   translationLanguage,
+  onAnswerPeek,
   onProgressUpdate,
   onComplete,
   onBack,
@@ -59,6 +63,12 @@ export function SentenceMakingStage({
   const [results, setResults] = useState<Record<string, SentenceAttempt[]>>({});
   const [gradingIndex, setGradingIndex] = useState(0);
   const [showHint, setShowHint] = useState(false);
+  // 라이브 중계: 문항별 현재 입력값과 지금 보고 있는 문항을 알린다.
+  useEffect(() => {
+    if (!onAnswerPeek) return;
+    onAnswerPeek(problems.map((p) => sentences[p.id] ?? ""), currentIndex);
+  }, [sentences, currentIndex, problems, onAnswerPeek]);
+
 
   useEffect(() => {
     if (onProgressUpdate && problems.length > 0) {

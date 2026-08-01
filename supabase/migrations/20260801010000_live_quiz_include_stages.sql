@@ -1,4 +1,4 @@
--- get_quiz_for_live_session 이 세션에서 고른 유형(stages)도 함께 내려주도록 한다.
+-- get_quiz_for_live_session 이 세션 설정(고른 유형, 문제 순서 섞기)도 함께 내려주도록 한다.
 --
 -- 그동안 학생 화면은 "퀴즈에 켜져 있는 유형"만 보고 단계를 구성했다. 그래서
 -- 선생님이 라이브 세션 준비 화면에서 빈칸 채우기만 골라도 학생에게는 말하기
@@ -17,13 +17,17 @@ AS $$
 DECLARE
   _quiz_id            uuid;
   _stages             text[];
+  _shuffle            boolean;
   _quiz_data          jsonb;
   _problems           jsonb;
   _sanitized_problems jsonb := '[]'::jsonb;
   _problem            jsonb;
 BEGIN
   -- 참가자가 실제로 이 세션에 들어와 있고, 세션이 아직 안 끝났는지 확인한다.
-  SELECT s.quiz_id, s.stages INTO _quiz_id, _stages
+  SELECT s.quiz_id,
+         s.stages,
+         COALESCE((s.settings ->> 'shuffle')::boolean, false)
+    INTO _quiz_id, _stages, _shuffle
   FROM public.live_sessions s
   JOIN public.live_participants p
     ON p.session_id = s.id
@@ -54,7 +58,10 @@ BEGIN
     'type_answer_enabled', type_answer_enabled,
     'word_magnet_enabled', word_magnet_enabled,
     -- 이 세션에서 선생님이 고른 유형. 학생 화면은 이 목록만 진행한다.
-    'live_stages', to_jsonb(_stages)
+    'live_stages', to_jsonb(_stages),
+    -- 라이브 기본값은 "안 섞음"이다. 학생마다 순서가 다르면 선생님이 3번 문제를
+    -- 학생끼리 비교할 수 없어서 실시간으로 지켜보는 의미가 사라진다.
+    'live_shuffle', _shuffle
   ) INTO _quiz_data
   FROM public.quizzes
   WHERE id = _quiz_id;

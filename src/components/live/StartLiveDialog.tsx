@@ -41,6 +41,11 @@ const SETTING_ROWS: { key: keyof LiveSessionSettings; label: string; desc: strin
     desc: "로그인 없이 이름만 적고 들어올 수 있어요. 로그인한 학생은 결과가 저장됩니다.",
   },
   { key: "anonymize", label: "학생 이름 숨기기", desc: "화면에 이름 대신 번호로 표시합니다." },
+  {
+    key: "shuffle",
+    label: "학생마다 문제 순서 섞기",
+    desc: "끄면 모두가 같은 순서로 풉니다. 켜면 학생끼리 순서가 달라져 선생님 화면에서 같은 번호끼리 비교하기 어려워요.",
+  },
 ];
 
 /**

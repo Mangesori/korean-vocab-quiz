@@ -20,19 +20,29 @@ export interface TypeAnswerGradeResult {
 
 interface TypeAnswerStageProps {
   problems: TypeAnswerProblemData[];
+  /** 라이브 세션 중계용. 답이 바뀔 때마다 문항별 현재 입력값과 활성 문항을 알린다.
+   *  라이브가 아닐 땐 전달되지 않으므로 기존 동작에 영향이 없다. */
+  onAnswerPeek?: (answers: string[], activeIndex: number) => void;
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (answers: Record<string, string>, skippedIds: string[]) => void;
   onBack?: () => void;
   backLabel?: string;
 }
 
-export function TypeAnswerStage({ problems, onProgressUpdate, onComplete, onBack, backLabel }: TypeAnswerStageProps) {
+export function TypeAnswerStage({ problems, onAnswerPeek, onProgressUpdate, onComplete, onBack, backLabel }: TypeAnswerStageProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
+
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const total = problems.length;
   const problem = problems[currentIndex];
+  // 라이브 중계: 문항별 현재 입력값과 지금 보고 있는 문항을 알린다.
+  useEffect(() => {
+    if (!onAnswerPeek) return;
+    onAnswerPeek(problems.map((p) => answers[p.id] ?? ""), currentIndex);
+  }, [answers, currentIndex, problems, onAnswerPeek]);
+
   const isLast = currentIndex === total - 1;
   const isSkipped = skippedIds.has(problem?.id);
   const currentFilled = !!answers[problem?.id]?.trim() || isSkipped;

@@ -285,6 +285,12 @@ export default function LiveSession() {
   );
 }
 
+/** 지금 만지고 있는 문항의 입력값. 없으면 빈 문자열. */
+function activeText(p?: LiveProgress) {
+  if (!p || p.activeIndex < 0) return "";
+  return p.answers[p.activeIndex] ?? "";
+}
+
 // ─── 진행 점 ────────────────────────────────────────────────────────────────
 function Dots({ p }: { p?: LiveProgress }) {
   // 점 개수는 학생이 알려준 그 단계의 문제 수를 따른다. 아직 아무것도 안 왔으면
@@ -356,9 +362,9 @@ function ParticipantCard({
       <div className="mt-2 h-6 flex items-center">
         {p?.done ? (
           <span className="text-[11px] font-medium text-success">제출 완료</span>
-        ) : watchScreens && p?.typing ? (
+        ) : watchScreens && activeText(p) ? (
           <span className="text-xs font-semibold text-foreground truncate">
-            {p.typing}
+            {activeText(p)}
             <span className="inline-block w-[1.5px] h-3 bg-primary align-middle ml-0.5 animate-pulse" />
           </span>
         ) : (
@@ -403,30 +409,40 @@ function StudentPanel({
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {p.committed.map((ans, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "rounded-[10px] border px-3 py-2 text-[15px] flex items-center gap-2",
-                    p.correct[i] == null
-                      ? "bg-slate-50 border-border text-muted-foreground"
-                      : p.correct[i]
-                      ? "bg-success/5 border-success/30 text-success font-semibold"
-                      : "bg-destructive/5 border-destructive/30 text-destructive font-semibold"
-                  )}
-                >
-                  <span className="text-primary font-bold text-sm shrink-0">{i + 1}.</span>
-                  <span className="truncate">{ans || "—"}</span>
-                </div>
-              ))}
-              {!p.done && (
-                <div className="rounded-[10px] border border-border bg-slate-50 px-3 py-2 ring-2 ring-primary ring-offset-2 text-[15px]">
-                  <span className="text-foreground font-medium">
-                    {p.typing}
-                    <span className="inline-block w-[1.5px] h-[15px] bg-primary align-middle ml-0.5 animate-pulse" />
-                  </span>
-                </div>
+            <div className="space-y-2">
+              {p.answers.map((ans, i) => {
+                const active = i === p.activeIndex && !p.done;
+                const filled = ans.trim().length > 0;
+                return (
+                  <div
+                    key={i}
+                    className={cn(
+                      "rounded-[10px] border px-3 py-2 text-[15px] flex items-center gap-2 transition-all duration-150",
+                      p.correct[i] === true
+                        ? "bg-success/5 border-success/30 text-success font-semibold"
+                        : p.correct[i] === false
+                        ? "bg-destructive/5 border-destructive/30 text-destructive font-semibold"
+                        : active
+                        ? "bg-slate-50 border-border ring-2 ring-primary ring-offset-2 text-foreground font-medium"
+                        : filled
+                        ? "bg-slate-50 border-border text-foreground"
+                        : "bg-slate-50 border-border text-muted-foreground"
+                    )}
+                  >
+                    <span className="text-primary font-bold text-sm shrink-0">{i + 1}.</span>
+                    <span className="truncate">
+                      {ans || (active ? "" : "—")}
+                      {active && (
+                        <span className="inline-block w-[1.5px] h-[15px] bg-primary align-middle ml-0.5 animate-pulse" />
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+              {p.answers.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-6 break-keep">
+                  이 유형은 답을 글자로 보여줄 수 없어요. 위 진행 점으로 확인하세요.
+                </p>
               )}
             </div>
           )}
