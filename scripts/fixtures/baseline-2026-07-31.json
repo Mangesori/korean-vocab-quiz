@@ -1,0 +1,657 @@
+{
+  "measuredAt": "2026-07-31T02:45:05.025Z",
+  "byDifficulty": {
+    "A1": {
+      "quizzes": 92,
+      "problems": 1327,
+      "coverage": 0.8809523809523809,
+      "unknownRate": 0.00962000962000962,
+      "contentWords": 4158,
+      "excludedByInput": 1571,
+      "avgWords": 5.107008289374529,
+      "avgEC": 0.611906556141673,
+      "avgETM": 0.31122833458929916,
+      "topOver": [
+        {
+          "word": "카페",
+          "grade": 2,
+          "count": 17
+        },
+        {
+          "word": "계",
+          "grade": 5,
+          "count": 9
+        },
+        {
+          "word": "코트",
+          "grade": 3,
+          "count": 8
+        },
+        {
+          "word": "차",
+          "grade": 2,
+          "count": 8
+        },
+        {
+          "word": "기온",
+          "grade": 2,
+          "count": 7
+        },
+        {
+          "word": "드세",
+          "grade": 6,
+          "count": 7
+        },
+        {
+          "word": "인기",
+          "grade": 2,
+          "count": 7
+        },
+        {
+          "word": "문제",
+          "grade": 2,
+          "count": 7
+        },
+        {
+          "word": "배고프",
+          "grade": 3,
+          "count": 6
+        },
+        {
+          "word": "경기",
+          "grade": 2,
+          "count": 6
+        },
+        {
+          "word": "소리",
+          "grade": 2,
+          "count": 6
+        },
+        {
+          "word": "짐",
+          "grade": 2,
+          "count": 6
+        },
+        {
+          "word": "학원",
+          "grade": 2,
+          "count": 6
+        },
+        {
+          "word": "레몬",
+          "grade": 3,
+          "count": 6
+        },
+        {
+          "word": "햇빛",
+          "grade": 2,
+          "count": 6
+        },
+        {
+          "word": "새",
+          "grade": 2,
+          "count": 5
+        },
+        {
+          "word": "털",
+          "grade": 3,
+          "count": 5
+        },
+        {
+          "word": "잊어버렸",
+          "grade": 2,
+          "count": 5
+        },
+        {
+          "word": "팀",
+          "grade": 2,
+          "count": 5
+        },
+        {
+          "word": "엄마",
+          "grade": 2,
+          "count": 5
+        },
+        {
+          "word": "언어",
+          "grade": 2,
+          "count": 5
+        },
+        {
+          "word": "편한",
+          "grade": 2,
+          "count": 5
+        },
+        {
+          "word": "세",
+          "grade": 2,
+          "count": 5
+        },
+        {
+          "word": "강아지",
+          "grade": 2,
+          "count": 4
+        },
+        {
+          "word": "손가락",
+          "grade": 2,
+          "count": 4
+        },
+        {
+          "word": "깜짝",
+          "grade": 2,
+          "count": 4
+        },
+        {
+          "word": "벚꽃",
+          "grade": 5,
+          "count": 4
+        },
+        {
+          "word": "오기",
+          "grade": 6,
+          "count": 4
+        },
+        {
+          "word": "빵집",
+          "grade": 2,
+          "count": 4
+        },
+        {
+          "word": "엘리베이터",
+          "grade": 2,
+          "count": 3
+        }
+      ]
+    },
+    "A2": {
+      "quizzes": 29,
+      "problems": 485,
+      "coverage": 0.8991742720556279,
+      "unknownRate": 0.013472403302911778,
+      "contentWords": 2301,
+      "excludedByInput": 639,
+      "avgWords": 7.049484536082474,
+      "avgEC": 1.1670103092783506,
+      "avgETM": 0.7175257731958763,
+      "topOver": [
+        {
+          "word": "위해",
+          "grade": 3,
+          "count": 9
+        },
+        {
+          "word": "감독",
+          "grade": 3,
+          "count": 3
+        },
+        {
+          "word": "일정",
+          "grade": 3,
+          "count": 3
+        },
+        {
+          "word": "공연",
+          "grade": 3,
+          "count": 3
+        },
+        {
+          "word": "대해",
+          "grade": 3,
+          "count": 3
+        },
+        {
+          "word": "예의",
+          "grade": 3,
+          "count": 3
+        },
+        {
+          "word": "전날",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "발표",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "팀장님",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "많아졌",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "쌍둥이",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "가정",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "시절",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "일하",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "돌봤",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "지역",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "확인해",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "발달하",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "해결할",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "추억",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "스타일",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "정보",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "동영상",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "채널",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "따라",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "시대",
+          "grade": 3,
+          "count": 1
+        },
+        {
+          "word": "유물",
+          "grade": 3,
+          "count": 1
+        },
+        {
+          "word": "낯선",
+          "grade": 3,
+          "count": 1
+        },
+        {
+          "word": "싸움",
+          "grade": 4,
+          "count": 1
+        },
+        {
+          "word": "결국",
+          "grade": 3,
+          "count": 1
+        }
+      ]
+    },
+    "B1": {
+      "quizzes": 33,
+      "problems": 545,
+      "coverage": 0.9051995798319328,
+      "unknownRate": 0.02468487394957983,
+      "contentWords": 3808,
+      "excludedByInput": 708,
+      "avgWords": 9.486238532110091,
+      "avgEC": 1.7027522935779817,
+      "avgETM": 1.236697247706422,
+      "topOver": [
+        {
+          "word": "환경",
+          "grade": 4,
+          "count": 9
+        },
+        {
+          "word": "원형",
+          "grade": 5,
+          "count": 6
+        },
+        {
+          "word": "팀장님",
+          "grade": 5,
+          "count": 5
+        },
+        {
+          "word": "기술",
+          "grade": 4,
+          "count": 4
+        },
+        {
+          "word": "탓",
+          "grade": 5,
+          "count": 4
+        },
+        {
+          "word": "크림",
+          "grade": 4,
+          "count": 4
+        },
+        {
+          "word": "정부",
+          "grade": 4,
+          "count": 4
+        },
+        {
+          "word": "반응",
+          "grade": 4,
+          "count": 3
+        },
+        {
+          "word": "온라인",
+          "grade": 4,
+          "count": 3
+        },
+        {
+          "word": "작가",
+          "grade": 4,
+          "count": 3
+        },
+        {
+          "word": "진로",
+          "grade": 4,
+          "count": 3
+        },
+        {
+          "word": "구르기",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "곡선",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "핵심",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "발표자",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "작품",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "간격",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "조절하",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "어쩔",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "자신감",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "성분",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "혈액형",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "범위",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "식습관",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "평생",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "미친",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "일하",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "꾸준한",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "일할",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "현장",
+          "grade": 4,
+          "count": 2
+        }
+      ]
+    },
+    "B2": {
+      "quizzes": 9,
+      "problems": 140,
+      "coverage": 0.9475683890577508,
+      "unknownRate": 0.03571428571428571,
+      "contentWords": 1316,
+      "excludedByInput": 171,
+      "avgWords": 12.121428571428572,
+      "avgEC": 2.2642857142857142,
+      "avgETM": 1.8857142857142857,
+      "topOver": [
+        {
+          "word": "탓",
+          "grade": 5,
+          "count": 12
+        },
+        {
+          "word": "일하",
+          "grade": 5,
+          "count": 3
+        },
+        {
+          "word": "식단",
+          "grade": 6,
+          "count": 2
+        },
+        {
+          "word": "파이프",
+          "grade": 6,
+          "count": 2
+        },
+        {
+          "word": "팀장님",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "소통",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "분별하",
+          "grade": 6,
+          "count": 2
+        },
+        {
+          "word": "유효",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "낭패",
+          "grade": 6,
+          "count": 1
+        },
+        {
+          "word": "후기",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "집중력",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "개막식",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "자국",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "영화제",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "시상식",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "기한",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "지연될",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "담담하",
+          "grade": 6,
+          "count": 1
+        },
+        {
+          "word": "검진",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "인턴",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "팀원들",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "안건",
+          "grade": 6,
+          "count": 1
+        },
+        {
+          "word": "구직",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "채용",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "모호해",
+          "grade": 6,
+          "count": 1
+        },
+        {
+          "word": "병행해",
+          "grade": 6,
+          "count": 1
+        },
+        {
+          "word": "진정",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "설칠",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "무례하",
+          "grade": 6,
+          "count": 1
+        },
+        {
+          "word": "당면한",
+          "grade": 5,
+          "count": 1
+        }
+      ]
+    }
+  }
+}
