@@ -516,7 +516,8 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
             className="h-12 px-4 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm text-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-1.5" />
-            {backLabel ?? "이전"}
+            <span className="hidden sm:inline">{backLabel ?? "이전"}</span>
+            <span className="sm:hidden">이전</span>
           </Button>
         </div>
       )}

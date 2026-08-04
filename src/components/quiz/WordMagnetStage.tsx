@@ -36,6 +36,9 @@ export interface WordMagnetProblemData {
 
 interface WordMagnetStageProps {
   problems: WordMagnetProblemData[];
+  /** 라이브 세션 중계용. 조립 중인 문장을 문항별로 알린다.
+   *  라이브가 아닐 땐 전달되지 않으므로 기존 동작에 영향이 없다. */
+  onAnswerPeek?: (answers: string[], activeIndex: number, prompts: string[]) => void;
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (answers: Record<string, string>, skippedIds: string[]) => void;
   onBack?: () => void;
@@ -131,7 +134,7 @@ function DroppableArea({
   );
 }
 
-export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack, backLabel }: WordMagnetStageProps) {
+export function WordMagnetStage({ problems, onAnswerPeek, onProgressUpdate, onComplete, onBack, backLabel }: WordMagnetStageProps) {
   // 문제별 타일 목록 (고유 id 부여)
   const tilesByProblem = useMemo(() => {
     const map: Record<string, Tile[]> = {};
@@ -162,6 +165,19 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
   const [savedAnswers, setSavedAnswers] = useState<Record<string, Tile[]>>({});
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
+
+  // 라이브 중계: 지금까지 조립한 문장을 문항별로 알린다.
+  // 현재 문항은 화면의 타일(answerItems), 나머지는 저장된 타일에서 만든다.
+  useEffect(() => {
+    if (!onAnswerPeek) return;
+    onAnswerPeek(
+      problems.map((p, i) =>
+        assembleForDisplay(i === currentIndex ? answerItems : savedAnswers[p.id] ?? [])
+      ),
+      currentIndex,
+      problems.map((p) => p.translation ?? "")
+    );
+  }, [answerItems, savedAnswers, currentIndex, problems, onAnswerPeek]);
 
   const total = problems.length;
   const currentProblem = problems[currentIndex];
@@ -374,14 +390,15 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
 
         {/* 네비게이션 */}
         <div className="grid grid-cols-3 items-center pt-2 gap-2">
-          <div className="justify-self-start">
+          <div className="justify-self-start min-w-0 max-w-full">
             {currentIndex === 0 && onBack ? (
               <Button
                 variant="outline"
                 onClick={onBack}
                 className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
               >
-                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> {backLabel ?? "이전"}
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> <span className="hidden sm:inline">{backLabel ?? "이전"}</span>
+            <span className="sm:hidden">이전</span>
               </Button>
             ) : (
               <Button
@@ -397,7 +414,7 @@ export function WordMagnetStage({ problems, onProgressUpdate, onComplete, onBack
 
           <div className="flex justify-center">{skipButton}</div>
 
-          <div className="justify-self-end">
+          <div className="justify-self-end min-w-0">
             {currentIndex < total - 1 ? (
               <Button
                 onClick={goNext}

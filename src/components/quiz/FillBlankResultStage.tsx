@@ -18,6 +18,8 @@ interface FillBlankResultStageProps {
   answers: FillBlankAnswer[];
   onNext: () => void;
   nextLabel: string;
+  /** 라이브 세션에서 선생님이 학생 결과를 그대로 볼 때, 학생용 이동 버튼은 숨긴다. */
+  hideActions?: boolean;
   onBack?: () => void;
   backLabel?: string;
 }
@@ -26,6 +28,7 @@ export function FillBlankResultStage({
   answers,
   onNext,
   nextLabel,
+  hideActions,
   onBack,
   backLabel,
 }: FillBlankResultStageProps) {
@@ -57,6 +60,7 @@ export function FillBlankResultStage({
       </div>
 
       {/* 이전 / 다음 버튼 */}
+      {!hideActions && (
       <div className="flex justify-between items-center mt-8">
         {onBack ? (
           <Button
@@ -64,7 +68,8 @@ export function FillBlankResultStage({
             onClick={onBack}
             className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
           >
-            <ChevronLeft className="w-4 h-4 mr-2" /> {backLabel ?? "이전"}
+            <ChevronLeft className="w-4 h-4 mr-2" /> <span className="hidden sm:inline">{backLabel ?? "이전"}</span>
+            <span className="sm:hidden">이전</span>
           </Button>
         ) : (
           <span />
@@ -77,6 +82,7 @@ export function FillBlankResultStage({
           <ChevronRight className="w-5 h-5 ml-2" />
         </Button>
       </div>
+      )}
     </div>
   );
 }

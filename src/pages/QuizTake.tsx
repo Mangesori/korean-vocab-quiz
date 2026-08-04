@@ -14,6 +14,7 @@ import { WordMagnetResultStage, type WordMagnetGradeResult } from "@/components/
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,8 @@ import { LevelBadge } from "@/components/ui/level-badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { maskTranslation } from "@/utils/maskTranslation";
 import { STAGE_ORDER, STAGE_LABELS, type BaseStage } from "@/types/quiz";
+import { useLiveProgress } from "@/hooks/useLiveProgress";
+import { seededShuffle } from "@/lib/seededShuffle";
 
 interface Problem {
   id: string;
@@ -49,6 +52,12 @@ interface Quiz {
   words_per_set: number;
   translation_language: string;
   // 새로운 퀴즈 유형 옵션
+  // 빈칸 채우기는 기본 활성이라 값이 없을 수 있다 — false일 때만 꺼진 것으로 본다.
+  fill_blank_enabled?: boolean;
+  // 라이브 세션에서만 채워진다. 선생님이 그 세션에서 고른 유형 목록.
+  live_stages?: BaseStage[];
+  // 라이브 세션에서 문제 순서를 학생마다 섞을지. 기본은 안 섞음.
+  live_shuffle?: boolean;
   sentence_making_enabled?: boolean;
   recording_enabled?: boolean;
   matchup_enabled?: boolean;
@@ -78,11 +87,59 @@ interface UserAnswer {
   isCorrect: boolean;
 }
 
+/**
+ * 채점 RPC 재시도. 모바일에서 첫 요청이 네트워크 문제로 실패하는 일이 잦은데
+ * (Safari는 "Load failed"), 사용자에게는 "채점 실패"로만 보여서 버튼을 다시
+ * 누르게 만들었다. 네트워크성 실패만 짧게 되재본다 — 권한·함수 없음 같은
+ * 진짜 오류는 즉시 돌려준다.
+ */
+async function rpcWithRetry<T>(
+  // Supabase 쿼리 빌더는 Promise가 아니라 PromiseLike를 돌려준다.
+  call: () => PromiseLike<{ data: T; error: { message?: string } | null }>,
+  retries = 3
+): Promise<{ data: T; error: { message?: string } | null }> {
+  let last: { data: T; error: { message?: string } | null } | undefined;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    let res: { data: T; error: { message?: string } | null };
+    try {
+      res = await call();
+    } catch (e) {
+      res = { data: null as T, error: { message: (e as Error)?.message ?? "network" } };
+    }
+    if (!res.error) return res;
+    last = res;
+    const transient = /fetch|network|timeout|load failed|networkerror/i.test(
+      res.error.message ?? ""
+    );
+    if (!transient || attempt === retries) return res;
+    await new Promise((r) => setTimeout(r, attempt * 400));
+  }
+  return last!;
+}
+
+/**
+ * 채점 실패 사유를 화면에 그대로 보여준다. 예전엔 "채점에 실패했습니다"만 띄워
+ * 콘솔을 열지 않으면 원인을 알 수 없었다(권한, 함수 없음, 네트워크가 다 같은 문구).
+ */
+function gradingErrorMessage(err: unknown): string {
+  const raw =
+    (err as { message?: string })?.message ??
+    (typeof err === "string" ? err : "") ??
+    "";
+  // Safari는 "Load failed", 크롬은 "Failed to fetch"를 쓴다.
+  if (/fetch|network|timeout|load failed|networkerror/i.test(raw))
+    return "채점 실패 — 연결이 불안정해요. 다시 시도해주세요.";
+  if (/does not exist|schema cache|PGRST202/i.test(raw))
+    return "채점 실패 — 서버 설정이 최신이 아니에요. 선생님께 알려주세요.";
+  if (/permission|denied|42501/i.test(raw)) return "채점 실패 — 권한이 없어요. 선생님께 알려주세요.";
+  return raw ? `채점 실패 — ${raw}` : "채점에 실패했습니다.";
+}
+
 // recording_answers insert 실패는 quiz_results.recording_score(집계 점수)와
 // 무관하게 계속 진행되므로, 실패한 채 넘어가면 점수는 저장되고 상세 기록만
 // 유실된다. 일시적 네트워크 문제로 인한 실패를 흡수하기 위해 재시도한다.
 async function insertRecordingAnswersWithRetry(
-  recAnswers: Record<string, unknown>[],
+  recAnswers: Database["public"]["Tables"]["recording_answers"]["Insert"][],
   retries = 3
 ): Promise<boolean> {
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -114,7 +171,8 @@ export default function QuizTake() {
   const [searchParams] = useSearchParams();
   const shareToken = searchParams.get('share');
   const anonymousName = searchParams.get('name') || "";
-  const isAnonymous = !!shareToken && !user;
+  // 라이브 세션 비회원도 익명이다 — 로그인 전용 조회(오디오 URL 등)를 건너뛰게 한다.
+  const isAnonymous = (!!shareToken || !!searchParams.get("live")) && !user;
   const [isInitialized, setIsInitialized] = useState(false);
 
   // 멀티 스테이지 퀴즈 지원
@@ -149,6 +207,73 @@ export default function QuizTake() {
   
   const [stageProgress, setStageProgress] = useState({ current: 0, total: 0, label: "" });
 
+  // ── 라이브 세션 중계 ──
+  // ?live=<세션id>&participant=<참가자id> 가 붙어 있을 때만 동작한다.
+  // 없으면 sendProgress가 아무 일도 하지 않으므로 기존 숙제 모드는 그대로다.
+  const liveSessionId = searchParams.get("live") || undefined;
+  const liveParticipantId = searchParams.get("participant") || "";
+  const { sendProgress, sendResult, control: liveControl } = useLiveProgress(liveSessionId, "student");
+  // 방금 고친 답 — 빈칸 채우기에서 어느 칸을 치고 있는지 표시하는 데 쓴다.
+  const [lastEditedId, setLastEditedId] = useState<string | null>(null);
+  // 빈칸 외 유형은 답을 각자 컴포넌트가 들고 있어서, 바뀔 때마다 여기로 올려받는다.
+  const [peek, setPeek] = useState<{
+    answers: string[];
+    activeIndex: number;
+    prompts: string[];
+  }>({ answers: [], activeIndex: -1, prompts: [] });
+  const handleAnswerPeek = useCallback(
+    (answers: string[], activeIndex: number, prompts: string[] = []) => {
+      setPeek({ answers, activeIndex, prompts });
+    },
+    []
+  );
+  // 채점이 끝난 단계의 정오답 — 선생님 화면에서 초록/빨강으로 보여준다.
+  // 단계가 바뀌면 비운다(다음 단계는 아직 채점 전이므로).
+  const [gradedCorrect, setGradedCorrect] = useState<(boolean | null)[]>([]);
+
+  // 결과 화면에 들어가면 그 화면이 받는 데이터를 그대로 선생님에게 보낸다.
+  // 선생님 쪽에서 같은 컴포넌트로 렌더하므로 학생이 보는 화면과 동일하다.
+  useEffect(() => {
+    if (!liveSessionId || !liveParticipantId) return;
+    const send = (stage: BaseStage, data: Record<string, unknown>) =>
+      sendResult({ participantId: liveParticipantId, stage, data });
+
+    if (currentStage === "fill_blank_result" && fillBlankAnswers.length > 0) {
+      send("fill_blank", { answers: fillBlankAnswers });
+    } else if (currentStage === "type_answer_result" && typeAnswerResults.length > 0) {
+      send("type_answer", { results: typeAnswerResults });
+    } else if (currentStage === "word_magnet_result" && wordMagnetResults.length > 0) {
+      send("word_magnet", { results: wordMagnetResults });
+    } else if (currentStage === "matchup_result" && Object.keys(matchupResults).length > 0) {
+      send("matchup", { problems: matchupProblems, results: matchupResults });
+    } else if (currentStage === "sentence_making_result") {
+      send("sentence_making", {
+        problems: sentenceMakingProblems,
+        results: sentenceMakingResults,
+      });
+    }
+  }, [
+    liveSessionId,
+    liveParticipantId,
+    currentStage,
+    fillBlankAnswers,
+    typeAnswerResults,
+    wordMagnetResults,
+    matchupProblems,
+    matchupResults,
+    sentenceMakingProblems,
+    sentenceMakingResults,
+    sendResult,
+  ]);
+
+  // 결과 화면을 지나 다음 풀이 단계로 들어가면 이전 채점 결과를 버린다.
+  // 그대로 두면 선생님 화면에서 새 단계 문항에 옛 정오답이 칠해진다.
+  useEffect(() => {
+    if (!currentStage.endsWith("_result") && currentStage !== "completed") {
+      setGradedCorrect([]);
+    }
+  }, [currentStage]);
+
   const handleProgressUpdate = useCallback((current: number, total: number, label: string) => {
     setStageProgress({ current, total, label });
   }, []);
@@ -164,7 +289,16 @@ export default function QuizTake() {
       sentence_making: !!quiz.sentence_making_enabled,
       recording: !!quiz.recording_enabled,
     };
-    return STAGE_ORDER.filter((s) => isEnabled[s]);
+    const base = STAGE_ORDER.filter((s) => isEnabled[s]);
+
+    // 라이브 세션이면 선생님이 그 세션에서 고른 유형만 진행한다.
+    // (퀴즈에 말하기 연습이 켜져 있어도 라이브에서는 빠져야 한다.)
+    const live = quiz.live_stages;
+    if (live && live.length > 0) {
+      const picked = base.filter((s) => live.includes(s));
+      if (picked.length > 0) return picked;
+    }
+    return base;
   }, [quiz]);
 
   // 전역 단계(Stepper) 구성을 위한 배열 계산
@@ -231,10 +365,17 @@ export default function QuizTake() {
     // quiz가 이미 로드되었으면 다시 로드하지 않음 (창 포커스 시 재실행 방지)
     if (quiz) return;
 
-    if ((user || shareToken) && id) {
+    // 라이브 세션 학생은 user도 shareToken도 없을 수 있다(비회원 참여).
+    // 참가자 id가 곧 입장 증표이므로 그것만 있으면 불러온다.
+    if ((user || shareToken || liveParticipantId) && id) {
       fetchQuiz();
+    } else if (!loading) {
+      // 불러올 근거가 없으면(로그인·공유토큰·라이브 참가자 모두 없음) 로딩을 끝낸다.
+      // 예전엔 여기서 isLoading이 true로 남아 아래 로그인 안내까지 가지 못하고
+      // 스피너만 계속 돌았다.
+      setIsLoading(false);
     }
-  }, [user?.id, shareToken, id]);
+  }, [user?.id, loading, shareToken, liveParticipantId, id]);
 
   // 결과/완료 화면 여부 — 이 동안엔 타이머를 완전히 멈춘다(표시도, 카운트다운도).
   const isResultView = currentStage.endsWith("_result") || currentStage === "completed";
@@ -431,7 +572,22 @@ export default function QuizTake() {
     try {
       let quizData: Quiz;
 
-      if (shareToken) {
+      if (liveSessionId && liveParticipantId) {
+        // 라이브 세션: 클래스 배정이 아니라 "이 세션의 참가자인가"로 확인한다.
+        const { data, error } = await supabase.rpc("get_quiz_for_live_session", {
+          _session_id: liveSessionId,
+          _participant_id: liveParticipantId,
+        });
+
+        if (error || !data) {
+          console.error("Live quiz fetch error:", error);
+          toast.error(error?.message || "퀴즈를 불러올 수 없습니다");
+          navigate("/join");
+          return;
+        }
+
+        quizData = data as unknown as Quiz;
+      } else if (shareToken) {
         // 익명 게이트: QuizShare.tsx의 게이트를 우회해 이 페이지로 직접 들어오는 경우
         // (?share=<token>&name=...)를 막기 위해 여기서도 매번 서버에서 다시 확인한다.
         // 주의: UX 차원의 접근 제어일 뿐이며, matchup_problems 등의 익명 SELECT RLS는
@@ -495,8 +651,22 @@ export default function QuizTake() {
         quizData = data as unknown as Quiz;
       }
 
-      // Shuffle problems
-      const shuffled = [...quizData.problems].sort(() => Math.random() - 0.5);
+      // 문제 순서. 라이브 세션은 기본적으로 섞지 않는다 — 학생마다 순서가 다르면
+      // 선생님이 "3번 문제"를 학생끼리 비교할 수 없어 실시간 관찰이 무의미해진다.
+      // 선생님이 준비 화면에서 켰을 때만 섞는다.
+      // 문제 순서. 유형별 목록에도 똑같이 적용한다 — 하나라도 빠지면 그 유형만
+      // 학생마다 순서가 달라져 선생님 화면에서 번호가 어긋난다.
+      //
+      //  숙제(라이브 아님)        → 학생마다 무작위 (기존 동작)
+      //  라이브 + 섞기 켬          → 학생마다 무작위
+      //  라이브 + 섞기 끔(기본)    → 세션 id를 씨앗으로 한 번 섞어 전원이 공유.
+      //                             원본 순서 그대로가 아니라 "모두 같은 무작위".
+      const perStudentRandom = liveSessionId ? quizData.live_shuffle === true : true;
+      const order = <T,>(arr: T[]): T[] =>
+        perStudentRandom
+          ? [...arr].sort(() => Math.random() - 0.5)
+          : seededShuffle(arr, liveSessionId!);
+      const shuffled = order(quizData.problems);
       
       // quiz_problems 테이블에서 audio URL 가져오기 (if not already loaded)
       if (!isAnonymous) {
@@ -531,7 +701,7 @@ export default function QuizTake() {
 
         if (smProblems && smProblems.length > 0) {
           // 문제 순서 셔플
-          const shuffledSM = [...smProblems].sort(() => Math.random() - 0.5);
+          const shuffledSM = order(smProblems);
           setSentenceMakingProblems(shuffledSM);
         }
       }
@@ -545,7 +715,7 @@ export default function QuizTake() {
 
         if (muProblems && muProblems.length > 0) {
           // 문제 순서 셔플 (다른 유형과 동일 — 세트 구성이 로드마다 랜덤)
-          const shuffledMU = [...muProblems].sort(() => Math.random() - 0.5);
+          const shuffledMU = order(muProblems);
           setMatchupProblems(
             shuffledMU.map((p) => ({
               id: p.problem_id,
@@ -562,7 +732,7 @@ export default function QuizTake() {
           _quiz_id: id,
         });
         if (Array.isArray(taData) && taData.length > 0) {
-          const shuffledTA = [...taData].sort(() => Math.random() - 0.5);
+          const shuffledTA = order(taData);
           setTypeAnswerProblems(
             shuffledTA.map((p: any) => ({ id: p.problem_id, prompt: p.prompt }))
           );
@@ -575,7 +745,7 @@ export default function QuizTake() {
           _quiz_id: id,
         });
         if (Array.isArray(wmData) && wmData.length > 0) {
-          const shuffledWM = [...wmData].sort(() => Math.random() - 0.5);
+          const shuffledWM = order(wmData);
           setWordMagnetProblems(
             shuffledWM.map((p: any) => ({
               id: p.problem_id,
@@ -611,7 +781,7 @@ export default function QuizTake() {
           }
 
           // 문제 순서 셔플
-          const shuffledRec = [...recProblems].sort(() => Math.random() - 0.5);
+          const shuffledRec = order(recProblems);
           setRecordingProblems(shuffledRec.map(p => ({
             id: p.id,
             sentence: p.sentence,
@@ -632,7 +802,62 @@ export default function QuizTake() {
 
   const handleAnswerChange = (problemId: string, value: string) => {
     setUserAnswers({ ...userAnswers, [problemId]: value });
+    if (liveSessionId) setLastEditedId(problemId);
   };
+
+  // 답이 바뀌거나 단계가 넘어갈 때마다 선생님에게 진행 상황을 쏜다.
+  // 훅 내부에서 250ms로 묶어 보내므로 타이핑마다 호출해도 괜찮다.
+  useEffect(() => {
+    if (!liveSessionId || !liveParticipantId) return;
+    const base = currentStage.replace(/_result$/, "") as BaseStage;
+
+    // 빈칸 채우기만 답이 QuizTake에 올라와 있고(userAnswers), 나머지 유형은
+    // 각 Stage가 onAnswerPeek로 올려준 값을 쓴다.
+    let answers: string[];
+    let activeIndex: number;
+    let prompts: string[];
+    if (base === "fill_blank") {
+      const problems = (quiz?.problems as any[]) || [];
+      answers = problems.map((pr: any) => userAnswers[pr.id] ?? "");
+      activeIndex = lastEditedId ? problems.findIndex((pr: any) => pr.id === lastEditedId) : -1;
+      // 빈칸은 문장 자체가 문제다. 괄호 안 정답은 이미 서버에서 지워져 내려온다.
+      prompts = problems.map((pr: any) => pr.sentence ?? pr.word ?? "");
+    } else {
+      answers = peek.answers;
+      activeIndex = peek.activeIndex;
+      prompts = peek.prompts;
+    }
+
+    sendProgress({
+      participantId: liveParticipantId,
+      name: anonymousName || user?.email || "학생",
+      stage: base,
+      index: stageProgress.current,
+      total: stageProgress.total || answers.length,
+      answers,
+      prompts,
+      activeIndex,
+      // 풀이 중엔 정답을 모르므로 전부 null. 그 단계 채점이 끝나면 서버가 준
+      // 정오답을 실어 보내 선생님 화면에 초록/빨강으로 뜬다.
+      correct:
+        gradedCorrect.length === answers.length ? gradedCorrect : answers.map(() => null),
+      done: currentStage === "completed",
+    });
+  }, [
+    liveSessionId,
+    liveParticipantId,
+    userAnswers,
+    lastEditedId,
+    peek,
+    gradedCorrect,
+    currentStage,
+    stageProgress.current,
+    stageProgress.total,
+    sendProgress,
+    quiz?.problems,
+    anonymousName,
+    user?.email,
+  ]);
 
   const handleSubmit = useCallback(async () => {
     if (!quiz || isSubmitting) return;
@@ -925,6 +1150,16 @@ export default function QuizTake() {
       return navigate(`/quiz/share/result?token=${shareToken}`);
     }
 
+    // 라이브 세션 비회원: 저장할 계정이 없다. 결과를 남기지 않는 건 의도된 동작이지만
+    // (세션 설정에 "비회원은 결과가 저장되지 않아요"로 안내), 여기서 그냥 return하면
+    // 제출 버튼이 아무 반응도 없는 것처럼 보인다. 완료 상태로 넘겨 선생님 화면에도
+    // 제출됨으로 표시되게 한다.
+    if (!user && liveSessionId) {
+      setCurrentStage("completed");
+      toast.success("제출했어요! 선생님 화면에 표시됩니다.");
+      return;
+    }
+
     if (!user) return; // Should not happen if shareToken logic covers it, but for safety
 
     setIsSubmitting(true);
@@ -1080,6 +1315,16 @@ export default function QuizTake() {
   //   호출하면 기존 "아직 안 푼 유형" 가드가 알아서 처리한다 — 이미 완료된 상태면 그대로
   //   제출되고, 아직 못 끝냈으면 토스트로 안내하고 같은 스테이지에 머문다(예전처럼 진짜
   //   프리즈가 아니라, 이 스테이지는 타이머 배지 자체를 숨기므로 사용자는 계속 풀 수 있다).
+  // 선생님이 세션을 끝내면 학생 화면도 즉시 제출한다.
+  // handleSubmit을 참조하므로 그 아래에 둔다(위 handleTimeUp 주석의 이유와 동일).
+  const liveEnded = useRef(false);
+  useEffect(() => {
+    if (!liveSessionId || liveControl?.type !== "end" || liveEnded.current) return;
+    liveEnded.current = true;
+    toast.info("선생님이 세션을 종료했어요. 지금까지 푼 내용을 제출합니다.");
+    handleSubmit();
+  }, [liveSessionId, liveControl, handleSubmit]);
+
   const handleTimeUp = useCallback(() => {
     toast.warning("시간이 다 됐어요!");
     if (currentStage === "fill_blank" || currentStage === "matchup") {
@@ -1128,13 +1373,17 @@ export default function QuizTake() {
     );
   }
 
-  // Allow anonymous users with share token - check shareToken first!
-  if (!user && !shareToken) {
+  // 공유 링크(shareToken)와 라이브 세션(liveParticipantId)은 로그인 없이도 푼다.
+  // 라이브는 참가자 id 자체가 입장 증표이고, 퀴즈도 그 id로만 내려온다.
+  const hasGuestPass = !!shareToken || !!liveParticipantId;
+
+  if (!user && !hasGuestPass) {
     return <Navigate to="/auth" replace />;
   }
 
-  // Logged in users must be students (unless they have a share token)
-  if (user && role !== "student" && !shareToken) {
+  // 로그인 사용자는 학생이어야 한다 — 단, 선생님이 라이브 세션에 직접 참여해
+  // 시범을 보이는 경우가 있으므로 게스트 통행증이 있으면 막지 않는다.
+  if (user && role !== "student" && !hasGuestPass) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -1194,32 +1443,38 @@ export default function QuizTake() {
       return;
     }
 
-    // 서버에서 정답 가져와서 채점 (임시, 최종 제출은 나중에)
+    // 서버 채점 — 정답을 클라이언트로 내려받지 않는다. 예전에는 quizzes 테이블을
+    // 직접 읽었는데, 라이브 세션 학생(특히 비회원)은 그 권한이 없어 막혔다.
     try {
-      const { data: fullQuiz, error } = await supabase
-        .from("quizzes")
-        .select("problems")
-        .eq("id", quiz.id)
-        .single();
+      const studentAnswersForGrading: Record<string, string> = {};
+      quiz.problems.forEach((problem) => {
+        studentAnswersForGrading[problem.id] = (userAnswers[problem.id] || "").trim();
+      });
 
-      if (error || !fullQuiz) {
-        toast.error("결과를 계산할 수 없습니다.");
+      const { data: gradedRaw, error } = await rpcWithRetry(() =>
+        supabase.rpc("grade_fill_blank", {
+          _quiz_id: quiz.id,
+          _answers: studentAnswersForGrading,
+        })
+      );
+
+      if (error || !Array.isArray(gradedRaw)) {
+        console.error("Fill blank grading error:", error);
+        toast.error(gradingErrorMessage(error));
         return;
       }
 
-      const fullProblems = (fullQuiz.problems as any[]) || [];
-      const normalizeAnswer = (s: string) => s.toLowerCase().trim().replace(/[.。!?！？,，\s]+$/, "");
+      // 서버는 퀴즈에 저장된 순서로 돌려주므로, 화면에 보이는 순서에 맞춰 재정렬한다.
+      const byId = new Map(
+        (gradedRaw as any[]).map((r: any) => [r.problemId as string, r])
+      );
       const detailedAnswers = quiz.problems.map((problem) => {
-        const userAnswer = (userAnswers[problem.id] || "").trim();
-        const fullProblem = fullProblems.find((p: any) => p.id === problem.id);
-        const correctAnswer = fullProblem?.answer || "";
-        const isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
-
+        const g = byId.get(problem.id);
         return {
           problemId: problem.id,
-          userAnswer,
-          correctAnswer,
-          isCorrect,
+          userAnswer: g?.userAnswer ?? (userAnswers[problem.id] || "").trim(),
+          correctAnswer: g?.correctAnswer ?? "",
+          isCorrect: !!g?.isCorrect,
           sentence: problem.sentence,
           word: problem.word,
           hint: problem.hint,
@@ -1227,6 +1482,9 @@ export default function QuizTake() {
           sentence_audio_url: problem.sentence_audio_url,
         };
       });
+
+      // 선생님 화면에 정오답을 보여주기 위해 방송용으로 보관한다.
+      setGradedCorrect(detailedAnswers.map((a) => a.isCorrect));
 
       // 인증된 사용자 + 추가 스테이지: 빈칸 결과 중간 저장
       if (!isAnonymous && user && (quiz.matchup_enabled || quiz.type_answer_enabled || quiz.word_magnet_enabled || quiz.sentence_making_enabled || quiz.recording_enabled)) {
@@ -1330,10 +1588,9 @@ export default function QuizTake() {
     // 서버 채점 (정답 노출 방지)
     let graded: TypeAnswerGradeResult[] = [];
     try {
-      const { data, error } = await supabase.rpc("grade_type_answers", {
-        _quiz_id: quiz!.id,
-        _answers: answers,
-      });
+      const { data, error } = await rpcWithRetry(() =>
+        supabase.rpc("grade_type_answers", { _quiz_id: quiz!.id, _answers: answers })
+      );
       if (error) throw error;
       graded = (Array.isArray(data) ? data : []).map((r: any) => ({
         problemId: r.problemId,
@@ -1345,11 +1602,12 @@ export default function QuizTake() {
       }));
     } catch (err) {
       console.error("Type answer grading error:", err);
-      toast.error("채점에 실패했습니다.");
+      toast.error(gradingErrorMessage(err));
       return;
     }
 
     setTypeAnswerResults(graded);
+    setGradedCorrect(graded.map((r) => r.isCorrect));
     setTypeAnswerSkippedIds(skippedSet);
     const taTotal = graded.length;
     const taScore = graded.filter((r) => r.isCorrect).length;
@@ -1400,10 +1658,9 @@ export default function QuizTake() {
     const skippedSet = new Set(skippedIds);
     let graded: WordMagnetGradeResult[] = [];
     try {
-      const { data, error } = await supabase.rpc("grade_word_magnets", {
-        _quiz_id: quiz!.id,
-        _answers: answers,
-      });
+      const { data, error } = await rpcWithRetry(() =>
+        supabase.rpc("grade_word_magnets", { _quiz_id: quiz!.id, _answers: answers })
+      );
       if (error) throw error;
       graded = (Array.isArray(data) ? data : []).map((r: any) => ({
         problemId: r.problemId,
@@ -1415,11 +1672,12 @@ export default function QuizTake() {
       }));
     } catch (err) {
       console.error("Word magnet grading error:", err);
-      toast.error("채점에 실패했습니다.");
+      toast.error(gradingErrorMessage(err));
       return;
     }
 
     setWordMagnetResults(graded);
+    setGradedCorrect(graded.map((r) => r.isCorrect));
     setWordMagnetSkippedIds(skippedSet);
     const wmTotal = graded.length;
     const wmScore = graded.filter((r) => r.isCorrect).length;
@@ -1664,6 +1922,7 @@ export default function QuizTake() {
         <div className="container mx-auto px-4 py-8">
           <TypeAnswerStage
             problems={typeAnswerProblems}
+          onAnswerPeek={handleAnswerPeek}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleTypeAnswerComplete}
             onBack={goBackToPrev("type_answer")}
@@ -1700,6 +1959,7 @@ export default function QuizTake() {
         <div className="container mx-auto px-4 py-8">
           <WordMagnetStage
             problems={wordMagnetProblems}
+          onAnswerPeek={handleAnswerPeek}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleWordMagnetComplete}
             onBack={goBackToPrev("word_magnet")}
@@ -1739,6 +1999,7 @@ export default function QuizTake() {
             problems={sentenceMakingProblems}
             difficulty={quiz.difficulty}
             translationLanguage={quiz.translation_language}
+          onAnswerPeek={handleAnswerPeek}
             onProgressUpdate={handleProgressUpdate}
             onComplete={handleSentenceMakingComplete}
             onBack={goBackToPrev("sentence_making")}

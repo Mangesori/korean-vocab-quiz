@@ -61,10 +61,15 @@ export default function ClassAnnouncements() {
   const { can } = usePermissions();
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [newAnnouncement, setNewAnnouncement] = useState({
+  const [newAnnouncement, setNewAnnouncement] = useState<{
+    title: string;
+    content: string;
+    priority: 'low' | 'normal' | 'high';
+    is_pinned: boolean;
+  }>({
     title: '',
     content: '',
-    priority: 'normal' as const,
+    priority: 'normal',
     is_pinned: false,
   });
 

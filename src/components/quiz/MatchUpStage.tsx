@@ -236,7 +236,8 @@ export function MatchUpStage({ problems, wordsPerSet = 5, timeUpToken, onProgres
               disabled={!onBack}
               className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
             >
-              <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> {backLabel ?? "이전"}
+              <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> <span className="hidden sm:inline">{backLabel ?? "이전"}</span>
+            <span className="sm:hidden">이전</span>
             </Button>
           ) : (
             <Button

@@ -614,6 +614,101 @@ export type Database = {
           },
         ]
       }
+      live_participants: {
+        Row: {
+          display_name: string
+          id: string
+          is_guest: boolean
+          joined_at: string
+          left_at: string | null
+          session_id: string
+          student_id: string | null
+        }
+        Insert: {
+          display_name: string
+          id?: string
+          is_guest?: boolean
+          joined_at?: string
+          left_at?: string | null
+          session_id: string
+          student_id?: string | null
+        }
+        Update: {
+          display_name?: string
+          id?: string
+          is_guest?: boolean
+          joined_at?: string
+          left_at?: string | null
+          session_id?: string
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_sessions: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          ended_at: string | null
+          id: string
+          join_code: string
+          quiz_id: string
+          settings: Json
+          stages: string[]
+          started_at: string | null
+          status: string
+          teacher_id: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          join_code: string
+          quiz_id: string
+          settings?: Json
+          stages?: string[]
+          started_at?: string | null
+          status?: string
+          teacher_id: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          join_code?: string
+          quiz_id?: string
+          settings?: Json
+          stages?: string[]
+          started_at?: string | null
+          status?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_sessions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_sessions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quiz_shares: {
         Row: {
           allow_anonymous: boolean
@@ -1357,7 +1452,28 @@ export type Database = {
     Functions: {
       ensure_quiz_result: { Args: { _quiz_id: string }; Returns: Json }
       finalize_quiz_result: { Args: { _result_id: string }; Returns: undefined }
+      find_live_session_by_code: {
+        Args: { p_code: string }
+        Returns: {
+          allow_guests: boolean
+          id: string
+          quiz_id: string
+          quiz_title: string
+          status: string
+        }[]
+      }
+      grade_fill_blank: { Args: { _answers: Json; _quiz_id: string }; Returns: Json }
       generate_invite_code: { Args: never; Returns: string }
+      get_quiz_for_live_session: {
+        Args: { _participant_id: string; _session_id: string }
+        Returns: Json
+      }
+      generate_live_join_code: { Args: never; Returns: string }
+      is_live_participant: { Args: { p_session_id: string }; Returns: boolean }
+      join_live_session_as_guest: {
+        Args: { p_code: string; p_name: string }
+        Returns: Database["public"]["Tables"]["live_participants"]["Row"]
+      }
       get_class_by_invite_code: {
         Args: { _invite_code: string }
         Returns: {

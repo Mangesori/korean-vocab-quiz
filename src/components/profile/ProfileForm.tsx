@@ -19,7 +19,11 @@ import { ProfileData, ProfileUpdateData } from '@/hooks/useProfile';
 const profileSchema = z.object({
   name: z.string().min(1, '이름을 입력해주세요').max(50, '이름은 50자 이하로 입력해주세요'),
   bio: z.string().max(200, '자기소개는 200자 이하로 입력해주세요').optional().nullable(),
-  preferred_language: z.string().optional().nullable(),
+  // profiles.preferred_language 는 DB에서 enum이라 임의 문자열을 넣을 수 없다.
+  preferred_language: z
+    .enum(['en', 'ja', 'zh_CN', 'zh_TW', 'vi', 'th', 'id', 'es', 'fr', 'de', 'ru'])
+    .optional()
+    .nullable(),
   study_goal: z.string().max(100, '학습 목표는 100자 이하로 입력해주세요').optional().nullable(),
   daily_word_count: z.number().min(1).max(100).optional().nullable(),
   theme_preference: z.enum(['light', 'dark', 'system']).optional().nullable(),
@@ -163,7 +167,9 @@ export function ProfileForm({ profile, onSubmit, isSubmitting }: ProfileFormProp
             <Label>번역 언어</Label>
             <Select
               value={selectedLanguage || 'en'}
-              onValueChange={(value) => setValue('preferred_language', value)}
+              onValueChange={(value) =>
+                setValue('preferred_language', value as ProfileFormData['preferred_language'])
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="언어 선택" />

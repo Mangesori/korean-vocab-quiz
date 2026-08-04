@@ -20,19 +20,33 @@ export interface TypeAnswerGradeResult {
 
 interface TypeAnswerStageProps {
   problems: TypeAnswerProblemData[];
+  /** 라이브 세션 중계용. 답이 바뀔 때마다 문항별 현재 입력값과 활성 문항을 알린다.
+   *  라이브가 아닐 땐 전달되지 않으므로 기존 동작에 영향이 없다. */
+  onAnswerPeek?: (answers: string[], activeIndex: number, prompts: string[]) => void;
   onProgressUpdate?: (current: number, total: number, label: string) => void;
   onComplete: (answers: Record<string, string>, skippedIds: string[]) => void;
   onBack?: () => void;
   backLabel?: string;
 }
 
-export function TypeAnswerStage({ problems, onProgressUpdate, onComplete, onBack, backLabel }: TypeAnswerStageProps) {
+export function TypeAnswerStage({ problems, onAnswerPeek, onProgressUpdate, onComplete, onBack, backLabel }: TypeAnswerStageProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
+
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const total = problems.length;
   const problem = problems[currentIndex];
+  // 라이브 중계: 문항별 현재 입력값과 지금 보고 있는 문항을 알린다.
+  useEffect(() => {
+    if (!onAnswerPeek) return;
+    onAnswerPeek(
+      problems.map((p) => answers[p.id] ?? ""),
+      currentIndex,
+      problems.map((p) => p.prompt)
+    );
+  }, [answers, currentIndex, problems, onAnswerPeek]);
+
   const isLast = currentIndex === total - 1;
   const isSkipped = skippedIds.has(problem?.id);
   const currentFilled = !!answers[problem?.id]?.trim() || isSkipped;
@@ -120,14 +134,15 @@ export function TypeAnswerStage({ problems, onProgressUpdate, onComplete, onBack
         />
 
         <div className="grid grid-cols-3 items-center pt-2 gap-2">
-          <div className="justify-self-start">
+          <div className="justify-self-start min-w-0 max-w-full">
             {currentIndex === 0 && onBack ? (
               <Button
                 variant="outline"
                 onClick={onBack}
                 className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
               >
-                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> {backLabel ?? "이전"}
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> <span className="hidden sm:inline">{backLabel ?? "이전"}</span>
+            <span className="sm:hidden">이전</span>
               </Button>
             ) : (
               <Button
@@ -143,7 +158,7 @@ export function TypeAnswerStage({ problems, onProgressUpdate, onComplete, onBack
 
           <div className="flex justify-center">{skipButton}</div>
 
-          <div className="justify-self-end">
+          <div className="justify-self-end min-w-0">
             <Button
               onClick={goNext}
               disabled={!currentFilled}

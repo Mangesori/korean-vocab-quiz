@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, TextCursorInput, PenLine, Mic, Link2, Keyboard, Magnet, X } from "lucide-react";
+import { Loader2, ArrowLeft, TextCursorInput, PenLine, Mic, Link2, Keyboard, Magnet, X, Radio } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Dialog } from "@/components/ui/dialog";
 import {
@@ -33,6 +33,9 @@ import { QuizHeader } from "@/components/quiz/QuizHeader";
 import { QuizWords } from "@/components/quiz/QuizWords";
 import { FillBlankProblemList } from "@/components/quiz/FillBlankProblemList";
 import { ShareQuizDialogContent } from "@/components/quiz/ShareQuizDialog";
+import { StartLiveDialog } from "@/components/live/StartLiveDialog";
+import { LIVE_STAGES } from "@/types/liveSession";
+import type { BaseStage } from "@/types/quiz";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuizResultsList } from "@/components/quiz/QuizResultsList";
 import { SentenceMakingProblemList, SentenceMakingProblem } from "@/components/quiz/SentenceMakingProblemList";
@@ -113,6 +116,23 @@ export default function QuizDetail() {
     ];
     const first = order.find(([, enabled]) => enabled)?.[0];
     if (first) setProblemTab(first);
+  }, [quiz]);
+
+  const [liveDialogOpen, setLiveDialogOpen] = useState(false);
+
+  // 이 퀴즈에 켜져 있는 유형 — 라이브 세션 다이얼로그에 넘긴다.
+  const enabledStages = useMemo<BaseStage[]>(() => {
+    if (!quiz) return [];
+    return ([
+      ["matchup", !!quiz.matchup_enabled],
+      ["type_answer", !!quiz.type_answer_enabled],
+      ["fill_blank", quiz.fill_blank_enabled !== false],
+      ["word_magnet", !!quiz.word_magnet_enabled],
+      ["sentence_making", !!quiz.sentence_making_enabled],
+      ["recording", !!quiz.recording_enabled],
+    ] as [BaseStage, boolean][])
+      .filter(([, on]) => on)
+      .map(([s]) => s);
   }, [quiz]);
 
   // 짝 맞추기 문제 조회
@@ -907,6 +927,23 @@ export default function QuizDetail() {
           onOpenSendDialog={() => setSendDialogOpen(true)} 
         />
 
+        {enabledStages.some((s) => LIVE_STAGES.includes(s)) && (
+          <div className="mb-6">
+            <Button variant="outline" className="gap-2" onClick={() => setLiveDialogOpen(true)}>
+              <Radio className="w-4 h-4 text-destructive" />
+              라이브 세션 시작
+            </Button>
+          </div>
+        )}
+
+        <StartLiveDialog
+          open={liveDialogOpen}
+          onOpenChange={setLiveDialogOpen}
+          quizId={id!}
+          availableStages={enabledStages}
+          classId={selectedClassId || null}
+        />
+
         <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
           <ShareQuizDialogContent 
             classes={classes}
@@ -1019,11 +1056,14 @@ export default function QuizDetail() {
             <QuizWords words={quiz.words} />
 
             {/* 문제 유형 서브 탭 */}
+            {/* 모바일은 2열 격자 — 가운데 정렬 flex-wrap이면 라벨 길이에 따라
+                한 줄에 1개만 들어가는 줄이 생겨 들쭉날쭉해진다. 격자로 두면
+                "문장 순서 맞추기"처럼 긴 라벨도 항상 2개씩 나란히 놓인다. */}
             <div className="flex justify-center mb-6">
-              <div className="inline-flex items-center bg-muted border border-border/50 p-1 rounded-lg gap-1 flex-wrap justify-center">
+              <div className="grid grid-cols-2 w-full sm:w-auto sm:inline-flex sm:items-center bg-muted border border-border/50 p-1 rounded-lg gap-1 sm:flex-wrap sm:justify-center">
                 <button
                   onClick={() => quiz.matchup_enabled ? setProblemTab("matchup") : setConfirmDialog("matchup")}
-                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-1.5 rounded-md text-[13px] sm:text-sm font-medium transition-all whitespace-nowrap ${
                     quiz.matchup_enabled
                       ? problemTab === "matchup"
                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -1048,7 +1088,7 @@ export default function QuizDetail() {
                 </button>
                 <button
                   onClick={() => quiz.type_answer_enabled ? setProblemTab("type_answer") : setConfirmDialog("type_answer")}
-                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-1.5 rounded-md text-[13px] sm:text-sm font-medium transition-all whitespace-nowrap ${
                     quiz.type_answer_enabled
                       ? problemTab === "type_answer"
                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -1073,7 +1113,7 @@ export default function QuizDetail() {
                 </button>
                 <button
                   onClick={() => quiz.fill_blank_enabled !== false ? setProblemTab("fill_blank") : setConfirmDialog("fill_blank")}
-                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-1.5 rounded-md text-[13px] sm:text-sm font-medium transition-all whitespace-nowrap ${
                     quiz.fill_blank_enabled !== false
                       ? problemTab === "fill_blank"
                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -1098,7 +1138,7 @@ export default function QuizDetail() {
                 </button>
                 <button
                   onClick={() => quiz.word_magnet_enabled ? setProblemTab("word_magnet") : setConfirmDialog("word_magnet")}
-                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-1.5 rounded-md text-[13px] sm:text-sm font-medium transition-all whitespace-nowrap ${
                     quiz.word_magnet_enabled
                       ? problemTab === "word_magnet"
                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -1123,7 +1163,7 @@ export default function QuizDetail() {
                 </button>
                 <button
                   onClick={() => quiz.sentence_making_enabled ? setProblemTab("sentence_making") : setConfirmDialog("sentence_making")}
-                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-1.5 rounded-md text-[13px] sm:text-sm font-medium transition-all whitespace-nowrap ${
                     quiz.sentence_making_enabled
                       ? problemTab === "sentence_making"
                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -1148,7 +1188,7 @@ export default function QuizDetail() {
                 </button>
                 <button
                   onClick={() => quiz.recording_enabled ? setProblemTab("recording") : setConfirmDialog("recording")}
-                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-1.5 rounded-md text-[13px] sm:text-sm font-medium transition-all whitespace-nowrap ${
                     quiz.recording_enabled
                       ? problemTab === "recording"
                         ? "bg-primary text-primary-foreground shadow-sm"

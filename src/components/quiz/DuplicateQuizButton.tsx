@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Quiz } from '@/hooks/useQuizData';
+import type { Json } from '@/integrations/supabase/types';
 import { quizInsertErrorMessage } from '@/lib/supabaseErrors';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -19,24 +21,6 @@ import {
 import { Copy, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface Quiz {
-  id: string;
-  title: string;
-  words: string[];
-  difficulty: string;
-  words_per_set: number;
-  timer_enabled: boolean;
-  timer_seconds: number | null;
-  translation_language: string;
-  problems: any;
-  api_provider?: string;
-  recording_enabled?: boolean;
-  sentence_making_enabled?: boolean;
-  matchup_enabled?: boolean;
-  type_answer_enabled?: boolean;
-  word_magnet_enabled?: boolean;
-  fill_blank_enabled?: boolean;
-}
 
 interface DuplicateQuizButtonProps {
   quiz: Quiz;
@@ -124,7 +108,8 @@ export function DuplicateQuizButton({
           timer_enabled: quiz.timer_enabled,
           timer_seconds: quiz.timer_seconds,
           translation_language: quiz.translation_language,
-          problems: quiz.problems,
+          // Problem[]은 인터페이스라 Json의 인덱스 시그니처를 만족하지 못한다(구조는 동일).
+          problems: quiz.problems as unknown as Json,
           api_provider: quiz.api_provider,
           recording_enabled: quiz.recording_enabled ?? false,
           sentence_making_enabled: quiz.sentence_making_enabled ?? false,
