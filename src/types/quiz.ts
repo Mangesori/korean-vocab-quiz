@@ -23,6 +23,24 @@ export interface SentenceMakingProblem {
   model_answer: string;
 }
 
+/**
+ * 문장 만들기 채점이 찾아낸 오류 한 건.
+ *
+ * 채점 기준은 supabase/functions/grade-sentence/GRADING-CRITERIA.md 참조.
+ * 심각도가 그대로 감점(major −12 / minor −5)이 되므로, 오류 1건은
+ * "학생이 저지른 실수 1개"여야 한다. 하나의 실수에서 파생된 부작용을
+ * 따로 세면 점수가 그만큼 틀어진다.
+ *
+ * 목표 단어 오용·결합 오류·문장 의미 붕괴는 여기 들어가지 않는다.
+ * 그건 감점이 아니라 즉시 불합격 사유라 별도 필드로 온다.
+ */
+export type GradedErrorSeverity = 'major' | 'minor';
+
+export interface GradedError {
+  text: string;
+  severity: GradedErrorSeverity;
+}
+
 export interface MatchupProblem {
   problem_id: string;
   korean_text: string;

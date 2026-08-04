@@ -12,10 +12,13 @@ export default function Index() {
   const location = useLocation();
 
   useEffect(() => {
-    if (location.hash) {
-      const el = document.querySelector(location.hash);
-      el?.scrollIntoView({ behavior: 'smooth' });
-    }
+    // 해시가 항상 앵커 id인 건 아니다. OAuth 리다이렉트는 "#access_token=..."을 남기고,
+    // supabase-js가 그 토큰을 소비한 뒤엔 "#" 하나만 남는다.
+    // 이런 값을 querySelector에 넘기면 SyntaxError가 나고, 에러 바운더리가 없으면
+    // 리액트가 트리 전체를 언마운트해 화면이 하얘진다.
+    const id = location.hash.slice(1);
+    if (!id) return;
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   }, [location.hash]);
 
   if (!loading && user) return <Navigate to="/dashboard" replace />;

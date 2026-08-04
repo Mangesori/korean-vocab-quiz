@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { toast } from 'sonner';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const { refreshRole } = useAuth();
   const [needsRoleSelection, setNeedsRoleSelection] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -31,11 +33,13 @@ export default function AuthCallback() {
         .from('profiles')
         .select('role')
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle();
 
       if (roleData) {
-        // User already has a role, redirect to dashboard
-        navigate('/dashboard');
+        // 이미 프로필이 있으면 컨텍스트의 역할을 먼저 최신화한 뒤 이동한다.
+        // (역할이 비어 있는 채로 대시보드에 들어가면 다시 여기로 튕겨 무한 루프가 된다)
+        await refreshRole();
+        navigate('/dashboard', { replace: true });
       } else {
         // New Google user, needs to select a role
         setNeedsRoleSelection(true);
@@ -44,7 +48,8 @@ export default function AuthCallback() {
     };
 
     handleCallback();
-  }, [navigate]);
+    // refreshRole은 useCallback으로 안정적이라 재실행을 유발하지 않는다.
+  }, [navigate, refreshRole]);
 
   const handleRoleSelection = async (role: 'teacher' | 'student') => {
     if (!userId) return;
@@ -109,7 +114,10 @@ export default function AuthCallback() {
       }
 
       if (role === 'student') toast.success('환영합니다!');
-      navigate('/dashboard');
+      // 프로필을 방금 만들었으므로 auth 이벤트가 따로 발생하지 않는다.
+      // 컨텍스트 역할을 직접 갱신해야 대시보드가 다시 여기로 튕기지 않는다.
+      await refreshRole();
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       console.error('Error:', error);
       toast.error('오류가 발생했습니다');
@@ -164,5 +172,10 @@ export default function AuthCallback() {
     );
   }
 
-  return null;
+  // 어떤 경로로도 빈 화면이 남지 않도록 항상 로딩 상태를 보여준다.
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <LoadingSpinner size="lg" />
+    </div>
+  );
 }

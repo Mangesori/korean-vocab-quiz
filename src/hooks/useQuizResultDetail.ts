@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { GradedError } from "@/types/quiz";
 
 export interface SentenceMakingProblemDetail {
   id: string;
@@ -15,9 +16,11 @@ export interface SentenceMakingAnswerDetail {
   problem_id: string;
   attempt_number: number;
   student_sentence: string;
-  word_usage_score: number;
-  grammar_score: number;
-  naturalness_score: number;
+  /**
+   * 채점이 찾아낸 오류. 2026-08-03 이전에 채점된 행은 null이다.
+   * (그 전에는 오류 목록을 저장하지 않고 버렸다 — GRADING-CRITERIA.md 참조)
+   */
+  errors: GradedError[] | null;
   total_score: number;
   ai_feedback: string;
   model_answer: string;
@@ -197,7 +200,8 @@ export function useQuizResultDetail(resultId: string | null, quizId: string | nu
           .order("attempt_number"),
       ]);
       if (smProblems) sentenceMakingProblems = smProblems as SentenceMakingProblemDetail[];
-      if (smAnswers) sentenceMakingAnswers = smAnswers as SentenceMakingAnswerDetail[];
+      // errors 컬럼이 DB에서는 Json이고 여기서는 GradedError[]라 한 단계 거쳐 좁힌다.
+      if (smAnswers) sentenceMakingAnswers = smAnswers as unknown as SentenceMakingAnswerDetail[];
     }
 
     if (recordingEnabled) {

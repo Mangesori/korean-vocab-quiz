@@ -13,5 +13,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // auth-js 기본값은 'implicit'이라 로그인 토큰이 #access_token=... 해시로 돌아오고,
+    // 토큰을 소비한 뒤 주소창에 빈 '#'이 남는다. PKCE는 ?code=로 받고
+    // history.replaceState로 지우므로 해시 잔재가 생기지 않는다.
+    flowType: 'pkce',
   }
 });

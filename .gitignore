@@ -40,6 +40,10 @@ dist-ssr
 # Supabase 로컬 임시
 supabase/.temp/
 
+# 환경 변수 — 전부 로컬 전용. 새 변수는 .env.example 에 이름만 추가할 것.
+.env
+.env.local
+
 # 도움말 스크린샷 캡처 (로컬 전용 — 로컬 Supabase 접속 정보 + 로그인 세션)
 .env.capture
 scripts/help-shots/.auth/
@@ -49,3 +53,7 @@ _debug*.mjs
 _verify-*.mjs
 debug-*.png
 patch/
+
+# 채점 모델 평가 산출물 (학생 문장 포함 — 커밋 금지)
+scripts/eval-grading/out/*
+!scripts/eval-grading/out/report-demo.html

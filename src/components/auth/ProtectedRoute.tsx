@@ -15,12 +15,14 @@ export function ProtectedRoute({
   redirectTo = '/dashboard',
   children
 }: ProtectedRouteProps) {
-  const { user, role, loading } = useAuth();
+  const { user, roleResolved, loading } = useAuth();
   const { can } = usePermissions();
 
   // 세션·역할 복원 중에는 리다이렉트하지 않고 로딩만 표시한다.
   // (새 탭/새로고침 시 정보가 도착하기 전에 /auth로 튕기는 문제 방지)
-  if (loading || (user && role === null)) {
+  // role === null이 아니라 roleResolved로 판단한다 — 프로필이 없는 사용자가
+  // 영원히 스피너에 갇히지 않도록.
+  if (loading || (user && !roleResolved)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />

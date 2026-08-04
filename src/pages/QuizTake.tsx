@@ -839,9 +839,10 @@ export default function QuizTake() {
                   student_id: user ? user.id : null,
                   attempt_number: attempt.attemptNumber,
                   student_sentence: attempt.sentence,
-                  word_usage_score: attempt.wordUsageScore || 0,
-                  grammar_score: attempt.grammarScore || 0,
-                  naturalness_score: attempt.naturalnessScore || 0,
+                  // 세부 점수 3종은 더 이상 쓰지 않는다 — 화면에 표시된 적이 없고,
+                  // 총점을 가중평균으로 내던 옛 공식의 잔재다. 대신 오류 목록을 남긴다.
+                  // (GRADING-CRITERIA.md 참조)
+                  errors: attempt.errors ?? [],
                   total_score: attempt.totalScore,
                   ai_feedback: attempt.feedback,
                   model_answer: attempt.modelAnswer,
@@ -986,9 +987,8 @@ export default function QuizTake() {
               student_id: user!.id,
               attempt_number: attempt.attemptNumber,
               student_sentence: attempt.sentence,
-              word_usage_score: attempt.wordUsageScore || 0,
-              grammar_score: attempt.grammarScore || 0,
-              naturalness_score: attempt.naturalnessScore || 0,
+              // 세부 점수 3종 대신 오류 목록을 남긴다. (GRADING-CRITERIA.md 참조)
+              errors: attempt.errors ?? [],
               total_score: attempt.totalScore,
               ai_feedback: attempt.feedback,
               model_answer: attempt.modelAnswer,
@@ -1482,9 +1482,8 @@ export default function QuizTake() {
             student_id: user.id,
             attempt_number: attempt.attemptNumber,
             student_sentence: attempt.sentence,
-            word_usage_score: attempt.wordUsageScore || 0,
-            grammar_score: attempt.grammarScore || 0,
-            naturalness_score: attempt.naturalnessScore || 0,
+            // 세부 점수 3종 대신 오류 목록을 남긴다. (GRADING-CRITERIA.md 참조)
+            errors: attempt.errors ?? [],
             total_score: attempt.totalScore,
             ai_feedback: attempt.feedback,
             model_answer: attempt.modelAnswer,

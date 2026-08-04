@@ -27,6 +27,8 @@ import type {
   RecordingProblemDetail,
   RecordingAnswerDetail,
 } from "@/hooks/useQuizResultDetail";
+import type { GradedError } from "@/types/quiz";
+import type { Json } from "@/integrations/supabase/types";
 
 interface QuizResultDialogProps {
   isOpen: boolean;
@@ -67,9 +69,7 @@ const isFailedAttempt = (a: SentenceMakingAnswerDetail) =>
 
 interface BatchGradeResult {
   problemId: string;
-  wordUsageScore: number;
-  grammarScore: number;
-  naturalnessScore: number;
+  errors?: GradedError[];
   totalScore: number;
   feedback: string;
   modelAnswer: string;
@@ -115,7 +115,9 @@ function SentenceMakingView({
     const modelAnswerChanged = newModelAnswer !== originalModelAnswer;
 
     let newFeedback = editDraft.ai_feedback.trim();
-    let newScores: { word_usage_score: number; grammar_score: number; naturalness_score: number; total_score: number; is_passed: boolean } | null = null;
+    let newScores:
+      | { errors: GradedError[]; total_score: number; is_passed: boolean }
+      | null = null;
 
     if (modelAnswerChanged) {
       const { data } = await supabase.functions.invoke("grade-sentence", {
@@ -129,10 +131,10 @@ function SentenceMakingView({
       });
       if (data?.feedback) newFeedback = data.feedback;
       if (data?.totalScore !== undefined) {
+        // 세부 점수 3종은 더 이상 쓰지 않는다. 오류 목록으로 대체.
+        // (GRADING-CRITERIA.md 참조)
         newScores = {
-          word_usage_score: data.wordUsageScore,
-          grammar_score: data.grammarScore,
-          naturalness_score: data.naturalnessScore,
+          errors: data.errors ?? [],
           total_score: data.totalScore,
           is_passed: data.isPassed,
         };
@@ -219,10 +221,9 @@ function SentenceMakingView({
         for (const r of data.results as BatchGradeResult[]) {
           const attempt = chunk.find((a) => a.id === r.problemId);
           if (!attempt) continue;
-          const payload = {
-            word_usage_score: r.wordUsageScore,
-            grammar_score: r.grammarScore,
-            naturalness_score: r.naturalnessScore,
+          // 세부 점수 3종 대신 오류 목록. (GRADING-CRITERIA.md 참조)
+          const newErrors: GradedError[] = r.errors ?? [];
+          const patch = {
             total_score: r.totalScore,
             ai_feedback: r.feedback,
             model_answer: r.modelAnswer,
@@ -230,14 +231,17 @@ function SentenceMakingView({
           };
           const { error: updateError } = await supabase
             .from("sentence_making_answers")
-            .update(payload)
+            // DB 컬럼은 jsonb라 Json으로 넘긴다.
+            .update({ ...patch, errors: newErrors as unknown as Json })
             .eq("id", attempt.id);
           if (updateError) {
             console.error("Failed to persist regrade result:", updateError);
             hadError = true;
             continue;
           }
-          updatedAnswers = updatedAnswers.map((a) => (a.id === attempt.id ? { ...a, ...payload } : a));
+          updatedAnswers = updatedAnswers.map((a) =>
+            a.id === attempt.id ? { ...a, ...patch, errors: newErrors } : a
+          );
         }
       }
 

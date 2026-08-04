@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { QuizStageHeader } from "@/components/quiz/shared/QuizStageHeader";
 import { HintButton } from "@/components/quiz/shared/HintButton";
+import type { GradedError } from "@/types/quiz";
 
 interface SentenceMakingProblem {
   id: string;
@@ -19,13 +20,16 @@ interface SentenceMakingProblem {
 interface SentenceAttempt {
   attemptNumber: number;
   sentence: string;
-  wordUsageScore: number;
-  grammarScore: number;
-  naturalnessScore: number;
   totalScore: number;
   feedback: string;
   modelAnswer: string;
   isPassed: boolean;
+  /**
+   * 채점이 찾아낸 오류. 세부 점수 3종(단어사용·문법·자연스러움)을 대체한다.
+   * 그 세 숫자는 화면에 표시된 적이 없으면서 저장만 되고 있었고, 정작 유용한
+   * 오류 목록은 버려지고 있었다. (2026-08-03, GRADING-CRITERIA.md 참조)
+   */
+  errors: GradedError[];
   skipped?: boolean;
 }
 
@@ -109,13 +113,11 @@ export function SentenceMakingStage({
           {
             attemptNumber: 1,
             sentence: "",
-            wordUsageScore: 0,
-            grammarScore: 0,
-            naturalnessScore: 0,
             totalScore: 0,
             feedback: "모르겠어요를 선택했습니다.",
             modelAnswer: "",
             isPassed: false,
+            errors: [],
             skipped: true,
           },
         ];
@@ -185,13 +187,11 @@ export function SentenceMakingStage({
       // 결과 매핑
       const results: Array<{
         problemId: string;
-        wordUsageScore: number;
-        grammarScore: number;
-        naturalnessScore: number;
         totalScore: number;
         feedback: string;
         modelAnswer: string;
         isPassed: boolean;
+        errors?: GradedError[];
       }> = gradingResults;
 
       for (const result of results) {
@@ -201,13 +201,12 @@ export function SentenceMakingStage({
             {
               attemptNumber: 1,
               sentence: sentences[problem.id] || "",
-              wordUsageScore: result.wordUsageScore,
-              grammarScore: result.grammarScore,
-              naturalnessScore: result.naturalnessScore,
               totalScore: result.totalScore,
               feedback: result.feedback,
               modelAnswer: result.modelAnswer,
               isPassed: result.isPassed,
+              // 구버전 엣지 함수가 배포돼 있으면 errors가 없을 수 있다.
+              errors: result.errors ?? [],
             },
           ];
         }
@@ -220,13 +219,11 @@ export function SentenceMakingStage({
             {
               attemptNumber: 1,
               sentence: sentences[problem.id] || "",
-              wordUsageScore: 0,
-              grammarScore: 0,
-              naturalnessScore: 0,
               totalScore: 0,
               feedback: "채점 결과를 받지 못했습니다.",
               modelAnswer: "",
               isPassed: false,
+              errors: [],
             },
           ];
         }
@@ -241,13 +238,11 @@ export function SentenceMakingStage({
           {
             attemptNumber: 1,
             sentence: sentences[problem.id] || "",
-            wordUsageScore: 0,
-            grammarScore: 0,
-            naturalnessScore: 0,
             totalScore: 0,
             feedback: "채점에 실패했습니다. 나중에 다시 시도해주세요.",
             modelAnswer: "",
             isPassed: false,
+            errors: [],
           },
         ];
       }

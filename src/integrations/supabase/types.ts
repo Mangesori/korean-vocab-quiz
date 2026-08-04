@@ -878,6 +878,7 @@ export type Database = {
           ai_feedback: string | null
           attempt_number: number
           created_at: string
+          errors: Json | null
           grammar_score: number | null
           id: string
           is_passed: boolean | null
@@ -896,6 +897,7 @@ export type Database = {
           ai_feedback?: string | null
           attempt_number?: number
           created_at?: string
+          errors?: Json | null
           grammar_score?: number | null
           id?: string
           is_passed?: boolean | null
@@ -914,6 +916,7 @@ export type Database = {
           ai_feedback?: string | null
           attempt_number?: number
           created_at?: string
+          errors?: Json | null
           grammar_score?: number | null
           id?: string
           is_passed?: boolean | null

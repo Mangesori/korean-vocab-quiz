@@ -16,6 +16,7 @@ import { renderSentenceWithDiff, renderModelAnswerWithDiff, renderSentenceWithFe
 import type { MatchUpProblemData } from '@/components/quiz/MatchUpStage';
 import type { TypeAnswerGradeResult } from '@/components/quiz/TypeAnswerStage';
 import type { WordMagnetGradeResult } from '@/components/quiz/WordMagnetResultStage';
+import type { GradedError } from '@/types/quiz';
 
 interface Problem {
   id: string;
@@ -38,9 +39,8 @@ interface SentenceMakingAnswer {
   problem_id: string;
   attempt_number: number;
   student_sentence: string;
-  word_usage_score: number;
-  grammar_score: number;
-  naturalness_score: number;
+  /** 2026-08-03 이전 채점 기록은 null. GRADING-CRITERIA.md 참조. */
+  errors: GradedError[] | null;
   total_score: number;
   ai_feedback: string;
   model_answer: string;
@@ -257,7 +257,8 @@ export default function QuizResult() {
           .order('attempt_number');
 
         if (smProblems) setSentenceMakingProblems(smProblems as any[]);
-        if (smAnswers) setSentenceMakingAnswers(smAnswers as SentenceMakingAnswer[]);
+        // errors 컬럼이 DB에서는 Json이고 여기서는 GradedError[]라 한 단계 거쳐 좁힌다.
+        if (smAnswers) setSentenceMakingAnswers(smAnswers as unknown as SentenceMakingAnswer[]);
       }
 
       // 녹음 퀴즈 데이터 로드
