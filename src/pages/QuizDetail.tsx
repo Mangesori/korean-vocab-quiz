@@ -45,6 +45,7 @@ import { TypeAnswerProblemList, TypeAnswerProblem } from "@/components/quiz/Type
 import { WordMagnetProblemList, WordMagnetProblem } from "@/components/quiz/WordMagnetProblemList";
 import { parseSentenceToItems } from "@/lib/korean/wordMagnet";
 import { isShortSentenceLevel } from "@/lib/quiz";
+import type { TtsProvider } from "@/utils/ttsService";
 
 export default function QuizDetail() {
   const { id } = useParams<{ id: string }>();
@@ -57,6 +58,7 @@ export default function QuizDetail() {
   // State
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [studentPreview, setStudentPreview] = useState(false);
+  const [ttsProvider, setTtsProvider] = useState<TtsProvider>("azure");
   
   // Tab State
   const [currentTab, setCurrentTab] = useState("problems");
@@ -890,7 +892,7 @@ export default function QuizDetail() {
     if (quiz) {
       regenerateAllAudio(quiz.problems, (pid, url) => {
         setAudioUrls(prev => ({ ...prev, [pid]: url }));
-      });
+      }, ttsProvider);
     }
   };
 
@@ -1232,7 +1234,7 @@ export default function QuizDetail() {
                 onAddProblem={handleAddFillBlankProblem}
                 onRegenerateSingleAudio={(problem) => regenerateSingleAudio(problem, (pid, url) => {
                   setAudioUrls(prev => ({ ...prev, [pid]: url }));
-                })}
+                }, ttsProvider)}
                 isGeneratingAudio={isGeneratingAudio}
                 audioProgress={audioProgress}
                 regeneratingProblemId={regeneratingProblemId}
@@ -1244,6 +1246,8 @@ export default function QuizDetail() {
                 isSaving={isSaving}
                 hasChanges={hasChanges}
                 wordsPerSet={quiz.words_per_set}
+                ttsProvider={ttsProvider}
+                onTtsProviderChange={setTtsProvider}
               />
             </div>
 
@@ -1332,6 +1336,8 @@ export default function QuizDetail() {
                   difficulty={quiz.difficulty}
                   translationLanguage={quiz.translation_language}
                   apiProvider={quiz.api_provider as "openai" | "gemini" | "gemini-pro" | undefined}
+                  ttsProvider={ttsProvider}
+                  onTtsProviderChange={setTtsProvider}
                 />
               </div>
             )}

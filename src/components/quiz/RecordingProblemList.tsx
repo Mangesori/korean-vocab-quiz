@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { RecordingStudentView } from "@/components/quiz/shared/RecordingStudentView";
 import { RecordingEditCard } from "@/components/quiz/shared/RecordingEditCard";
 import { isShortSentenceLevel } from "@/lib/quiz";
+import { generateTtsAudio, type TtsProvider } from "@/utils/ttsService";
 
 export interface RecordingProblem {
   id: string;
@@ -66,6 +67,8 @@ interface RecordingProblemListProps {
   difficulty: string;
   translationLanguage: string;
   apiProvider?: "openai" | "gemini" | "gemini-pro";
+  ttsProvider?: TtsProvider;
+  onTtsProviderChange?: (v: TtsProvider) => void;
 }
 
 export function RecordingProblemList({
@@ -82,6 +85,8 @@ export function RecordingProblemList({
   difficulty,
   translationLanguage,
   apiProvider,
+  ttsProvider = "elevenlabs",
+  onTtsProviderChange,
 }: RecordingProblemListProps) {
   const [editedProblems, setEditedProblems] = useState<RecordingProblem[]>(problems);
   const [isSaving, setIsSaving] = useState(false);
@@ -237,25 +242,9 @@ export function RecordingProblemList({
         .replace(/([.?!])\s*\.+\s*$/, "$1")
         .replace(/\.\s*\.$/, ".");
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const audioBlob = await generateTtsAudio(cleanText, ttsProvider);
+      if (!audioBlob) throw new Error("TTS generation failed");
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ text: cleanText }),
-        }
-      );
-
-      if (!response.ok) throw new Error(`TTS failed: ${response.status}`);
-
-      const audioBlob = await response.blob();
       const fileName = `${quizId}/recording_${problem.problem_id}_${Date.now()}.mp3`;
 
       const { error: uploadError } = await supabase.storage
@@ -444,6 +433,17 @@ export function RecordingProblemList({
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
+          <select
+            className="text-sm border rounded-md px-2 py-1.5 bg-background text-foreground shrink-0"
+            value={ttsProvider}
+            onChange={(e) => onTtsProviderChange?.(e.target.value as TtsProvider)}
+            title="음성 생성 엔진 선택"
+          >
+            <option value="azure">Azure Speech (무료)</option>
+            <option value="elevenlabs">ElevenLabs</option>
+            <option value="minimax">MiniMax</option>
+          </select>
+
           <Button
             variant="default"
             size="sm"

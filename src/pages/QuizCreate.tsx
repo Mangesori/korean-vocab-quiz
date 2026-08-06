@@ -270,6 +270,8 @@ export default function QuizCreate() {
           ? allProblems.map((p) => p.word).filter(Boolean)
           : words.slice(0, allProblems.length);
 
+      // 새 초안을 만들 때는 이전 미리보기 단계 기억을 버린다.
+      sessionStorage.removeItem("quizPreviewStage");
       sessionStorage.setItem(
         "quizDraft",
         JSON.stringify({

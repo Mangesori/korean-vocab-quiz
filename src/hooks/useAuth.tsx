@@ -68,16 +68,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const applySession = (session: Session | null) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      userIdRef.current = session?.user?.id ?? null;
+    // 탭을 떠났다 돌아오면(visibilitychange) supabase-js가 세션을 복구하면서
+    // SIGNED_IN 이벤트를 다시 쏜다. 여기서 무조건 상태를 갈아끼우면
+    // roleResolved가 false로 떨어지고 → ProtectedRoute가 스피너를 렌더하고
+    // → 화면 전체가 언마운트되어 페이지의 로컬 state(예: 미리보기 스테이지)가 날아간다.
+    // 그래서 "같은 사용자면 아무것도 바뀌지 않은 것으로 취급"한다.
+    const applySession = (nextSession: Session | null) => {
+      const nextUserId = nextSession?.user?.id ?? null;
+      const sameUser = nextUserId !== null && nextUserId === userIdRef.current;
 
-      if (session?.user) {
-        // 세션이 바뀌면 역할은 다시 "조회 중" 상태다.
-        setRoleResolved(false);
-        // supabase 콜백 안에서 곧바로 await하면 교착이 생길 수 있어 다음 틱으로 미룬다.
-        setTimeout(() => { void refreshRole(); }, 0);
+      // 객체 정체성(identity)도 유지해야 [user]/[session] 의존 effect가 재실행되지 않는다.
+      setSession((prev) => (prev?.access_token === nextSession?.access_token ? prev : nextSession));
+      setUser((prev) => (sameUser && prev ? prev : nextSession?.user ?? null));
+      userIdRef.current = nextUserId;
+
+      if (nextUserId) {
+        if (!sameUser) {
+          // 사용자가 실제로 바뀐 경우에만 역할을 다시 "조회 중"으로 되돌린다.
+          setRoleResolved(false);
+          // supabase 콜백 안에서 곧바로 await하면 교착이 생길 수 있어 다음 틱으로 미룬다.
+          setTimeout(() => { void refreshRole(); }, 0);
+        }
       } else {
         setRole(null);
         setRoleResolved(true);
@@ -87,9 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        // TOKEN_REFRESHED 이벤트는 창 포커스 시 발생하므로 무시
-        // 실제 로그인/로그아웃 이벤트만 처리
+        // 토큰 갱신은 세션만 최신으로 유지하면 된다(역할 재조회 불필요).
         if (event === 'TOKEN_REFRESHED') {
+          setSession((prev) => (prev?.access_token === session?.access_token ? prev : session));
           return;
         }
         applySession(session);

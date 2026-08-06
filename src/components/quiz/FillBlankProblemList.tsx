@@ -1,4 +1,3 @@
-
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { Eye, EyeOff, RefreshCw, Loader2, Save, Edit2, Plus, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { FillBlankEditCard } from "@/components/quiz/shared/FillBlankEditCard";
 import { FillBlankStudentSet } from "@/components/quiz/shared/FillBlankStudentSet";
 import { Problem } from "@/hooks/useQuizData";
+import type { TtsProvider } from "@/utils/ttsService";
 
 // 드래그로 순서를 바꿀 수 있는 카드 래퍼 — 편집 모드에서만 사용. 세트 경계를 넘는 드래그도 지원.
 function SortableFillBlankCard({ id, children }: { id: string; children: (dragHandleProps: { attributes: any; listeners: any }) => ReactNode }) {
@@ -59,6 +59,8 @@ interface FillBlankProblemListProps {
   onDeleteProblem?: (problem: Problem) => void;
   deletingProblemId?: string | null;
   onAddProblem?: () => void;
+  ttsProvider?: TtsProvider;
+  onTtsProviderChange?: (provider: TtsProvider) => void;
 }
 
 export function FillBlankProblemList({
@@ -87,6 +89,8 @@ export function FillBlankProblemList({
   onDeleteProblem,
   deletingProblemId,
   onAddProblem,
+  ttsProvider = "elevenlabs",
+  onTtsProviderChange,
 }: FillBlankProblemListProps) {
   const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
 
@@ -131,6 +135,17 @@ export function FillBlankProblemList({
         </div>
 
         <div className="grid grid-cols-2 gap-3 w-full sm:flex sm:w-auto sm:items-center sm:gap-3">
+          <select
+            className="text-sm border rounded-md px-2 py-1.5 bg-background text-foreground shrink-0"
+            value={ttsProvider}
+            onChange={(e) => onTtsProviderChange?.(e.target.value as TtsProvider)}
+            title="음성 생성 엔진 선택"
+          >
+            <option value="azure">Azure Speech (무료)</option>
+            <option value="elevenlabs">ElevenLabs</option>
+            <option value="minimax">MiniMax</option>
+          </select>
+
           <Button
             variant="default"
             size="sm"

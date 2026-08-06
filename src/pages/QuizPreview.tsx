@@ -25,6 +25,10 @@ import { isShortSentenceLevel } from "@/lib/quiz";
 import { quizInsertErrorMessage, readEdgeFunctionError } from "@/lib/supabaseErrors";
 import { STAGE_ORDER, STAGE_LABELS, type BaseStage } from "@/types/quiz";
 import type { Problem, SentenceMakingProblem, RecordingProblem, MatchupProblem, TypeAnswerProblem, WordMagnetProblem, QuizDraft } from "@/types/quiz";
+import { generateTtsAudio, type TtsProvider } from "@/utils/ttsService";
+
+/** 미리보기에서 보던 단계. 새로고침·탭 복귀 후에도 같은 단계로 돌아오게 한다. */
+const PREVIEW_STAGE_KEY = "quizPreviewStage";
 
 const LANGUAGE_LABELS: Record<string, string> = {
   en: "영어",
@@ -80,10 +84,18 @@ export default function QuizPreview() {
   useEffect(() => {
     if (draft && !stageInitRef.current && enabledStages.length > 0) {
       stageInitRef.current = true;
-      setPreviewStage(enabledStages[0]);
+      // 새로고침으로 컴포넌트가 다시 마운트돼도 보던 단계를 유지한다.
+      const saved = sessionStorage.getItem(PREVIEW_STAGE_KEY) as PreviewStage | null;
+      setPreviewStage(saved && enabledStages.includes(saved) ? saved : enabledStages[0]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft, enabledStages]);
+
+  useEffect(() => {
+    if (stageInitRef.current) {
+      sessionStorage.setItem(PREVIEW_STAGE_KEY, previewStage);
+    }
+  }, [previewStage]);
 
   // 현재 스테이지가 비활성화되면(미리보기 중 토글 등) 첫 활성 스테이지로 보정
   useEffect(() => {
@@ -785,27 +797,13 @@ export default function QuizPreview() {
       }
       cleanText = cleanText.replace(/([.?!])\s*\.+\s*$/, "$1").replace(/\.\s*\.$/, ".");
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const audioBlob = await generateTtsAudio(cleanText, draft.ttsProvider || "elevenlabs");
 
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ text: cleanText }),
-      });
-
-      if (!response.ok) {
-        console.error(`TTS generation failed for ${type}: ${response.status}`);
+      if (!audioBlob) {
+        console.error(`TTS generation failed for ${type}`);
         return null;
       }
 
-      const audioBlob = await response.blob();
       const fileName = `${quizId}/${problemId}_${type}.mp3`;
 
       const { error: uploadError } = await supabase.storage.from("quiz-audio").upload(fileName, audioBlob, {
@@ -1051,6 +1049,7 @@ export default function QuizPreview() {
       })();
 
       sessionStorage.removeItem("quizDraft");
+      sessionStorage.removeItem(PREVIEW_STAGE_KEY);
       navigate(`/quiz/${data.id}`);
     } catch (error) {
       console.error("Save error:", error);
@@ -1083,6 +1082,17 @@ export default function QuizPreview() {
               <LevelBadge level={draft.difficulty} />
               <span className="text-muted-foreground">·</span>
               <span className="text-muted-foreground whitespace-nowrap">{draft.problems.length}개 문제</span>
+              <span className="text-muted-foreground">·</span>
+              <label className="text-sm text-muted-foreground whitespace-nowrap">음성 엔진</label>
+              <select
+                className="text-sm border rounded px-2 py-1 bg-background text-foreground"
+                value={draft.ttsProvider || "azure"}
+                onChange={(e) => setDraft((prev) => prev ? { ...prev, ttsProvider: e.target.value as TtsProvider } : prev)}
+              >
+                <option value="azure">Azure Speech (무료)</option>
+                <option value="elevenlabs">ElevenLabs</option>
+                <option value="minimax">MiniMax</option>
+              </select>
             </div>
           </div>
 

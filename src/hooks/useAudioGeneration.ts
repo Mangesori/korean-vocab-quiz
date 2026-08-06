@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Problem } from "./useQuizData";
+import { generateTtsAudio, type TtsProvider } from "@/utils/ttsService";
 
 export function useAudioGeneration(quizId: string | undefined) {
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -10,36 +11,26 @@ export function useAudioGeneration(quizId: string | undefined) {
   const [regeneratingProblemId, setRegeneratingProblemId] = useState<string | null>(null);
 
   // Helper to generate and upload a single audio file
-  const generateAndUploadAudio = async (text: string, problemId: string, answer: string): Promise<string | null> => {
+  const generateAndUploadAudio = async (
+    text: string,
+    problemId: string,
+    answer: string,
+    ttsProvider: TtsProvider = "azure",
+  ): Promise<string | null> => {
     if (!quizId) return null;
 
     try {
       // 빈칸을 정답으로 대체하여 완전한 문장 만들기
       let cleanText = text.replace(/\(\s*\)|\(\)/g, answer);
       cleanText = cleanText.replace(/([.?!])\s*\.+\s*$/, "$1").replace(/\.\s*\.$/, ".");
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ text: cleanText }),
-        }
-      );
+      const audioBlob = await generateTtsAudio(cleanText, ttsProvider);
 
-      if (!response.ok) {
-        console.error(`TTS generation failed: ${response.status}`);
+      if (!audioBlob) {
+        console.error(`TTS generation failed`);
         return null;
       }
 
-      const audioBlob = await response.blob();
       const timestamp = Date.now();
       const fileName = `${quizId}/${problemId}_${timestamp}.mp3`;
       
@@ -66,7 +57,11 @@ export function useAudioGeneration(quizId: string | undefined) {
     }
   };
 
-  const regenerateAllAudio = async (problems: Problem[], onAudioGenerated: (problemId: string, url: string) => void) => {
+  const regenerateAllAudio = async (
+    problems: Problem[],
+    onAudioGenerated: (problemId: string, url: string) => void,
+    ttsProvider: TtsProvider = "elevenlabs",
+  ) => {
     if (!quizId) return;
 
     setIsGeneratingAudio(true);
@@ -81,7 +76,8 @@ export function useAudioGeneration(quizId: string | undefined) {
         const audioUrl = await generateAndUploadAudio(
           problem.sentence,
           problem.id,
-          problem.answer
+          problem.answer,
+          ttsProvider,
         );
 
         if (audioUrl) {
@@ -115,7 +111,7 @@ export function useAudioGeneration(quizId: string | undefined) {
             .eq("sentence", filledSentence);
         }
 
-        // ElevenLabs rate limit 방지: 마지막 문제 제외하고 1초 대기
+        // rate limit 방지: 마지막 문제 제외하고 1초 대기
         if (i < problems.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
@@ -131,7 +127,11 @@ export function useAudioGeneration(quizId: string | undefined) {
     }
   };
 
-  const regenerateSingleAudio = async (problem: Problem, onAudioGenerated: (problemId: string, url: string) => void) => {
+  const regenerateSingleAudio = async (
+    problem: Problem,
+    onAudioGenerated: (problemId: string, url: string) => void,
+    ttsProvider: TtsProvider = "elevenlabs",
+  ) => {
     if (!quizId) return;
 
     setRegeneratingProblemId(problem.id);
@@ -140,7 +140,8 @@ export function useAudioGeneration(quizId: string | undefined) {
       const audioUrl = await generateAndUploadAudio(
         problem.sentence,
         problem.id,
-        problem.answer
+        problem.answer,
+        ttsProvider,
       );
 
       if (audioUrl) {
@@ -198,3 +199,4 @@ export function useAudioGeneration(quizId: string | undefined) {
     playAudio
   };
 }
+

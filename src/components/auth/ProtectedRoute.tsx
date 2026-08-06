@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -18,11 +19,21 @@ export function ProtectedRoute({
   const { user, roleResolved, loading } = useAuth();
   const { can } = usePermissions();
 
-  // 세션·역할 복원 중에는 리다이렉트하지 않고 로딩만 표시한다.
-  // (새 탭/새로고침 시 정보가 도착하기 전에 /auth로 튕기는 문제 방지)
-  // role === null이 아니라 roleResolved로 판단한다 — 프로필이 없는 사용자가
-  // 영원히 스피너에 갇히지 않도록.
-  if (loading || (user && !roleResolved)) {
+  // 한 번 통과시킨 뒤에는 자식을 계속 살려둔다. 탭 복귀·토큰 갱신처럼 일시적으로
+  // 세션을 다시 확인하는 동안 스피너로 갈아끼우면 자식이 언마운트되면서
+  // 페이지의 작업 상태(입력 중이던 값, 현재 단계 등)가 통째로 초기화된다.
+  const grantedRef = useRef(false);
+
+  const resolving = loading || (user && !roleResolved);
+
+  if (resolving) {
+    if (grantedRef.current) {
+      return <>{children}</>;
+    }
+    // 세션·역할 복원 중에는 리다이렉트하지 않고 로딩만 표시한다.
+    // (새 탭/새로고침 시 정보가 도착하기 전에 /auth로 튕기는 문제 방지)
+    // role === null이 아니라 roleResolved로 판단한다 — 프로필이 없는 사용자가
+    // 영원히 스피너에 갇히지 않도록.
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
@@ -32,13 +43,16 @@ export function ProtectedRoute({
 
   // 복원이 끝났는데 로그인 안 한 사용자는 로그인 화면으로.
   if (!user) {
+    grantedRef.current = false;
     return <Navigate to="/auth" replace />;
   }
 
   // 로그인은 했지만 권한이 없으면 지정된 화면으로.
   if (!can(permission)) {
+    grantedRef.current = false;
     return <Navigate to={redirectTo} replace />;
   }
 
+  grantedRef.current = true;
   return <>{children}</>;
 }
