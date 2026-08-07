@@ -164,5 +164,5 @@ export interface QuizDraft {
   matchupProblems?: MatchupProblem[];
   typeAnswerProblems?: TypeAnswerProblem[];
   wordMagnetProblems?: WordMagnetProblem[];
-  ttsProvider?: "azure" | "elevenlabs" | "minimax";
+  ttsProvider?: "azure" | "elevenlabs";
 }

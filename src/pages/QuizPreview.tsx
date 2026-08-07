@@ -1086,12 +1086,11 @@ export default function QuizPreview() {
               <label className="text-sm text-muted-foreground whitespace-nowrap">음성 엔진</label>
               <select
                 className="text-sm border rounded px-2 py-1 bg-background text-foreground"
-                value={draft.ttsProvider || "azure"}
+                value={draft.ttsProvider || "elevenlabs"}
                 onChange={(e) => setDraft((prev) => prev ? { ...prev, ttsProvider: e.target.value as TtsProvider } : prev)}
               >
                 <option value="azure">Azure Speech (무료)</option>
                 <option value="elevenlabs">ElevenLabs</option>
-                <option value="minimax">MiniMax</option>
               </select>
             </div>
           </div>

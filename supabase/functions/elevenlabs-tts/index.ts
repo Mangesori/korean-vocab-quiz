@@ -55,6 +55,26 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`ElevenLabs API error: ${response.status} - ${errorText}`);
+
+      let isQuotaExceeded = errorText.includes("quota_exceeded");
+      if (!isQuotaExceeded) {
+        try {
+          const parsed = JSON.parse(errorText);
+          if (parsed?.detail?.status === "quota_exceeded") {
+            isQuotaExceeded = true;
+          }
+        } catch {
+          // ignore JSON parse failure
+        }
+      }
+
+      if (isQuotaExceeded) {
+        return new Response(
+          JSON.stringify({ error: "ElevenLabs credit quota exceeded", code: "quota_exceeded" }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       return new Response(
         JSON.stringify({ error: `TTS generation failed: ${response.status}` }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

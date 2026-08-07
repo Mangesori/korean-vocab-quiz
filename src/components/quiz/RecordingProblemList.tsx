@@ -441,7 +441,6 @@ export function RecordingProblemList({
           >
             <option value="azure">Azure Speech (무료)</option>
             <option value="elevenlabs">ElevenLabs</option>
-            <option value="minimax">MiniMax</option>
           </select>
 
           <Button

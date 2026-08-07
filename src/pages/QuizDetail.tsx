@@ -58,7 +58,7 @@ export default function QuizDetail() {
   // State
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [studentPreview, setStudentPreview] = useState(false);
-  const [ttsProvider, setTtsProvider] = useState<TtsProvider>("azure");
+  const [ttsProvider, setTtsProvider] = useState<TtsProvider>("elevenlabs");
   
   // Tab State
   const [currentTab, setCurrentTab] = useState("problems");

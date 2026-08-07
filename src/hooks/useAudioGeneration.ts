@@ -15,7 +15,7 @@ export function useAudioGeneration(quizId: string | undefined) {
     text: string,
     problemId: string,
     answer: string,
-    ttsProvider: TtsProvider = "azure",
+    ttsProvider: TtsProvider = "elevenlabs",
   ): Promise<string | null> => {
     if (!quizId) return null;
 
