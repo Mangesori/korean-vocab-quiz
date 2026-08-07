@@ -40,6 +40,10 @@ dist-ssr
 # Supabase 로컬 임시
 supabase/.temp/
 
+# Kiwi 형태소 분석 모델 (약 90MB — 커밋 금지, 로컬에서 내려받는다)
+# 받는 법: scripts/measure-baseline.ts 상단 주석 참고
+.kiwi-model/
+
 # 환경 변수 — 전부 로컬 전용. 새 변수는 .env.example 에 이름만 추가할 것.
 .env
 .env.local

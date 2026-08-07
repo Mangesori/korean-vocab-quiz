@@ -1,0 +1,832 @@
+{
+  "measuredAt": "2026-08-07T15:42:08.056Z",
+  "hasKiwi": true,
+  "byDifficulty": {
+    "A1": {
+      "quizzes": 94,
+      "problems": 1357,
+      "coverage": 0.8816595945308816,
+      "unknownRate": 0.00942951438000943,
+      "contentWords": 4242,
+      "excludedByInput": 1628,
+      "avgWords": 5.112011790714812,
+      "avgEC": 0.6123802505526897,
+      "avgETM": 0.31171702284450997,
+      "lengthUnits": {
+        "guide": "5-8",
+        "eojeol": {
+          "mean": 5.112011790714812,
+          "sd": 1.1970262464412098,
+          "cv": 0.23415952377406973
+        },
+        "chars": {
+          "mean": 15.257921886514369,
+          "sd": 3.1251816867207522,
+          "cv": 0.20482354739821593
+        },
+        "morphs": {
+          "mean": 11.028002947678702,
+          "sd": 2.2657081775272903,
+          "cv": 0.20545045084560862
+        },
+        "morphsNoPunct": {
+          "mean": 9.927044952100221,
+          "sd": 2.2264462752140317,
+          "cv": 0.22428086968045735
+        },
+        "charsPerEojeol": 2.984719619432031,
+        "morphsPerEojeol": 2.157272596223151
+      },
+      "topOver": [
+        {
+          "word": "카페",
+          "grade": 2,
+          "count": 17
+        },
+        {
+          "word": "계",
+          "grade": 5,
+          "count": 9
+        },
+        {
+          "word": "코트",
+          "grade": 3,
+          "count": 8
+        },
+        {
+          "word": "차",
+          "grade": 2,
+          "count": 8
+        },
+        {
+          "word": "기온",
+          "grade": 2,
+          "count": 7
+        },
+        {
+          "word": "드세",
+          "grade": 6,
+          "count": 7
+        },
+        {
+          "word": "인기",
+          "grade": 2,
+          "count": 7
+        },
+        {
+          "word": "문제",
+          "grade": 2,
+          "count": 7
+        },
+        {
+          "word": "새",
+          "grade": 2,
+          "count": 6
+        },
+        {
+          "word": "배고프",
+          "grade": 3,
+          "count": 6
+        },
+        {
+          "word": "경기",
+          "grade": 2,
+          "count": 6
+        },
+        {
+          "word": "소리",
+          "grade": 2,
+          "count": 6
+        },
+        {
+          "word": "짐",
+          "grade": 2,
+          "count": 6
+        },
+        {
+          "word": "학원",
+          "grade": 2,
+          "count": 6
+        },
+        {
+          "word": "레몬",
+          "grade": 3,
+          "count": 6
+        },
+        {
+          "word": "햇빛",
+          "grade": 2,
+          "count": 6
+        },
+        {
+          "word": "털",
+          "grade": 3,
+          "count": 5
+        },
+        {
+          "word": "잊어버렸",
+          "grade": 2,
+          "count": 5
+        },
+        {
+          "word": "팀",
+          "grade": 2,
+          "count": 5
+        },
+        {
+          "word": "엄마",
+          "grade": 2,
+          "count": 5
+        },
+        {
+          "word": "언어",
+          "grade": 2,
+          "count": 5
+        },
+        {
+          "word": "편한",
+          "grade": 2,
+          "count": 5
+        },
+        {
+          "word": "세",
+          "grade": 2,
+          "count": 5
+        },
+        {
+          "word": "학기",
+          "grade": 2,
+          "count": 4
+        },
+        {
+          "word": "강아지",
+          "grade": 2,
+          "count": 4
+        },
+        {
+          "word": "손가락",
+          "grade": 2,
+          "count": 4
+        },
+        {
+          "word": "깜짝",
+          "grade": 2,
+          "count": 4
+        },
+        {
+          "word": "벚꽃",
+          "grade": 5,
+          "count": 4
+        },
+        {
+          "word": "오기",
+          "grade": 6,
+          "count": 4
+        },
+        {
+          "word": "빵집",
+          "grade": 2,
+          "count": 4
+        }
+      ]
+    },
+    "A2": {
+      "quizzes": 30,
+      "problems": 500,
+      "coverage": 0.899067005937235,
+      "unknownRate": 0.013146734520780322,
+      "contentWords": 2358,
+      "excludedByInput": 658,
+      "avgWords": 7.014,
+      "avgEC": 1.148,
+      "avgETM": 0.712,
+      "lengthUnits": {
+        "guide": "8-12",
+        "eojeol": {
+          "mean": 7.014,
+          "sd": 1.5134017211365514,
+          "cv": 0.21576870845973073
+        },
+        "chars": {
+          "mean": 20.812,
+          "sd": 3.788583208199455,
+          "cv": 0.18203840131652196
+        },
+        "morphs": {
+          "mean": 15.24,
+          "sd": 2.8821891034517773,
+          "cv": 0.18912001991153393
+        },
+        "morphsNoPunct": {
+          "mean": 14.21,
+          "sd": 2.873048697400598,
+          "cv": 0.20218498926112582
+        },
+        "charsPerEojeol": 2.9672084402623327,
+        "morphsPerEojeol": 2.172797262617622
+      },
+      "topOver": [
+        {
+          "word": "위해",
+          "grade": 3,
+          "count": 9
+        },
+        {
+          "word": "추억",
+          "grade": 3,
+          "count": 3
+        },
+        {
+          "word": "감독",
+          "grade": 3,
+          "count": 3
+        },
+        {
+          "word": "일정",
+          "grade": 3,
+          "count": 3
+        },
+        {
+          "word": "공연",
+          "grade": 3,
+          "count": 3
+        },
+        {
+          "word": "대해",
+          "grade": 3,
+          "count": 3
+        },
+        {
+          "word": "예의",
+          "grade": 3,
+          "count": 3
+        },
+        {
+          "word": "예전",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "공공",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "언젠가",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "전날",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "발표",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "팀장님",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "많아졌",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "쌍둥이",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "가정",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "시절",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "일하",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "돌봤",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "지역",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "확인해",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "발달하",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "해결할",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "스타일",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "정보",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "동영상",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "채널",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "따라",
+          "grade": 3,
+          "count": 2
+        },
+        {
+          "word": "첫눈",
+          "grade": 3,
+          "count": 1
+        },
+        {
+          "word": "유머",
+          "grade": 3,
+          "count": 1
+        }
+      ]
+    },
+    "B1": {
+      "quizzes": 34,
+      "problems": 565,
+      "coverage": 0.9065468549422336,
+      "unknownRate": 0.024133504492939665,
+      "contentWords": 3895,
+      "excludedByInput": 735,
+      "avgWords": 9.392920353982301,
+      "avgEC": 1.704424778761062,
+      "avgETM": 1.2141592920353983,
+      "lengthUnits": {
+        "guide": "10-15",
+        "eojeol": {
+          "mean": 9.392920353982301,
+          "sd": 1.7618754521513382,
+          "cv": 0.18757483144252987
+        },
+        "chars": {
+          "mean": 28.431858407079645,
+          "sd": 4.8283711165868715,
+          "cv": 0.16982256479529273
+        },
+        "morphs": {
+          "mean": 20.293805309734513,
+          "sd": 3.5076482590970026,
+          "cv": 0.17284329900486714
+        },
+        "morphsNoPunct": {
+          "mean": 19.26371681415929,
+          "sd": 3.5198792579555285,
+          "cv": 0.18272067077773554
+        },
+        "charsPerEojeol": 3.0269455436216317,
+        "morphsPerEojeol": 2.160542679479932
+      },
+      "topOver": [
+        {
+          "word": "환경",
+          "grade": 4,
+          "count": 9
+        },
+        {
+          "word": "원형",
+          "grade": 5,
+          "count": 6
+        },
+        {
+          "word": "팀장님",
+          "grade": 5,
+          "count": 5
+        },
+        {
+          "word": "기술",
+          "grade": 4,
+          "count": 4
+        },
+        {
+          "word": "탓",
+          "grade": 5,
+          "count": 4
+        },
+        {
+          "word": "크림",
+          "grade": 4,
+          "count": 4
+        },
+        {
+          "word": "정부",
+          "grade": 4,
+          "count": 4
+        },
+        {
+          "word": "반응",
+          "grade": 4,
+          "count": 3
+        },
+        {
+          "word": "온라인",
+          "grade": 4,
+          "count": 3
+        },
+        {
+          "word": "작가",
+          "grade": 4,
+          "count": 3
+        },
+        {
+          "word": "진로",
+          "grade": 4,
+          "count": 3
+        },
+        {
+          "word": "환기",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "확실히",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "구르기",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "곡선",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "핵심",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "발표자",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "작품",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "간격",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "조절하",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "어쩔",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "자신감",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "성분",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "혈액형",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "범위",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "식습관",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "평생",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "미친",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "일하",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "꾸준한",
+          "grade": 4,
+          "count": 2
+        }
+      ]
+    },
+    "B2": {
+      "quizzes": 9,
+      "problems": 140,
+      "coverage": 0.9475683890577508,
+      "unknownRate": 0.03571428571428571,
+      "contentWords": 1316,
+      "excludedByInput": 171,
+      "avgWords": 12.121428571428572,
+      "avgEC": 2.2642857142857142,
+      "avgETM": 1.8857142857142857,
+      "lengthUnits": {
+        "guide": "14-20",
+        "eojeol": {
+          "mean": 12.121428571428572,
+          "sd": 2.6073163720434853,
+          "cv": 0.21509975962645134
+        },
+        "chars": {
+          "mean": 36.82857142857143,
+          "sd": 7.839159088236987,
+          "cv": 0.21285536701962338
+        },
+        "morphs": {
+          "mean": 26.535714285714285,
+          "sd": 5.918402849745934,
+          "cv": 0.22303536984237704
+        },
+        "morphsNoPunct": {
+          "mean": 25.457142857142856,
+          "sd": 5.906186767933974,
+          "cv": 0.23200509189415164
+        },
+        "charsPerEojeol": 3.0383028874484386,
+        "morphsPerEojeol": 2.1891573364761343
+      },
+      "topOver": [
+        {
+          "word": "탓",
+          "grade": 5,
+          "count": 12
+        },
+        {
+          "word": "일하",
+          "grade": 5,
+          "count": 3
+        },
+        {
+          "word": "식단",
+          "grade": 6,
+          "count": 2
+        },
+        {
+          "word": "파이프",
+          "grade": 6,
+          "count": 2
+        },
+        {
+          "word": "팀장님",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "소통",
+          "grade": 5,
+          "count": 2
+        },
+        {
+          "word": "분별하",
+          "grade": 6,
+          "count": 2
+        },
+        {
+          "word": "유효",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "낭패",
+          "grade": 6,
+          "count": 1
+        },
+        {
+          "word": "후기",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "집중력",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "개막식",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "자국",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "영화제",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "시상식",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "기한",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "지연될",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "담담하",
+          "grade": 6,
+          "count": 1
+        },
+        {
+          "word": "검진",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "인턴",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "팀원들",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "안건",
+          "grade": 6,
+          "count": 1
+        },
+        {
+          "word": "구직",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "채용",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "모호해",
+          "grade": 6,
+          "count": 1
+        },
+        {
+          "word": "병행해",
+          "grade": 6,
+          "count": 1
+        },
+        {
+          "word": "진정",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "설칠",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "무례하",
+          "grade": 6,
+          "count": 1
+        },
+        {
+          "word": "당면한",
+          "grade": 5,
+          "count": 1
+        }
+      ]
+    }
+  },
+  "lengthGuideCheck": {
+    "A1": {
+      "guide": "5-8",
+      "eojeolInGuide": true,
+      "charsInGuide": false,
+      "morphsInGuide": false,
+      "morphsNoPunctInGuide": false
+    },
+    "A2": {
+      "guide": "8-12",
+      "eojeolInGuide": false,
+      "charsInGuide": false,
+      "morphsInGuide": false,
+      "morphsNoPunctInGuide": false
+    },
+    "B1": {
+      "guide": "10-15",
+      "eojeolInGuide": false,
+      "charsInGuide": false,
+      "morphsInGuide": false,
+      "morphsNoPunctInGuide": false
+    },
+    "B2": {
+      "guide": "14-20",
+      "eojeolInGuide": false,
+      "charsInGuide": false,
+      "morphsInGuide": false,
+      "morphsNoPunctInGuide": false
+    }
+  },
+  "gradeSeparation": {
+    "어절수": {
+      "A1→A2": {
+        "diff": 1.9019882092851885,
+        "standardized": 1.4034596986430492
+      },
+      "A2→B1": {
+        "diff": 2.378920353982301,
+        "standardized": 1.4526528462287178
+      },
+      "B1→B2": {
+        "diff": 2.7285082174462705,
+        "standardized": 1.248976161832443
+      }
+    },
+    "글자수": {
+      "A1→A2": {
+        "diff": 5.554078113485632,
+        "standardized": 1.6066725432235665
+      },
+      "A2→B1": {
+        "diff": 7.619858407079644,
+        "standardized": 1.7685734703644471
+      },
+      "B1→B2": {
+        "diff": 8.396713021491784,
+        "standardized": 1.325706414071825
+      }
+    },
+    "형태소수": {
+      "A1→A2": {
+        "diff": 4.211997052321298,
+        "standardized": 1.636395142492131
+      },
+      "A2→B1": {
+        "diff": 5.053805309734512,
+        "standardized": 1.5818259598765902
+      },
+      "B1→B2": {
+        "diff": 6.241908975979772,
+        "standardized": 1.3243953175946608
+      }
+    }
+  }
+}

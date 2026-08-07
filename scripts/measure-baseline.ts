@@ -8,12 +8,28 @@
  * 난이도 A2를 골랐다면 입력 단어가 C1이어도 상관없고, 그 단어로 만든 문장에
  * 함께 들어간 다른 단어가 A2 이하면 된다.
  *
+ * 문장 길이는 **세 단위로 동시에** 잰다. 프롬프트는 "길이: 8-12단어"라고만 쓰는데
+ * 한국어에서 "단어"가 어절인지 형태소인지 모호해서, 어느 단위가 지시 범위와 맞는지를
+ * 숫자로 봐야 하기 때문이다. (어절 수 / 공백 제외 글자 수 / 형태소(토큰) 수)
+ *
  * 실행:
- *   $env:SUPABASE_URL=...; $env:SUPABASE_SERVICE_KEY=...; $env:KIWI_MODEL_DIR=...
  *   npx tsx scripts/measure-baseline.ts
+ *
+ * 접속 정보는 process.env → .env.local 순으로 찾는다(환경변수가 있으면 그쪽 우선).
+ * .env.local은 이름이 다르므로 아래 ENV_ALIASES로 매핑한다.
+ *
+ * Kiwi 모델 준비 (약 90MB — 저장소에 커밋하지 않는다. .gitignore의 `.kiwi-model/`):
+ *   mkdir -p .kiwi-model && cd .kiwi-model
+ *   curl -sL -o m.tgz https://github.com/bab2min/Kiwi/releases/download/v0.23.2/kiwi_model_v0.23.2_base.tgz
+ *   tar -xzf m.tgz && rm m.tgz
+ *   → .kiwi-model/models/cong/base/ (스크립트가 이 경로를 기본값으로 찾는다)
+ *   다른 위치에 뒀다면 KIWI_MODEL_DIR 환경변수로 지정한다.
+ *
+ * 모델이 없으면 형태소 수·어휘 커버리지·EC/ETM은 건너뛰고,
+ * Kiwi 없이 계산되는 **어절 수·글자 수만** 측정한다(완전 실패시키지 않는다).
  */
 import { createClient } from "@supabase/supabase-js";
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,11 +43,70 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const kiwiNlp: any = (kiwiNlpNs as any).KiwiBuilder ? kiwiNlpNs : (kiwiNlpNs as any).default;
 const { KiwiBuilder } = kiwiNlp;
 
-const { SUPABASE_URL, SUPABASE_SERVICE_KEY, KIWI_MODEL_DIR } = process.env;
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !KIWI_MODEL_DIR) {
-  console.error("SUPABASE_URL / SUPABASE_SERVICE_KEY / KIWI_MODEL_DIR 환경변수가 필요합니다.");
+// ── 환경 변수 해석 ─────────────────────────────────────────────────────
+/**
+ * .env.local을 아주 단순하게 읽는다. `KEY=VALUE` 한 줄 형식만 본다.
+ * 값은 **절대 출력하지 않는다** — 있는지 없는지만 로그로 알린다.
+ */
+function readDotEnvLocal(): Record<string, string> {
+  const path = join(HERE, "..", ".env.local");
+  if (!existsSync(path)) return {};
+  const out: Record<string, string> = {};
+  for (const raw of readFileSync(path, "utf8").split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq <= 0) continue;
+    const key = line.slice(0, eq).trim();
+    let val = line.slice(eq + 1).trim();
+    // 값을 감싼 따옴표만 벗긴다.
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (val) out[key] = val;
+  }
+  return out;
+}
+
+/** 스크립트가 쓰는 이름 → .env.local에 실제로 들어 있는 이름 후보 */
+const ENV_ALIASES: Record<string, string[]> = {
+  SUPABASE_URL: ["SUPABASE_URL", "VITE_SUPABASE_URL"],
+  SUPABASE_SERVICE_KEY: ["SUPABASE_SERVICE_KEY", "SUPABASE_SERVICE_ROLE_KEY"],
+};
+
+const dotenv = readDotEnvLocal();
+/** process.env 우선, 없으면 .env.local. 별칭 순서대로 처음 찾은 값을 쓴다. */
+function resolveEnv(name: string): string | undefined {
+  for (const alias of ENV_ALIASES[name] ?? [name]) {
+    if (process.env[alias]) return process.env[alias];
+  }
+  for (const alias of ENV_ALIASES[name] ?? [name]) {
+    if (dotenv[alias]) return dotenv[alias];
+  }
+  return undefined;
+}
+
+const SUPABASE_URL = resolveEnv("SUPABASE_URL");
+const SUPABASE_SERVICE_KEY = resolveEnv("SUPABASE_SERVICE_KEY");
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error(
+    "Supabase 접속 정보를 찾지 못했습니다.\n" +
+      "  환경변수 SUPABASE_URL / SUPABASE_SERVICE_KEY 또는\n" +
+      "  .env.local의 VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 가 필요합니다."
+  );
   process.exit(1);
 }
+
+/**
+ * Kiwi 모델 경로. 지정이 없으면 저장소 안의 기본 위치를 본다.
+ * 없으면 undefined — 형태소 축 없이 어절/글자 수만 재는 축소 모드로 돈다.
+ */
+const KIWI_MODEL_DIR = (() => {
+  const explicit = process.env.KIWI_MODEL_DIR ?? dotenv.KIWI_MODEL_DIR;
+  if (explicit) return existsSync(explicit) ? explicit : undefined;
+  const fallback = join(HERE, "..", ".kiwi-model", "models", "cong", "base");
+  return existsSync(fallback) ? fallback : undefined;
+})();
 
 // ── 등급 데이터 ────────────────────────────────────────────────────────
 const vocabData = JSON.parse(
@@ -228,18 +303,30 @@ function extractContentUnits(tokens: Token[], sentence: string): Unit[] {
 
 async function main() {
   // ── Kiwi ─────────────────────────────────────────────────────────
-  const modelFiles: Record<string, Uint8Array> = {};
-  for (const name of readdirSync(KIWI_MODEL_DIR!)) {
-    modelFiles[name] = new Uint8Array(readFileSync(join(KIWI_MODEL_DIR!, name)));
+  // 모델이 없으면 형태소 축을 통째로 끄고 어절/글자 수만 잰다.
+  // tokenize가 빈 배열을 돌려주면 커버리지·EC/ETM은 자동으로 0이 되므로,
+  // 아래 출력에서 `hasKiwi`로 그 칸들을 숨긴다.
+  const hasKiwi = Boolean(KIWI_MODEL_DIR);
+  let tokenize: (s: string) => Token[] = () => [];
+  if (hasKiwi) {
+    const modelFiles: Record<string, Uint8Array> = {};
+    for (const name of readdirSync(KIWI_MODEL_DIR!)) {
+      modelFiles[name] = new Uint8Array(readFileSync(join(KIWI_MODEL_DIR!, name)));
+    }
+    const builder = await KiwiBuilder.create(require.resolve("kiwi-nlp/dist/kiwi-wasm.wasm"));
+    const kiwi = await builder.build({
+      modelFiles,
+      loadDefaultDict: false,
+      loadTypoDict: false,
+      loadMultiDict: false,
+    });
+    tokenize = (s: string): Token[] => kiwi.tokenize(s) as Token[];
+  } else {
+    console.warn(
+      "\n[경고] Kiwi 모델을 찾지 못했습니다 — 형태소 수·어휘 커버리지·EC/ETM은 건너뜁니다.\n" +
+        "        어절 수와 글자 수만 측정합니다. 모델 받는 법은 파일 상단 주석 참고.\n"
+    );
   }
-  const builder = await KiwiBuilder.create(require.resolve("kiwi-nlp/dist/kiwi-wasm.wasm"));
-  const kiwi = await builder.build({
-    modelFiles,
-    loadDefaultDict: false,
-    loadTypoDict: false,
-    loadMultiDict: false,
-  });
-  const tokenize = (s: string): Token[] => kiwi.tokenize(s) as Token[];
 
   // ── 데이터 ───────────────────────────────────────────────────────
   const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_KEY!, {
@@ -259,7 +346,10 @@ async function main() {
     total: number;
     unknown: number;
     excludedByInput: number;
-    words: number[]; // 문장당 어절 수
+    words: number[]; // 문장당 어절 수 (공백 분할)
+    chars: number[]; // 문장당 글자 수 (공백 제외)
+    morphs: number[]; // 문장당 형태소 수 (Kiwi 토큰 전체)
+    morphsNoPunct: number[]; // 형태소 수에서 문장부호(S*)를 뺀 값
     ec: number[];
     etm: number[];
     over: Map<string, { grade: number; count: number }>;
@@ -273,7 +363,8 @@ async function main() {
   const stats = new Map<string, Stat>();
   const blank = (): Stat => ({
     quizzes: 0, problems: 0, inRange: 0, total: 0, unknown: 0, excludedByInput: 0,
-    words: [], ec: [], etm: [], over: new Map(), unk: new Map(),
+    words: [], chars: [], morphs: [], morphsNoPunct: [],
+    ec: [], etm: [], over: new Map(), unk: new Map(),
     hintFrags: 0, hintMatched: 0, hintOver: new Map(), hintUnmatched: new Map(),
   });
 
@@ -307,9 +398,16 @@ async function main() {
       st.problems++;
 
       const tokens = tokenize(sentence);
-      st.words.push(sentence.split(/\s+/).filter(Boolean).length);
-      st.ec.push(tokens.filter((t) => t.tag === EC).length);
-      st.etm.push(tokens.filter((t) => t.tag === ETM).length);
+      // ── 문장 길이 세 단위 ──
+      st.words.push(sentence.split(/\s+/).filter(Boolean).length); // 어절
+      st.chars.push(sentence.replace(/\s/g, "").length); // 글자(공백 제외)
+      if (hasKiwi) {
+        st.morphs.push(tokens.length); // 형태소 = Kiwi 토큰 수
+        // 문장부호(SF/SP/SS/SE/SO 등 S로 시작)는 형태소로 보기 애매해서 따로도 센다.
+        st.morphsNoPunct.push(tokens.filter((t) => !t.tag.startsWith("S")).length);
+        st.ec.push(tokens.filter((t) => t.tag === EC).length);
+        st.etm.push(tokens.filter((t) => t.tag === ETM).length);
+      }
 
       // 문법 축 — hint가 자기 신고한 문법을 등급 목록과 대조한다.
       // 정답에 쓴 문법만 적히므로 sentence 쪽 문법은 잡히지 않는다(구조적 한계).
@@ -365,11 +463,27 @@ async function main() {
 
   // ── 출력 ─────────────────────────────────────────────────────────
   const mean = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+  /** 표본 표준편차 (n-1). 등급 내 문장 길이가 얼마나 흩어져 있는지. */
+  const sd = (a: number[]) => {
+    if (a.length < 2) return 0;
+    const m = mean(a);
+    return Math.sqrt(a.reduce((acc, x) => acc + (x - m) ** 2, 0) / (a.length - 1));
+  };
+  /** 변동계수 = 표준편차/평균. 단위가 다른 지표끼리 흩어짐을 비교하려면 이게 필요하다. */
+  const cv = (a: number[]) => {
+    const m = mean(a);
+    return m ? sd(a) / m : 0;
+  };
   const pct = (n: number, d: number) => (d ? ((n / d) * 100).toFixed(1) + "%" : "—");
   const ORDER = ["A1", "A2", "B1", "B2", "C1", "C2"];
   // 프롬프트 DIFFICULTY_GUIDES의 `길이:` 값 (측정 대조용)
   const LEN_GUIDE: Record<string, string> = {
     A1: "5-8", A2: "8-12", B1: "10-15", B2: "14-20", C1: "16-24", C2: "16-28",
+  };
+  /** "5-8" → [5, 8]. 가설 1(모델이 "단어"를 형태소로 읽는가) 판정에 쓴다. */
+  const guideRange = (d: string): [number, number] | undefined => {
+    const m = /^(\d+)-(\d+)$/.exec(LEN_GUIDE[d] ?? "");
+    return m ? [Number(m[1]), Number(m[2])] : undefined;
   };
 
   console.log("\n═══ 어휘 등급 커버리지 베이스라인 ═══");
@@ -394,11 +508,122 @@ async function main() {
       unknownRate: s.total ? s.unknown / s.total : null,
       contentWords: s.total, excludedByInput: s.excludedByInput,
       avgWords: mean(s.words), avgEC: mean(s.ec), avgETM: mean(s.etm),
+      // 문장 길이 세 단위 — 평균/표준편차/변동계수
+      lengthUnits: {
+        guide: LEN_GUIDE[d] ?? null,
+        eojeol: { mean: mean(s.words), sd: sd(s.words), cv: cv(s.words) },
+        chars: { mean: mean(s.chars), sd: sd(s.chars), cv: cv(s.chars) },
+        morphs: s.morphs.length
+          ? { mean: mean(s.morphs), sd: sd(s.morphs), cv: cv(s.morphs) }
+          : null,
+        morphsNoPunct: s.morphsNoPunct.length
+          ? { mean: mean(s.morphsNoPunct), sd: sd(s.morphsNoPunct), cv: cv(s.morphsNoPunct) }
+          : null,
+        // 어절당 글자 수 — "등급이 오를수록 어절이 길어진다" 가설의 검증
+        charsPerEojeol: mean(s.words) ? mean(s.chars) / mean(s.words) : null,
+        morphsPerEojeol: mean(s.words) && s.morphs.length ? mean(s.morphs) / mean(s.words) : null,
+      },
       topOver: [...s.over.entries()]
         .sort((a, b) => b[1].count - a[1].count)
         .slice(0, 30)
         .map(([w, v]) => ({ word: w, grade: v.grade, count: v.count })),
     };
+  }
+
+  // ── 문장 길이 세 단위 ────────────────────────────────────────────
+  // 프롬프트는 "길이: 8-12단어"라고만 쓰는데 한국어 "단어"가 모호하다.
+  // 어느 단위가 지시 범위와 맞는지 보려고 셋을 나란히 찍는다.
+  const present = ORDER.filter((d) => stats.get(d)?.problems);
+  console.log("\n═══ 문장 길이 — 세 단위 동시 측정 ═══");
+  console.log("(평균 / 표준편차 / 변동계수CV. CV가 낮을수록 그 단위로 길이가 일관되게 통제됨)\n");
+  console.log(
+    "난이도  지시     " +
+      "어절수 (평균/SD/CV)".padEnd(24) +
+      "글자수(공백제외)".padEnd(26) +
+      "형태소수".padEnd(24) +
+      "어절당글자"
+  );
+  console.log("─".repeat(112));
+  const fmt = (a: number[]) =>
+    a.length ? `${mean(a).toFixed(2)} / ${sd(a).toFixed(2)} / ${cv(a).toFixed(3)}` : "—";
+  for (const d of present) {
+    const s = stats.get(d)!;
+    const cpe = mean(s.words) ? (mean(s.chars) / mean(s.words)).toFixed(2) : "—";
+    console.log(
+      `${d.padEnd(6)} ${(LEN_GUIDE[d] ?? "—").padEnd(8)} ` +
+        fmt(s.words).padEnd(24) +
+        fmt(s.chars).padEnd(26) +
+        fmt(s.morphs).padEnd(24) +
+        cpe
+    );
+  }
+  if (hasKiwi) {
+    console.log("\n  (참고) 문장부호 제외 형태소 수:");
+    for (const d of present) console.log(`    ${d}  ${fmt(stats.get(d)!.morphsNoPunct)}`);
+  }
+
+  // ── 가설 1 판정 ──────────────────────────────────────────────────
+  // "모델이 '단어'를 어절이 아니라 형태소로 해석한다"가 참이면,
+  // 실측 형태소 수 평균이 프롬프트의 `길이:` 숫자 범위 안에 들어와야 한다.
+  console.log("\n═══ 가설 1 — 어느 단위가 프롬프트 지시 범위 안에 들어오는가 ═══");
+  console.log("(✓ = 평균이 지시 범위 안, ↓ = 하한 미달, ↑ = 상한 초과)\n");
+  console.log("난이도  지시범위   어절수        글자수        형태소수      형태소(부호제외)");
+  console.log("─".repeat(84));
+  const verdict = (a: number[], range: [number, number] | undefined) => {
+    if (!a.length || !range) return "—";
+    const m = mean(a);
+    const mark = m < range[0] ? "↓" : m > range[1] ? "↑" : "✓";
+    return `${mark} ${m.toFixed(1)}`;
+  };
+  const hyp: Record<string, unknown> = {};
+  for (const d of present) {
+    const s = stats.get(d)!;
+    const r = guideRange(d);
+    console.log(
+      `${d.padEnd(6)}  ${(LEN_GUIDE[d] ?? "—").padEnd(9)} ` +
+        verdict(s.words, r).padEnd(13) +
+        verdict(s.chars, r).padEnd(13) +
+        verdict(s.morphs, r).padEnd(13) +
+        verdict(s.morphsNoPunct, r)
+    );
+    const inRange = (a: number[]) =>
+      a.length && r ? mean(a) >= r[0] && mean(a) <= r[1] : null;
+    hyp[d] = {
+      guide: LEN_GUIDE[d] ?? null,
+      eojeolInGuide: inRange(s.words),
+      charsInGuide: inRange(s.chars),
+      morphsInGuide: inRange(s.morphs),
+      morphsNoPunctInGuide: inRange(s.morphsNoPunct),
+    };
+  }
+
+  // ── 등급 간 분리도 ───────────────────────────────────────────────
+  // 인접 등급 평균이 얼마나 벌어지는지. 클수록 그 단위가 난이도를 잘 가른다.
+  // (등급 내 흩어짐으로 나눈 표준화 차이도 같이 낸다 — SD가 크면 평균 차이가 커도 안 갈린다)
+  console.log("\n═══ 인접 등급 간 평균 차이 (괄호 = 두 등급 SD 평균으로 나눈 표준화 차이) ═══\n");
+  const UNITS: { name: string; pick: (s: Stat) => number[] }[] = [
+    { name: "어절수", pick: (s) => s.words },
+    { name: "글자수", pick: (s) => s.chars },
+    { name: "형태소수", pick: (s) => s.morphs },
+  ];
+  const sep: Record<string, unknown> = {};
+  for (const u of UNITS) {
+    const parts: string[] = [];
+    const rec: Record<string, unknown> = {};
+    for (let i = 1; i < present.length; i++) {
+      const a = u.pick(stats.get(present[i - 1])!);
+      const b = u.pick(stats.get(present[i])!);
+      if (!a.length || !b.length) continue;
+      const diff = mean(b) - mean(a);
+      const pooled = (sd(a) + sd(b)) / 2;
+      const std = pooled ? diff / pooled : 0;
+      const key = `${present[i - 1]}→${present[i]}`;
+      parts.push(`${key} ${diff >= 0 ? "+" : ""}${diff.toFixed(2)} (${std.toFixed(2)})`);
+      rec[key] = { diff, standardized: std };
+    }
+    if (!parts.length) continue;
+    console.log(`  ${u.name.padEnd(9)} ` + parts.join("   "));
+    sep[u.name] = rec;
   }
 
   for (const d of ORDER) {
@@ -436,7 +661,21 @@ async function main() {
 
   const outPath = join(HERE, "fixtures", `baseline-${new Date().toISOString().slice(0, 10)}.json`);
   mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, JSON.stringify({ measuredAt: new Date().toISOString(), byDifficulty: report }, null, 2), "utf8");
+  writeFileSync(
+    outPath,
+    JSON.stringify(
+      {
+        measuredAt: new Date().toISOString(),
+        hasKiwi, // false면 형태소 축(커버리지·EC/ETM 포함)이 비어 있다
+        byDifficulty: report,
+        lengthGuideCheck: hyp, // 가설 1 — 세 단위 중 무엇이 지시 범위 안에 드는가
+        gradeSeparation: sep, // 인접 등급 간 평균 차이 (단위별)
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
   console.log(`\n결과 저장: ${outPath}\n`);
 }
 
