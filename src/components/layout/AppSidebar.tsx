@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
-import { PERMISSIONS } from "@/lib/rbac/roles";
+import { PERMISSIONS, SUPER_ADMIN_EMAIL } from "@/lib/rbac/roles";
 import { supabase } from "@/integrations/supabase/client";
 
 import {
@@ -30,6 +30,7 @@ import {
   GraduationCap,
   FileText,
   MessageSquare,
+  ClipboardPaste,
 } from "lucide-react";
 
 interface NavItem {
@@ -125,6 +126,10 @@ export function AppSidebar() {
     { path: "/admin", icon: GraduationCap, label: "선생님 관리",     exactSearch: "?tab=teachers", badgeCount: pendingCount },
     { path: "/admin", icon: FileText,      label: "시스템 리포트",   exactSearch: "?tab=report" },
     { path: "/admin", icon: MessageSquare, label: "피드백",         exactSearch: "?tab=feedback" },
+    // 최고 관리자 전용 — 일반 admin 계정에는 안 보인다.
+    ...(user?.email === SUPER_ADMIN_EMAIL
+      ? [{ path: "/quiz/import", icon: ClipboardPaste, label: "붙여넣기로 퀴즈 만들기" }]
+      : []),
   ];
 
   const adminTeacherItems: NavItem[] = [

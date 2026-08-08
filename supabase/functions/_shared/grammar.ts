@@ -13,13 +13,19 @@ export type GrammarItem = {
 };
 
 // 문장 은행 등에서 참고할 급수별 목표 문장 길이. DIFFICULTY_GUIDES의 "길이:" 줄과 같은 값이다.
+//
+// 단위는 "단어"가 아니라 "어절"이다 — measure-baseline.ts가 공백 분할(split(/\s+/))로 세고
+// 있었고, 실측 결과(A1 5.1 ± 1.2 등)가 기존 숫자와 맞아떨어져 라벨만 잘못돼 있었음을 확인했다.
+// A2/B1/B2는 실측 SD(1.5 → 1.8 → 2.6)에 맞춰 범위 폭도 3 → 4 → 5로 넓혔다(SD가 클수록
+// 실제 편차가 크므로 범위를 좁게 잡으면 정상 문장도 자주 벗어난다). A1/C1/C2는 실측이
+// 범위 안이었거나(A1) 아직 측정하지 않아(C1/C2) 숫자는 그대로 두고 라벨만 고쳤다.
 export const LEVEL_SENTENCE_LENGTH: Record<CefrLevel, string> = {
-  A1: "5-8단어",
-  A2: "8-12단어",
-  B1: "10-15단어",
-  B2: "14-20단어",
-  C1: "16-24단어",
-  C2: "16-28단어",
+  A1: "5-8어절(띄어쓰기로 나눈 덩어리 수)",
+  A2: "7-10어절(띄어쓰기로 나눈 덩어리 수)",
+  B1: "9-13어절(띄어쓰기로 나눈 덩어리 수)",
+  B2: "12-17어절(띄어쓰기로 나눈 덩어리 수)",
+  C1: "16-24어절(띄어쓰기로 나눈 덩어리 수)",
+  C2: "16-28어절(띄어쓰기로 나눈 덩어리 수)",
 };
 
 export const GRAMMAR_ITEMS: GrammarItem[] = [
@@ -297,7 +303,7 @@ const LEVEL_TEMPLATE: Record<CefrLevel, TemplateEntry[]> = {
     { type: "grammar", catIndex: 19, prefix: "   ", category: "시도/권유" },
     { type: "grammar", catIndex: 20, prefix: "   ", category: "수식" },
     { type: "grammar", catIndex: 21, prefix: "   ", category: "단위" },
-    { type: "literal", text: "   - 길이: 5-8단어" },
+    { type: "literal", text: "   - 길이: 5-8어절(띄어쓰기로 나눈 덩어리 수)" },
   ],
   A2: [
     { type: "literal", text: "" },
@@ -334,7 +340,7 @@ const LEVEL_TEMPLATE: Record<CefrLevel, TemplateEntry[]> = {
     { type: "grammar", catIndex: 28, prefix: "   ", category: "명사화" },
     { type: "grammar", catIndex: 29, prefix: "   ", category: "관형사형" },
     { type: "grammar", catIndex: 30, prefix: "   ", category: "지식/인지" },
-    { type: "literal", text: "   - 길이: 8-12단어" },
+    { type: "literal", text: "   - 길이: 7-10어절(띄어쓰기로 나눈 덩어리 수)" },
   ],
   B1: [
     { type: "literal", text: "" },
@@ -355,7 +361,7 @@ const LEVEL_TEMPLATE: Record<CefrLevel, TemplateEntry[]> = {
     { type: "grammar", catIndex: 11, prefix: "   ", category: "가장/화제" },
     { type: "grammar", catIndex: 12, prefix: "   ", category: "기타" },
     { type: "grammar", catIndex: 13, prefix: "   ", category: "관형사형" },
-    { type: "literal", text: "   - 길이: 10-15단어" },
+    { type: "literal", text: "   - 길이: 9-13어절(띄어쓰기로 나눈 덩어리 수)" },
   ],
   B2: [
     { type: "literal", text: "" },
@@ -376,7 +382,7 @@ const LEVEL_TEMPLATE: Record<CefrLevel, TemplateEntry[]> = {
     { type: "grammar", catIndex: 11, prefix: "   ", category: "의도" },
     { type: "grammar", catIndex: 12, prefix: "   ", category: "기타" },
     { type: "grammar", catIndex: 13, prefix: "   ", category: "관형사형" },
-    { type: "literal", text: "   - 길이: 14-20단어" },
+    { type: "literal", text: "   - 길이: 12-17어절(띄어쓰기로 나눈 덩어리 수)" },
   ],
   C1: [
     { type: "literal", text: "" },
@@ -395,7 +401,7 @@ const LEVEL_TEMPLATE: Record<CefrLevel, TemplateEntry[]> = {
     { type: "grammar", catIndex: 9, prefix: "   ", category: "한정" },
     { type: "grammar", catIndex: 10, prefix: "   ", category: "기타" },
     { type: "grammar", catIndex: 11, prefix: "   ", category: "관형사형" },
-    { type: "literal", text: "   - 길이: 16-24단어" },
+    { type: "literal", text: "   - 길이: 16-24어절(띄어쓰기로 나눈 덩어리 수)" },
   ],
   C2: [
     { type: "literal", text: "" },
@@ -405,7 +411,7 @@ const LEVEL_TEMPLATE: Record<CefrLevel, TemplateEntry[]> = {
     { type: "literal", text: "   - 사용 가능: 학술 용어, 전문 어휘, 관용 표현" },
     { type: "grammar", catIndex: 1, prefix: "   ", category: "양보/한정" },
     { type: "literal", text: "   - 문법: 매우 복잡한 구조, 격식체" },
-    { type: "literal", text: "   - 길이: 16-28단어" },
+    { type: "literal", text: "   - 길이: 16-28어절(띄어쓰기로 나눈 덩어리 수)" },
   ],
 };
 
