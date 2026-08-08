@@ -17,6 +17,7 @@ import {
   Check,
   ClipboardPaste,
   Keyboard,
+  Library,
   Link2,
   Loader2,
   Magnet,
@@ -91,6 +92,9 @@ export default function QuizImport() {
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(60);
   const [ttsEnabled, setTtsEnabled] = useState(false);
+  // 문장 은행은 퀴즈와 별개로 쌓이는 공용 자산이다. 복습이 단계마다 다른 문장을
+  // 꺼내 쓰려면 여기에 있어야 하므로 기본값을 켬으로 둔다.
+  const [saveToBank, setSaveToBank] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [stages, setStages] = useState<Record<BaseStage, boolean>>({
     matchup: true,
@@ -279,8 +283,49 @@ export default function QuizImport() {
         if (e) console.error("Failed to save recording problems:", e);
       }
 
+      // ── 문장 은행 ──
+      // 퀴즈에 쓴 문장만이 아니라 **붙여넣은 표 전체**를 넣는다. 복습은 레벨을
+      // 넘나들며 문장을 바꿔 가는데(1일=A1, 7일=A2, 35일=B1), 이번 퀴즈가 A1
+      // 하나만 썼더라도 나중 단계에서 쓸 A2·B1 문장이 은행에 있어야 하기 때문이다.
+      let bankSaved = 0;
+      if (saveToBank && parsed.rows.length > 0) {
+        // (word, level) 안에서 표에 나온 순서대로 1, 2, ... 를 매긴다.
+        const seqOf = new Map<string, number>();
+        const bankRows = parsed.rows.map((r) => {
+          const key = `${r.word} ${r.level}`;
+          const seq = (seqOf.get(key) ?? 0) + 1;
+          seqOf.set(key, seq);
+          return {
+            word: r.word,
+            meaning: r.meaning || null,
+            level: r.level,
+            seq,
+            sentence: r.sentence,
+            answer: r.answer,
+            hint: r.hint || null,
+            translation: r.translation || null,
+            created_by: user.id,
+          };
+        });
+
+        // 같은 (word, level, seq)를 다시 올리면 최신 내용으로 갱신한다.
+        const { error: bankError } = await supabase
+          .from("sentence_bank")
+          .upsert(bankRows, { onConflict: "word,level,seq" });
+
+        if (bankError) {
+          // 퀴즈는 이미 만들어졌으므로 저장 자체를 실패로 되돌리지는 않는다.
+          console.error("Failed to save sentence bank:", bankError);
+          toast.warning("퀴즈는 만들어졌지만 문장 은행 저장에 실패했어요.");
+        } else {
+          bankSaved = bankRows.length;
+        }
+      }
+
+      const bankNote = bankSaved > 0 ? ` · 문장 은행 ${bankSaved}개` : "";
+
       if (!ttsEnabled) {
-        toast.success(`퀴즈가 저장되었습니다! (문제 ${built.problems.length}개)`);
+        toast.success(`퀴즈가 저장되었습니다! (문제 ${built.problems.length}개${bankNote})`);
         navigate(`/quiz/${quizId}`);
         return;
       }
@@ -549,6 +594,22 @@ export default function QuizImport() {
                     <Slider value={[timerSeconds]} onValueChange={(v) => setTimerSeconds(v[0])} min={10} max={300} step={10} />
                   </div>
                 )}
+              </div>
+
+              <div className="rounded-xl border border-border p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                      <Library className="w-4 h-4 text-muted-foreground" />
+                      문장 은행에도 저장
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      붙여넣은 <span className="font-semibold text-foreground">{parsed.rows.length}줄</span> 전체를
+                      복습용으로 쌓아 둡니다. 복습할 때 같은 단어를 매번 다른 문장으로 물어봐요.
+                    </div>
+                  </div>
+                  <Switch checked={saveToBank} onCheckedChange={setSaveToBank} />
+                </div>
               </div>
 
               <div className="rounded-xl border border-border p-4">

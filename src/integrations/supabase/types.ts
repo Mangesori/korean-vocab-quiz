@@ -1043,6 +1043,48 @@ export type Database = {
           },
         ]
       }
+      sentence_bank: {
+        Row: {
+          answer: string
+          created_at: string
+          created_by: string | null
+          hint: string | null
+          id: string
+          level: string
+          meaning: string | null
+          sentence: string
+          seq: number
+          translation: string | null
+          word: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          created_by?: string | null
+          hint?: string | null
+          id?: string
+          level: string
+          meaning?: string | null
+          sentence: string
+          seq: number
+          translation?: string | null
+          word: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          created_by?: string | null
+          hint?: string | null
+          id?: string
+          level?: string
+          meaning?: string | null
+          sentence?: string
+          seq?: number
+          translation?: string | null
+          word?: string
+        }
+        Relationships: []
+      }
       sentence_making_problems: {
         Row: {
           created_at: string
@@ -1500,6 +1542,21 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_due_review_items: {
+        Args: { _limit?: number }
+        Returns: {
+          answer: string | null
+          due_at: string
+          hint: string | null
+          level: string | null
+          meaning: string | null
+          overdue_days: number
+          sentence: string | null
+          stage: number
+          translation: string | null
+          word: string
+        }[]
+      }
       get_due_review_words: {
         Args: { _limit?: number }
         Returns: {
@@ -1658,6 +1715,7 @@ export type Database = {
         Args: { _result_id: string; _score: number; _total: number }
         Returns: undefined
       }
+      seed_review_schedule: { Args: { _result_id: string }; Returns: number }
       update_wa_progress: { Args: { _items: Json }; Returns: Json }
     }
     Enums: {

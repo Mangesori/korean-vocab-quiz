@@ -1297,6 +1297,14 @@ export default function QuizTake() {
       // 모든 유형 점수를 합산해 집계 score/total 확정 (매치업·답입력·워드마그넷 포함)
       await supabase.rpc("finalize_quiz_result", { _result_id: resultId });
 
+      // 이 퀴즈의 단어를 간격 반복 스케줄에 올린다(틀림=내일, 맞음=7일 뒤).
+      // 채점이 다 끝난 뒤여야 정오 판정을 서버가 읽을 수 있어 finalize 다음에 둔다.
+      // 실패해도 퀴즈 제출 자체는 성공이므로 결과 화면 이동을 막지 않는다.
+      const { error: seedError } = await supabase.rpc("seed_review_schedule", {
+        _result_id: resultId,
+      });
+      if (seedError) console.error("Failed to seed review schedule:", seedError);
+
       navigate(`/quiz/${quiz.id}/result/${resultId}`);
     } catch (error) {
       console.error("Submit error:", error);
