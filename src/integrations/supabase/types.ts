@@ -1424,22 +1424,28 @@ export type Database = {
       wrong_answer_progress: {
         Row: {
           correct_streak: number
+          due_at: string | null
           last_practiced_at: string
           mastered_at: string | null
+          stage: number
           student_id: string
           word: string
         }
         Insert: {
           correct_streak?: number
+          due_at?: string | null
           last_practiced_at?: string
           mastered_at?: string | null
+          stage?: number
           student_id: string
           word: string
         }
         Update: {
           correct_streak?: number
+          due_at?: string | null
           last_practiced_at?: string
           mastered_at?: string | null
+          stage?: number
           student_id?: string
           word?: string
         }
@@ -1492,6 +1498,15 @@ export type Database = {
           name: string
           teacher_id: string
           updated_at: string
+        }[]
+      }
+      get_due_review_words: {
+        Args: { _limit?: number }
+        Returns: {
+          due_at: string
+          overdue_days: number
+          stage: number
+          word: string
         }[]
       }
       get_quiz_for_student: { Args: { _quiz_id: string }; Returns: Json }

@@ -91,8 +91,11 @@ interface PracticeProblem {
 // converted=true 면 원래 짝맞추기/문장순서 오답을 받아쓰기 문항으로 바꿔 출제한다는 뜻.
 type PracticePlan = { problem: PracticeProblem; converted: boolean } | null;
 
-// 2회 연속 정답이면 마스터 (supabase/migrations/20260710000001_add_wrong_answer_progress.sql)
-const MASTER_STREAK = 2;
+// 간격 반복 단계 (supabase/migrations/20260808000000_add_spaced_repetition.sql)
+// stage 0~5를 거쳐 6에 도달하면 마스터. 각 단계는 예정일이 와야 오른다 —
+// 같은 날 여러 번 맞혀도 stage는 그대로이므로 correct_streak으로 세면 안 된다.
+const MASTER_STAGE = 6;
+const STAGE_INTERVAL_DAYS = [1, 3, 7, 16, 35, 90];
 
 const BLANK_RE = /\(\s*\)/;
 
@@ -192,7 +195,7 @@ export default function WrongAnswerNotebook() {
     queryFn: async () => {
       const { data } = await supabase
         .from('wrong_answer_progress')
-        .select('word, mastered_at, correct_streak')
+        .select('word, mastered_at, stage, due_at')
         .eq('student_id', user!.id);
       return data ?? [];
     },
@@ -203,10 +206,13 @@ export default function WrongAnswerNotebook() {
     [progressRows]
   );
 
-  // 단어 → 연속 정답 수 (마스터까지 몇 번 남았는지 계산용)
-  const streakByWord = useMemo(() => {
-    const map = new Map<string, number>();
-    (progressRows ?? []).forEach((r) => map.set(r.word, r.correct_streak ?? 0));
+  // 단어 → { 단계, 다음 복습 예정일 }. 마스터까지 몇 단계 남았는지와
+  // "오늘 복습할 수 있는지"를 판단하는 데 쓴다.
+  const progressByWord = useMemo(() => {
+    const map = new Map<string, { stage: number; dueAt: string | null }>();
+    (progressRows ?? []).forEach((r) =>
+      map.set(r.word, { stage: r.stage ?? 0, dueAt: r.due_at ?? null })
+    );
     return map;
   }, [progressRows]);
 
@@ -589,7 +595,8 @@ export default function WrongAnswerNotebook() {
                 </button>
               </TooltipTrigger>
               <TooltipContent>
-                연습에서 {MASTER_STREAK}회 연속으로 맞히면 마스터가 돼요
+                {STAGE_INTERVAL_DAYS.join('일 · ')}일 간격으로 {MASTER_STAGE}번 맞히면 마스터가 돼요.
+                점점 긴 간격으로 다시 물어봐서 오래 기억에 남아요.
               </TooltipContent>
             </Tooltip>
           </div>
@@ -616,11 +623,18 @@ export default function WrongAnswerNotebook() {
               // 대표 유형 1개 + 나머지 개수 (여러 유형에서 틀린 단어)
               const uniqueSources = new Set(item.sentences.map((s) => s.source));
               const extraSourceCount = uniqueSources.size - 1;
-              // 마스터까지 남은 횟수 (연속 정답이 1회 이상 쌓인 단어만 안내)
-              const streak = streakByWord.get(item.word) ?? 0;
-              const remainingToMaster = MASTER_STREAK - streak;
-              const showRemaining =
-                !isMastered && streak > 0 && remainingToMaster > 0;
+              // 마스터까지 남은 단계 (한 단계라도 통과한 단어만 안내)
+              const progress = progressByWord.get(item.word);
+              const stage = progress?.stage ?? 0;
+              const remainingToMaster = MASTER_STAGE - stage;
+              const showRemaining = !isMastered && stage > 0 && remainingToMaster > 0;
+              // 예정일이 아직 안 온 단어는 지금 풀어도 단계가 오르지 않는다(서버가 막는다).
+              // 학생이 헛수고하지 않도록 남은 일수를 알려 준다.
+              const dueAt = progress?.dueAt ? new Date(progress.dueAt) : null;
+              const daysUntilDue =
+                dueAt && dueAt.getTime() > Date.now()
+                  ? Math.ceil((dueAt.getTime() - Date.now()) / 86_400_000)
+                  : 0;
               // 그룹 키가 문장 전체인 문장순서 전용 단어는 단어장에 담지 않는다.
               const isSentenceGroup = item.sentences.every((s) => s.source === 'word_magnet');
               const isSaved = savedWords.has(item.word);
@@ -678,7 +692,12 @@ export default function WrongAnswerNotebook() {
                     )}
                     {showRemaining && (
                       <span className="text-[11px] font-medium text-primary shrink-0 hidden sm:inline">
-                        마스터까지 {remainingToMaster}번
+                        마스터까지 {remainingToMaster}단계
+                      </span>
+                    )}
+                    {!isMastered && daysUntilDue > 0 && (
+                      <span className="text-[11px] font-medium text-muted-foreground shrink-0 hidden sm:inline">
+                        {daysUntilDue}일 후 복습
                       </span>
                     )}
                     {isMastered && <span className="text-xs shrink-0">⭐</span>}
