@@ -11,6 +11,7 @@ import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import QuizCreate from "./pages/QuizCreate";
+import QuizImport from "./pages/QuizImport";
 import QuizPreview from "./pages/QuizPreview";
 import QuizExample from "./pages/QuizExample";
 import QuizDetail from "./pages/QuizDetail";
@@ -82,6 +83,11 @@ const App = () => (
             <Route path="/quiz/create" element={
               <ProtectedRoute permission={PERMISSIONS.CREATE_QUIZ} redirectTo="/dashboard">
                 <QuizCreate />
+              </ProtectedRoute>
+            } />
+            <Route path="/quiz/import" element={
+              <ProtectedRoute permission={PERMISSIONS.CREATE_QUIZ} redirectTo="/dashboard">
+                <QuizImport />
               </ProtectedRoute>
             } />
             <Route path="/quiz/preview" element={
