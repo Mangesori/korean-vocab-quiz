@@ -31,6 +31,7 @@ import {
   FileText,
   MessageSquare,
   ClipboardPaste,
+  CalendarCheck,
 } from "lucide-react";
 
 interface NavItem {
@@ -95,6 +96,24 @@ export function AppSidebar() {
     },
   });
 
+  // 오늘 복습할 단어 수. 사이드바 배지로 쓴다 — 학생이 들어오지 않으면
+  // 간격 반복 자체가 돌지 않으므로 눈에 띄는 신호가 필요하다.
+  const { data: dueCount = 0 } = useQuery({
+    queryKey: ['dueReviewCount', user?.id],
+    enabled: !!user && role === 'student',
+    // 자정에 새 복습이 열리므로 오래 캐시해 두면 안 맞는다.
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('wrong_answer_progress')
+        .select('word', { count: 'exact', head: true })
+        .eq('student_id', user!.id)
+        .is('mastered_at', null)
+        .lte('due_at', new Date().toISOString());
+      return count ?? 0;
+    },
+  });
+
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
@@ -146,6 +165,7 @@ export function AppSidebar() {
     { path: "/classes", icon: Users, label: "내 클래스" },
   ];
   const studentStudyItems: NavItem[] = [
+    { path: "/review", icon: CalendarCheck, label: "오늘의 복습", badgeCount: dueCount },
     { path: "/wrong-answers", icon: FileX, label: "오답노트" },
     { path: "/vocabulary", icon: BookMarked, label: "단어장" },
   ];

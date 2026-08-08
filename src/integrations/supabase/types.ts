@@ -1555,6 +1555,8 @@ export type Database = {
           meaning: string | null
           overdue_days: number
           sentence: string | null
+          sentence_from: string | null
+          slot: number
           stage: number
           translation: string | null
           word: string
