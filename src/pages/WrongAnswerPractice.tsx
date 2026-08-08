@@ -17,7 +17,7 @@ import {
   Volume2,
   Lightbulb,
 } from 'lucide-react';
-import { pickSentenceForStage, type BankSentence } from '@/lib/korean/reviewSchedule';
+import { pickRotatedSentence, type BankSentence } from '@/lib/korean/reviewSchedule';
 import { maskTranslation } from '@/utils/maskTranslation';
 import { toJamo } from '@/utils/hangul';
 import { QuizStageHeader } from '@/components/quiz/shared/QuizStageHeader';
@@ -84,11 +84,12 @@ export default function WrongAnswerPractice() {
   }, [navigate]);
 
   /**
-   * 같은 단어를 매번 같은 문장으로 묻지 않도록, 복습 단계에 맞는 문장으로 교체한다.
+   * 같은 단어를 매번 같은 문장으로 묻지 않도록 이번 차례의 문장으로 교체한다.
    *
-   * 교체하지 않으면 학생은 그 문장을 외우게 되지 단어를 외우지 않는다. 단계가
-   * 올라갈수록 문법도 어려워진다(1일=A1 → 7일=A2 → 35일=B1).
-   * 문장 은행에 그 단어가 없으면 원래 문항을 그대로 둔다.
+   * 교체하지 않으면 학생은 그 문장을 외우게 되지 단어를 외우지 않는다.
+   * 순환은 [원본, 은행1, 은행2, ...]이고 레벨은 올라가지 않는다 — 난이도는
+   * 선생님이 더 높은 난이도 퀴즈에 그 단어를 다시 낼 때만 오른다.
+   * 이번 차례가 원본이거나 은행에 그 단어가 없으면 원래 문항을 그대로 둔다.
    */
   const rotateSentences = async (loaded: PracticeProblem[]) => {
     const words = [...new Set(loaded.map((p) => p.word).filter(Boolean))];
@@ -96,7 +97,7 @@ export default function WrongAnswerPractice() {
 
     try {
       const [{ data: progress }, { data: bank }] = await Promise.all([
-        supabase.from('wrong_answer_progress').select('word, stage').in('word', words),
+        supabase.from('wrong_answer_progress').select('word, stage, level').in('word', words),
         supabase
           .from('sentence_bank')
           .select('word, level, seq, sentence, answer, hint, translation, meaning')
@@ -105,7 +106,9 @@ export default function WrongAnswerPractice() {
 
       if (!bank || bank.length === 0) return;
 
-      const stageOf = new Map((progress ?? []).map((r) => [r.word, r.stage ?? 0]));
+      const progressOf = new Map(
+        (progress ?? []).map((r) => [r.word, { stage: r.stage ?? 0, level: r.level ?? null }])
+      );
       const bankByWord = new Map<string, BankSentence[]>();
       bank.forEach((row) => {
         const list = bankByWord.get(row.word) ?? [];
@@ -115,7 +118,13 @@ export default function WrongAnswerPractice() {
 
       setProblems((current) =>
         current.map((p) => {
-          const picked = pickSentenceForStage(bankByWord.get(p.word) ?? [], stageOf.get(p.word) ?? 0);
+          const prog = progressOf.get(p.word);
+          // null이면 이번 차례는 원본 문장이라는 뜻이라 그대로 둔다.
+          const picked = pickRotatedSentence(
+            bankByWord.get(p.word) ?? [],
+            prog?.stage ?? 0,
+            prog?.level ?? null
+          );
           if (!picked) return p;
 
           // 빈칸 채우기 문항만 교체한다. 받아쓰기(빈칸 없는 프롬프트)는 문장이 아니라
