@@ -11,6 +11,8 @@ import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import QuizCreate from "./pages/QuizCreate";
+import QuizImport from "./pages/QuizImport";
+import ReviewToday from "./pages/ReviewToday";
 import QuizPreview from "./pages/QuizPreview";
 import QuizExample from "./pages/QuizExample";
 import QuizDetail from "./pages/QuizDetail";
@@ -84,6 +86,11 @@ const App = () => (
                 <QuizCreate />
               </ProtectedRoute>
             } />
+            <Route path="/quiz/import" element={
+              <ProtectedRoute permission={PERMISSIONS.CREATE_QUIZ} redirectTo="/dashboard">
+                <QuizImport />
+              </ProtectedRoute>
+            } />
             <Route path="/quiz/preview" element={
               <ProtectedRoute permission={PERMISSIONS.CREATE_QUIZ} redirectTo="/dashboard">
                 <QuizPreview />
@@ -127,6 +134,7 @@ const App = () => (
             {/* 새 기능 라우트 */}
             <Route path="/profile/settings" element={<ProfileSettings />} />
             <Route path="/vocabulary" element={<VocabularyList />} />
+            <Route path="/review" element={<ReviewToday />} />
             <Route path="/wrong-answers" element={<WrongAnswerNotebook />} />
             <Route path="/wrong-answers/practice" element={<WrongAnswerPractice />} />
             <Route path="/class/:id/announcements" element={

@@ -476,9 +476,10 @@ async function main() {
   };
   const pct = (n: number, d: number) => (d ? ((n / d) * 100).toFixed(1) + "%" : "—");
   const ORDER = ["A1", "A2", "B1", "B2", "C1", "C2"];
-  // 프롬프트 DIFFICULTY_GUIDES의 `길이:` 값 (측정 대조용)
+  // 프롬프트 DIFFICULTY_GUIDES의 `길이:` 값 (측정 대조용) — supabase/functions/_shared/grammar.ts
+  // LEVEL_SENTENCE_LENGTH와 반드시 같은 숫자를 유지한다.
   const LEN_GUIDE: Record<string, string> = {
-    A1: "5-8", A2: "8-12", B1: "10-15", B2: "14-20", C1: "16-24", C2: "16-28",
+    A1: "5-8", A2: "7-10", B1: "9-13", B2: "12-17", C1: "16-24", C2: "16-28",
   };
   /** "5-8" → [5, 8]. 가설 1(모델이 "단어"를 형태소로 읽는가) 판정에 쓴다. */
   const guideRange = (d: string): [number, number] | undefined => {

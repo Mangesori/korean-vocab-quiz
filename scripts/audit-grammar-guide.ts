@@ -23,13 +23,15 @@
  * `-아야/어야 해요`가 `아`+`어야 해요`로 쪼개져 `-어야`(단독 연결어미)에 오매칭되고,
  * 그 결과 사용 빈도 1위 항목을 잘못 고칠 뻔했다. 이 파일의 회귀 방지 지점이다.
  *
- * Edge Function은 Deno URL import를 쓰므로 import하지 않고 소스에서 정규식으로 뽑는다.
+ * 가이드 문자열은 _shared/grammar.ts의 renderGuide()로 만든다 — 이 파일은 순수 TS라
+ * (generate-quiz/index.ts와 달리 Deno URL import가 없어서) Node에서 바로 import할 수 있다.
  *
  * 실행: npx tsx scripts/audit-grammar-guide.ts
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { renderGuide } from "../supabase/functions/_shared/grammar.ts";
 import {
   expandSlash,
   flattenOptionalParens,
@@ -39,7 +41,6 @@ import {
 } from "./lib/grammar-notation.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const SRC = join(HERE, "..", "supabase", "functions", "generate-quiz", "index.ts");
 const ORDER = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 type Cefr = (typeof ORDER)[number];
 
@@ -195,11 +196,9 @@ function lookup(fragment: string): { grade: number; via: string } | undefined {
 }
 
 // ── 가이드 파싱 ──────────────────────────────────────────────────────
-const src = readFileSync(SRC, "utf8");
-/** `"A1": \`...\`,` 형태의 템플릿 리터럴을 등급별로 뽑는다 */
 function extractGuides(): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const m of src.matchAll(/"(A1|A2|B1|B2|C1|C2)":\s*`([\s\S]*?)`/g)) out[m[1]] = m[2];
+  for (const level of ORDER) out[level] = renderGuide(level);
   return out;
 }
 

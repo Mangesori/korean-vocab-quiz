@@ -17,6 +17,7 @@ import {
   Volume2,
   Lightbulb,
 } from 'lucide-react';
+import { pickRotatedSentence, type BankSentence } from '@/lib/korean/reviewSchedule';
 import { maskTranslation } from '@/utils/maskTranslation';
 import { toJamo } from '@/utils/hangul';
 import { QuizStageHeader } from '@/components/quiz/shared/QuizStageHeader';
@@ -62,20 +63,94 @@ export default function WrongAnswerPractice() {
 
   useEffect(() => {
     const stored = localStorage.getItem('practice_problems');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        // Shuffle problems
-        const shuffled = [...parsed].sort(() => Math.random() - 0.5);
-        setProblems(shuffled);
-      } catch (e) {
-        console.error('Failed to parse practice problems:', e);
-        navigate('/wrong-answers');
-      }
-    } else {
+    if (!stored) {
       navigate('/wrong-answers');
+      return;
     }
+
+    let parsed: PracticeProblem[];
+    try {
+      parsed = JSON.parse(stored);
+    } catch (e) {
+      console.error('Failed to parse practice problems:', e);
+      navigate('/wrong-answers');
+      return;
+    }
+
+    const shuffled = [...parsed].sort(() => Math.random() - 0.5);
+    // 은행 조회 전에 일단 보여준다. 조회가 끝나면 문장만 갈아 끼운다.
+    setProblems(shuffled);
+    void rotateSentences(shuffled);
   }, [navigate]);
+
+  /**
+   * 같은 단어를 매번 같은 문장으로 묻지 않도록 이번 차례의 문장으로 교체한다.
+   *
+   * 교체하지 않으면 학생은 그 문장을 외우게 되지 단어를 외우지 않는다.
+   * 순환은 [원본, 은행1, 은행2, ...]이고 레벨은 올라가지 않는다 — 난이도는
+   * 선생님이 더 높은 난이도 퀴즈에 그 단어를 다시 낼 때만 오른다.
+   * 이번 차례가 원본이거나 은행에 그 단어가 없으면 원래 문항을 그대로 둔다.
+   */
+  const rotateSentences = async (loaded: PracticeProblem[]) => {
+    const words = [...new Set(loaded.map((p) => p.word).filter(Boolean))];
+    if (words.length === 0) return;
+
+    try {
+      const [{ data: progress }, { data: bank }] = await Promise.all([
+        supabase.from('wrong_answer_progress').select('word, stage, level').in('word', words),
+        supabase
+          .from('sentence_bank')
+          .select('word, level, seq, sentence, answer, hint, translation, meaning, source')
+          .in('word', words),
+      ]);
+
+      if (!bank || bank.length === 0) return;
+
+      const progressOf = new Map(
+        (progress ?? []).map((r) => [r.word, { stage: r.stage ?? 0, level: r.level ?? null }])
+      );
+      const bankByWord = new Map<string, BankSentence[]>();
+      bank.forEach((row) => {
+        const list = bankByWord.get(row.word) ?? [];
+        list.push(row as BankSentence);
+        bankByWord.set(row.word, list);
+      });
+
+      setProblems((current) =>
+        current.map((p) => {
+          const prog = progressOf.get(p.word);
+          // null이면 이번 차례는 원본 문장이라는 뜻이라 그대로 둔다.
+          const picked = pickRotatedSentence(
+            bankByWord.get(p.word) ?? [],
+            prog?.stage ?? 0,
+            prog?.level ?? null
+          );
+          if (!picked) return p;
+
+          // 빈칸 채우기 문항만 교체한다. 받아쓰기(빈칸 없는 프롬프트)는 문장이 아니라
+          // 뜻을 보여주는 방식이라 은행 문장을 끼워 넣으면 유형이 바뀌어 버린다.
+          if (!hasBlank(p.sentence)) return p;
+
+          const at = picked.sentence.indexOf(picked.answer);
+          if (at < 0) return p; // 정답이 문장 안에 없으면 빈칸을 못 만든다
+          const blanked =
+            picked.sentence.slice(0, at) + '( )' + picked.sentence.slice(at + picked.answer.length);
+
+          return {
+            ...p,
+            correct_answer: picked.answer,
+            sentence: blanked,
+            translation: picked.translation,
+            // 은행 문장은 이 퀴즈에서 만든 게 아니라 음성이 없다.
+            audio_url: null,
+          };
+        })
+      );
+    } catch (e) {
+      // 교체는 부가 기능이다. 실패해도 원래 문항으로 연습은 계속된다.
+      console.error('Failed to rotate practice sentences:', e);
+    }
+  };
 
   // Split problems into sets
   const problemSets = useMemo(() => {

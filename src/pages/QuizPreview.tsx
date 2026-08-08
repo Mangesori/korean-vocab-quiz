@@ -969,6 +969,33 @@ export default function QuizPreview() {
         }
       }
 
+      // ── 문장 은행 자동 수집 ──
+      // 복습은 같은 단어를 매번 다른 문장으로 물어보는데, 은행이 비어 있으면
+      // 회전할 문장이 없어 늘 원본만 나온다. AI가 만든 문장도 모아 두면 커버리지가
+      // 빨리 채워진다. 다만 검수를 거치지 않았으므로 source='quiz'로 표시해서,
+      // 복습에서는 붙여넣기로 검수한 문장(import)을 먼저 쓰고 모자랄 때만 쓰이게 한다.
+      // 실패해도 퀴즈 저장 자체는 성공이므로 조용히 넘어간다.
+      try {
+        const bankRows = shuffledProblems
+          // 은행에는 빈칸이 없는 완성형 문장을 넣는다(6종이 서로 다른 형태로 쓴다).
+          .map((p) => ({
+            word: p.word,
+            meaning: p.meaning ?? null,
+            level: draft.difficulty,
+            sentence: p.sentence.replace(/\(\s*\)|\(\)/g, p.answer).replace(/\s+/g, " ").trim(),
+            answer: p.answer,
+            hint: p.hint ?? null,
+            translation: p.translation ?? null,
+          }))
+          .filter((r) => r.word && r.sentence && r.answer && !r.sentence.includes("("));
+
+        if (bankRows.length > 0) {
+          await supabase.rpc("upsert_sentence_bank", { _rows: bankRows, _source: "quiz" });
+        }
+      } catch (bankError) {
+        console.error("Failed to collect sentences into bank:", bankError);
+      }
+
       toast.success("퀴즈가 저장되었습니다! 음성을 생성 중입니다...");
 
       (async () => {

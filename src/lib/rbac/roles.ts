@@ -27,3 +27,7 @@ export const PERMISSIONS = {
 } as const;
 
 export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];
+
+// 스키마에 "최고 관리자" 역할이 따로 없어서(role은 admin/teacher/student뿐) 이메일로 구분한다.
+// 운영진이 여러 명이 되면 role 컬럼에 super_admin을 추가하는 쪽으로 옮길 것.
+export const SUPER_ADMIN_EMAIL = 'vaporware08@gmail.com';

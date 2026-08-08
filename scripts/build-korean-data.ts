@@ -22,6 +22,14 @@
  *
  *   NIKL_XLSX_DIR 없이 돌리면 **어휘를 건너뛰고 문법만** 생성한다(기존 vocab*.json은 그대로 둔다).
  *   문법 쪽만 고칠 때 원본 엑셀 없이 검증할 수 있게 하려는 것이다.
+ *
+ *   어휘 최빈 100 : 국립국어원 2003년 「한국어 학습용 어휘 목록」(조남호) 사용 빈도 등급 목록(xlsx)
+ *          https://www.korean.go.kr/front/etcData/etcDataView.do?mn_id=46&etc_seq=71
+ *          "한국어학습용어휘등급표" — A(982)/B(2111)/C(2872), 열: 순위·단어·품사·풀이·등급.
+ *          이 등급은 위 2017 교육과정과 축이 다르다(실제 사용 빈도 vs 교실 도입 순서) — 실측으로도
+ *          "그렇다"(A1이면서 빈도A) vs "이렇다·서다·잡다·놓다"(빈도A지만 교육과정 2급) 처럼 갈린다.
+ *          그래서 **두 목록의 교집합**(빈도A ∩ 교육과정 1급)을 순위로 정렬해 상위 100개를 뽑는다.
+ *          NIKL_FREQ_XLSX_DIR 없이 돌리면 최빈 100 생성을 건너뛴다(기존 vocab-top100.json 유지).
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -38,6 +46,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(HERE, "..", "src", "lib", "korean", "data");
 
 const XLSX_DIR = process.env.NIKL_XLSX_DIR;
+const FREQ_XLSX_DIR = process.env.NIKL_FREQ_XLSX_DIR;
 
 /** 국제 통용 한국어 표준 교육과정 1~6급 ↔ CEFR. TOPIK 등급·서울대 급수와도 같은 축이다. */
 const GRADE_TO_CEFR = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
@@ -53,8 +62,8 @@ const unescapeXml = (s: string) =>
     .replace(/&amp;/g, "&");
 
 /** sharedStrings.xml → 인덱스 배열. <si>는 <t>가 여러 개로 쪼개질 수 있어 이어 붙인다. */
-function loadSharedStrings(): string[] {
-  const raw = readFileSync(join(XLSX_DIR!, "xl", "sharedStrings.xml"), "utf8");
+function loadSharedStrings(dir: string): string[] {
+  const raw = readFileSync(join(dir, "xl", "sharedStrings.xml"), "utf8");
   const out: string[] = [];
   for (const si of raw.matchAll(/<si>([\s\S]*?)<\/si>/g)) {
     let s = "";
@@ -65,8 +74,8 @@ function loadSharedStrings(): string[] {
 }
 
 /** 워크시트 → 행 배열(열 문자 → 값). 빈 셀은 키 자체가 없다. */
-function loadSheet(file: string, shared: string[]): Record<string, string>[] {
-  const raw = readFileSync(join(XLSX_DIR!, "xl", "worksheets", file), "utf8");
+function loadSheet(dir: string, file: string, shared: string[]): Record<string, string>[] {
+  const raw = readFileSync(join(dir, "xl", "worksheets", file), "utf8");
   const rows: Record<string, string>[] = [];
   for (const rowM of raw.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)) {
     const row: Record<string, string> = {};
@@ -276,15 +285,24 @@ function buildGrammar(snu: SnuModule): GrammarItem[] {
 async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
 
+  // 최빈 100(아래)이 등급1 어휘가 필요하므로, 이번 실행에서 새로 만들지 않아도
+  // 저장소에 커밋된 vocab.json에서 읽어 둔다.
+  let vocab: Record<string, number> = {};
+  try {
+    vocab = JSON.parse(readFileSync(join(OUT_DIR, "vocab.json"), "utf8")).words;
+  } catch {
+    // 최초 실행이라 vocab.json이 아직 없다 — NIKL_XLSX_DIR로 새로 만들 것이다.
+  }
+
   // ── 어휘 (국립국어원 sheet1) — C=등급, D=어휘, E=품사 ──────────────
   if (!XLSX_DIR) {
     console.warn("⚠ NIKL_XLSX_DIR가 없어 어휘 생성을 건너뜁니다 (vocab.json / vocab-pos.json 유지).\n");
   } else {
-    const shared = loadSharedStrings();
+    const shared = loadSharedStrings(XLSX_DIR);
     console.log(`sharedStrings ${shared.length}개 로드\n`);
 
-    const vocabRows = loadSheet("sheet1.xml", shared).slice(1); // 헤더 제거
-    const vocab: Record<string, number> = {};
+    const vocabRows = loadSheet(XLSX_DIR, "sheet1.xml", shared).slice(1); // 헤더 제거
+    vocab = {};
     const posOf: Record<string, Set<string>> = {};
     let vocabSkipped = 0;
 
@@ -333,6 +351,83 @@ async function main() {
         null,
         0
       ),
+      "utf8"
+    );
+  }
+
+  // ── 어휘 최빈 100 (조남호 2003 sheet1) — A=순위, B=단어, C=품사, D=풀이, E=등급 ──
+  if (!FREQ_XLSX_DIR) {
+    console.warn("⚠ NIKL_FREQ_XLSX_DIR가 없어 최빈 100 생성을 건너뜁니다 (vocab-top100.json 유지).\n");
+  } else if (Object.keys(vocab).length === 0) {
+    console.warn("⚠ 1급 어휘가 없어(vocab.json 미존재) 최빈 100 생성을 건너뜁니다.\n");
+  } else {
+    const freqShared = loadSharedStrings(FREQ_XLSX_DIR);
+    const freqRows = loadSheet(FREQ_XLSX_DIR, "sheet1.xml", freqShared).slice(1); // 헤더 제거
+
+    // clean word → 빈도 A등급 중 최소 순위(=가장 빈번한 뜻)와 그 품사.
+    // 표제어에 동형어 번호가 붙어 있다(가격03, 놓다01) — normalizeHeadwords로 뗀다.
+    // 순위가 빈칸인 행(고유명사 등, 빈도 조사 없이 등급만 매긴 항목)은 건너뛴다.
+    const freqRankA = new Map<string, { rank: number; pos: string }>();
+    let freqSkipped = 0;
+    for (const r of freqRows) {
+      const grade = r["E"]?.trim();
+      const rawWord = r["B"]?.trim();
+      // 순위 칸이 빈 문자열이면(고유명사 등, 빈도 조사 없이 등급만 매김) Number("") === 0이
+      // 되어 "가장 빈번함"으로 오인된다 — r["A"] 자체가 비어 있는지 먼저 걸러야 한다.
+      if (grade !== "A" || !rawWord || !r["A"]) {
+        freqSkipped++;
+        continue;
+      }
+      const rank = Number(r["A"]);
+      if (!Number.isFinite(rank) || rank <= 0) {
+        freqSkipped++;
+        continue;
+      }
+      for (const word of normalizeHeadwords(rawWord)) {
+        const prev = freqRankA.get(word);
+        if (!prev || rank < prev.rank) freqRankA.set(word, { rank, pos: r["C"]?.trim() ?? "" });
+      }
+    }
+    console.log(`빈도 A등급 표제어 ${freqRankA.size}개 (원본 행 ${freqRows.length}, 건너뜀 ${freqSkipped})`);
+
+    const grade1 = new Set(Object.entries(vocab).filter(([, g]) => g === 1).map(([w]) => w));
+    const inGrade1 = [...freqRankA.entries()].filter(([w]) => grade1.has(w));
+    const excluded = [...freqRankA.entries()]
+      .filter(([w]) => !grade1.has(w))
+      .sort((a, b) => a[1].rank - b[1].rank);
+    console.log(
+      `  ∩ 교육과정 1급 = ${inGrade1.length}개 (교육과정 1급이 아니라 제외 ${excluded.length}개, 예: ` +
+        `${excluded.slice(0, 8).map(([w, v]) => `${w}(${v.rank})`).join(", ")})`
+    );
+
+    const top100 = inGrade1
+      .sort((a, b) => a[1].rank - b[1].rank)
+      .slice(0, 100)
+      .map(([word, v]) => ({ word, rank: v.rank, pos: v.pos }));
+
+    if (top100.length < 100) {
+      console.warn(`⚠ 교집합이 100개 미만이다 (${top100.length}개) — 상위 100 요청을 다 채우지 못했다.`);
+    }
+    console.log(`  최빈 100 확정: 1위 "${top100[0]?.word}" ~ 100위 "${top100[99]?.word}"(순위 ${top100[99]?.rank})\n`);
+
+    const top100Meta = {
+      source:
+        "국립국어원 2003 「한국어 학습용 어휘 목록」(조남호) 사용 빈도 A등급 ∩ 2017 국제 통용 한국어 표준 교육과정 1급(A1)",
+      sourceUrls: {
+        frequency: "https://www.korean.go.kr/front/etcData/etcDataView.do?mn_id=46&etc_seq=71",
+        curriculum: "https://www.korean.go.kr/front/reportData/reportDataView.do?mn_id=207&report_seq=932",
+      },
+      method:
+        "빈도 A등급(982개, 실제 말뭉치 사용 빈도 조사 기반) 표제어와 vocab.json의 1급(A1) 표제어의 " +
+        "교집합을 빈도 순위로 정렬해 상위 100개를 뽑았다. 두 등급은 축이 달라(사용 빈도 vs 교실 도입 " +
+        "순서) 빈도A이지만 1급이 아닌 단어(예: 이렇다·서다·잡다·놓다)는 제외된다.",
+      builtAt: new Date().toISOString(),
+      note: "이 파일은 scripts/build-korean-data.ts가 생성한다. 직접 수정하지 말 것.",
+    };
+
+    writeFileSync(
+      join(OUT_DIR, "vocab-top100.json"),
+      JSON.stringify({ ...top100Meta, words: top100 }, null, 2),
       "utf8"
     );
   }

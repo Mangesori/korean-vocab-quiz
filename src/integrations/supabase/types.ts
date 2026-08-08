@@ -1043,6 +1043,51 @@ export type Database = {
           },
         ]
       }
+      sentence_bank: {
+        Row: {
+          answer: string
+          created_at: string
+          created_by: string | null
+          hint: string | null
+          id: string
+          level: string
+          meaning: string | null
+          sentence: string
+          seq: number
+          source: string
+          translation: string | null
+          word: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          created_by?: string | null
+          hint?: string | null
+          id?: string
+          level: string
+          meaning?: string | null
+          sentence: string
+          seq?: number
+          source?: string
+          translation?: string | null
+          word: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          created_by?: string | null
+          hint?: string | null
+          id?: string
+          level?: string
+          meaning?: string | null
+          sentence?: string
+          seq?: number
+          source?: string
+          translation?: string | null
+          word?: string
+        }
+        Relationships: []
+      }
       sentence_making_problems: {
         Row: {
           created_at: string
@@ -1424,22 +1469,28 @@ export type Database = {
       wrong_answer_progress: {
         Row: {
           correct_streak: number
+          due_at: string | null
           last_practiced_at: string
           mastered_at: string | null
+          stage: number
           student_id: string
           word: string
         }
         Insert: {
           correct_streak?: number
+          due_at?: string | null
           last_practiced_at?: string
           mastered_at?: string | null
+          stage?: number
           student_id: string
           word: string
         }
         Update: {
           correct_streak?: number
+          due_at?: string | null
           last_practiced_at?: string
           mastered_at?: string | null
+          stage?: number
           student_id?: string
           word?: string
         }
@@ -1492,6 +1543,32 @@ export type Database = {
           name: string
           teacher_id: string
           updated_at: string
+        }[]
+      }
+      get_due_review_items: {
+        Args: { _limit?: number }
+        Returns: {
+          answer: string | null
+          due_at: string
+          hint: string | null
+          level: string | null
+          meaning: string | null
+          overdue_days: number
+          sentence: string | null
+          sentence_from: string | null
+          slot: number
+          stage: number
+          translation: string | null
+          word: string
+        }[]
+      }
+      get_due_review_words: {
+        Args: { _limit?: number }
+        Returns: {
+          due_at: string
+          overdue_days: number
+          stage: number
+          word: string
         }[]
       }
       get_quiz_for_student: { Args: { _quiz_id: string }; Returns: Json }
@@ -1642,6 +1719,11 @@ export type Database = {
       update_quiz_result_word_magnet_score: {
         Args: { _result_id: string; _score: number; _total: number }
         Returns: undefined
+      }
+      seed_review_schedule: { Args: { _result_id: string }; Returns: number }
+      upsert_sentence_bank: {
+        Args: { _rows: Json; _source?: string }
+        Returns: number
       }
       update_wa_progress: { Args: { _items: Json }; Returns: Json }
     }

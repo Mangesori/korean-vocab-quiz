@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
-import { PERMISSIONS } from "@/lib/rbac/roles";
+import { PERMISSIONS, SUPER_ADMIN_EMAIL } from "@/lib/rbac/roles";
 import { supabase } from "@/integrations/supabase/client";
 
 import {
@@ -30,6 +30,8 @@ import {
   GraduationCap,
   FileText,
   MessageSquare,
+  ClipboardPaste,
+  CalendarCheck,
 } from "lucide-react";
 
 interface NavItem {
@@ -94,6 +96,24 @@ export function AppSidebar() {
     },
   });
 
+  // 오늘 복습할 단어 수. 사이드바 배지로 쓴다 — 학생이 들어오지 않으면
+  // 간격 반복 자체가 돌지 않으므로 눈에 띄는 신호가 필요하다.
+  const { data: dueCount = 0 } = useQuery({
+    queryKey: ['dueReviewCount', user?.id],
+    enabled: !!user && role === 'student',
+    // 자정에 새 복습이 열리므로 오래 캐시해 두면 안 맞는다.
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('wrong_answer_progress')
+        .select('word', { count: 'exact', head: true })
+        .eq('student_id', user!.id)
+        .is('mastered_at', null)
+        .lte('due_at', new Date().toISOString());
+      return count ?? 0;
+    },
+  });
+
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
@@ -125,6 +145,10 @@ export function AppSidebar() {
     { path: "/admin", icon: GraduationCap, label: "선생님 관리",     exactSearch: "?tab=teachers", badgeCount: pendingCount },
     { path: "/admin", icon: FileText,      label: "시스템 리포트",   exactSearch: "?tab=report" },
     { path: "/admin", icon: MessageSquare, label: "피드백",         exactSearch: "?tab=feedback" },
+    // 최고 관리자 전용 — 일반 admin 계정에는 안 보인다.
+    ...(user?.email === SUPER_ADMIN_EMAIL
+      ? [{ path: "/quiz/import", icon: ClipboardPaste, label: "붙여넣기로 퀴즈 만들기" }]
+      : []),
   ];
 
   const adminTeacherItems: NavItem[] = [
@@ -141,6 +165,7 @@ export function AppSidebar() {
     { path: "/classes", icon: Users, label: "내 클래스" },
   ];
   const studentStudyItems: NavItem[] = [
+    { path: "/review", icon: CalendarCheck, label: "오늘의 복습", badgeCount: dueCount },
     { path: "/wrong-answers", icon: FileX, label: "오답노트" },
     { path: "/vocabulary", icon: BookMarked, label: "단어장" },
   ];

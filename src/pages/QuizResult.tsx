@@ -136,8 +136,10 @@ interface PracticeProblem {
   in_word_bank?: boolean;
 }
 
-// 2회 연속 정답이면 마스터 (supabase/migrations/20260710000001_add_wrong_answer_progress.sql)
-const MASTER_STREAK = 2;
+// 간격 반복 (supabase/migrations/20260808000000_add_spaced_repetition.sql)
+// 1·3·7·16·35·90일 간격으로 6단계를 통과해야 마스터. 같은 날 여러 번 맞혀도
+// 단계는 오르지 않으므로 "연속 N회"로 안내하면 사실과 다르다.
+const MASTER_STAGE = 6;
 
 // 받아쓰기 프롬프트로 쓸 문자열에서 빈칸 ( ) 을 제거한다.
 // 연습 화면의 hasBlank()가 false여야 빈칸 UI가 아닌 받아쓰기 UI로 렌더된다.
@@ -923,7 +925,7 @@ export default function QuizResult() {
                         방금 틀린 {practiceProblems.length}개 바로 복습하기 →
                       </Button>
                       <p className="mt-3 text-xs text-muted-foreground text-center">
-                        연습에서 {MASTER_STREAK}번 연속으로 맞히면 ⭐ 마스터가 돼요
+                        점점 긴 간격으로 {MASTER_STAGE}번 맞히면 ⭐ 마스터가 돼요
                       </p>
                     </>
                   ) : (

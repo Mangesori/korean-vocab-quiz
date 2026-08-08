@@ -141,9 +141,15 @@ function isResultComplete(quiz: Record<string, unknown>, result: Record<string, 
   return STAGE_ORDER.every((stage) => !isStageEnabled(stage, quiz) || stageScore(result, stage) !== null);
 }
 
-/** 단어별 마스터 판정 — 2회 연속 정답(correct_streak >= 2)이면 mastered_at이 찍힌다. */
-function isMastered(row: { mastered_at?: string | null; correct_streak?: number | null }): boolean {
-  return row.mastered_at != null || (row.correct_streak ?? 0) >= 2;
+/**
+ * 단어별 마스터 판정 — 서버(update_wa_progress)가 찍는 mastered_at만 본다.
+ *
+ * 예전에는 `correct_streak >= 2`도 졸업으로 쳤는데, 간격 반복 도입 후로는 틀린 판정이 된다.
+ * 이제 correct_streak은 같은 날 여러 번 맞혀도 계속 오르지만(표시용 카운터) 단계(stage)는
+ * 예정일이 와야 오른다. 즉 하루에 두 번 맞힌 단어는 streak 2에 도달해도 졸업이 아니다.
+ */
+function isMastered(row: { mastered_at?: string | null }): boolean {
+  return row.mastered_at != null;
 }
 
 function CircleProgress({ percent }: { percent: number }) {
@@ -350,7 +356,7 @@ export default function StudentDashboard() {
       });
       const { data: waProgressData } = await supabase
         .from('wrong_answer_progress')
-        .select('word, correct_streak, mastered_at')
+        .select('word, mastered_at')
         .eq('student_id', user!.id);
 
       const progressRows = waProgressData ?? [];
