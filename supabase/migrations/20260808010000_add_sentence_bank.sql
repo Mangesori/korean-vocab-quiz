@@ -15,28 +15,33 @@
 --   처음에는 단계가 오를수록 레벨도 올리려 했는데(35일=B1), 그러면 A1 학생이
 --   "-는데도" 같은 B1 문법 문장에서 틀린다. 단어를 잊어서가 아니라 문법을 몰라서
 --   틀리는 것이라 복습이 재려던 것(그 단어를 기억하나)이 오염된다.
---   난이도는 복습 단계가 아니라 학생이 실제로 진급할 때 올라가야 한다.
---
---   그 "진급"은 선생님이 이미 정하는 퀴즈 난이도를 그대로 따른다. A1 퀴즈에 나온
---   단어는 A1으로 복습하고, 나중에 선생님이 같은 단어를 A2 퀴즈에 넣으면 그때
---   A2로 갱신된다(seed_review_schedule). 학생별 레벨을 따로 관리할 필요가 없다.
+--   난이도는 선생님이 그 단어를 더 높은 난이도 퀴즈에 다시 낼 때 오른다.
 
 CREATE TABLE IF NOT EXISTS public.sentence_bank (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   word text NOT NULL,
   meaning text,
   level text NOT NULL CHECK (level IN ('A1','A2','B1','B2','C1','C2')),
-  -- 같은 word+level 안에서의 순서. 1부터. (A1 문장이 둘이면 1, 2)
-  seq smallint NOT NULL CHECK (seq >= 1),
+  -- 회전 순서용 일련번호. 정체성이 아니라 표시 순서일 뿐이라 유일성을 걸지 않는다
+  -- (정체성은 아래 UNIQUE (word, level, sentence)가 잡는다).
+  seq smallint NOT NULL DEFAULT 1,
   -- 빈칸이 뚫리지 않은 완성형 문장. 빈칸은 answer 위치를 찾아 그때그때 만든다.
   -- 6종 퀴즈 중 넷이 같은 문장을 서로 다른 형태로 쓰기 때문에 완성형으로 둔다.
   sentence text NOT NULL,
   answer text NOT NULL,
   hint text,
   translation text,
+  -- import = 사람이 검수해 붙여넣은 문장, quiz = AI가 만든 퀴즈에서 자동 수집한 문장.
+  -- 회전할 때 검수 문장을 먼저 쓰고, 모자랄 때만 AI 문장으로 채운다.
+  source text NOT NULL DEFAULT 'import' CHECK (source IN ('import','quiz')),
   created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (word, level, seq)
+  -- ★ 정체성은 문장 내용이다.
+  --   예전에는 (word, level, seq)에 유일성을 걸고 붙여넣은 표 안에서만 seq를
+  --   1,2,3...으로 매겼다. 그래서 나중에 다른 문장이 든 표를 붙여넣으면 seq가
+  --   다시 1부터 시작해 **기존 은행 문장을 밀어냈다**. 문장 내용을 기준으로 두면
+  --   같은 문장은 갱신되고 새 문장은 쌓인다.
+  UNIQUE (word, level, sentence)
 );
 
 -- 복습이 "이 단어의 이 레벨 문장들"을 순서대로 훑는 게 유일한 조회 패턴이다.
@@ -52,7 +57,8 @@ CREATE POLICY "Anyone signed in can read sentence bank"
   TO authenticated
   USING (true);
 
--- 쓰기는 관리자만. 은행은 전체가 공유하는 자산이라 아무나 채우면 품질이 무너진다.
+-- 직접 쓰기는 관리자만. 선생님의 AI 퀴즈 자동 수집은 아래 RPC를 거친다
+-- (SECURITY DEFINER라 이 정책을 우회하되, 함수 안에서 source='quiz'로 제한한다).
 DROP POLICY IF EXISTS "Admins manage sentence bank" ON public.sentence_bank;
 CREATE POLICY "Admins manage sentence bank"
   ON public.sentence_bank FOR ALL
@@ -61,13 +67,94 @@ CREATE POLICY "Admins manage sentence bank"
   WITH CHECK (public.is_admin());
 
 -- ── 단어별 복습 레벨 ───────────────────────────────────────────
--- 그 단어를 어느 레벨 문장으로 복습할지. 선생님이 마지막으로 그 단어를 낸 퀴즈의
--- 난이도가 들어간다. 아직 모르면 NULL이고, 그때는 은행에서 가장 쉬운 레벨을 쓴다.
 ALTER TABLE public.wrong_answer_progress
   ADD COLUMN IF NOT EXISTS level text;
 
 COMMENT ON COLUMN public.wrong_answer_progress.level IS
   '복습에 쓸 문장 레벨. 그 단어가 마지막으로 출제된 퀴즈의 난이도를 따른다.';
+
+-- ── 은행에 문장 넣기 ───────────────────────────────────────────
+--
+-- seq를 서버에서 매긴다. 클라이언트가 매기면 "지금 붙여넣은 표 안에서 몇 번째"밖에
+-- 알 수 없어 이미 은행에 있는 문장과 번호가 겹친다.
+--
+-- _source 규칙:
+--   'import' — 사람이 검수한 문장. 관리자만 넣을 수 있다.
+--   'quiz'   — AI 퀴즈에서 자동 수집. 로그인한 사용자면 넣을 수 있다.
+-- 이미 import로 있는 문장이 quiz로 다시 들어와도 import를 유지한다(등급 하락 방지).
+CREATE OR REPLACE FUNCTION public.upsert_sentence_bank(_rows jsonb, _source text DEFAULT 'import')
+RETURNS int
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  _uid uuid := auth.uid();
+  _n int := 0;
+BEGIN
+  IF _uid IS NULL THEN
+    RETURN 0;
+  END IF;
+
+  IF _source NOT IN ('import', 'quiz') THEN
+    RAISE EXCEPTION '알 수 없는 출처: %', _source;
+  END IF;
+
+  -- 검수 문장으로 등록하는 건 관리자만. AI 자동 수집은 누구나 가능하다.
+  IF _source = 'import' AND NOT public.is_admin() THEN
+    RETURN 0;
+  END IF;
+
+  WITH incoming AS (
+    SELECT DISTINCT ON (elem->>'word', elem->>'level', elem->>'sentence')
+           elem->>'word'        AS word,
+           NULLIF(elem->>'meaning','')     AS meaning,
+           elem->>'level'       AS level,
+           elem->>'sentence'    AS sentence,
+           elem->>'answer'      AS answer,
+           NULLIF(elem->>'hint','')        AS hint,
+           NULLIF(elem->>'translation','') AS translation
+      FROM jsonb_array_elements(COALESCE(_rows, '[]'::jsonb)) elem
+     WHERE COALESCE(elem->>'word','') <> ''
+       AND COALESCE(elem->>'sentence','') <> ''
+       AND COALESCE(elem->>'answer','') <> ''
+       AND COALESCE(elem->>'level','') IN ('A1','A2','B1','B2','C1','C2')
+  ),
+  -- 새로 들어가는 문장에 붙일 번호. 그 단어·레벨의 기존 최대값 다음부터 이어 준다.
+  numbered AS (
+    SELECT i.*,
+           COALESCE((SELECT max(b.seq) FROM public.sentence_bank b
+                      WHERE b.word = i.word AND b.level = i.level), 0)
+             + row_number() OVER (PARTITION BY i.word, i.level ORDER BY i.sentence) AS new_seq
+      FROM incoming i
+  ),
+  ups AS (
+    INSERT INTO public.sentence_bank
+           (word, meaning, level, seq, sentence, answer, hint, translation, source, created_by)
+    SELECT n.word, n.meaning, n.level, n.new_seq::smallint,
+           n.sentence, n.answer, n.hint, n.translation, _source, _uid
+      FROM numbered n
+    ON CONFLICT (word, level, sentence) DO UPDATE
+      SET meaning     = COALESCE(EXCLUDED.meaning, public.sentence_bank.meaning),
+          answer      = EXCLUDED.answer,
+          hint        = COALESCE(EXCLUDED.hint, public.sentence_bank.hint),
+          translation = COALESCE(EXCLUDED.translation, public.sentence_bank.translation),
+          -- 검수 문장으로 승격은 하되 강등은 하지 않는다.
+          source      = CASE WHEN EXCLUDED.source = 'import' THEN 'import'
+                             ELSE public.sentence_bank.source END
+      -- seq는 건드리지 않는다. 이미 매겨진 회전 순서가 바뀌면 학생이 보던 순서가 흔들린다.
+    RETURNING 1
+  )
+  SELECT count(*)::int INTO _n FROM ups;
+
+  RETURN _n;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.upsert_sentence_bank(jsonb, text) TO authenticated;
+
+COMMENT ON FUNCTION public.upsert_sentence_bank(jsonb, text) IS
+  '문장 은행에 넣거나 갱신한다. seq는 서버가 기존 최대값 다음으로 매긴다. import는 관리자만.';
 
 -- ── 오늘 복습할 항목 (단어 + 이번 차례에 보여줄 문장) ──────────────
 --
@@ -111,7 +198,6 @@ AS $$
                                WHERE b.word = d.word)) AS use_level
       FROM due d
   ),
-  -- 그 단어·레벨의 은행 문장 수. 주기는 여기에 원본 몫 1을 더한 값이다.
   cyc AS (
     SELECT l.*,
            (SELECT count(*) FROM public.sentence_bank b
@@ -119,7 +205,6 @@ AS $$
       FROM lvl l
   )
   SELECT c.word, c.stage, c.due_at, c.overdue_days, c.use_level,
-         -- slot 0 = 원본, 1..n = 은행 seq
          (c.stage % (c.bank_count + 1))::int AS slot,
          s.sentence, s.answer, s.hint, s.translation, s.meaning
     FROM cyc c
@@ -130,7 +215,11 @@ AS $$
          AND (c.stage % (c.bank_count + 1)) > 0
          AND b.word = c.word
          AND b.level = c.use_level
-         AND b.seq = (c.stage % (c.bank_count + 1))
+       -- 검수 문장(import)을 먼저 쓰고 모자랄 때만 AI 수집분(quiz)으로 넘어간다.
+       ORDER BY (b.source = 'import') DESC, b.seq ASC
+       -- WHERE로 slot 0을 이미 걸렀지만 OFFSET은 그와 무관하게 평가되므로
+       -- GREATEST가 없으면 slot 0에서 -1이 되어 "OFFSET must not be negative"로 죽는다.
+       OFFSET GREATEST((c.stage % (c.bank_count + 1)) - 1, 0)
        LIMIT 1
     ) s ON true;
 $$;
@@ -152,10 +241,9 @@ COMMENT ON FUNCTION public.get_due_review_items(int) IS
 --   맞힌 단어 → stage 2, 7일 뒤   (이미 아니까 천천히)
 --
 -- 결과 ID만 받는다. 단어별 정오 판정은 서버가 이미 채점해 둔 답안에서 직접 읽는다.
--- (클라이언트가 단어 목록을 만들어 보내는 방식은 두 가지가 위험했다: 빈칸 채점이
---  submit_quiz_answers 안에서만 이뤄져 클라이언트에 단어별 정오가 남지 않는다는 것,
---  그리고 auth.uid() 기반이라 선생님이 학생 결과 화면을 열면 선생님 스케줄에
---  등록돼 버린다는 것이다. 여기서는 결과의 주인을 먼저 확인해 원천 차단한다.)
+-- (클라이언트가 단어 목록을 만들어 보내는 방식은 빈칸 채점이 submit_quiz_answers
+--  안에서만 이뤄져 단어별 정오가 클라이언트에 남지 않고, auth.uid() 기반이라
+--  선생님이 학생 결과 화면을 열면 선생님 스케줄에 등록돼 버리는 문제가 있었다.)
 CREATE OR REPLACE FUNCTION public.seed_review_schedule(_result_id uuid)
 RETURNS int
 LANGUAGE plpgsql
@@ -181,7 +269,7 @@ BEGIN
     RETURN 0;
   END IF;
 
-  -- C안: 복습 레벨 = 이 퀴즈의 난이도. 선생님이 이미 정하고 있는 값을 그대로 쓴다.
+  -- 복습 레벨 = 이 퀴즈의 난이도. 선생님이 이미 정하고 있는 값을 그대로 쓴다.
   SELECT difficulty::text INTO _level FROM public.quizzes WHERE id = _quiz_id;
 
   WITH
@@ -223,7 +311,7 @@ BEGIN
     -- 진행 중인 단어는 단계·예정일을 건드리지 않는다. 35일까지 올라간 단어가
     -- 퀴즈에 한 번 나왔다고 7일로 되돌아가면 그동안의 진도가 무너진다.
     -- 다만 레벨은 갱신한다 — 선생님이 같은 단어를 더 높은 난이도 퀴즈에 넣었다면
-    -- 그게 곧 "이 학생은 이제 그 수준"이라는 판단이고, 다음 복습부터 반영돼야 한다.
+    -- 그게 곧 "이 학생은 이제 그 수준"이라는 판단이고 다음 복습부터 반영돼야 한다.
     ON CONFLICT (student_id, word) DO UPDATE
       SET level = COALESCE(EXCLUDED.level, public.wrong_answer_progress.level)
     RETURNING 1

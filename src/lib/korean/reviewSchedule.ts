@@ -22,6 +22,8 @@ export interface BankSentence {
   hint: string | null;
   translation: string | null;
   meaning: string | null;
+  /** import = 사람이 검수한 문장, quiz = AI 퀴즈에서 자동 수집한 문장. */
+  source?: string;
 }
 
 /**
@@ -51,9 +53,12 @@ export function pickRotatedSentence(
   const useLevel =
     level ?? [...candidates].sort((a, b) => a.level.localeCompare(b.level))[0].level;
 
+  // 검수 문장(import)을 먼저 쓰고 모자랄 때만 AI 수집분(quiz)으로 넘어간다.
+  // 서버의 get_due_review_items ORDER BY와 같은 순서여야 한다.
+  const rank = (c: BankSentence) => (c.source === "quiz" ? 1 : 0);
   const pool = candidates
     .filter((c) => c.level === useLevel)
-    .sort((a, b) => a.seq - b.seq);
+    .sort((a, b) => rank(a) - rank(b) || a.seq - b.seq);
 
   if (pool.length === 0) return null;
 

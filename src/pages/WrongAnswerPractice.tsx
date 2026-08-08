@@ -100,7 +100,7 @@ export default function WrongAnswerPractice() {
         supabase.from('wrong_answer_progress').select('word, stage, level').in('word', words),
         supabase
           .from('sentence_bank')
-          .select('word, level, seq, sentence, answer, hint, translation, meaning')
+          .select('word, level, seq, sentence, answer, hint, translation, meaning, source')
           .in('word', words),
       ]);
 

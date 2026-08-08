@@ -284,41 +284,32 @@ export default function QuizImport() {
       }
 
       // ── 문장 은행 ──
-      // 퀴즈에 쓴 문장만이 아니라 **붙여넣은 표 전체**를 넣는다. 복습은 레벨을
-      // 넘나들며 문장을 바꿔 가는데(1일=A1, 7일=A2, 35일=B1), 이번 퀴즈가 A1
-      // 하나만 썼더라도 나중 단계에서 쓸 A2·B1 문장이 은행에 있어야 하기 때문이다.
+      // 퀴즈에 쓴 문장만이 아니라 **붙여넣은 표 전체**를 넣는다. 이번 퀴즈가 A1만
+      // 썼더라도, 학생이 나중에 A2로 진급했을 때 쓸 A2 문장이 은행에 있어야 한다.
       let bankSaved = 0;
       if (saveToBank && parsed.rows.length > 0) {
-        // (word, level) 안에서 표에 나온 순서대로 1, 2, ... 를 매긴다.
-        const seqOf = new Map<string, number>();
-        const bankRows = parsed.rows.map((r) => {
-          const key = `${r.word} ${r.level}`;
-          const seq = (seqOf.get(key) ?? 0) + 1;
-          seqOf.set(key, seq);
-          return {
+        // seq는 서버가 매긴다. 여기서 매기면 "이번에 붙여넣은 표 안에서 몇 번째"밖에
+        // 알 수 없어서, 나중에 다른 문장을 추가로 붙여넣을 때 번호가 겹쳐
+        // 기존 은행 문장을 밀어낸다.
+        const { data: saved, error: bankError } = await supabase.rpc("upsert_sentence_bank", {
+          _rows: parsed.rows.map((r) => ({
             word: r.word,
-            meaning: r.meaning || null,
+            meaning: r.meaning,
             level: r.level,
-            seq,
             sentence: r.sentence,
             answer: r.answer,
-            hint: r.hint || null,
-            translation: r.translation || null,
-            created_by: user.id,
-          };
+            hint: r.hint,
+            translation: r.translation,
+          })),
+          _source: "import",
         });
-
-        // 같은 (word, level, seq)를 다시 올리면 최신 내용으로 갱신한다.
-        const { error: bankError } = await supabase
-          .from("sentence_bank")
-          .upsert(bankRows, { onConflict: "word,level,seq" });
 
         if (bankError) {
           // 퀴즈는 이미 만들어졌으므로 저장 자체를 실패로 되돌리지는 않는다.
           console.error("Failed to save sentence bank:", bankError);
           toast.warning("퀴즈는 만들어졌지만 문장 은행 저장에 실패했어요.");
         } else {
-          bankSaved = bankRows.length;
+          bankSaved = saved ?? 0;
         }
       }
 

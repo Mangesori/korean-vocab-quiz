@@ -1054,6 +1054,7 @@ export type Database = {
           meaning: string | null
           sentence: string
           seq: number
+          source: string
           translation: string | null
           word: string
         }
@@ -1066,7 +1067,8 @@ export type Database = {
           level: string
           meaning?: string | null
           sentence: string
-          seq: number
+          seq?: number
+          source?: string
           translation?: string | null
           word: string
         }
@@ -1080,6 +1082,7 @@ export type Database = {
           meaning?: string | null
           sentence?: string
           seq?: number
+          source?: string
           translation?: string | null
           word?: string
         }
@@ -1716,6 +1719,10 @@ export type Database = {
         Returns: undefined
       }
       seed_review_schedule: { Args: { _result_id: string }; Returns: number }
+      upsert_sentence_bank: {
+        Args: { _rows: Json; _source?: string }
+        Returns: number
+      }
       update_wa_progress: { Args: { _items: Json }; Returns: Json }
     }
     Enums: {
