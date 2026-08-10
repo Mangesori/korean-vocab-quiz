@@ -44,6 +44,15 @@ import {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(HERE, "..", "src", "lib", "korean", "data");
+/**
+ * Edge Function용 산출물 경로.
+ *
+ * 배포 번들에는 `supabase/functions/` 아래만 들어간다 — `src/lib/korean/data/vocab.json`은
+ * 프론트엔드 트리라 Edge Function 런타임에서 읽을 수 없다. 그래서 같은 소스에서
+ * TS 모듈을 하나 더 뽑아 `_shared/`에 둔다(`_shared/grammar.ts`와 같은 방식).
+ * **손으로 복사하지 말 것** — 두 곳을 따로 관리하면 반드시 어긋난다.
+ */
+const FN_SHARED_DIR = join(HERE, "..", "supabase", "functions", "_shared");
 
 const XLSX_DIR = process.env.NIKL_XLSX_DIR;
 const FREQ_XLSX_DIR = process.env.NIKL_FREQ_XLSX_DIR;
@@ -282,6 +291,53 @@ function buildGrammar(snu: SnuModule): GrammarItem[] {
   return items;
 }
 
+/**
+ * A1(1급) 표제어 → `supabase/functions/_shared/vocab-a1.ts`.
+ *
+ * 프롬프트에 주입할 목적이므로 **순서를 고정**한다(가나다순). 순서가 흔들리면
+ * 배포 diff가 매번 통째로 바뀌고 프롬프트 캐시도 무의미해진다.
+ */
+function writeA1Module(vocab: Record<string, number>): number {
+  const words = Object.entries(vocab)
+    .filter(([, g]) => g === 1)
+    .map(([w]) => w)
+    .sort((a, b) => a.localeCompare(b, "ko"));
+
+  if (words.length === 0) {
+    console.warn("⚠ 1급 어휘가 0개입니다 — vocab-a1.ts를 갱신하지 않습니다 (기존 파일 유지).\n");
+    return 0;
+  }
+
+  // 한 줄에 12개씩 끊어 담는다. 700개가 한 줄이면 diff가 읽히지 않는다.
+  const lines: string[] = [];
+  for (let i = 0; i < words.length; i += 12) {
+    lines.push("  " + words.slice(i, i + 12).map((w) => JSON.stringify(w)).join(", ") + ",");
+  }
+
+  const body = `/**
+ * A1(1급) 어휘 목록 — 프롬프트 주입용.
+ * scripts/build-korean-data.ts가 생성한다. 직접 수정하지 말 것.
+ * 출처: 국립국어원 2017 국제 통용 한국어 표준 교육과정 1급 어휘.
+ *
+ * src/lib/korean/data/vocab.json과 같은 소스에서 나온다. Edge Function 배포 번들에는
+ * supabase/functions/ 아래만 들어가므로 프론트엔드 트리의 JSON을 런타임에 읽을 수 없어
+ * 이 모듈이 따로 존재한다.
+ */
+export const A1_VOCAB: string[] = [
+${lines.join("\n")}
+];
+`;
+
+  mkdirSync(FN_SHARED_DIR, { recursive: true });
+  writeFileSync(join(FN_SHARED_DIR, "vocab-a1.ts"), body, "utf8");
+  const joined = words.join(", ");
+  console.log(
+    `A1 어휘 모듈 생성: ${words.length}개 → supabase/functions/_shared/vocab-a1.ts ` +
+      `(쉼표 나열 시 ${joined.length}자)\n`
+  );
+  return words.length;
+}
+
 async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
 
@@ -354,6 +410,11 @@ async function main() {
       "utf8"
     );
   }
+
+  // ── A1 어휘 목록 → Edge Function 공유 모듈 ────────────────────────
+  // xlsx 유무와 무관하게 항상 만든다. XLSX_DIR가 있으면 방금 파싱한 vocab을,
+  // 없으면 위에서 vocab.json을 읽어 둔 vocab을 쓴다 → 원본 엑셀 없이도 재생성된다.
+  writeA1Module(vocab);
 
   // ── 어휘 최빈 100 (조남호 2003 sheet1) — A=순위, B=단어, C=품사, D=풀이, E=등급 ──
   if (!FREQ_XLSX_DIR) {

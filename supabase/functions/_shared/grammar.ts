@@ -30,8 +30,8 @@ export const LEVEL_SENTENCE_LENGTH: Record<CefrLevel, string> = {
 
 export const GRAMMAR_ITEMS: GrammarItem[] = [
   { id: "a1-1-1", form: "-이에요/예요", level: "A1", category: "서술/종결" },
-  { id: "a1-1-2", form: "-아요/어요", level: "A1", category: "서술/종결" },
-  { id: "a1-1-3", form: "-았어요/었어요(과거)", level: "A1", category: "서술/종결" },
+  { id: "a1-1-2", form: "-아/어요", level: "A1", category: "서술/종결" },
+  { id: "a1-1-3", form: "-았/었어요(과거)", level: "A1", category: "서술/종결" },
   { id: "a1-1-4", form: "-지요?(확인)", level: "A1", category: "서술/종결" },
   { id: "a1-2-1", form: "이거/그거/저거", level: "A1", category: "지시/장소" },
   { id: "a1-2-2", form: "여기/거기/저기", level: "A1", category: "지시/장소" },
