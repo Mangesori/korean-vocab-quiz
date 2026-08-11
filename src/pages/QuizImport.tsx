@@ -34,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -83,6 +84,7 @@ export default function QuizImport() {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [mode, setMode] = useState<"quiz" | "bank">("quiz");
   const [rawText, setRawText] = useState("");
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState<string>("A1");
@@ -124,7 +126,10 @@ export default function QuizImport() {
   );
 
   const anyStage = Object.values(stages).some(Boolean);
-  const canSave = !isSaving && built.problems.length > 0 && title.trim().length > 0 && anyStage;
+  const canSave =
+    mode === "bank"
+      ? !isSaving && parsed.rows.length > 0
+      : !isSaving && built.problems.length > 0 && title.trim().length > 0 && anyStage;
 
   const handleFile = useCallback(async (file: File) => {
     const text = await file.text();
@@ -154,8 +159,40 @@ export default function QuizImport() {
     }
   };
 
+  const handleSaveBankOnly = async () => {
+    setIsSaving(true);
+    try {
+      const words = [...new Set(parsed.rows.map((r) => r.word))];
+      const { data: saved, error } = await supabase.rpc("upsert_sentence_bank", {
+        _rows: parsed.rows.map((r) => ({
+          word: r.word, meaning: r.meaning, level: r.level,
+          sentence: r.sentence, answer: r.answer, hint: r.hint, translation: r.translation,
+        })),
+        _source: "import",
+      });
+      if (error) throw error;
+
+      toast.success(`문장 은행에 ${saved ?? 0}개 저장했어요`, {
+        action: {
+          label: "방금 저장한 것 확인하기",
+          onClick: () => navigate("/admin/sentence-bank", { state: { words } }),
+        },
+      });
+      setRawText(""); // 텍스트만 비우고 화면에는 그대로 남는다(navigate 하지 않음)
+    } catch (e) {
+      console.error("Sentence bank save error:", e);
+      toast.error("문장 은행 저장에 실패했어요");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
+    if (mode === "bank") {
+      await handleSaveBankOnly();
+      return;
+    }
     setIsSaving(true);
 
     try {
@@ -391,15 +428,24 @@ export default function QuizImport() {
           </p>
         </div>
 
+        <Tabs value={mode} onValueChange={(v) => setMode(v as "quiz" | "bank")} className="mb-6">
+          <TabsList>
+            <TabsTrigger value="quiz">퀴즈 만들기</TabsTrigger>
+            <TabsTrigger value="bank">문장 은행에만 저장</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6 md:p-8 space-y-8">
           {/* ── 1. 제목 ── */}
-          <section>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">1</span>
-              <h2 className="font-semibold text-foreground">퀴즈 제목</h2>
-            </div>
-            <Input placeholder="예: 1과 어휘 퀴즈 (A1)" value={title} onChange={(e) => setTitle(e.target.value)} />
-          </section>
+          {mode === "quiz" && (
+            <section>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">1</span>
+                <h2 className="font-semibold text-foreground">퀴즈 제목</h2>
+              </div>
+              <Input placeholder="예: 1과 어휘 퀴즈 (A1)" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </section>
+          )}
 
           {/* ── 2. 표 붙여넣기 ── */}
           <section>
@@ -460,6 +506,7 @@ export default function QuizImport() {
           </section>
 
           {/* ── 3. 레벨 ── */}
+          {mode === "quiz" && (
           <section>
             <div className="flex items-center gap-3 mb-3">
               <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">3</span>
@@ -498,8 +545,10 @@ export default function QuizImport() {
               </>
             )}
           </section>
+          )}
 
           {/* ── 4. 퀴즈 유형 ── */}
+          {mode === "quiz" && (
           <section>
             <div className="flex items-center gap-3 mb-3">
               <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">4</span>
@@ -531,6 +580,7 @@ export default function QuizImport() {
               })}
             </div>
           </section>
+          )}
 
           {/* ── 5. 추가 설정 ── */}
           <section>
@@ -540,6 +590,7 @@ export default function QuizImport() {
             </div>
 
             <div className="space-y-5">
+              {mode === "quiz" && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-foreground">세트당 단어 수</label>
@@ -547,6 +598,7 @@ export default function QuizImport() {
                 </div>
                 <Slider value={[wordsPerSet]} onValueChange={(v) => setWordsPerSet(v[0])} min={1} max={10} step={1} />
               </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">번역 언어</label>
@@ -565,6 +617,7 @@ export default function QuizImport() {
                 <p className="text-xs text-muted-foreground">표의 `번역` 칸이 어느 언어인지 알려 주는 값이에요.</p>
               </div>
 
+              {mode === "quiz" && (
               <div className="rounded-xl border border-border p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -586,7 +639,9 @@ export default function QuizImport() {
                   </div>
                 )}
               </div>
+              )}
 
+              {mode === "quiz" ? (
               <div className="rounded-xl border border-border p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
@@ -602,7 +657,19 @@ export default function QuizImport() {
                   <Switch checked={saveToBank} onCheckedChange={setSaveToBank} />
                 </div>
               </div>
+              ) : (
+              <div className="rounded-xl border border-border p-4">
+                <div className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <Library className="w-4 h-4 text-muted-foreground" />
+                  문장 은행에만 저장
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  이 표의 모든 행이 문장 은행에 저장됩니다.
+                </div>
+              </div>
+              )}
 
+              {mode === "quiz" && (
               <div className="rounded-xl border border-border p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
@@ -617,6 +684,7 @@ export default function QuizImport() {
                   <Switch checked={ttsEnabled} onCheckedChange={setTtsEnabled} />
                 </div>
               </div>
+              )}
             </div>
           </section>
 
@@ -627,6 +695,12 @@ export default function QuizImport() {
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" /> 저장 중...
                 </>
+              ) : mode === "bank" ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  문장 은행에 저장
+                  {parsed.rows.length > 0 && ` (${parsed.rows.length}줄)`}
+                </>
               ) : (
                 <>
                   <Check className="w-4 h-4" />
@@ -635,7 +709,7 @@ export default function QuizImport() {
                 </>
               )}
             </Button>
-            {!anyStage && built.problems.length > 0 && (
+            {mode === "quiz" && !anyStage && built.problems.length > 0 && (
               <p className="text-xs text-destructive text-center mt-2">퀴즈 유형을 하나 이상 골라 주세요.</p>
             )}
           </div>

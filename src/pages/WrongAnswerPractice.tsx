@@ -1,27 +1,31 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import {
-  Loader2,
-  ArrowLeft,
-  ChevronRight,
-  ChevronLeft,
-  CheckCircle,
-  XCircle,
-  RotateCcw,
-  Volume2,
-  Lightbulb,
-} from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import { pickRotatedSentence, type BankSentence } from '@/lib/korean/reviewSchedule';
 import { maskTranslation } from '@/utils/maskTranslation';
-import { toJamo } from '@/utils/hangul';
 import { QuizStageHeader } from '@/components/quiz/shared/QuizStageHeader';
+import {
+  assignReviewFormats,
+  REVIEW_FORMAT_ORDER,
+  type ReviewFormat,
+  type ReviewFormatBuckets,
+} from '@/lib/korean/reviewTypeAssignment';
+import { STAGE_SHORT_LABELS } from '@/types/quiz';
+import { MatchUpStage, type MatchUpProblemData, type MatchUpResult } from '@/components/quiz/MatchUpStage';
+import { TypeAnswerStage, type TypeAnswerProblemData } from '@/components/quiz/TypeAnswerStage';
+import { FillBlankStage, type FillBlankProblem } from '@/components/quiz/FillBlankStage';
+import { WordMagnetStage, type WordMagnetProblemData } from '@/components/quiz/WordMagnetStage';
+import { SentenceMakingStage } from '@/components/quiz/SentenceMakingStage';
+import { SpeakingStage } from '@/components/quiz/SpeakingStage';
+import { parseSentenceToItems, assembleForDisplay, stripSpaces } from '@/lib/korean/wordMagnet';
 
+// localStorage 계약 — ReviewToday/WrongAnswerNotebook/StudentDashboard/QuizResult
+// 4곳이 전부 이 모양으로 채운다. 이 계약은 이 파일 안에서만 흡수하고 바꾸지 않는다.
 interface PracticeProblem {
   id: string;
   word: string;
@@ -30,36 +34,99 @@ interface PracticeProblem {
   translation: string | null;
   audio_url: string | null;
   source: string;
-  // 짝맞추기·문장순서에서 받아쓰기로 변환된 문항 중 word가 문장 전체인 경우(문장순서)는
-  // 보기 배지에 넣으면 정답이 그대로 노출되므로 false로 넘어온다. (기본값은 노출)
   in_word_bank?: boolean;
 }
 
-interface PracticeResult {
-  problem: PracticeProblem;
-  userAnswer: string;
-  isCorrect: boolean;
+// rotateSentences가 만드는, 6개 유형 배정과 채점에 필요한 단어별 정보.
+interface ReviewItem {
+  id: string;
+  word: string;
+  /** 완성형 문장(빈칸 없음). 문장을 못 구한 단어는 빈 문자열. */
+  sentence: string;
+  answer: string;
+  hint: string;
+  translation: string | null;
+  meaning: string | null;
+  stage: number;
+  level: string;
+  audioUrl: string | null;
 }
 
-const WORDS_PER_SET = 5;
+interface RoundResult {
+  item: ReviewItem;
+  format: ReviewFormat;
+  isCorrect: boolean;
+  userAnswerDisplay?: string;
+}
 
-// 문장에 빈칸 ( ) 이 있는지 판정 (받아쓰기 유형은 빈칸이 없다)
+// SentenceMakingStage/SpeakingStage는 결과 타입을 export하지 않으므로 구조적으로 맞춘 로컬 타입.
+interface SentenceAttemptLike {
+  sentence?: string;
+  isPassed: boolean;
+}
+interface SpeakingAttemptLike {
+  recognizedText?: string;
+  isPassed: boolean;
+}
+
+// 문장에 빈칸 ( ) 이 있는지 판정 (localStorage 원본 계약 흡수용)
 const hasBlank = (sentence: string) => /\(\s*\)|\(\)/.test(sentence);
 
-// 보기(word bank)에 노출할 문항인지 판정
-const inWordBank = (p: PracticeProblem) => p.in_word_bank !== false;
+// 완성형 문장 + 정답에서 빈칸 채우기용 문장을 만든다. 정답이 문장 안에 없으면 null.
+const toBlankSentence = (sentence: string, answer: string): string | null => {
+  const at = sentence.indexOf(answer);
+  if (at < 0) return null;
+  return sentence.slice(0, at) + '( )' + sentence.slice(at + answer.length);
+};
+
+/**
+ * 정답 비교/정규화 헬퍼. 이 파일에 원래 있던 채점 로직(공백 제거 + 대소문자 무시)을
+ * type_answer/fill_blank 공용으로 뽑아냈다. 조사·불규칙 활용까지 흡수하는 별도의
+ * 형태소 비교 로직은 이 파일에 원래 없었다(toJamo는 "보기 단어 취소선" 매칭에만 쓰였다).
+ */
+const isAnswerCorrect = (userAnswer: string, correctAnswer: string): boolean => {
+  const norm = (s: string) => s.trim().toLowerCase();
+  return norm(userAnswer) === norm(correctAnswer);
+};
+
+function buildBucketsFromFormatMap(
+  items: ReviewItem[],
+  formatOf: Record<string, ReviewFormat>
+): ReviewFormatBuckets<ReviewItem> {
+  const buckets: ReviewFormatBuckets<ReviewItem> = {
+    matchup: [],
+    type_answer: [],
+    fill_blank: [],
+    word_magnet: [],
+    sentence_making: [],
+    recording: [],
+  };
+  items.forEach((it) => {
+    const fmt = formatOf[it.id] ?? 'word_magnet';
+    buckets[fmt].push(it);
+  });
+  return buckets;
+}
 
 export default function WrongAnswerPractice() {
   const navigate = useNavigate();
-  const [problems, setProblems] = useState<PracticeProblem[]>([]);
-  const [currentSetIndex, setCurrentSetIndex] = useState(0);
-  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
-  const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
+
+  // 이번 세션(또는 재시도 세션)에서 풀고 있는 전체 문항.
+  const [sessionItems, setSessionItems] = useState<ReviewItem[]>([]);
+  // 문항 id → 배정된 유형. stage 기준 최초 배정 후 재시도에서도 그대로 재사용한다
+  // (재시도는 즉시 재드릴이지 새 SRS 세션이 아니므로 assignReviewFormats를 다시 돌리지 않는다).
+  const [formatOf, setFormatOf] = useState<Record<string, ReviewFormat>>({});
+  const [buckets, setBuckets] = useState<ReviewFormatBuckets<ReviewItem> | null>(null);
+  const [roundOrder, setRoundOrder] = useState<ReviewFormat[]>([]);
+  const [roundIndex, setRoundIndex] = useState(0);
+
+  const [results, setResults] = useState<Record<string, RoundResult>>({});
+  const [fillBlankAnswers, setFillBlankAnswers] = useState<Record<string, string>>({});
+  const [stageProgress, setStageProgress] = useState({ current: 0, total: 0, label: '' });
+
   const [isCompleted, setIsCompleted] = useState(false);
-  const [results, setResults] = useState<PracticeResult[]>([]);
-  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [masteredWords, setMasteredWords] = useState<string[]>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem('practice_problems');
@@ -77,23 +144,54 @@ export default function WrongAnswerPractice() {
       return;
     }
 
+    if (parsed.length === 0) {
+      navigate('/wrong-answers');
+      return;
+    }
+
     const shuffled = [...parsed].sort(() => Math.random() - 0.5);
-    // 은행 조회 전에 일단 보여준다. 조회가 끝나면 문장만 갈아 끼운다.
-    setProblems(shuffled);
-    void rotateSentences(shuffled);
+
+    void (async () => {
+      const items = await buildReviewItems(shuffled);
+      const assigned = assignReviewFormats(items, { allowPaidTypes: true });
+      const map: Record<string, ReviewFormat> = {};
+      REVIEW_FORMAT_ORDER.forEach((fmt) => {
+        assigned[fmt].forEach((it) => {
+          map[it.id] = fmt;
+        });
+      });
+      setFormatOf(map);
+      startSession(items, map);
+      setLoading(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   /**
-   * 같은 단어를 매번 같은 문장으로 묻지 않도록 이번 차례의 문장으로 교체한다.
-   *
-   * 교체하지 않으면 학생은 그 문장을 외우게 되지 단어를 외우지 않는다.
-   * 순환은 [원본, 은행1, 은행2, ...]이고 레벨은 올라가지 않는다 — 난이도는
-   * 선생님이 더 높은 난이도 퀴즈에 그 단어를 다시 낼 때만 오른다.
-   * 이번 차례가 원본이거나 은행에 그 단어가 없으면 원래 문항을 그대로 둔다.
+   * localStorage 문항을 채점·유형배정에 필요한 완전한 형태로 채운다.
+   * wrong_answer_progress(stage)와 sentence_bank(문장·정답·힌트·번역·뜻)를 조인해서
+   * 이 자리에서 바로 "이 단어를 어떤 문제 유형으로 낼지" 계산할 수 있는 데이터를 만든다.
+   * 은행 조회가 실패하거나 그 단어가 은행에 없으면 localStorage 원본 데이터로 최대한 복원한다.
    */
-  const rotateSentences = async (loaded: PracticeProblem[]) => {
+  const buildReviewItems = async (loaded: PracticeProblem[]): Promise<ReviewItem[]> => {
+    const fallback = (p: PracticeProblem): ReviewItem => {
+      const blank = hasBlank(p.sentence);
+      return {
+        id: p.id,
+        word: p.word,
+        sentence: blank ? p.sentence.replace(/\(\s*\)|\(\)/, p.correct_answer) : '',
+        answer: p.correct_answer,
+        hint: '',
+        translation: p.translation,
+        meaning: blank ? null : p.sentence || null,
+        stage: 0,
+        level: 'A1',
+        audioUrl: p.audio_url,
+      };
+    };
+
     const words = [...new Set(loaded.map((p) => p.word).filter(Boolean))];
-    if (words.length === 0) return;
+    if (words.length === 0) return loaded.map(fallback);
 
     try {
       const [{ data: progress }, { data: bank }] = await Promise.all([
@@ -104,222 +202,212 @@ export default function WrongAnswerPractice() {
           .in('word', words),
       ]);
 
-      if (!bank || bank.length === 0) return;
-
       const progressOf = new Map(
         (progress ?? []).map((r) => [r.word, { stage: r.stage ?? 0, level: r.level ?? null }])
       );
       const bankByWord = new Map<string, BankSentence[]>();
-      bank.forEach((row) => {
+      (bank ?? []).forEach((row) => {
         const list = bankByWord.get(row.word) ?? [];
         list.push(row as BankSentence);
         bankByWord.set(row.word, list);
       });
 
-      setProblems((current) =>
-        current.map((p) => {
-          const prog = progressOf.get(p.word);
-          // null이면 이번 차례는 원본 문장이라는 뜻이라 그대로 둔다.
-          const picked = pickRotatedSentence(
-            bankByWord.get(p.word) ?? [],
-            prog?.stage ?? 0,
-            prog?.level ?? null
-          );
-          if (!picked) return p;
+      return loaded.map((p) => {
+        const base = fallback(p);
+        const prog = progressOf.get(p.word);
+        const stage = prog?.stage ?? 0;
+        const candidates = bankByWord.get(p.word) ?? [];
+        const picked = pickRotatedSentence(candidates, stage, prog?.level ?? null);
+        const anyBankRow = candidates[0];
 
-          // 빈칸 채우기 문항만 교체한다. 받아쓰기(빈칸 없는 프롬프트)는 문장이 아니라
-          // 뜻을 보여주는 방식이라 은행 문장을 끼워 넣으면 유형이 바뀌어 버린다.
-          if (!hasBlank(p.sentence)) return p;
-
-          const at = picked.sentence.indexOf(picked.answer);
-          if (at < 0) return p; // 정답이 문장 안에 없으면 빈칸을 못 만든다
-          const blanked =
-            picked.sentence.slice(0, at) + '( )' + picked.sentence.slice(at + picked.answer.length);
-
+        if (picked) {
           return {
-            ...p,
-            correct_answer: picked.answer,
-            sentence: blanked,
+            ...base,
+            sentence: picked.sentence,
+            answer: picked.answer,
+            hint: picked.hint ?? '',
             translation: picked.translation,
+            meaning: picked.meaning ?? anyBankRow?.meaning ?? base.meaning,
+            stage,
+            level: prog?.level ?? picked.level ?? base.level,
             // 은행 문장은 이 퀴즈에서 만든 게 아니라 음성이 없다.
-            audio_url: null,
+            audioUrl: null,
           };
-        })
-      );
+        }
+
+        return {
+          ...base,
+          meaning: base.meaning ?? anyBankRow?.meaning ?? null,
+          stage,
+          level: prog?.level ?? anyBankRow?.level ?? base.level,
+        };
+      });
     } catch (e) {
       // 교체는 부가 기능이다. 실패해도 원래 문항으로 연습은 계속된다.
-      console.error('Failed to rotate practice sentences:', e);
+      console.error('Failed to enrich review items:', e);
+      return loaded.map(fallback);
     }
   };
 
-  // Split problems into sets
-  const problemSets = useMemo(() => {
-    const sets: PracticeProblem[][] = [];
-    for (let i = 0; i < problems.length; i += WORDS_PER_SET) {
-      sets.push(problems.slice(i, i + WORDS_PER_SET));
-    }
-    return sets;
-  }, [problems]);
-
-  const currentSet = useMemo(
-    () => problemSets[currentSetIndex] || [],
-    [problemSets, currentSetIndex]
-  );
-  const totalSets = problemSets.length;
-
-  // Shuffle word bank for current set (보기 제외 문항은 빼고)
-  const shuffledWordBank = useMemo(() => {
-    return [...currentSet]
-      .filter(inWordBank)
-      .sort(() => Math.random() - 0.5)
-      .map((p) => p.word);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSetIndex, problems.length]);
-
-  // 답이 입력된 문제의 뱅크 단어 추적 (취소선용) — 자모 분해로 불규칙 활용 대응
-  const usedBankWords = useMemo(() => {
-    const used = new Set<string>();
-    const bankWords = currentSet.filter(inWordBank).map((p) => p.word);
-
-    currentSet.forEach((p) => {
-      // 보기에 없는 문항(문장순서 변환)은 뱅크 매칭 대상이 아니다.
-      // 답이 문장 전체라 엉뚱한 보기 단어에 취소선이 그어질 수 있다.
-      if (!inWordBank(p)) return;
-      const answer = userAnswers[p.id]?.trim();
-      if (!answer) return;
-
-      if (bankWords.includes(answer)) {
-        used.add(answer);
-        return;
-      }
-
-      const ansJamo = toJamo(answer);
-      let bestWord = p.word;
-      let bestScore = 0;
-
-      for (const bw of bankWords) {
-        const bwJamo = toJamo(bw);
-        let score = 0;
-        while (score < bwJamo.length && score < ansJamo.length && bwJamo[score] === ansJamo[score]) {
-          score++;
-        }
-        if (score > bestScore || (score === bestScore && bw === p.word)) {
-          bestScore = score;
-          bestWord = bw;
-        }
-      }
-
-      used.add(bestScore > 0 ? bestWord : p.word);
-    });
-
-    return used;
-  }, [currentSet, userAnswers]);
-
-  const progress = useMemo(() => {
-    if (problems.length === 0) return 0;
-    const answeredCount = Object.keys(userAnswers).filter((id) => userAnswers[id]?.trim()).length;
-    return (answeredCount / problems.length) * 100;
-  }, [problems.length, userAnswers]);
-
-  const handleAnswerChange = (problemId: string, value: string) => {
-    setUserAnswers((prev) => ({ ...prev, [problemId]: value }));
+  const startSession = (items: ReviewItem[], map: Record<string, ReviewFormat>) => {
+    const shuffledItems = [...items].sort(() => Math.random() - 0.5);
+    const b = buildBucketsFromFormatMap(shuffledItems, map);
+    const order = REVIEW_FORMAT_ORDER.filter((fmt) => b[fmt].length > 0);
+    setSessionItems(shuffledItems);
+    setBuckets(b);
+    setRoundOrder(order);
+    setRoundIndex(0);
+    setResults({});
+    setFillBlankAnswers({});
+    setIsCompleted(false);
+    setMasteredWords([]);
   };
 
-  const toggleTranslation = (problemId: string) => {
-    setShowTranslations((prev) => ({
-      ...prev,
-      [problemId]: !prev[problemId],
-    }));
-  };
-
-  const playAudio = useCallback((audioUrl: string, problemId: string) => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    const audio = new Audio(audioUrl);
-    audioRef.current = audio;
-    setPlayingAudio(problemId);
-    audio.play().catch((err) => {
-      console.error('Audio playback error:', err);
-      setPlayingAudio(null);
-    });
-    audio.onended = () => setPlayingAudio(null);
-    audio.onerror = () => setPlayingAudio(null);
-  }, []);
-
-  const currentSetAnswered = () => {
-    return currentSet.every((p) => userAnswers[p.id]?.trim());
-  };
-
-  const allAnswered = () => {
-    return problems.every((p) => userAnswers[p.id]?.trim());
-  };
-
-  const handleNextSet = () => {
-    if (currentSetIndex < totalSets - 1) {
-      setCurrentSetIndex(currentSetIndex + 1);
-      setShowTranslations({});
-    }
-  };
-
-  const handlePrevSet = () => {
-    if (currentSetIndex > 0) {
-      setCurrentSetIndex(currentSetIndex - 1);
-      setShowTranslations({});
-    }
-  };
-
-  const handleSubmit = async () => {
-    const practiceResults: PracticeResult[] = problems.map((problem) => {
-      const userAnswer = (userAnswers[problem.id] || '').trim();
-      const isCorrect = userAnswer.toLowerCase() === problem.correct_answer.toLowerCase();
-      return { problem, userAnswer, isCorrect };
-    });
-    setResults(practiceResults);
+  const finalizeSession = async (merged: Record<string, RoundResult>) => {
     setIsCompleted(true);
+    const finalResults = sessionItems
+      .map((it) => merged[it.id])
+      .filter((r): r is RoundResult => !!r);
 
-    // 진행도 저장 + 이번에 마스터한 단어 확인
     try {
       const { data: mastered } = await supabase.rpc('update_wa_progress', {
-        _items: practiceResults.map((r) => ({ word: r.problem.word, correct: r.isCorrect })),
+        _items: finalResults.map((r) => ({ word: r.item.word, correct: r.isCorrect })),
       });
-      // RPC 반환형이 Json이라 문자열 배열로 좁혀서 넣는다.
       setMasteredWords(
-        Array.isArray(mastered) ? mastered.filter((w): w is string => typeof w === "string") : []
+        Array.isArray(mastered) ? mastered.filter((w): w is string => typeof w === 'string') : []
       );
     } catch (e) {
       console.error('Failed to update wrong answer progress:', e);
     }
   };
 
+  const completeRound = (entries: Record<string, RoundResult>) => {
+    const merged = { ...results, ...entries };
+    setResults(merged);
+    if (roundIndex + 1 >= roundOrder.length) {
+      void finalizeSession(merged);
+    } else {
+      setRoundIndex((i) => i + 1);
+    }
+  };
+
+  const handleProgressUpdate = (current: number, total: number, label: string) => {
+    setStageProgress({ current, total, label });
+  };
+
+  const handleMatchupComplete = (resultsMap: Record<string, MatchUpResult>) => {
+    const entries: Record<string, RoundResult> = {};
+    (buckets?.matchup ?? []).forEach((it) => {
+      const r = resultsMap[it.id];
+      entries[it.id] = {
+        item: it,
+        format: 'matchup',
+        isCorrect: !!r?.isCorrect,
+        userAnswerDisplay: r?.selectedMeaning,
+      };
+    });
+    completeRound(entries);
+  };
+
+  const handleTypeAnswerComplete = (answers: Record<string, string>) => {
+    const entries: Record<string, RoundResult> = {};
+    (buckets?.type_answer ?? []).forEach((it) => {
+      const userAnswer = answers[it.id] || '';
+      entries[it.id] = {
+        item: it,
+        format: 'type_answer',
+        isCorrect: isAnswerCorrect(userAnswer, it.answer),
+        userAnswerDisplay: userAnswer,
+      };
+    });
+    completeRound(entries);
+  };
+
+  const handleFillBlankComplete = () => {
+    const entries: Record<string, RoundResult> = {};
+    (buckets?.fill_blank ?? []).forEach((it) => {
+      const userAnswer = fillBlankAnswers[it.id] || '';
+      entries[it.id] = {
+        item: it,
+        format: 'fill_blank',
+        isCorrect: isAnswerCorrect(userAnswer, it.answer),
+        userAnswerDisplay: userAnswer,
+      };
+    });
+    setFillBlankAnswers({});
+    completeRound(entries);
+  };
+
+  const handleWordMagnetComplete = (answers: Record<string, string>) => {
+    const entries: Record<string, RoundResult> = {};
+    (buckets?.word_magnet ?? []).forEach((it) => {
+      const userAnswer = answers[it.id] || '';
+      const correctAssembled = assembleForDisplay(parseSentenceToItems(it.sentence));
+      entries[it.id] = {
+        item: it,
+        format: 'word_magnet',
+        isCorrect: stripSpaces(userAnswer) === stripSpaces(correctAssembled),
+        userAnswerDisplay: userAnswer,
+      };
+    });
+    completeRound(entries);
+  };
+
+  const handleSentenceMakingComplete = (resultsMap: Record<string, SentenceAttemptLike[]>) => {
+    const entries: Record<string, RoundResult> = {};
+    (buckets?.sentence_making ?? []).forEach((it) => {
+      const attempts = resultsMap[it.id] ?? [];
+      const last = attempts[attempts.length - 1];
+      entries[it.id] = {
+        item: it,
+        format: 'sentence_making',
+        isCorrect: !!last?.isPassed,
+        userAnswerDisplay: last?.sentence,
+      };
+    });
+    completeRound(entries);
+  };
+
+  const handleSpeakingComplete = (resultsMap: Record<string, SpeakingAttemptLike[]>) => {
+    const entries: Record<string, RoundResult> = {};
+    (buckets?.recording ?? []).forEach((it) => {
+      const attempts = resultsMap[it.id] ?? [];
+      const last = attempts[attempts.length - 1];
+      entries[it.id] = {
+        item: it,
+        format: 'recording',
+        isCorrect: !!last?.isPassed,
+        userAnswerDisplay: last?.recognizedText,
+      };
+    });
+    completeRound(entries);
+  };
+
+  // 방금 틀린 문제를 방금 풀었던 것과 같은 유형으로 다시 보여준다 — 새 SRS 세션이 아니라
+  // 즉시 재드릴이므로 assignReviewFormats를 다시 돌리지 않는다.
   const handleRetry = () => {
-    setCurrentSetIndex(0);
-    setUserAnswers({});
-    setShowTranslations({});
-    setIsCompleted(false);
-    setResults([]);
-    setMasteredWords([]);
-    // Reshuffle
-    setProblems((prev) => [...prev].sort(() => Math.random() - 0.5));
+    startSession(sessionItems, formatOf);
   };
 
-  // 틀린 문제만 다시 풀기
   const handleRetryWrongOnly = () => {
-    const wrong = results.filter((r) => !r.isCorrect).map((r) => r.problem);
-    setProblems([...wrong].sort(() => Math.random() - 0.5));
-    setCurrentSetIndex(0);
-    setUserAnswers({});
-    setShowTranslations({});
-    setIsCompleted(false);
-    setResults([]);
-    setMasteredWords([]);
+    const wrong = sessionItems.filter((it) => results[it.id] && !results[it.id].isCorrect);
+    if (wrong.length === 0) return;
+    startSession(wrong, formatOf);
   };
 
-  const score = useMemo(() => {
-    return results.filter((r) => r.isCorrect).length;
-  }, [results]);
+  const score = useMemo(
+    () => sessionItems.filter((it) => results[it.id]?.isCorrect).length,
+    [sessionItems, results]
+  );
 
-  if (problems.length === 0) {
+  const currentFormat = roundOrder[roundIndex];
+
+  const globalStages = useMemo(
+    () => roundOrder.map((fmt) => ({ id: fmt, label: STAGE_SHORT_LABELS[fmt] })),
+    [roundOrder]
+  );
+
+  if (loading || !buckets) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -350,22 +438,22 @@ export default function WrongAnswerPractice() {
           <Card className="mb-6">
             <CardContent className="pt-6">
               <div className="text-center">
-                <h1 className="text-2xl font-bold mb-2">연습 퀴즈 완료!</h1>
+                <h1 className="text-2xl font-bold mb-2">복습 완료!</h1>
                 <p className="text-4xl font-bold text-primary mb-4">
-                  {score} / {problems.length}
+                  {score} / {sessionItems.length}
                 </p>
                 <p className="text-muted-foreground mb-6">
-                  정답률 {Math.round((score / problems.length) * 100)}%
+                  정답률 {sessionItems.length > 0 ? Math.round((score / sessionItems.length) * 100) : 0}%
                 </p>
                 <div className="flex flex-wrap justify-center gap-3">
                   <Button onClick={handleRetry} variant="outline" className="gap-2">
                     <RotateCcw className="h-4 w-4" />
                     다시 풀기
                   </Button>
-                  {score < problems.length && (
+                  {score < sessionItems.length && (
                     <Button onClick={handleRetryWrongOnly} className="gap-2">
                       <RotateCcw className="h-4 w-4" />
-                      틀린 {problems.length - score}개만 다시
+                      틀린 {sessionItems.length - score}개만 다시
                     </Button>
                   )}
                   <Link to="/wrong-answers">
@@ -378,60 +466,45 @@ export default function WrongAnswerPractice() {
 
           <h2 className="text-lg font-semibold mb-4">문제별 결과</h2>
           <div className="space-y-4">
-            {results.map((result, index) => {
-              const blank = hasBlank(result.problem.sentence);
-              const parts = result.problem.sentence.split(/\(\s*\)|\(\)/);
+            {sessionItems.map((item, index) => {
+              const result = results[item.id];
+              if (!result) return null;
               return (
                 <Card
-                  key={result.problem.id}
-                  className={`border-l-4 ${
-                    result.isCorrect ? 'border-l-green-500' : 'border-l-red-500'
-                  }`}
+                  key={item.id}
+                  className={`border-l-4 ${result.isCorrect ? 'border-l-green-500' : 'border-l-red-500'}`}
                 >
                   <CardContent className="pt-4">
                     <div className="flex items-start gap-3">
                       <span className="font-bold text-primary">{index + 1}.</span>
                       <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           {result.isCorrect ? (
                             <CheckCircle className="h-5 w-5 text-green-500" />
                           ) : (
                             <XCircle className="h-5 w-5 text-red-500" />
                           )}
-                          <span className="font-medium">{result.problem.word}</span>
+                          <span className="font-medium">{item.word}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {STAGE_SHORT_LABELS[result.format]}
+                          </Badge>
                         </div>
-                        {blank ? (
-                          // 빈칸 채우기: 문장 안에 정답을 초록으로 삽입
-                          <p className="text-sm">
-                            {parts[0]}
-                            <span className="font-bold text-green-600 mx-1">
-                              {result.problem.correct_answer}
-                            </span>
-                            {parts[1]}
-                          </p>
-                        ) : (
-                          // 받아쓰기: 뜻(단서) + 정답을 따로 표시
-                          <div className="text-sm space-y-1">
-                            {result.problem.sentence && (
-                              <p className="text-muted-foreground">뜻: {result.problem.sentence}</p>
-                            )}
-                            <p>
-                              <span className="text-muted-foreground mr-1">정답:</span>
-                              <span className="font-bold text-green-600">
-                                {result.problem.correct_answer}
-                              </span>
-                            </p>
-                          </div>
+                        {item.sentence && (
+                          <p className="text-sm text-muted-foreground">{item.sentence}</p>
                         )}
+                        <p className="text-sm">
+                          <span className="text-muted-foreground mr-1">정답:</span>
+                          <span className="font-bold text-green-600">
+                            {result.format === 'matchup' ? item.meaning ?? item.answer : item.answer}
+                          </span>
+                        </p>
                         {!result.isCorrect && (
                           <p className="text-sm text-red-500">
-                            내 답: {result.userAnswer || '(입력 없음)'}
+                            내 답: {result.userAnswerDisplay || '(입력 없음)'}
                           </p>
                         )}
-                        {result.problem.translation && (
-                          <p className="text-xs text-muted-foreground">
-                            {result.problem.translation}
-                          </p>
+                        {item.translation && (
+                          <p className="text-xs text-muted-foreground">{item.translation}</p>
                         )}
                       </div>
                     </div>
@@ -445,255 +518,192 @@ export default function WrongAnswerPractice() {
     );
   }
 
-  // Calculate progress display
-  const startNum = currentSetIndex * WORDS_PER_SET + 1;
-  const endNum = Math.min((currentSetIndex + 1) * WORDS_PER_SET, problems.length);
+  const renderStage = () => {
+    if (!currentFormat || !buckets) return null;
+    const isFirstRound = roundIndex === 0;
+    const stageOnBack = isFirstRound ? () => navigate('/wrong-answers') : undefined;
+    const backLabel = '오답 노트로';
 
-  // 세트 구성에 따라 안내 문구/보기 노출 결정 (빈칸·받아쓰기가 섞일 수 있다)
-  const setHasBlank = currentSet.some((p) => hasBlank(p.sentence));
-  const setHasDictation = currentSet.some((p) => !hasBlank(p.sentence));
-  const promptText =
-    setHasBlank && setHasDictation
-      ? '알맞은 단어를 입력하세요'
-      : setHasBlank
-        ? '빈칸에 알맞은 단어를 입력하세요'
-        : '뜻을 보고 알맞은 단어를 입력하세요';
-  const hasWordBank = shuffledWordBank.length > 0;
+    switch (currentFormat) {
+      case 'matchup': {
+        const problems: MatchUpProblemData[] = buckets.matchup.map((it) => ({
+          id: it.id,
+          korean_text: it.word,
+          meaning_text: it.meaning ?? '',
+        }));
+        return (
+          <MatchUpStage
+            problems={problems}
+            wordsPerSet={5}
+            onProgressUpdate={handleProgressUpdate}
+            onComplete={handleMatchupComplete}
+            onBack={stageOnBack}
+            backLabel={backLabel}
+          />
+        );
+      }
+      case 'type_answer': {
+        const problems: TypeAnswerProblemData[] = buckets.type_answer.map((it) => ({
+          id: it.id,
+          prompt: it.meaning ?? '',
+        }));
+        return (
+          <TypeAnswerStage
+            problems={problems}
+            onProgressUpdate={handleProgressUpdate}
+            onComplete={handleTypeAnswerComplete}
+            onBack={stageOnBack}
+            backLabel={backLabel}
+          />
+        );
+      }
+      case 'fill_blank': {
+        const problems: FillBlankProblem[] = buckets.fill_blank.map((it) => ({
+          id: it.id,
+          word: it.word,
+          sentence: toBlankSentence(it.sentence, it.answer) ?? it.sentence,
+          hint: it.hint,
+          translation: it.translation ?? '',
+          sentence_audio_url: it.audioUrl ?? undefined,
+        }));
+        return (
+          <FillBlankStage
+            problems={problems}
+            wordsPerSet={5}
+            isAnonymous={false}
+            hasNextStage={roundIndex < roundOrder.length - 1}
+            userAnswers={fillBlankAnswers}
+            onAnswerChange={(id, value) => setFillBlankAnswers((prev) => ({ ...prev, [id]: value }))}
+            onProgressUpdate={handleProgressUpdate}
+            onComplete={handleFillBlankComplete}
+          />
+        );
+      }
+      case 'word_magnet': {
+        const problems: WordMagnetProblemData[] = buckets.word_magnet.map((it) => ({
+          id: it.id,
+          translation: it.translation ?? it.meaning ?? '',
+          items: parseSentenceToItems(it.sentence),
+        }));
+        return (
+          <WordMagnetStage
+            problems={problems}
+            onProgressUpdate={handleProgressUpdate}
+            onComplete={handleWordMagnetComplete}
+            onBack={stageOnBack}
+            backLabel={backLabel}
+          />
+        );
+      }
+      case 'sentence_making': {
+        const problems = buckets.sentence_making.map((it) => ({
+          id: it.id,
+          word: it.word,
+          word_meaning: it.meaning,
+        }));
+        const difficulty = buckets.sentence_making[0]?.level ?? 'A1';
+        return (
+          <SentenceMakingStage
+            quizId="srs-review"
+            problems={problems}
+            difficulty={difficulty}
+            onProgressUpdate={handleProgressUpdate}
+            onComplete={handleSentenceMakingComplete}
+            onBack={stageOnBack}
+            backLabel={backLabel}
+          />
+        );
+      }
+      case 'recording': {
+        const problems = buckets.recording.map((it) => ({
+          id: it.id,
+          sentence: it.sentence,
+          mode: 'read' as const,
+          sentenceAudioUrl: it.audioUrl ?? undefined,
+          translation: it.translation ?? undefined,
+        }));
+        return (
+          <SpeakingStage
+            quizId="srs-review"
+            problems={problems}
+            onProgressUpdate={handleProgressUpdate}
+            onComplete={handleSpeakingComplete}
+            onBack={stageOnBack}
+            backLabel={backLabel}
+          />
+        );
+      }
+      default:
+        return null;
+    }
+  };
 
-  // Quiz screen
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b shadow-sm">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link to="/wrong-answers">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </Link>
-              <h1 className="font-bold text-lg">오답 연습</h1>
-            </div>
-            <span className="shrink-0 px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold shadow-sm border border-slate-200">
-              {startNum}-{endNum} / {problems.length}
-            </span>
-          </div>
-          <Progress value={progress} className="mt-2 h-2.5" />
-        </div>
-      </div>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 shrink-0">
+                <Link to="/wrong-answers">
+                  <Button variant="ghost" size="sm">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <h1 className="font-bold text-lg">오늘의 복습</h1>
+              </div>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Main Card */}
-        <Card className="border shadow-sm rounded-2xl overflow-hidden mb-8 bg-white max-w-5xl mx-auto">
-          <CardContent className="p-0">
-            {/* 안내 — 흰 면 = 읽는 것. 보기(재료)는 회색 박스로 별도 분리 */}
-            <div className="px-4 sm:px-8 pt-6 sm:pt-7 pb-4 text-center">
-              <QuizStageHeader instruction={promptText} />
-            </div>
-            {/* Word Bank (보기에 낼 문항이 있을 때만 표시 + 사용한 단어 취소선) — 회색 박스는 "이 문제의 재료"만 */}
-            {hasWordBank && (
-              <div className="mx-4 sm:mx-8 mb-2 rounded-2xl bg-slate-50 px-5 py-4 sm:py-5 flex flex-col items-center">
-                <p className="mb-3 text-xs font-bold tracking-wide text-muted-foreground">보기</p>
-                <div className="flex flex-wrap justify-center gap-2 sm:gap-3 w-full max-w-lg">
-                  {shuffledWordBank.map((word, idx) => {
-                    const isUsed = usedBankWords.has(word);
-                    return (
-                      <Badge
-                        key={idx}
-                        variant="outline"
-                        className={`px-4 py-1.5 rounded-full text-sm font-medium bg-white shadow-sm transition-all ${
-                          isUsed
-                            ? 'line-through text-muted-foreground border-border opacity-60'
-                            : 'text-foreground border-border'
+              {globalStages.length > 1 && (
+                <div className="hidden sm:flex flex-1 justify-center items-center gap-1 lg:gap-2">
+                  {globalStages.map((stage, idx) => (
+                    <div key={stage.id} className="flex items-center gap-1 lg:gap-2">
+                      <div
+                        className={`flex items-center gap-1.5 px-2 py-1 text-xs sm:text-sm font-semibold rounded-full transition-all ${
+                          idx === roundIndex
+                            ? 'bg-primary text-primary-foreground shadow-md'
+                            : idx < roundIndex
+                              ? 'bg-primary/20 text-primary'
+                              : 'text-muted-foreground bg-card ring-1 ring-inset ring-border'
                         }`}
                       >
-                        {word}
-                      </Badge>
-                    );
-                  })}
+                        <span
+                          className={`flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full text-[10px] sm:text-xs shadow-sm font-bold ${
+                            idx === roundIndex
+                              ? 'bg-white text-primary'
+                              : idx < roundIndex
+                                ? 'bg-primary text-white'
+                                : 'bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          {idx + 1}
+                        </span>
+                        <span className="hidden md:inline-block px-1">{stage.label}</span>
+                      </div>
+                      {idx < globalStages.length - 1 && <div className="w-2 sm:w-6 lg:w-8 h-px bg-border" />}
+                    </div>
+                  ))}
                 </div>
+              )}
+
+              <span className="shrink-0 px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold shadow-sm border border-slate-200">
+                {roundIndex + 1}/{roundOrder.length}
+              </span>
+            </div>
+
+            {stageProgress.total > 0 && (
+              <div className="flex items-center justify-between gap-4 w-full px-1">
+                <Progress value={(stageProgress.current / stageProgress.total) * 100} className="flex-1 h-2.5" />
+                <span className="shrink-0 px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold shadow-sm border border-slate-200">
+                  {stageProgress.label}
+                </span>
               </div>
             )}
-
-            {/* Problems List */}
-            <div className="px-6 sm:px-8 pt-4 pb-6 sm:pb-8">
-              <div className="space-y-0 divide-y">
-                {currentSet.map((problem, idx) => {
-                  const problemNumber = currentSetIndex * WORDS_PER_SET + idx + 1;
-                  // Clean up sentence
-                  let sentence = problem.sentence;
-                  sentence = sentence.replace(/([.?!])\s*\.+\s*$/, '$1');
-                  sentence = sentence.replace(/\.\s*\.$/, '.');
-                  const parts = sentence.split(/\(\s*\)|\(\)/);
-                  const blank = hasBlank(problem.sentence);
-
-                  return (
-                    <div key={problem.id} className="py-6 sm:py-5 first:pt-2 last:pb-2">
-                      {/* Mobile Layout: Stacked */}
-                      <div className="flex flex-col gap-3 sm:hidden">
-                        <div className="flex items-start gap-2">
-                          <span className="text-primary font-bold">{problemNumber}.</span>
-                          <div className="flex-1">
-                            {blank ? (
-                              <p className="text-base leading-relaxed">
-                                {parts[0]}
-                                <span className="text-muted-foreground mx-1">( _____ )</span>
-                                {parts[1]}
-                              </p>
-                            ) : (
-                              <p className="text-base leading-relaxed">
-                                <span className="text-muted-foreground mr-1">뜻:</span>
-                                {sentence}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => problem.audio_url && playAudio(problem.audio_url, problem.id)}
-                              disabled={!problem.audio_url}
-                              className={`h-8 w-8 p-0 rounded-xl ${!problem.audio_url ? 'opacity-40' : ''}`}
-                            >
-                              <Volume2
-                                className={`w-4 h-4 ${
-                                  playingAudio === problem.id ? 'text-primary animate-pulse' : ''
-                                }`}
-                              />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 w-8 p-0 rounded-xl"
-                              onClick={() => toggleTranslation(problem.id)}
-                              disabled={!problem.translation}
-                            >
-                              <Lightbulb
-                                className={`w-4 h-4 ${showTranslations[problem.id] ? 'text-warning' : ''}`}
-                              />
-                            </Button>
-                          </div>
-                        </div>
-                        <Input
-                          value={userAnswers[problem.id] || ''}
-                          onChange={(e) => handleAnswerChange(problem.id, e.target.value)}
-                          className="h-11 w-full text-center rounded-xl bg-slate-50 border-border"
-                          placeholder="정답 입력"
-                          autoComplete="off"
-                        />
-                        {showTranslations[problem.id] && problem.translation && (
-                          <div className="px-4 py-3 bg-accent rounded-xl text-sm border border-primary/15 text-foreground">
-                            {maskTranslation(problem.translation)}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Desktop Layout: Inline */}
-                      <div className="hidden sm:block">
-                        <div className="flex items-center gap-3">
-                          <span className="text-primary font-bold min-w-[24px]">{problemNumber}.</span>
-                          {blank ? (
-                            <div className="flex-1 flex items-center flex-wrap gap-1 leading-loose">
-                              <span className="text-lg font-medium text-foreground whitespace-nowrap">
-                                {parts[0]?.trim()}
-                              </span>
-                              <Input
-                                value={userAnswers[problem.id] || ''}
-                                onChange={(e) => handleAnswerChange(problem.id, e.target.value)}
-                                className="w-48 h-10 mx-1 text-center text-base inline-block rounded-xl bg-slate-50 border-border"
-                                placeholder="정답 입력"
-                                autoComplete="off"
-                              />
-                              <span className="text-lg font-medium text-foreground whitespace-nowrap">
-                                {parts[1]?.trim()}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex-1 flex items-center flex-wrap gap-2 leading-loose">
-                              <span className="text-lg font-medium text-foreground whitespace-nowrap">
-                                <span className="text-muted-foreground mr-1">뜻:</span>
-                                {sentence}
-                              </span>
-                              <Input
-                                value={userAnswers[problem.id] || ''}
-                                onChange={(e) => handleAnswerChange(problem.id, e.target.value)}
-                                className="w-48 h-10 mx-1 text-center text-base inline-block rounded-xl bg-slate-50 border-border"
-                                placeholder="정답 입력"
-                                autoComplete="off"
-                              />
-                            </div>
-                          )}
-                          <div className="flex gap-2 shrink-0">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => problem.audio_url && playAudio(problem.audio_url, problem.id)}
-                              disabled={!problem.audio_url}
-                              className={`rounded-xl ${!problem.audio_url ? 'opacity-40' : ''}`}
-                            >
-                              <Volume2
-                                className={`w-4 h-4 mr-1 ${
-                                  playingAudio === problem.id ? 'text-primary animate-pulse' : ''
-                                }`}
-                              />
-                              듣기
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleTranslation(problem.id)}
-                              disabled={!problem.translation}
-                              className="rounded-xl"
-                            >
-                              <Lightbulb
-                                className={`w-4 h-4 mr-1 ${showTranslations[problem.id] ? 'text-warning' : ''}`}
-                              />
-                              번역
-                            </Button>
-                          </div>
-                        </div>
-                        {showTranslations[problem.id] && problem.translation && (
-                          <div className="mt-4 ml-8 px-4 py-3 bg-accent rounded-xl text-sm border border-primary/15 text-foreground">
-                            {maskTranslation(problem.translation)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Navigation */}
-        <div className="flex justify-between items-center mt-6 max-w-5xl mx-auto">
-          <Button
-            variant="outline"
-            onClick={handlePrevSet}
-            disabled={currentSetIndex === 0}
-            className="rounded-xl"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" /> 이전 세트
-          </Button>
-
-          {currentSetIndex === totalSets - 1 ? (
-            <Button
-              onClick={handleSubmit}
-              disabled={!allAnswered()}
-              className="rounded-xl bg-primary hover:bg-primary/90"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              결과 확인
-            </Button>
-          ) : (
-            <Button onClick={handleNextSet} disabled={!currentSetAnswered()} className="rounded-xl">
-              다음 세트 <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
-          )}
+          </div>
         </div>
       </div>
+
+      <div className="container mx-auto px-4 py-4">{renderStage()}</div>
     </div>
   );
 }

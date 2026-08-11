@@ -1721,6 +1721,14 @@ export type Database = {
         Returns: undefined
       }
       seed_review_schedule: { Args: { _result_id: string }; Returns: number }
+      get_sentence_bank_coverage: {
+        Args: never
+        Returns: {
+          level: string
+          total_words: number
+          words_with_2plus: number
+        }[]
+      }
       upsert_sentence_bank: {
         Args: { _rows: Json; _source?: string }
         Returns: number

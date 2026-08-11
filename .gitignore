@@ -47,6 +47,7 @@ supabase/.temp/
 # 환경 변수 — 전부 로컬 전용. 새 변수는 .env.example 에 이름만 추가할 것.
 .env
 .env.local
+.env.development.local
 
 # 도움말 스크린샷 캡처 (로컬 전용 — 로컬 Supabase 접속 정보 + 로그인 세션)
 .env.capture

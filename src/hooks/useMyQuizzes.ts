@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface MyQuizItem {
   quiz_id: string;
   quiz_title: string;
-  class_id: string;
+  class_id: string | null;
   class_name: string;
   assigned_at: string;
   result_id: string | null;
@@ -57,7 +57,10 @@ export function useMyQuizzes(studentId: string) {
         classNameMap[m.class_id] = m.classes?.name || "알 수 없는 클래스";
       });
 
-      const { data: assignments, error: assignError } = await supabase
+      // class_id로 배정된 것(반 전체)뿐 아니라 student_id로 나에게만 개별
+      // 배정된 것도 봐야 한다(예: 어휘 보강 퀴즈). classIds가 비어 있으면
+      // `class_id.in.()` 문법이 깨지므로 그때는 student_id 단독 조건만 건다.
+      let assignmentsQuery = supabase
         .from("quiz_assignments")
         .select(`
           quiz_id,
@@ -69,8 +72,13 @@ export function useMyQuizzes(studentId: string) {
             sentence_making_enabled,
             recording_enabled
           )
-        `)
-        .in("class_id", classIds);
+        `);
+      assignmentsQuery =
+        classIds.length > 0
+          ? assignmentsQuery.or(`class_id.in.(${classIds.join(",")}),student_id.eq.${studentId}`)
+          : assignmentsQuery.eq("student_id", studentId);
+
+      const { data: assignments, error: assignError } = await assignmentsQuery;
 
       if (assignError) throw assignError;
       if (!assignments || assignments.length === 0) {
@@ -99,7 +107,7 @@ export function useMyQuizzes(studentId: string) {
           quiz_id: a.quiz_id,
           quiz_title: a.quizzes?.title || "삭제된 퀴즈",
           class_id: a.class_id,
-          class_name: classNameMap[a.class_id] || "알 수 없는 클래스",
+          class_name: a.class_id ? (classNameMap[a.class_id] || "알 수 없는 클래스") : "개인 과제",
           assigned_at: a.assigned_at,
           result_id: result?.id || null,
           score: result?.score ?? null,

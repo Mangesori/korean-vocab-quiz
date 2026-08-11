@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminSentenceBank from "./pages/AdminSentenceBank";
 import QuizCreate from "./pages/QuizCreate";
 import QuizImport from "./pages/QuizImport";
 import ReviewToday from "./pages/ReviewToday";
@@ -32,6 +33,7 @@ import WrongAnswerNotebook from "./pages/WrongAnswerNotebook";
 import WrongAnswerPractice from "./pages/WrongAnswerPractice";
 import ClassAnnouncements from "./pages/ClassAnnouncements";
 import WrongAnswerQuizCreate from "./pages/WrongAnswerQuizCreate";
+import VocabPracticeQuizCreate from "./pages/VocabPracticeQuizCreate";
 import LiveSession from "./pages/LiveSession";
 import LiveJoin from "./pages/LiveJoin";
 import LiveSessionPreview from "./pages/LiveSessionPreview";
@@ -77,6 +79,11 @@ const App = () => (
             <Route path="/admin" element={
               <ProtectedRoute permission={PERMISSIONS.MANAGE_USERS} redirectTo="/dashboard">
                 <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/sentence-bank" element={
+              <ProtectedRoute permission={PERMISSIONS.MANAGE_USERS} redirectTo="/dashboard">
+                <AdminSentenceBank />
               </ProtectedRoute>
             } />
             <Route path="/quiz/example" element={<QuizExample />} />
@@ -145,6 +152,11 @@ const App = () => (
             <Route path="/quiz/wrong-answer" element={
               <ProtectedRoute permission={PERMISSIONS.CREATE_QUIZ} redirectTo="/dashboard">
                 <WrongAnswerQuizCreate />
+              </ProtectedRoute>
+            } />
+            <Route path="/quiz/vocab-practice" element={
+              <ProtectedRoute permission={PERMISSIONS.CREATE_QUIZ} redirectTo="/dashboard">
+                <VocabPracticeQuizCreate />
               </ProtectedRoute>
             } />
 

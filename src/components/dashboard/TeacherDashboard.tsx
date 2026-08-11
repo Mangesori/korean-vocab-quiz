@@ -7,7 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, FileText, Bell, ChevronRight, BookOpen, Clock, GraduationCap, FileX, Copy } from "lucide-react";
+import { Plus, Users, FileText, Bell, ChevronRight, BookOpen, Clock, GraduationCap, FileX, Copy, BookMarked } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog } from "@/components/ui/dialog";
 import {
@@ -172,7 +172,7 @@ export default function TeacherDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-3 gap-[10px] mb-[22px]">
+        <div className="grid md:grid-cols-4 gap-[10px] mb-[22px]">
           <Link to="/quiz/create" className="block">
             <Card className="hover:border-primary transition-colors cursor-pointer">
               <CardContent className="flex items-center gap-[10px] px-[14px] py-[10px]">
@@ -196,6 +196,20 @@ export default function TeacherDashboard() {
                 <div>
                   <p className="text-sm font-semibold text-foreground">오답 복습 퀴즈</p>
                   <p className="text-xs text-muted-foreground">학생 오답으로 생성</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/quiz/vocab-practice" className="block">
+            <Card className="hover:border-primary transition-colors cursor-pointer">
+              <CardContent className="flex items-center gap-[10px] px-[14px] py-[10px]">
+                <div className="w-[30px] h-[30px] rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <BookMarked className="w-[14px] h-[14px] text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">어휘 보강 퀴즈</p>
+                  <p className="text-xs text-muted-foreground">레벨 지정해 개인별 생성</p>
                 </div>
               </CardContent>
             </Card>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,7 +6,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
+import {
   ArrowLeft,
   Loader2,
   UserMinus,
@@ -21,6 +31,10 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { StudentHistoryDialog } from '@/components/class/StudentHistoryDialog';
 import { formatDateShort } from '@/lib/formatDate';
+import { useClassSrsSummary } from '@/hooks/useClassSrsOverview';
+import { SRS_STAGE_LABELS } from '@/lib/korean/srsStageLabels';
+
+const SRS_STAGES = [0, 1, 2, 3, 4, 5, 6] as const;
 
 interface ClassData {
   id: string;
@@ -38,12 +52,15 @@ interface Member {
 
 export default function ClassStudents() {
   const { id } = useParams<{ id: string }>();
-  const { user, loading } = useAuth();
+  const { user, role, loading } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<{ id: string; name: string } | null>(null);
+
+  const canViewSrs = role === 'teacher' || role === 'admin';
+  const { data: srsRows, isLoading: srsLoading } = useClassSrsSummary(id || '');
 
   const { data, isLoading } = useQuery({
     queryKey: ['classStudents', id],
@@ -94,6 +111,30 @@ export default function ClassStudents() {
   const classData = data?.classData ?? null;
   const members = data?.members ?? [];
 
+  // 학생별로 stage -> word_count를 모으고 due_now 합계를 낸다. 로스터(members)와
+  // student_id로 join해 이름을 붙인다 — RPC는 이름을 모른다(wrong_answer_progress에 없음).
+  const srsByStudent = useMemo(() => {
+    const map = new Map<string, { name: string; stageCounts: Record<number, number>; dueNow: number }>();
+    members.forEach((m) => {
+      map.set(m.student_id, {
+        name: m.profile?.name || '이름 없음',
+        stageCounts: {},
+        dueNow: 0,
+      });
+    });
+    (srsRows || []).forEach((row) => {
+      let entry = map.get(row.student_id);
+      if (!entry) {
+        // 로스터에는 없지만(탈퇴 등) RPC에는 남아있는 경우 대비.
+        entry = { name: '이름 없음', stageCounts: {}, dueNow: 0 };
+        map.set(row.student_id, entry);
+      }
+      entry.stageCounts[row.stage] = (entry.stageCounts[row.stage] || 0) + row.word_count;
+      entry.dueNow += row.due_now_count;
+    });
+    return Array.from(map.entries()).map(([studentId, v]) => ({ studentId, ...v }));
+  }, [members, srsRows]);
+
   const handleRemoveMember = async (memberId: string) => {
     if (!confirm('정말 이 학생을 클래스에서 제외하시겠습니까?')) return;
 
@@ -141,64 +182,141 @@ export default function ClassStudents() {
           <span className="text-muted-foreground">({members.length}명)</span>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              전체 학생
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {members.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>가입한 학생이 없습니다</p>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {members.map((member) => (
-                  <div 
-                    key={member.id} 
-                    className="flex items-center justify-between p-4 rounded-lg border bg-card hover:shadow-sm transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="font-medium text-primary">
-                          {(member.profile?.name || '?')[0].toUpperCase()}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium">{member.profile?.name || '이름 없음'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDateShort(member.joined_at) + ' 가입'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost" 
-                        size="icon"
-                        title="활동 기록"
-                        onClick={() => setSelectedStudentForHistory({ id: member.student_id, name: member.profile?.name || '이름 없음' })}
-                      >
-                        <Clock className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        title="내보내기"
-                        onClick={() => handleRemoveMember(member.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <UserMinus className="w-4 h-4" />
-                      </Button>
-                    </div>
+        <Tabs defaultValue="students">
+          <TabsList className="mb-4">
+            <TabsTrigger value="students">학생</TabsTrigger>
+            {canViewSrs && <TabsTrigger value="srs">복습 현황</TabsTrigger>}
+          </TabsList>
+
+          <TabsContent value="students">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  전체 학생
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {members.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>가입한 학생이 없습니다</p>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                ) : (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {members.map((member) => (
+                      <div
+                        key={member.id}
+                        className="flex items-center justify-between p-4 rounded-lg border bg-card hover:shadow-sm transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                            <span className="font-medium text-primary">
+                              {(member.profile?.name || '?')[0].toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium">{member.profile?.name || '이름 없음'}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDateShort(member.joined_at) + ' 가입'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="활동 기록"
+                            onClick={() => setSelectedStudentForHistory({ id: member.student_id, name: member.profile?.name || '이름 없음' })}
+                          >
+                            <Clock className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="내보내기"
+                            onClick={() => handleRemoveMember(member.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <UserMinus className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {canViewSrs && (
+            <TabsContent value="srs">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="w-5 h-5" />
+                    복습 현황
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {srsLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    </div>
+                  ) : srsByStudent.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>데이터 없음</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>학생</TableHead>
+                            {SRS_STAGES.map((stage) => (
+                              <TableHead key={stage} className="text-center">
+                                {SRS_STAGE_LABELS[stage]}
+                              </TableHead>
+                            ))}
+                            <TableHead className="text-center">오늘 복습 대상</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {srsByStudent.map((row) => {
+                            const total = SRS_STAGES.reduce(
+                              (sum, stage) => sum + (row.stageCounts[stage] || 0),
+                              0
+                            );
+                            return (
+                              <TableRow key={row.studentId}>
+                                <TableCell className="font-medium">{row.name}</TableCell>
+                                {SRS_STAGES.map((stage) => (
+                                  <TableCell key={stage} className="text-center">
+                                    {row.stageCounts[stage] || 0}
+                                  </TableCell>
+                                ))}
+                                <TableCell className="text-center">
+                                  {total === 0 ? (
+                                    <span className="text-muted-foreground text-xs">데이터 없음</span>
+                                  ) : row.dueNow > 0 ? (
+                                    <Badge variant="default">{row.dueNow}개</Badge>
+                                  ) : (
+                                    <span className="text-muted-foreground text-xs">없음</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+        </Tabs>
 
         <StudentHistoryDialog
           isOpen={!!selectedStudentForHistory}

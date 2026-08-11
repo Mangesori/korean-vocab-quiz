@@ -25,6 +25,7 @@ import {
   Shield,
   FileX,
   BookMarked,
+  Library,
   Settings,
   LogOut,
   GraduationCap,
@@ -145,6 +146,7 @@ export function AppSidebar() {
     { path: "/admin", icon: GraduationCap, label: "선생님 관리",     exactSearch: "?tab=teachers", badgeCount: pendingCount },
     { path: "/admin", icon: FileText,      label: "시스템 리포트",   exactSearch: "?tab=report" },
     { path: "/admin", icon: MessageSquare, label: "피드백",         exactSearch: "?tab=feedback" },
+    { path: "/admin/sentence-bank", icon: Library, label: "문장 은행 관리" },
     // 최고 관리자 전용 — 일반 admin 계정에는 안 보인다.
     ...(user?.email === SUPER_ADMIN_EMAIL
       ? [{ path: "/quiz/import", icon: ClipboardPaste, label: "붙여넣기로 퀴즈 만들기" }]
