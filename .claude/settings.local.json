@@ -46,7 +46,13 @@
       "Skill(gstack)",
       "Skill(gstack:*)",
       "Bash(python -c ' *)",
-      "Bash(pip install *)"
+      "Bash(pip install *)",
+      "Bash(git -C \"C:\\\\Users\\\\vapor\\\\Clone\\\\Korean Vocab Quiz\" status --short)",
+      "Bash(git -C \"C:\\\\Users\\\\vapor\\\\Clone\\\\Korean Vocab Quiz\" diff --stat supabase/functions/elevenlabs-tts/index.ts .claude/settings.local.json)",
+      "Bash(git -C \"C:\\\\Users\\\\vapor\\\\Clone\\\\Korean Vocab Quiz\" diff supabase/functions/elevenlabs-tts/index.ts)",
+      "Bash(git -C \"C:\\\\Users\\\\vapor\\\\Clone\\\\Korean Vocab Quiz\" diff .claude/settings.local.json)",
+      "Bash(git -C \"C:\\\\Users\\\\vapor\\\\Clone\\\\Korean Vocab Quiz\" checkout -- supabase/functions/elevenlabs-tts/index.ts)",
+      "mcp__supabase__execute_sql"
     ]
   },
   "enableAllProjectMcpServers": true,

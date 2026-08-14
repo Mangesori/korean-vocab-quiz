@@ -1046,6 +1046,7 @@ export type Database = {
       sentence_bank: {
         Row: {
           answer: string
+          batch_label: string | null
           created_at: string
           created_by: string | null
           hint: string | null
@@ -1060,6 +1061,7 @@ export type Database = {
         }
         Insert: {
           answer: string
+          batch_label?: string | null
           created_at?: string
           created_by?: string | null
           hint?: string | null
@@ -1074,6 +1076,7 @@ export type Database = {
         }
         Update: {
           answer?: string
+          batch_label?: string | null
           created_at?: string
           created_by?: string | null
           hint?: string | null
@@ -1562,6 +1565,23 @@ export type Database = {
           word: string
         }[]
       }
+      get_upcoming_review_items: {
+        Args: { _limit?: number }
+        Returns: {
+          answer: string | null
+          due_at: string
+          hint: string | null
+          level: string | null
+          meaning: string | null
+          overdue_days: number
+          sentence: string | null
+          sentence_from: string | null
+          slot: number
+          stage: number
+          translation: string | null
+          word: string
+        }[]
+      }
       get_due_review_words: {
         Args: { _limit?: number }
         Returns: {
@@ -1730,10 +1750,14 @@ export type Database = {
         }[]
       }
       upsert_sentence_bank: {
-        Args: { _rows: Json; _source?: string }
+        Args: { _rows: Json; _source?: string; _batch_label?: string }
         Returns: number
       }
       update_wa_progress: { Args: { _items: Json }; Returns: Json }
+      seed_review_words: {
+        Args: { _student_id: string; _words: Json; _per_day?: number }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "teacher" | "student" | "admin"

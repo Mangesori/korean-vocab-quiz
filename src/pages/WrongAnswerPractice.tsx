@@ -5,12 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, ArrowLeft, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle, XCircle, RotateCcw, Shuffle, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 import { pickRotatedSentence, type BankSentence } from '@/lib/korean/reviewSchedule';
 import { maskTranslation } from '@/utils/maskTranslation';
 import { QuizStageHeader } from '@/components/quiz/shared/QuizStageHeader';
 import {
   assignReviewFormats,
+  reassignAvoidingFormats,
+  bucketsToFormatMap,
   REVIEW_FORMAT_ORDER,
   type ReviewFormat,
   type ReviewFormatBuckets,
@@ -127,8 +130,22 @@ export default function WrongAnswerPractice() {
 
   const [isCompleted, setIsCompleted] = useState(false);
   const [masteredWords, setMasteredWords] = useState<string[]>([]);
+  const [loadingUpcoming, setLoadingUpcoming] = useState(false);
+
+  // 어디서 들어왔는지에 따라 뒤로가기 라벨/링크를 맞춘다. 기본은 오답노트.
+  const [returnTo, setReturnTo] = useState<{ path: string; label: string }>({
+    path: '/wrong-answers',
+    label: '오답 노트로',
+  });
 
   useEffect(() => {
+    const returnToRaw = localStorage.getItem('practice_return_to');
+    // 다음 진입 때 이전 세션의 값이 남아있지 않도록 읽는 즉시 지운다.
+    localStorage.removeItem('practice_return_to');
+    if (returnToRaw === 'review') {
+      setReturnTo({ path: '/review', label: '오늘의 복습으로' });
+    }
+
     const stored = localStorage.getItem('practice_problems');
     if (!stored) {
       navigate('/wrong-answers');
@@ -237,7 +254,10 @@ export default function WrongAnswerPractice() {
 
         return {
           ...base,
-          meaning: base.meaning ?? anyBankRow?.meaning ?? null,
+          // picked가 null(= "원본 문장 그대로 써라")이어도 은행에 뜻이 있으면 그걸 먼저 써야
+          // 한다. base.meaning은 은행 데이터가 아예 없을 때만 쓰는 최후의 대안(문장 자체를
+          // 뜻 자리에 넣는 임시방편)이라, 순서가 반대면 진짜 뜻이 있는데도 안 쓰인다.
+          meaning: anyBankRow?.meaning ?? base.meaning ?? null,
           stage,
           level: prog?.level ?? anyBankRow?.level ?? base.level,
         };
@@ -395,6 +415,66 @@ export default function WrongAnswerPractice() {
     startSession(wrong, formatOf);
   };
 
+  // 방금 푼 문항을 방금과 다른 유형으로 다시 풀게 한다. SRS 일정(stage/due_at)에는
+  // 영향 없는 순수 반복 연습이라 finalizeSession(update_wa_progress)과 무관하다.
+  const handleContinueDifferentFormats = () => {
+    const reassigned = reassignAvoidingFormats(sessionItems, formatOf, { allowPaidTypes: true });
+    const map = bucketsToFormatMap(reassigned);
+    setFormatOf(map);
+    startSession(sessionItems, map);
+  };
+
+  // "새 단어로 짝맞추기부터 시작" — 아직 예정일 안 된 단어를 당겨와서 짝맞추기부터 새 세션.
+  // update_wa_progress의 "이른 복습은 단계를 안 올린다" 가드 덕분에 정답을 맞혀도 실제
+  // SRS 진도(stage/due_at)는 그대로다. 포맷 배정만 stage 0으로 취급해 짝맞추기부터
+  // 시작하게 하고, 문장 회전(콘텐츠)에는 실제 stage를 그대로 쓴다.
+  const handleStartUpcoming = async () => {
+    setLoadingUpcoming(true);
+    try {
+      const { data, error } = await supabase.rpc('get_upcoming_review_items', { _limit: 20 });
+      if (error) throw error;
+      const rows = (data ?? []) as {
+        word: string;
+        stage: number;
+        level: string | null;
+        sentence: string | null;
+        answer: string | null;
+        hint: string | null;
+        translation: string | null;
+        meaning: string | null;
+      }[];
+      const playable = rows.filter((r) => r.sentence && r.answer);
+      if (playable.length === 0) {
+        toast.info('지금 미리 당겨서 풀 수 있는 단어가 없어요');
+        return;
+      }
+      const items: ReviewItem[] = playable.map((r) => ({
+        id: `upcoming-${r.word}`,
+        word: r.word,
+        sentence: r.sentence!,
+        answer: r.answer!,
+        hint: r.hint ?? '',
+        translation: r.translation,
+        meaning: r.meaning,
+        stage: r.stage,
+        level: r.level ?? 'A1',
+        audioUrl: null,
+      }));
+      const assigned = assignReviewFormats(
+        items.map((it) => ({ ...it, stage: 0 })),
+        { allowPaidTypes: true }
+      );
+      const map = bucketsToFormatMap(assigned);
+      setFormatOf(map);
+      startSession(items, map);
+    } catch (e) {
+      console.error('Failed to load upcoming review items:', e);
+      toast.error('당겨풀기 단어를 불러오지 못했어요');
+    } finally {
+      setLoadingUpcoming(false);
+    }
+  };
+
   const score = useMemo(
     () => sessionItems.filter((it) => results[it.id]?.isCorrect).length,
     [sessionItems, results]
@@ -421,10 +501,10 @@ export default function WrongAnswerPractice() {
       <div className="min-h-screen bg-gradient-to-br from-background to-primary/5">
         <div className="container mx-auto px-4 py-8 max-w-3xl">
           <div className="mb-6">
-            <Link to="/wrong-answers">
+            <Link to={returnTo.path}>
               <Button variant="ghost" size="sm" className="gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                오답 노트로 돌아가기
+                {returnTo.label} 돌아가기
               </Button>
             </Link>
           </div>
@@ -450,14 +530,22 @@ export default function WrongAnswerPractice() {
                     <RotateCcw className="h-4 w-4" />
                     다시 풀기
                   </Button>
+                  <Button onClick={handleContinueDifferentFormats} variant="outline" className="gap-2">
+                    <Shuffle className="h-4 w-4" />
+                    다른 유형으로 계속하기
+                  </Button>
+                  <Button onClick={handleStartUpcoming} disabled={loadingUpcoming} variant="outline" className="gap-2">
+                    {loadingUpcoming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    새 단어로 짝맞추기부터 시작
+                  </Button>
                   {score < sessionItems.length && (
                     <Button onClick={handleRetryWrongOnly} className="gap-2">
                       <RotateCcw className="h-4 w-4" />
                       틀린 {sessionItems.length - score}개만 다시
                     </Button>
                   )}
-                  <Link to="/wrong-answers">
-                    <Button>오답 노트로 돌아가기</Button>
+                  <Link to={returnTo.path}>
+                    <Button>{returnTo.label} 돌아가기</Button>
                   </Link>
                 </div>
               </div>
@@ -521,8 +609,8 @@ export default function WrongAnswerPractice() {
   const renderStage = () => {
     if (!currentFormat || !buckets) return null;
     const isFirstRound = roundIndex === 0;
-    const stageOnBack = isFirstRound ? () => navigate('/wrong-answers') : undefined;
-    const backLabel = '오답 노트로';
+    const stageOnBack = isFirstRound ? () => navigate(returnTo.path) : undefined;
+    const backLabel = returnTo.label;
 
     switch (currentFormat) {
       case 'matchup': {
@@ -646,7 +734,7 @@ export default function WrongAnswerPractice() {
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 shrink-0">
-                <Link to="/wrong-answers">
+                <Link to={returnTo.path}>
                   <Button variant="ghost" size="sm">
                     <ArrowLeft className="h-4 w-4" />
                   </Button>

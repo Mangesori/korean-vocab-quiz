@@ -47,7 +47,7 @@ export type ReviewFormatBuckets<T extends ReviewFormatSourceItem = ReviewFormatS
   recording: T[];
 };
 
-interface AssignOptions {
+export interface AssignOptions {
   /**
    * false면 AI 채점(sentence_making)·음성 평가(recording)처럼 실제 비용이 드는
    * 유형을 전부 word_magnet으로 강제 하향한다. 서버에서 API 키 유무를 확인해
@@ -133,4 +133,91 @@ export function assignReviewFormats<T extends ReviewFormatSourceItem>(
   }
 
   return buckets;
+}
+
+/**
+ * assignReviewFormats의 규칙 1~3(하향 조정용 데이터 유효성 검사)을 포맷 단위로 뽑아낸 것.
+ * "이 아이템을 이 포맷으로 내도 되는가"만 판정하고, stage 기반 초기 배정이나 규칙 4/5(matchup
+ * 개수 하향, 유료 유형 강제 하향)는 다루지 않는다 — 그건 호출부(reassignAvoidingFormats)의 책임.
+ */
+export function isFormatViable(item: ReviewFormatSourceItem, format: ReviewFormat): boolean {
+  switch (format) {
+    case "matchup":
+    case "type_answer":
+      return hasText(item.meaning);
+    case "fill_blank":
+      return hasText(item.sentence) && hasText(item.answer) && item.sentence.includes(item.answer);
+    case "sentence_making":
+      return hasText(item.word) && hasText(item.meaning);
+    case "recording":
+      return hasText(item.sentence);
+    case "word_magnet":
+      return hasText(item.sentence);
+    default:
+      return false;
+  }
+}
+
+/**
+ * "다른 유형으로 이어서 풀기"용 재배정. 방금 그 아이템이 풀었던 포맷(avoidFormatOf)을 피해서,
+ * REVIEW_FORMAT_ORDER를 그 포맷 다음 순서부터 순환하며 데이터가 감당되는 첫 포맷을 고른다.
+ * 전부 안 맞으면 word_magnet(항상 최종 폴백). 배정 후 assignReviewFormats의 규칙 4(matchup이
+ * 1~2개면 전부 type_answer로 하향)를 동일하게 다시 적용한다.
+ */
+export function reassignAvoidingFormats<T extends ReviewFormatSourceItem>(
+  items: T[],
+  avoidFormatOf: Record<string, ReviewFormat>,
+  options: AssignOptions
+): ReviewFormatBuckets<T> {
+  const n = REVIEW_FORMAT_ORDER.length;
+  const initial = new Map<string, ReviewFormat>();
+
+  for (const item of items) {
+    const avoid = avoidFormatOf[item.id] ?? "matchup";
+    const avoidIdx = REVIEW_FORMAT_ORDER.indexOf(avoid);
+    let chosen: ReviewFormat = "word_magnet";
+
+    for (let step = 1; step <= n; step++) {
+      const candidate = REVIEW_FORMAT_ORDER[(avoidIdx + step) % n];
+      if (candidate === avoid) continue;
+      if (!options.allowPaidTypes && (candidate === "sentence_making" || candidate === "recording")) {
+        continue;
+      }
+      if (isFormatViable(item, candidate)) {
+        chosen = candidate;
+        break;
+      }
+    }
+
+    initial.set(item.id, chosen);
+  }
+
+  // 규칙 4: matchup으로 배정된 단어가 세션 전체에서 3개 미만이면 전부 type_answer로 하향.
+  const matchupCount = [...initial.values()].filter((f) => f === "matchup").length;
+  if (matchupCount > 0 && matchupCount < 3) {
+    for (const [id, format] of initial) {
+      if (format === "matchup") initial.set(id, "type_answer");
+    }
+  }
+
+  const buckets = emptyBuckets<T>();
+  for (const item of items) {
+    const format = initial.get(item.id) ?? "word_magnet";
+    buckets[format].push(item);
+  }
+
+  return buckets;
+}
+
+/** ReviewFormatBuckets를 { itemId: format } 맵으로 펼친다. */
+export function bucketsToFormatMap<T extends ReviewFormatSourceItem>(
+  buckets: ReviewFormatBuckets<T>
+): Record<string, ReviewFormat> {
+  const map: Record<string, ReviewFormat> = {};
+  REVIEW_FORMAT_ORDER.forEach((fmt) => {
+    buckets[fmt].forEach((it) => {
+      map[it.id] = fmt;
+    });
+  });
+  return map;
 }

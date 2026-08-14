@@ -104,6 +104,8 @@ export default function ReviewToday() {
     }));
 
     localStorage.setItem("practice_problems", JSON.stringify(problems));
+    // 연습 화면이 뒤로가기 라벨/링크를 "오늘의 복습"으로 맞출 수 있도록 진입점을 남긴다.
+    localStorage.setItem("practice_return_to", "review");
     navigate("/wrong-answers/practice");
   };
 

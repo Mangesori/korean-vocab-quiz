@@ -61,17 +61,6 @@ interface WrongAnswerRow {
   source?: string | null;
 }
 
-/** 오늘의 복습 미니 세션에 넘길 문제 — WrongAnswerPractice가 localStorage로 읽는 형식. */
-interface PracticeProblem {
-  id: string;
-  word: string;
-  correct_answer: string;
-  sentence: string;
-  translation: string | null;
-  audio_url: string | null;
-  source: string;
-}
-
 interface Result {
   id: string;
   quiz_id: string;
@@ -112,8 +101,6 @@ interface ClassMembership {
 
 // 연속 학습 집계 범위(일). 이 범위를 넘는 연속 기록은 상한값으로 표시된다.
 const STREAK_WINDOW_DAYS = 365;
-// "오늘의 복습" 미니 세션 문제 수.
-const TODAY_REVIEW_SIZE = 5;
 
 // 스테이지 → quiz_results의 점수 컬럼. 점수가 null이면 그 스테이지는 미완료다.
 // (QuizTake의 이어풀기 판정과 동일한 규칙 — 대시보드 진행률이 실제 재개 지점과 어긋나지 않게 한다.)
@@ -356,7 +343,7 @@ export default function StudentDashboard() {
       });
       const { data: waProgressData } = await supabase
         .from('wrong_answer_progress')
-        .select('word, mastered_at')
+        .select('word, mastered_at, due_at')
         .eq('student_id', user!.id);
 
       const progressRows = waProgressData ?? [];
@@ -372,27 +359,14 @@ export default function StudentDashboard() {
       // 복습 대기 = 아직 마스터하지 않은 오답 "단어" 수 (오답노트도 단어 단위로 센다)
       const reviewPendingCount = new Set(waRows.map((row) => row.word || row.correct_answer)).size;
 
-      // 오늘의 복습 5문제 — 최근 오답부터, 단어 단위 dedup.
-      // 연습 화면이 빈칸/받아쓰기만 지원해서 짝 맞추기·문장 순서는 제외한다(WrongAnswerNotebook과 동일).
-      const reviewProblems: PracticeProblem[] = [];
-      const pickedWords = new Set<string>();
-      waRows.forEach((row, idx) => {
-        if (reviewProblems.length >= TODAY_REVIEW_SIZE) return;
-        const source = row.source || 'fill_blank';
-        if (source !== 'fill_blank' && source !== 'type_answer') return;
-        const word = row.word || row.correct_answer;
-        if (!word || pickedWords.has(word)) return;
-        pickedWords.add(word);
-        reviewProblems.push({
-          id: `${source}-${idx}`,
-          word,
-          correct_answer: row.correct_answer ?? word,
-          sentence: row.sentence ?? '',
-          translation: row.translation ?? null,
-          audio_url: row.audio_url ?? null,
-          source,
-        });
-      });
+      // 오늘 SRS 복습 대기 수 — "오늘의 복습"(/review, get_due_review_items)이 실제로 쓰는
+      // 기준(mastered_at IS NULL AND due_at <= now)과 반드시 같아야 한다. reviewPendingCount는
+      // 실제 오답 기록(waData)에서만 나오는데, "복습 큐에 바로 추가"로 시딩된 단어는 오답 기록이
+      // 없어(seed_review_words가 wrong_answer_progress에만 직접 씀) 거기 안 잡힌다.
+      const nowMs = Date.now();
+      const dueReviewCount = progressRows.filter(
+        (r) => !r.mastered_at && r.due_at && new Date(r.due_at).getTime() <= nowMs
+      ).length;
 
       return {
         profileName: profileData?.name || null,
@@ -401,13 +375,13 @@ export default function StudentDashboard() {
         results: (resultsData || []) as Result[],
         progressMap,
         quizClassMap,
-        reviewProblems,
         stats: {
           totalClasses: membershipData?.length || 0,
           averageScore: avgScore,
           streak,
           weekScore,
           reviewPendingCount,
+          dueReviewCount,
           weekMasteredCount,
         },
       };
@@ -421,13 +395,13 @@ export default function StudentDashboard() {
   const results = data?.results ?? [];
   const progressMap = data?.progressMap ?? {};
   const quizClassMap = data?.quizClassMap ?? {};
-  const reviewProblems = useMemo(() => data?.reviewProblems ?? [], [data?.reviewProblems]);
   const stats = data?.stats ?? {
     totalClasses: 0,
     averageScore: 0,
     streak: 0,
     weekScore: null as number | null,
     reviewPendingCount: 0,
+    dueReviewCount: 0,
     weekMasteredCount: 0,
   };
 
@@ -514,16 +488,6 @@ export default function StudentDashboard() {
       queryClient.invalidateQueries({ queryKey: ['studentDashboard', user?.id] });
     }
     setIsJoining(false);
-  };
-
-  // 오늘의 복습 미니 세션 — WrongAnswerNotebook과 같은 방식으로 문제를 넘긴다.
-  const handleStartTodayReview = () => {
-    if (reviewProblems.length === 0) {
-      toast.info('연습할 수 있는 빈칸/받아쓰기 오답이 없어요');
-      return;
-    }
-    localStorage.setItem('practice_problems', JSON.stringify(reviewProblems));
-    navigate('/wrong-answers/practice');
   };
 
   const displayName = profileName || user?.email?.split('@')[0] || '';
@@ -632,31 +596,32 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* 오늘의 복습 히어로 — 배정 퀴즈가 없을 때만 히어로 자리를 대체한다 */}
-        {!heroAssignment && stats.reviewPendingCount > 0 && (
+        {/* 오늘의 복습 히어로 — 배정 퀴즈가 없을 때만 히어로 자리를 대체한다.
+            /review(get_due_review_items)와 사이드바 배지가 쓰는 것과 같은 기준
+            (wrong_answer_progress: mastered_at IS NULL AND due_at <= now)을 써야 한다. */}
+        {!heroAssignment && stats.dueReviewCount > 0 && (
           <div className="relative rounded-2xl overflow-hidden mb-6 bg-gradient-to-r from-primary to-[#155237] text-white py-[30px] px-9">
             <div className="relative z-10">
               <p className="font-ui text-[11px] font-bold tracking-[0.12em] uppercase text-white/75">
                 ▶ 오늘의 복습
               </p>
               <h2 className="font-sans font-bold text-[28px] leading-[1.3] tracking-[-0.02em] mt-[10px]">
-                복습할 단어 <span className="tabular-nums">{stats.reviewPendingCount}</span>개가
+                오늘 복습할 단어 <span className="tabular-nums">{stats.dueReviewCount}</span>개가
                 <br />
                 기다리고 있어요
               </h2>
               <p className="text-[12px] text-white/80 mt-2">
                 {stats.weekMasteredCount > 0
                   ? `⭐ 이번 주 마스터 ${stats.weekMasteredCount}개 · 조금만 더!`
-                  : '⭐ 2번 연속 맞히면 마스터! 오늘 첫 단어를 마스터해 보세요'}
+                  : '⭐ 맞히면 다음 복습 간격이 점점 늘어나요. 오늘 첫 단어부터 시작해 보세요'}
               </p>
               <div className="flex items-center gap-2 flex-wrap mt-4">
-                <Button
-                  onClick={handleStartTodayReview}
-                  className="bg-white text-primary hover:bg-white/90 font-bold text-[13px] h-auto py-[9px] px-[18px] gap-1.5"
-                >
-                  오늘의 복습 {TODAY_REVIEW_SIZE}문제
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
+                <Link to="/review">
+                  <Button className="bg-white text-primary hover:bg-white/90 font-bold text-[13px] h-auto py-[9px] px-[18px] gap-1.5">
+                    오늘의 복습 시작하기
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </Link>
                 <Link to="/wrong-answers">
                   <Button
                     variant="outline"

@@ -87,6 +87,10 @@ export default function QuizImport() {
   const [mode, setMode] = useState<"quiz" | "bank">("quiz");
   const [rawText, setRawText] = useState("");
   const [title, setTitle] = useState("");
+  // 배치 라벨 — "이번에 새로 넣은 단어들만" 나중에 필터링하려면 필요하다
+  // (VocabPracticeQuizCreate의 배치별 필터, AdminSentenceBank의 배치 필터).
+  // 비워 두면 배치 구분 없이 저장된다(NULL).
+  const [batchLabel, setBatchLabel] = useState("");
   const [level, setLevel] = useState<string>("A1");
   const [perWordLimit, setPerWordLimit] = useState(2);
   const [translationLanguage, setTranslationLanguage] = useState("en");
@@ -169,6 +173,7 @@ export default function QuizImport() {
           sentence: r.sentence, answer: r.answer, hint: r.hint, translation: r.translation,
         })),
         _source: "import",
+        _batch_label: batchLabel.trim() || null,
       });
       if (error) throw error;
 
@@ -339,6 +344,7 @@ export default function QuizImport() {
             translation: r.translation,
           })),
           _source: "import",
+          _batch_label: batchLabel.trim() || null,
         });
 
         if (bankError) {
@@ -656,15 +662,41 @@ export default function QuizImport() {
                   </div>
                   <Switch checked={saveToBank} onCheckedChange={setSaveToBank} />
                 </div>
+                {saveToBank && (
+                  <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">배치 라벨 (선택)</label>
+                    <Input
+                      placeholder="예: 2026-08-14 신규 347단어"
+                      value={batchLabel}
+                      onChange={(e) => setBatchLabel(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      나중에 "이번에 새로 추가한 단어들만" 골라 복습 퀴즈를 보낼 때 씁니다. 비워 두면 배치 구분 없이 저장돼요.
+                    </p>
+                  </div>
+                )}
               </div>
               ) : (
-              <div className="rounded-xl border border-border p-4">
-                <div className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <Library className="w-4 h-4 text-muted-foreground" />
-                  문장 은행에만 저장
+              <div className="rounded-xl border border-border p-4 space-y-3">
+                <div>
+                  <div className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                    <Library className="w-4 h-4 text-muted-foreground" />
+                    문장 은행에만 저장
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    이 표의 모든 행이 문장 은행에 저장됩니다.
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  이 표의 모든 행이 문장 은행에 저장됩니다.
+                <div className="pt-3 border-t border-border space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">배치 라벨 (선택)</label>
+                  <Input
+                    placeholder="예: 2026-08-14 신규 347단어"
+                    value={batchLabel}
+                    onChange={(e) => setBatchLabel(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    나중에 "이번에 새로 추가한 단어들만" 골라 복습 퀴즈를 보낼 때 씁니다. 비워 두면 배치 구분 없이 저장돼요.
+                  </p>
                 </div>
               </div>
               )}

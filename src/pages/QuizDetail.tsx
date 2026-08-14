@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, TextCursorInput, PenLine, Mic, Link2, Keyboard, Magnet, X, Radio } from "lucide-react";
+import { Loader2, ArrowLeft, TextCursorInput, PenLine, Mic, Link2, Keyboard, Magnet, X, Users } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Dialog } from "@/components/ui/dialog";
 import {
@@ -46,6 +46,7 @@ import { WordMagnetProblemList, WordMagnetProblem } from "@/components/quiz/Word
 import { parseSentenceToItems } from "@/lib/korean/wordMagnet";
 import { isShortSentenceLevel } from "@/lib/quiz";
 import type { TtsProvider } from "@/utils/ttsService";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function QuizDetail() {
   const { id } = useParams<{ id: string }>();
@@ -922,21 +923,17 @@ export default function QuizDetail() {
           <ArrowLeft className="w-4 h-4 mr-2" /> 뒤로
         </Button>
 
-        <QuizHeader 
-          quiz={quiz} 
-          onUpdateTitle={handleUpdateTitle} 
-          onDelete={handleDelete} 
-          onOpenSendDialog={() => setSendDialogOpen(true)} 
+        <QuizHeader
+          quiz={quiz}
+          onUpdateTitle={handleUpdateTitle}
+          onDelete={handleDelete}
+          onOpenSendDialog={() => setSendDialogOpen(true)}
+          onOpenLiveDialog={
+            enabledStages.some((s) => LIVE_STAGES.includes(s)) ? () => setLiveDialogOpen(true) : undefined
+          }
         />
 
-        {enabledStages.some((s) => LIVE_STAGES.includes(s)) && (
-          <div className="mb-6">
-            <Button variant="outline" className="gap-2" onClick={() => setLiveDialogOpen(true)}>
-              <Radio className="w-4 h-4 text-destructive" />
-              라이브 세션 시작
-            </Button>
-          </div>
-        )}
+        <AssignedStudents quizId={id!} />
 
         <StartLiveDialog
           open={liveDialogOpen}
@@ -1357,5 +1354,155 @@ export default function QuizDetail() {
         </Tabs>
       </div>
     </AppLayout>
+  );
+}
+
+/**
+ * 이 퀴즈에 개인 배정된 학생 목록. class_id 없이 배정되는 어휘 보강 퀴즈 등은 "내 클래스"
+ * 화면에 안 뜨므로 여기서 보여주고 개별 취소도 할 수 있게 한다.
+ * 학생 이름을 클릭하면 그 학생이 속한(내 클래스 중) 반으로 이동한다 — 여러 반에 속해
+ * 있으면 그중 하나로 이동한다(교사가 만든 반 기준으로만 찾는다).
+ */
+function AssignedStudents({ quizId }: { quizId: string }) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [assignmentToUnassign, setAssignmentToUnassign] = useState<{ id: string; studentName: string } | null>(null);
+  const [isUnassigning, setIsUnassigning] = useState(false);
+
+  const { data: students = [], isLoading } = useQuery({
+    queryKey: ["quiz-assigned-students", quizId, user?.id],
+    queryFn: async () => {
+      // class_id가 있으면 학급 전체 배정(student_id는 비어 있음), student_id가 있으면
+      // 개인 배정 — 이 퀴즈 안에 두 종류가 섞여 있을 수 있다.
+      const { data: rows, error } = await supabase
+        .from("quiz_assignments")
+        .select("id, student_id, class_id, assigned_at")
+        .eq("quiz_id", quizId)
+        .order("assigned_at", { ascending: false });
+      if (error) throw error;
+
+      const studentIds = [...new Set((rows ?? []).map((r) => r.student_id).filter((v): v is string => !!v))];
+      const directClassIds = [...new Set((rows ?? []).map((r) => r.class_id).filter((v): v is string => !!v))];
+
+      const [{ data: profiles }, { data: myClasses }, { data: directClasses }] = await Promise.all([
+        studentIds.length > 0
+          ? supabase.from("profiles").select("user_id, name").in("user_id", studentIds)
+          : Promise.resolve({ data: [] as { user_id: string; name: string }[] }),
+        supabase.from("classes").select("id").eq("teacher_id", user!.id),
+        directClassIds.length > 0
+          ? supabase.from("classes").select("id, name").in("id", directClassIds)
+          : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+      ]);
+      const nameByUserId = new Map((profiles ?? []).map((p) => [p.user_id, p.name]));
+      const classNameById = new Map((directClasses ?? []).map((c) => [c.id, c.name]));
+
+      const myClassIds = (myClasses ?? []).map((c) => c.id);
+      let classIdByStudentId = new Map<string, string>();
+      if (myClassIds.length > 0 && studentIds.length > 0) {
+        const { data: memberRows } = await supabase
+          .from("class_members")
+          .select("student_id, class_id")
+          .in("student_id", studentIds)
+          .in("class_id", myClassIds);
+        classIdByStudentId = new Map((memberRows ?? []).map((m) => [m.student_id, m.class_id]));
+      }
+
+      return (rows ?? []).map((r) =>
+        r.student_id
+          ? {
+              id: r.id,
+              displayName: nameByUserId.get(r.student_id) ?? "이름 없음",
+              classId: classIdByStudentId.get(r.student_id) ?? null,
+            }
+          : {
+              id: r.id,
+              displayName: `전체 학급 · ${classNameById.get(r.class_id!) ?? "알 수 없는 클래스"}`,
+              classId: r.class_id,
+            }
+      );
+    },
+    enabled: !!quizId && !!user?.id,
+  });
+
+  const handleUnassignConfirm = async () => {
+    if (!assignmentToUnassign) return;
+    setIsUnassigning(true);
+    try {
+      const { error } = await supabase.from("quiz_assignments").delete().eq("id", assignmentToUnassign.id);
+      if (error) throw error;
+      toast.success("배정이 취소되었습니다");
+      queryClient.setQueryData(
+        ["quiz-assigned-students", quizId, user?.id],
+        (prev: typeof students | undefined) => prev?.filter((s) => s.id !== assignmentToUnassign.id) ?? []
+      );
+      setAssignmentToUnassign(null);
+    } catch (error) {
+      console.error("Unassign error:", error);
+      toast.error("배정 취소에 실패했습니다");
+    } finally {
+      setIsUnassigning(false);
+    }
+  };
+
+  if (isLoading || students.length === 0) return null;
+
+  return (
+    <Card className="mb-6">
+      <CardContent className="p-4">
+        <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+          <Users className="w-4 h-4" />
+          배정된 학생 ({students.length}명)
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {students.map((s) => (
+            <div
+              key={s.id}
+              className="flex items-center gap-1 bg-muted/50 rounded-full pl-3 pr-1 py-1 text-sm"
+            >
+              <button
+                type="button"
+                className={s.classId ? "hover:underline" : "cursor-default"}
+                title={s.classId ? "이 클래스로 이동" : undefined}
+                onClick={() => s.classId && navigate(`/class/${s.classId}`)}
+              >
+                {s.displayName}
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setAssignmentToUnassign({ id: s.id, studentName: s.displayName })}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+
+      <AlertDialog open={!!assignmentToUnassign} onOpenChange={(open) => !open && setAssignmentToUnassign(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>배정 취소</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{assignmentToUnassign?.studentName}"에게 보낸 이 퀴즈 배정을 취소하시겠습니까?
+              <br />
+              이 배정만 취소되고, 다른 배정과 퀴즈 자체는 그대로 남아요.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isUnassigning}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleUnassignConfirm}
+              disabled={isUnassigning}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isUnassigning ? "처리 중..." : "배정 취소"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
   );
 }

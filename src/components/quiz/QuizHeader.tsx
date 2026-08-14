@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { FileText, Clock, Pencil, Trash2, Send, Copy } from "lucide-react";
+import { FileText, Clock, Pencil, Trash2, Send, Copy, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LevelBadge } from "@/components/ui/level-badge";
@@ -17,9 +17,11 @@ interface QuizHeaderProps {
   onUpdateTitle: (newTitle: string) => Promise<void>;
   onDelete: () => Promise<void>;
   onOpenSendDialog: () => void;
+  /** 라이브로 진행 가능한 유형이 하나라도 켜져 있을 때만 넘어온다 — 없으면 버튼 자체를 안 보여준다. */
+  onOpenLiveDialog?: () => void;
 }
 
-export function QuizHeader({ quiz, onUpdateTitle, onDelete, onOpenSendDialog }: QuizHeaderProps) {
+export function QuizHeader({ quiz, onUpdateTitle, onDelete, onOpenSendDialog, onOpenLiveDialog }: QuizHeaderProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
 
@@ -84,6 +86,12 @@ export function QuizHeader({ quiz, onUpdateTitle, onDelete, onOpenSendDialog }: 
         <Button className="flex-1 sm:flex-none" onClick={onOpenSendDialog}>
           <Send className="w-4 h-4 mr-2" /> <span className="whitespace-nowrap">퀴즈 보내기</span>
         </Button>
+        {onOpenLiveDialog && (
+          <Button variant="outline" className="flex-1 sm:flex-none gap-2" onClick={onOpenLiveDialog}>
+            <Radio className="w-4 h-4 text-destructive" />
+            <span className="whitespace-nowrap">라이브 세션 시작</span>
+          </Button>
+        )}
         <DuplicateQuizButton quiz={quiz} variant="outline" size="default" showLabel={false} />
         <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onDelete}>
           <Trash2 className="h-4 w-4" />

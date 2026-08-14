@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +15,11 @@ import {
   Loader2,
   Trash2,
   Send,
-  BookOpen
+  BookOpen,
+  Users,
+  ChevronDown,
+  ChevronUp,
+  X
 } from 'lucide-react';
 import { LevelBadge } from '@/components/ui/level-badge';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -51,6 +55,7 @@ export default function Quizzes() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
   const { classes } = useClasses(user?.id);
@@ -60,6 +65,12 @@ export default function Quizzes() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quizToDelete, setQuizToDelete] = useState<Quiz | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // 학생별 배정 취소 — class_id 없이 개인 배정된 퀴즈(어휘 보강 퀴즈 등)는 "내 클래스"
+  // 화면에 안 뜨므로, 여기서 카드를 펼쳐 배정된 학생 목록을 보고 개별 취소할 수 있게 한다.
+  const [expandedQuizId, setExpandedQuizId] = useState<string | null>(null);
+  const [assignmentToUnassign, setAssignmentToUnassign] = useState<{ id: string; studentName: string } | null>(null);
+  const [isUnassigning, setIsUnassigning] = useState(false);
 
   const {
     isSending,
@@ -124,6 +135,94 @@ export default function Quizzes() {
       toast.error('퀴즈 삭제에 실패했습니다');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // 펼친 카드의 배정 학생 목록. class_members/profiles 조인 문제(PGRST200)를 피하려고
+  // ClassDetail.tsx와 같은 방식으로 두 번 조회한다.
+  const { data: assignmentsForExpanded = [], isLoading: assignmentsLoading } = useQuery({
+    queryKey: ['quiz-assignments-for-quiz', expandedQuizId],
+    queryFn: async () => {
+      // class_id가 있으면 학급 전체 배정(student_id는 비어 있음), student_id가 있으면
+      // 개인 배정 — 이 퀴즈 안에 두 종류가 섞여 있을 수 있다.
+      const { data: rows, error } = await supabase
+        .from('quiz_assignments')
+        .select('id, student_id, class_id, assigned_at')
+        .eq('quiz_id', expandedQuizId!)
+        .order('assigned_at', { ascending: false });
+      if (error) throw error;
+
+      const studentIds = [...new Set((rows ?? []).map((r) => r.student_id).filter((v): v is string => !!v))];
+      const directClassIds = [...new Set((rows ?? []).map((r) => r.class_id).filter((v): v is string => !!v))];
+
+      const [{ data: profiles }, { data: myClasses }, { data: directClasses }] = await Promise.all([
+        studentIds.length > 0
+          ? supabase.from('profiles').select('user_id, name').in('user_id', studentIds)
+          : Promise.resolve({ data: [] as { user_id: string; name: string }[] }),
+        supabase.from('classes').select('id').eq('teacher_id', user!.id),
+        directClassIds.length > 0
+          ? supabase.from('classes').select('id, name').in('id', directClassIds)
+          : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+      ]);
+      const nameByUserId = new Map((profiles ?? []).map((p) => [p.user_id, p.name]));
+      const classNameById = new Map((directClasses ?? []).map((c) => [c.id, c.name]));
+
+      const myClassIds = (myClasses ?? []).map((c) => c.id);
+      let classIdByStudentId = new Map<string, string>();
+      if (myClassIds.length > 0 && studentIds.length > 0) {
+        const { data: memberRows } = await supabase
+          .from('class_members')
+          .select('student_id, class_id')
+          .in('student_id', studentIds)
+          .in('class_id', myClassIds);
+        classIdByStudentId = new Map((memberRows ?? []).map((m) => [m.student_id, m.class_id]));
+      }
+
+      return (rows ?? []).map((r) =>
+        r.student_id
+          ? {
+              id: r.id,
+              displayName: nameByUserId.get(r.student_id) ?? '이름 없음',
+              classId: classIdByStudentId.get(r.student_id) ?? null,
+              isClassWide: false,
+            }
+          : {
+              id: r.id,
+              displayName: `전체 학급 · ${classNameById.get(r.class_id!) ?? '알 수 없는 클래스'}`,
+              classId: r.class_id,
+              isClassWide: true,
+            }
+      );
+    },
+    enabled: !!expandedQuizId && !!user?.id,
+  });
+
+  const handleUnassignClick = (assignmentId: string, studentName: string) => {
+    setAssignmentToUnassign({ id: assignmentId, studentName });
+  };
+
+  const handleUnassignConfirm = async () => {
+    if (!assignmentToUnassign) return;
+    setIsUnassigning(true);
+    try {
+      const { error } = await supabase
+        .from('quiz_assignments')
+        .delete()
+        .eq('id', assignmentToUnassign.id);
+      if (error) throw error;
+
+      toast.success('배정이 취소되었습니다');
+      queryClient.setQueryData(
+        ['quiz-assignments-for-quiz', expandedQuizId],
+        (prev: typeof assignmentsForExpanded | undefined) =>
+          prev?.filter((a) => a.id !== assignmentToUnassign.id) ?? []
+      );
+      setAssignmentToUnassign(null);
+    } catch (error) {
+      console.error('Unassign error:', error);
+      toast.error('배정 취소에 실패했습니다');
+    } finally {
+      setIsUnassigning(false);
     }
   };
 
@@ -198,7 +297,7 @@ export default function Quizzes() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredQuizzes.map((quiz) => (
               <Link key={quiz.id} to={`/quiz/${quiz.id}`}>
                 <Card className="hover:shadow-lg transition-all hover:border-primary/50 cursor-pointer h-full">
@@ -262,6 +361,22 @@ export default function Quizzes() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setExpandedQuizId((cur) => (cur === quiz.id ? null : quiz.id));
+                          }}
+                        >
+                          {expandedQuizId === quiz.id ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <Users className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                           onClick={(e) => handleDeleteClick(e, quiz)}
                         >
@@ -269,6 +384,49 @@ export default function Quizzes() {
                         </Button>
                       </div>
                     </div>
+
+                    {expandedQuizId === quiz.id && (
+                      <div
+                        className="mt-3 pt-3 border-t border-border/60"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                      >
+                        <p className="text-xs font-medium text-muted-foreground mb-2">배정된 학생</p>
+                        {assignmentsLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        ) : assignmentsForExpanded.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">배정된 학생이 없어요</p>
+                        ) : (
+                          <div className="space-y-1">
+                            {assignmentsForExpanded.map((a) => (
+                              <div
+                                key={a.id}
+                                className="flex items-center justify-between text-sm bg-muted/40 rounded-md px-2 py-1"
+                              >
+                                <button
+                                  type="button"
+                                  className={a.classId ? 'hover:underline text-left' : 'text-left cursor-default'}
+                                  title={a.classId ? '이 클래스로 이동' : undefined}
+                                  onClick={() => a.classId && navigate(`/class/${a.classId}`)}
+                                >
+                                  {a.displayName}
+                                </button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  onClick={() => handleUnassignClick(a.id, a.displayName)}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </Link>
@@ -333,6 +491,30 @@ export default function Quizzes() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? '삭제 중...' : '삭제'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Unassign Confirmation Dialog */}
+      <AlertDialog open={!!assignmentToUnassign} onOpenChange={(open) => !open && setAssignmentToUnassign(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>배정 취소</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{assignmentToUnassign?.studentName}"에게 보낸 이 퀴즈 배정을 취소하시겠습니까?
+              <br />
+              이 배정만 취소되고, 다른 배정과 퀴즈 자체는 그대로 남아요.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isUnassigning}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleUnassignConfirm}
+              disabled={isUnassigning}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isUnassigning ? '처리 중...' : '배정 취소'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

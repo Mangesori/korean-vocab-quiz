@@ -47,6 +47,7 @@ type SentenceBankRow = {
   hint: string | null;
   translation: string | null;
   source: string;
+  batch_label: string | null;
   created_by: string | null;
   created_at: string;
 };
@@ -80,14 +81,31 @@ export default function AdminSentenceBank() {
   const search = useDebouncedValue(searchInput, 300);
   const [levelFilter, setLevelFilter] = useState<'all' | (typeof LEVELS)[number]>('all');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'import' | 'quiz'>('all');
+  const [batchLabelFilter, setBatchLabelFilter] = useState<string>('all');
   const [page, setPage] = useState(0);
 
   // 필터가 바뀌면 첫 페이지로.
   useEffect(() => {
     setPage(0);
-  }, [search, levelFilter, sourceFilter, batchFilterActive]);
+  }, [search, levelFilter, sourceFilter, batchLabelFilter, batchFilterActive]);
 
   const enabled = !!user && can(PERMISSIONS.MANAGE_USERS);
+
+  // ── 배치 라벨 목록 (필터 드롭다운용) ──
+  const { data: batchLabels = [] } = useQuery({
+    queryKey: ['sentenceBankBatchLabels'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sentence_bank')
+        .select('batch_label')
+        .not('batch_label', 'is', null)
+        .order('batch_label');
+      if (error) throw error;
+      const unique = [...new Set((data ?? []).map((r) => r.batch_label as string))];
+      return unique;
+    },
+    enabled,
+  });
 
   // ── 커버리지 위젯 ──
   const { data: coverage = [], isLoading: coverageLoading } = useQuery({
@@ -107,7 +125,7 @@ export default function AdminSentenceBank() {
     isFetching: listFetching,
     refetch: refetchList,
   } = useQuery({
-    queryKey: ['sentenceBankList', levelFilter, sourceFilter, search, page, batchFilterActive, batchWords],
+    queryKey: ['sentenceBankList', levelFilter, sourceFilter, batchLabelFilter, search, page, batchFilterActive, batchWords],
     queryFn: async () => {
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
@@ -121,6 +139,7 @@ export default function AdminSentenceBank() {
       if (search.trim()) query = query.ilike('word', `%${search.trim()}%`);
       if (levelFilter !== 'all') query = query.eq('level', levelFilter);
       if (sourceFilter !== 'all') query = query.eq('source', sourceFilter);
+      if (batchLabelFilter !== 'all') query = query.eq('batch_label', batchLabelFilter);
 
       const { data, error, count } = await query;
       if (error) throw error;
@@ -299,6 +318,15 @@ export default function AdminSentenceBank() {
                     <SelectItem value="quiz">quiz</SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={batchLabelFilter} onValueChange={setBatchLabelFilter}>
+                  <SelectTrigger className="w-[160px]"><SelectValue placeholder="전체 배치" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체 배치</SelectItem>
+                    {batchLabels.map((label) => (
+                      <SelectItem key={label} value={label}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button variant="outline" size="icon" onClick={() => refetchList()} disabled={listFetching}>
                   <RefreshCw className={`h-4 w-4 ${listFetching ? 'animate-spin' : ''}`} />
                 </Button>
@@ -399,6 +427,9 @@ export default function AdminSentenceBank() {
               )}
               {editingRow?.created_at && (
                 <span>· {formatDateShort(editingRow.created_at)} 생성</span>
+              )}
+              {editingRow?.batch_label && (
+                <Badge variant="outline" className="text-xs">{editingRow.batch_label}</Badge>
               )}
             </DialogDescription>
           </DialogHeader>

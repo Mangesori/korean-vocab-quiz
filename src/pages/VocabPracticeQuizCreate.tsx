@@ -75,6 +75,7 @@ interface SentenceBankRow {
   hint: string | null;
   translation: string | null;
   source: string;
+  batch_label: string | null;
 }
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
@@ -115,6 +116,11 @@ export default function VocabPracticeQuizCreate() {
   const [level, setLevel] = useState<string>('A1');
   const [wordCount, setWordCount] = useState(10);
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
+  // 배치별 필터 — "이번에 새로 추가한 단어들만" 같은 요청에 대응한다.
+  // 'all'이면 배치 구분 없이 이 레벨의 모든 단어를 보여준다.
+  const [batchFilter, setBatchFilter] = useState<string>('all');
+  // 복습 큐 바로 추가 — 하루 몇 개씩 노출할지(Anki식 신규 카드 드립).
+  const [perDay, setPerDay] = useState(20);
 
   // Step 3 — 유형 + 제목
   const [quizTitle, setQuizTitle] = useState('');
@@ -190,10 +196,28 @@ export default function VocabPracticeQuizCreate() {
     enabled: !!level,
   });
 
+  // 이 레벨에 있는 배치 라벨 목록(필터 드롭다운용). 라벨 없는 행(기존 100단어 등)도
+  // 섞여 있을 수 있어 '(배치 없음)'을 별도 옵션으로 둔다.
+  const availableBatches = useMemo(() => {
+    const set = new Set((bankRows ?? []).map((r) => r.batch_label).filter((b): b is string => !!b));
+    return [...set].sort();
+  }, [bankRows]);
+  const hasUnlabeled = useMemo(
+    () => (bankRows ?? []).some((r) => !r.batch_label),
+    [bankRows]
+  );
+
+  // 배치 필터가 걸리면 그 배치(또는 '배치 없음')에 속한 행만 대상으로 삼는다.
+  const filteredBankRows = useMemo(() => {
+    if (batchFilter === 'all') return bankRows ?? [];
+    if (batchFilter === '__none__') return (bankRows ?? []).filter((r) => !r.batch_label);
+    return (bankRows ?? []).filter((r) => r.batch_label === batchFilter);
+  }, [bankRows, batchFilter]);
+
   // 단어별 대표 문장 1개 — seq가 가장 작은 행, 동률이면 source==='import' 우선.
   const repByWord = useMemo(() => {
     const map = new Map<string, SentenceBankRow>();
-    (bankRows ?? []).forEach((row) => {
+    filteredBankRows.forEach((row) => {
       const cur = map.get(row.word);
       if (!cur) {
         map.set(row.word, row);
@@ -204,7 +228,7 @@ export default function VocabPracticeQuizCreate() {
       if (better) map.set(row.word, row);
     });
     return map;
-  }, [bankRows]);
+  }, [filteredBankRows]);
 
   const availableWords = useMemo(() => [...repByWord.keys()], [repByWord]);
 
@@ -216,13 +240,19 @@ export default function VocabPracticeQuizCreate() {
     return [...selected, ...rest];
   }, [availableWords, selectedWords]);
 
-  // 레벨이 바뀌거나(재조회) 그 레벨의 은행 데이터가 막 도착했을 때 wordCount개를
-  // 자동으로 미리 체크한다. wordCount는 일부러 의존성에서 뺐다 — 개수만 바꿀 땐
-  // "다시 뽑기"를 눌러야 다시 섞이고, 입력 중에 매번 재선택되면 안 되기 때문이다.
+  // 레벨이 바뀌면 배치 필터를 초기화한다 — 다른 레벨엔 그 배치 라벨이 없을 수 있다.
+  useEffect(() => {
+    setBatchFilter('all');
+  }, [level]);
+
+  // 레벨/배치 필터가 바뀌거나(재조회) 그 조건의 은행 데이터가 막 도착했을 때
+  // wordCount개를 자동으로 미리 체크한다. wordCount는 일부러 의존성에서 뺐다 —
+  // 개수만 바꿀 땐 "다시 뽑기"를 눌러야 다시 섞이고, 입력 중에 매번 재선택되면
+  // 안 되기 때문이다.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setSelectedWords(shuffle(availableWords).slice(0, wordCount));
-  }, [level, bankRows]);
+  }, [level, bankRows, batchFilter]);
 
   const rollRandom = () => {
     setSelectedWords(shuffle(availableWords).slice(0, Math.min(wordCount, availableWords.length)));
@@ -230,6 +260,21 @@ export default function VocabPracticeQuizCreate() {
 
   const toggleWord = (word: string) => {
     setSelectedWords((prev) => (prev.includes(word) ? prev.filter((w) => w !== word) : [...prev, word]));
+  };
+
+  // 지금 보이는(필터된) 단어 전체를 선택/해제. 다른 배치에서 이미 골라 둔 단어는
+  // 건드리지 않는다 — 배치를 바꿔가며 여러 배치에서 조금씩 고르는 흐름을 지원한다.
+  const allVisibleSelected = availableWords.length > 0 && availableWords.every((w) => selectedWords.includes(w));
+  const toggleAllVisibleWords = () => {
+    setSelectedWords((prev) => {
+      if (allVisibleSelected) {
+        const visible = new Set(availableWords);
+        return prev.filter((w) => !visible.has(w));
+      }
+      const merged = new Set(prev);
+      availableWords.forEach((w) => merged.add(w));
+      return [...merged];
+    });
   };
 
   const toggleStudentSelection = (studentId: string) => {
@@ -436,6 +481,54 @@ export default function VocabPracticeQuizCreate() {
     },
   });
 
+  // 퀴즈를 만들지 않고, 고른 단어를 학생의 오답 복습 큐(wrong_answer_progress)에 바로
+  // 시딩한다. 하루 perDay개씩 due_at을 분산시켜 "오늘의 복습"에서 Anki처럼 조금씩
+  // 새 단어가 나오게 한다. 여러 학생이 선택돼 있으면 학생마다 RPC를 순차 호출한다.
+  const seedReviewMutation = useMutation({
+    mutationFn: async () => {
+      const words = selectedWords
+        .map((w) => repByWord.get(w))
+        .filter((r): r is SentenceBankRow => !!r)
+        .map((r) => ({ word: r.word, level: r.level }));
+
+      if (words.length === 0) throw new Error('선택한 단어가 없어요');
+
+      let totalSeeded = 0;
+      let totalSkipped = 0;
+      const failedStudents: string[] = [];
+
+      for (const studentId of selectedStudents) {
+        const { data, error } = await supabase.rpc('seed_review_words', {
+          _student_id: studentId,
+          _words: words,
+          _per_day: perDay,
+        });
+        if (error) {
+          console.error('Failed to seed review words:', studentId, error);
+          failedStudents.push(studentNameById.get(studentId) ?? studentId);
+          continue;
+        }
+        const result = data as { seeded?: string[]; skipped?: string[] } | null;
+        totalSeeded += result?.seeded?.length ?? 0;
+        totalSkipped += result?.skipped?.length ?? 0;
+      }
+
+      return { totalSeeded, totalSkipped, failedStudents };
+    },
+    onSuccess: ({ totalSeeded, totalSkipped, failedStudents }) => {
+      const parts = [`${totalSeeded}개 단어를 오늘부터 하루 ${perDay}개씩 추가했어요.`];
+      if (totalSkipped > 0) parts.push(`${totalSkipped}개는 이미 복습 중이라 건너뛰었어요.`);
+      if (failedStudents.length > 0) {
+        toast.warning(`${parts.join(' ')} (실패: ${failedStudents.join(', ')})`);
+      } else {
+        toast.success(parts.join(' '));
+      }
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : '복습 큐에 추가하지 못했어요');
+    },
+  });
+
   if (authLoading || classesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -618,7 +711,7 @@ export default function VocabPracticeQuizCreate() {
                 </div>
               </div>
 
-              <div className="flex items-end gap-3 pt-2 border-t">
+              <div className="flex items-end gap-3 pt-2 border-t flex-wrap">
                 <div className="space-y-1.5">
                   <Label htmlFor="wordCount">문제 개수</Label>
                   <Input
@@ -634,7 +727,31 @@ export default function VocabPracticeQuizCreate() {
                   <Shuffle className="h-4 w-4" />
                   다시 뽑기
                 </Button>
+                {(availableBatches.length > 0 || hasUnlabeled) && (
+                  <div className="space-y-1.5">
+                    <Label>배치 필터</Label>
+                    <Select value={batchFilter} onValueChange={setBatchFilter}>
+                      <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">전체 배치</SelectItem>
+                        {availableBatches.map((label) => (
+                          <SelectItem key={label} value={label}>{label}</SelectItem>
+                        ))}
+                        {hasUnlabeled && <SelectItem value="__none__">(배치 없음)</SelectItem>}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
+
+              {!bankLoading && availableWords.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Checkbox checked={allVisibleSelected} onCheckedChange={toggleAllVisibleWords} />
+                  <Label className="cursor-pointer" onClick={toggleAllVisibleWords}>
+                    {batchFilter === 'all' ? '전체' : '이 배치'} 전체 선택/해제 ({availableWords.length}개)
+                  </Label>
+                </div>
+              )}
 
               {bankLoading ? (
                 <div className="flex justify-center py-8">
@@ -673,14 +790,39 @@ export default function VocabPracticeQuizCreate() {
                 </div>
               )}
 
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setStep(1)}>
-                  이전
-                </Button>
-                <Button onClick={goToStep3} disabled={selectedWords.length === 0}>
-                  다음 · 유형·생성으로
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
+              <div className="flex items-end justify-between gap-3 flex-wrap pt-2 border-t">
+                <div className="flex items-end gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="perDay">하루 노출 개수</Label>
+                    <Input
+                      id="perDay"
+                      type="number"
+                      min={1}
+                      value={perDay}
+                      onChange={(e) => setPerDay(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-24"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="gap-1.5"
+                    disabled={selectedWords.length === 0 || selectedStudents.length === 0 || seedReviewMutation.isPending}
+                    onClick={() => seedReviewMutation.mutate()}
+                  >
+                    {seedReviewMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    복습 큐에 바로 추가(하루 {perDay}개씩)
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setStep(1)}>
+                    이전
+                  </Button>
+                  <Button onClick={goToStep3} disabled={selectedWords.length === 0}>
+                    다음 · 유형·생성으로
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
