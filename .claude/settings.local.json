@@ -44,7 +44,9 @@
       "Bash(node -e ' *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\vapor\\\\AppData\\\\Local\\\\Temp\\\\design-extract2\\\\korean-quiz\\\\project\\\\\" -Force | Select-Object Name, Length, LastWriteTime)",
       "Skill(gstack)",
-      "Skill(gstack:*)"
+      "Skill(gstack:*)",
+      "Bash(python -c ' *)",
+      "Bash(pip install *)"
     ]
   },
   "enableAllProjectMcpServers": true,
