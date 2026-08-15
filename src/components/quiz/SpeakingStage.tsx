@@ -20,6 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { renderSentenceWithFeedback } from "@/components/quiz/quizResultUtils";
 import { QuizStageHeader } from "@/components/quiz/shared/QuizStageHeader";
 import { HintButton } from "@/components/quiz/shared/HintButton";
+import { unmaskTranslation } from "@/utils/maskTranslation";
 
 interface SpeakingProblem {
   id: string;
@@ -403,7 +404,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
               )}
 
               <p className={`text-sm sm:text-base text-muted-foreground mt-4 sm:mt-6 text-center transition-opacity duration-200 ${showHint && currentProblem.translation ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-                {currentProblem.translation || ""}
+                {unmaskTranslation(currentProblem.translation || "")}
               </p>
             </div>
           </div>

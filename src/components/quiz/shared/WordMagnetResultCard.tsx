@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, XCircle, HelpCircle } from "lucide-react";
 import type { WordMagnetGradeResult } from "@/components/quiz/WordMagnetResultStage";
+import { unmaskTranslation } from "@/utils/maskTranslation";
 
 interface WordMagnetResultCardProps {
   result: WordMagnetGradeResult;
@@ -28,7 +29,7 @@ export function WordMagnetResultCard({ result: r, index, answerLabel = "내 답�
               {index + 1}
             </span>
             <span className="text-base font-semibold text-slate-600 bg-slate-50 border border-slate-200 px-3 py-1 rounded-md break-keep">
-              {r.translation}
+              {unmaskTranslation(r.translation)}
             </span>
           </div>
           {r.skipped ? (

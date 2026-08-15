@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { WordMagnetTile } from "@/components/quiz/shared/WordMagnetTile";
 import { QuizStageHeader } from "@/components/quiz/shared/QuizStageHeader";
+import { unmaskTranslation } from "@/utils/maskTranslation";
 
 export interface WordMagnetStudentItem {
   translation: string | null;
@@ -53,7 +54,7 @@ export function WordMagnetStudentView({ problems }: { problems: WordMagnetStuden
 
         {/* 프롬프트(번역) */}
         <div className="p-5 sm:p-6 bg-slate-50 rounded-2xl text-center">
-          <p className="text-lg sm:text-xl font-semibold text-foreground break-keep">{problem.translation}</p>
+          <p className="text-lg sm:text-xl font-semibold text-foreground break-keep">{unmaskTranslation(problem.translation)}</p>
         </div>
 
         {/* 답 영역 — 밑줄 라인(비어 있음) */}

@@ -21,6 +21,7 @@ import { ChevronRight, ChevronLeft } from "lucide-react";
 import { assembleForDisplay } from "@/lib/korean/wordMagnet";
 import { WordMagnetTile } from "@/components/quiz/shared/WordMagnetTile";
 import { QuizStageHeader } from "@/components/quiz/shared/QuizStageHeader";
+import { unmaskTranslation } from "@/utils/maskTranslation";
 
 interface Tile {
   id: string;
@@ -330,7 +331,7 @@ export function WordMagnetStage({ problems, onAnswerPeek, onProgressUpdate, onCo
 
         {/* 프롬프트(번역) — 회색 박스는 "읽을 재료"만 */}
         <div className="p-5 sm:p-6 bg-slate-50 rounded-2xl text-center">
-          <p className="text-lg sm:text-xl font-semibold text-foreground break-keep">{currentProblem.translation}</p>
+          <p className="text-lg sm:text-xl font-semibold text-foreground break-keep">{unmaskTranslation(currentProblem.translation)}</p>
         </div>
 
         <DndContext

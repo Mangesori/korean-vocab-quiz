@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Trophy, Volume2, Lightbulb } from "lucide-react";
 import { useRef, useState } from "react";
 import { renderSentenceWithFeedback, generateSpeakingFeedback } from "@/components/quiz/quizResultUtils";
+import { unmaskTranslation } from "@/utils/maskTranslation";
 
 interface SpeakingAttempt {
   attemptNumber: number;
@@ -132,10 +133,10 @@ export function SpeakingResultStage({
                 
                 {showRecordingTrans[problem.id] && problem.translation && (
                   <p className="text-sm text-muted-foreground mb-6 bg-slate-50 p-3 rounded-lg">
-                    {problem.translation}
+                    {unmaskTranslation(problem.translation)}
                   </p>
                 )}
-                
+
                 <div className={`flex flex-col gap-3 mb-4 ${problem.mode === "listen" ? "mt-6" : "mt-4"}`}>
                   {problem.mode === "listen" && problem.sentenceAudioUrl && (
                     <div className="flex items-center gap-0 sm:gap-4">

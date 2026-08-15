@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Volume2, ChevronLeft, ChevronRight, Mic } from "lucide-react";
 import { QuizStageHeader } from "@/components/quiz/shared/QuizStageHeader";
 import { HintButton } from "@/components/quiz/shared/HintButton";
+import { unmaskTranslation } from "@/utils/maskTranslation";
 
 export interface RecordingStudentItem {
   sentence: string;
@@ -82,7 +83,7 @@ export function RecordingStudentView({ problems }: { problems: RecordingStudentI
               </div>
             )}
             <p className={`text-sm sm:text-base text-muted-foreground mt-4 sm:mt-6 text-center transition-opacity duration-200 ${showHint && problem.translation ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-              {problem.translation || ""}
+              {unmaskTranslation(problem.translation || "")}
             </p>
           </div>
         </div>

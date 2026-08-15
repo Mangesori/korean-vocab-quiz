@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Volume2, Lightbulb } from "lucide-react";
+import { unmaskTranslation } from "@/utils/maskTranslation";
 
 interface Problem {
   id: string;
@@ -134,7 +135,7 @@ export function QuizReviewCard({
           {/* Translation Display */}
           {showTranslation && (
             <p className="text-sm text-muted-foreground bg-slate-50 p-3 rounded-lg animate-in slide-in-from-top-1 fade-in duration-200">
-              {problem.translation}
+              {unmaskTranslation(problem.translation)}
             </p>
           )}
         </div>

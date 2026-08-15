@@ -21,6 +21,7 @@ import { WordMagnetResultCard } from "@/components/quiz/shared/WordMagnetResultC
 import { useQuizResultDetail } from "@/hooks/useQuizResultDetail";
 import { renderSentenceWithDiff, renderModelAnswerWithDiff, renderSentenceWithFeedback } from "@/components/quiz/quizResultUtils";
 import { formatDateFull } from '@/lib/formatDate';
+import { unmaskTranslation } from "@/utils/maskTranslation";
 import type {
   SentenceMakingProblemDetail,
   SentenceMakingAnswerDetail,
@@ -576,7 +577,7 @@ function RecordingView({
 
               {showTrans[problem.id] && problem.translation && (
                 <p className="text-sm text-muted-foreground mb-4 bg-slate-50 p-3 rounded-lg">
-                  {problem.translation}
+                  {unmaskTranslation(problem.translation)}
                 </p>
               )}
 

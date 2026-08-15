@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Library, Search, RefreshCw, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
@@ -82,12 +83,20 @@ export default function AdminSentenceBank() {
   const [levelFilter, setLevelFilter] = useState<'all' | (typeof LEVELS)[number]>('all');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'import' | 'quiz'>('all');
   const [batchLabelFilter, setBatchLabelFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'created_desc' | 'word_asc'>('created_desc');
   const [page, setPage] = useState(0);
 
   // 필터가 바뀌면 첫 페이지로.
   useEffect(() => {
     setPage(0);
-  }, [search, levelFilter, sourceFilter, batchLabelFilter, batchFilterActive]);
+  }, [search, levelFilter, sourceFilter, batchLabelFilter, batchFilterActive, sortBy]);
+
+  // ── 일괄 선택 ──
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // 페이지·필터·정렬이 바뀌면 화면에 안 보이는 행이 선택된 채로 남지 않게 초기화.
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [search, levelFilter, sourceFilter, batchLabelFilter, batchFilterActive, sortBy, page]);
 
   const enabled = !!user && can(PERMISSIONS.MANAGE_USERS);
 
@@ -125,15 +134,24 @@ export default function AdminSentenceBank() {
     isFetching: listFetching,
     refetch: refetchList,
   } = useQuery({
-    queryKey: ['sentenceBankList', levelFilter, sourceFilter, batchLabelFilter, search, page, batchFilterActive, batchWords],
+    queryKey: ['sentenceBankList', levelFilter, sourceFilter, batchLabelFilter, search, page, batchFilterActive, batchWords, sortBy],
     queryFn: async () => {
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
-      let query = supabase
-        .from('sentence_bank')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(from, to);
+      let query = supabase.from('sentence_bank').select('*', { count: 'exact' });
+
+      // created_at만으로는 대량 임포트 시 같은 시각을 가진 행이 수백 개라 순서가
+      // 안정적이지 않다(페이지네이션 시 행이 겹치거나 빠질 수도 있음). word/level/seq를
+      // 보조 정렬로 추가해 동률을 항상 같은 순서로 깨뜨린다.
+      query =
+        sortBy === 'word_asc'
+          ? query.order('word', { ascending: true }).order('level', { ascending: true }).order('seq', { ascending: true })
+          : query
+              .order('created_at', { ascending: false })
+              .order('word', { ascending: true })
+              .order('level', { ascending: true })
+              .order('seq', { ascending: true });
+      query = query.range(from, to);
 
       if (batchFilterActive && batchWords && batchWords.length > 0) query = query.in('word', batchWords);
       if (search.trim()) query = query.ilike('word', `%${search.trim()}%`);
@@ -221,6 +239,48 @@ export default function AdminSentenceBank() {
       setIsDeleting(false);
     }
   };
+
+  // ── 일괄 삭제 ──
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      const { error } = await supabase.from('sentence_bank').delete().in('id', [...selectedIds]);
+      if (error) throw error;
+
+      invalidateAll();
+      toast.success(`${selectedIds.size}개 문장을 삭제했어요`);
+      setSelectedIds(new Set());
+      setBulkDeleteOpen(false);
+    } catch (e) {
+      console.error('Error bulk deleting sentence bank rows:', e);
+      toast.error('일괄 삭제에 실패했어요');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const toggleSelectAllOnPage = (checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      rows.forEach((r) => (checked ? next.add(r.id) : next.delete(r.id)));
+      return next;
+    });
+  };
+
+  const toggleSelectRow = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const allOnPageSelected = rows.length > 0 && rows.every((r) => selectedIds.has(r.id));
 
   if (loading) {
     return (
@@ -327,6 +387,24 @@ export default function AdminSentenceBank() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+                  <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="created_desc">최신순</SelectItem>
+                    <SelectItem value="word_asc">단어순</SelectItem>
+                  </SelectContent>
+                </Select>
+                {selectedIds.size > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => setBulkDeleteOpen(true)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1.5" />
+                    {selectedIds.size}개 삭제
+                  </Button>
+                )}
                 <Button variant="outline" size="icon" onClick={() => refetchList()} disabled={listFetching}>
                   <RefreshCw className={`h-4 w-4 ${listFetching ? 'animate-spin' : ''}`} />
                 </Button>
@@ -346,6 +424,13 @@ export default function AdminSentenceBank() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[40px]">
+                          <Checkbox
+                            checked={allOnPageSelected}
+                            onCheckedChange={(checked) => toggleSelectAllOnPage(!!checked)}
+                            aria-label="이 페이지 전체 선택"
+                          />
+                        </TableHead>
                         <TableHead className="w-[100px]">단어</TableHead>
                         <TableHead className="w-[70px]">레벨</TableHead>
                         <TableHead className="w-[35%]">문장</TableHead>
@@ -361,6 +446,13 @@ export default function AdminSentenceBank() {
                           className="cursor-pointer"
                           onClick={() => openEdit(row)}
                         >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedIds.has(row.id)}
+                              onCheckedChange={(checked) => toggleSelectRow(row.id, !!checked)}
+                              aria-label={`${row.word} 선택`}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">{row.word}</TableCell>
                           <TableCell>{row.level}</TableCell>
                           <TableCell className="line-clamp-2 whitespace-normal break-words">{row.sentence}</TableCell>
@@ -500,6 +592,28 @@ export default function AdminSentenceBank() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? '삭제 중...' : '삭제'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 일괄 삭제 확인 */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{selectedIds.size}개 문장을 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription>
+              선택한 문장이 은행에서 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleBulkDelete(); }}
+              disabled={isBulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isBulkDeleting ? '삭제 중...' : '삭제'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
