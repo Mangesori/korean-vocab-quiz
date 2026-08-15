@@ -37,7 +37,6 @@ import {
 } from '@/components/ui/select';
 import {
   Loader2,
-  ArrowLeft,
   Users,
   BookOpen,
   ChevronRight,
@@ -575,13 +574,6 @@ export default function VocabPracticeQuizCreate() {
   return (
     <AppLayout>
       <div className="container max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft className="h-4 w-4" />
-            뒤로
-          </Button>
-        </div>
-
         <div className="mb-8">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <BookMarked className="h-6 w-6" />

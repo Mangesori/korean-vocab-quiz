@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  ArrowLeft,
   Users,
   Copy,
   Trash2,
@@ -75,7 +74,6 @@ export default function ClassDetail() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
-  const location = useLocation();
   const queryClient = useQueryClient();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -280,14 +278,6 @@ export default function ClassDetail() {
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => (location.key !== 'default' ? navigate(-1) : navigate('/classes'))}
-          className="mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" /> 뒤로
-        </Button>
-
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
             <div className="flex-1 min-w-0 space-y-1">
               <div className="flex items-center gap-3 flex-wrap">

@@ -21,6 +21,7 @@ import QuizTake from "./pages/QuizTake";
 import QuizResult from "./pages/QuizResult";
 import Quizzes from "./pages/Quizzes";
 import Classes from "./pages/Classes";
+import MyClass from "./pages/MyClass";
 import ClassDetail from "./pages/ClassDetail";
 import ClassStudents from "./pages/ClassStudents";
 import ClassAssignedQuizzes from "./pages/ClassAssignedQuizzes";
@@ -118,6 +119,11 @@ const App = () => (
             <Route path="/classes" element={
               <ProtectedRoute permission={PERMISSIONS.VIEW_CLASS} redirectTo="/auth">
                 <Classes />
+              </ProtectedRoute>
+            } />
+            <Route path="/my-class/:id" element={
+              <ProtectedRoute permission={PERMISSIONS.VIEW_CLASS} redirectTo="/auth">
+                <MyClass />
               </ProtectedRoute>
             } />
             <Route path="/class/:id" element={

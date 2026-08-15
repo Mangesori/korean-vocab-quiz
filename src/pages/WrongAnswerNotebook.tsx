@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,7 +23,6 @@ import {
   Loader2,
   Search,
   FileX,
-  ArrowLeft,
   Play,
   X,
   ListChecks,
@@ -147,7 +146,6 @@ function buildVocabularyEntry(item: GroupedItem) {
 
 export default function WrongAnswerNotebook() {
   const navigate = useNavigate();
-  const location = useLocation();
   const queryClient = useQueryClient();
   const { user, loading: authLoading, role, roleResolved } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -510,18 +508,6 @@ export default function WrongAnswerNotebook() {
   return (
     <AppLayout>
       <div className="container max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-            onClick={() => (location.key !== 'default' ? navigate(-1) : navigate('/dashboard'))}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            뒤로
-          </Button>
-        </div>
-
         <div className="mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <FileX className="h-6 w-6" />

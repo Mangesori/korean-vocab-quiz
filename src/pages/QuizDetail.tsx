@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, TextCursorInput, PenLine, Mic, Link2, Keyboard, Magnet, X, Users } from "lucide-react";
+import { Loader2, TextCursorInput, PenLine, Mic, Link2, Keyboard, Magnet, X, Users } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { Dialog } from "@/components/ui/dialog";
 import {
@@ -53,7 +53,6 @@ export default function QuizDetail() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams(); // Added
 
   // State
@@ -915,14 +914,6 @@ export default function QuizDetail() {
   return (
     <AppLayout>
       <div className="container mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => (location.key !== "default" ? navigate(-1) : navigate("/quizzes"))}
-          className="mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" /> 뒤로
-        </Button>
-
         <QuizHeader
           quiz={quiz}
           onUpdateTitle={handleUpdateTitle}

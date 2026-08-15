@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,7 +34,6 @@ import {
   StarOff,
   Trash2,
   BookMarked,
-  ArrowLeft,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -51,7 +50,6 @@ interface VocabularyItem {
 export default function VocabularyList() {
   const { user, loading: authLoading, role } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -170,18 +168,6 @@ export default function VocabularyList() {
   return (
     <AppLayout>
       <div className="container max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-            onClick={() => (location.key !== 'default' ? navigate(-1) : navigate('/dashboard'))}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            뒤로
-          </Button>
-        </div>
-
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">

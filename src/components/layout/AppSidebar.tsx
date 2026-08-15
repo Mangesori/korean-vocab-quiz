@@ -33,6 +33,7 @@ import {
   MessageSquare,
   ClipboardPaste,
   CalendarCheck,
+  ListChecks,
 } from "lucide-react";
 
 interface NavItem {
@@ -115,6 +116,18 @@ export function AppSidebar() {
     },
   });
 
+  const { data: myClasses = [] } = useQuery({
+    queryKey: ['myClasses', user?.id],
+    enabled: !!user && role === 'student',
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('class_members')
+        .select('class_id, classes:class_id ( id, name )')
+        .eq('student_id', user!.id);
+      return (data ?? []).map((m: any) => m.classes).filter(Boolean) as { id: string; name: string }[];
+    },
+  });
+
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
@@ -163,14 +176,20 @@ export function AppSidebar() {
   const studentMainItems: NavItem[] = [
     { path: "/dashboard", icon: Home, label: "대시보드" },
   ];
-  const studentClassItems: NavItem[] = [
-    { path: "/classes", icon: Users, label: "내 클래스" },
-  ];
-  const studentStudyItems: NavItem[] = [
-    { path: "/review", icon: CalendarCheck, label: "오늘의 복습", badgeCount: dueCount },
-    { path: "/wrong-answers", icon: FileX, label: "오답노트" },
-    { path: "/vocabulary", icon: BookMarked, label: "단어장" },
-  ];
+  const studentClassItems: NavItem[] =
+    myClasses.length === 0
+      ? [{ path: '/dashboard', icon: Users, label: '클래스 가입' }]
+      : myClasses.map((c) => ({ path: `/my-class/${c.id}`, icon: Users, label: c.name }));
+  // 가입 전에는 오늘의 복습·오답노트·전체 퀴즈에 데이터가 생길 수 없어 감춘다.
+  const studentStudyItems: NavItem[] =
+    myClasses.length === 0
+      ? [{ path: "/vocabulary", icon: BookMarked, label: "단어장" }]
+      : [
+          { path: "/review", icon: CalendarCheck, label: "오늘의 복습", badgeCount: dueCount },
+          { path: "/my-quizzes", icon: ListChecks, label: "전체 퀴즈" },
+          { path: "/wrong-answers", icon: FileX, label: "오답노트" },
+          { path: "/vocabulary", icon: BookMarked, label: "단어장" },
+        ];
 
   const isTeacherOrAdmin = role === "teacher" || role === "admin";
 

@@ -1,36 +1,18 @@
 import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PendingTeacherBanner } from '@/components/dashboard/PendingTeacherBanner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  BookMarked,
-  BookOpen,
-  FileX,
-  Home,
-  Users,
-  ChevronRight,
-  ArrowRight,
-} from 'lucide-react';
-import { LevelBadge } from '@/components/ui/level-badge';
-import { formatDateFull } from '@/lib/formatDate';
+import { BookMarked, FileX, Home, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { QuizTypeScoreBadges } from "@/components/quiz/shared/QuizTypeScoreBadges";
-import { BaseStage, STAGE_ORDER, STAGE_SHORT_LABELS, isStageEnabled } from '@/types/quiz';
+import { BaseStage, STAGE_ORDER, STAGE_LABELS, isStageEnabled } from '@/types/quiz';
 
 interface Assignment {
   id: string;
@@ -113,6 +95,15 @@ const STAGE_SCORE_KEY: Record<BaseStage, string> = {
   recording: 'recording_score',
 };
 
+const STAGE_TOTAL_KEY: Record<BaseStage, string> = {
+  matchup: 'matchup_total',
+  type_answer: 'type_answer_total',
+  fill_blank: 'fill_blank_total',
+  word_magnet: 'word_magnet_total',
+  sentence_making: 'sentence_making_total',
+  recording: 'recording_total',
+};
+
 /** 스테이지 플래그·점수를 컬럼명으로 조회하기 위한 좁히기(퀴즈/결과 행 모두 평범한 객체다). */
 function asRow(value: unknown): Record<string, unknown> {
   return (value ?? {}) as Record<string, unknown>;
@@ -120,6 +111,11 @@ function asRow(value: unknown): Record<string, unknown> {
 
 function stageScore(result: Record<string, unknown>, stage: BaseStage): number | null {
   const value = result[STAGE_SCORE_KEY[stage]];
+  return typeof value === 'number' ? value : null;
+}
+
+function stageTotal(result: Record<string, unknown>, stage: BaseStage): number | null {
+  const value = result[STAGE_TOTAL_KEY[stage]];
   return typeof value === 'number' ? value : null;
 }
 
@@ -137,6 +133,19 @@ function isResultComplete(quiz: Record<string, unknown>, result: Record<string, 
  */
 function isMastered(row: { mastered_at?: string | null }): boolean {
   return row.mastered_at != null;
+}
+
+function formatShortDate(date: string) {
+  return format(new Date(date), 'M월 d일', { locale: ko });
+}
+
+/** 점수 미니 바 색 — 정답률 높음(#1E6B47) / 낮음(#8FBFA6) / 미제출(#E2DDD8) 3단계. */
+function scoreBarColor(quiz: Record<string, unknown> | null, result: Record<string, unknown>, stage: BaseStage) {
+  if (!quiz || !isStageEnabled(stage, quiz)) return '#E2DDD8';
+  const score = stageScore(result, stage);
+  const total = stageTotal(result, stage);
+  if (score === null || !total) return '#E2DDD8';
+  return score / total >= 0.8 ? '#1E6B47' : '#8FBFA6';
 }
 
 function CircleProgress({ percent }: { percent: number }) {
@@ -161,7 +170,6 @@ function CircleProgress({ percent }: { percent: number }) {
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [inviteCode, setInviteCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
@@ -411,59 +419,9 @@ export default function StudentDashboard() {
     return map;
   }, [classes]);
 
-  // 어휘 보강 퀴즈의 "전체 선택"은 class_id 없이 학생마다 개인 배정 행을 만든다
-  // (교사가 반 전체를 골랐어도 마찬가지). 그래서 학생 화면에는 원래 "개인 배정"으로만
-  // 보였는데, 사실상 반 전체에 보낸 것과 다름없어 헷갈린다. 완벽하게 판별할 방법은
-  // 없지만(다른 학생들 배정까지 봐야 확실함), 제목에 "어휘 보강"이 들어간 개인 배정은
-  // 학생이 속한 첫 번째 클래스 이름으로 표시해 준다 — 순수 표시용 근사치.
-  const studentPrimaryClassId = classes[0]?.class_id;
-
-  const assignmentsByClass = useMemo(() => {
-    // 같은 퀴즈가 클래스 배정 + 개인 배정 등 여러 경로로 중복 배정될 수 있다.
-    // quiz_id 기준으로 한 번만 보여주고, 배정 출처는 태그로 합쳐서 표기한다.
-    const byQuiz = new Map<string, { assignment: Assignment; sources: string[] }>();
-    assignments.forEach((a) => {
-      if (!a.quizzes) return;
-      const isVocabPractice = !a.class_id && /어휘\s*보강/.test(a.quizzes.title || '');
-      const effectiveClassId = a.class_id || (isVocabPractice ? studentPrimaryClassId : undefined);
-      const label = effectiveClassId
-        ? (classNameMap[effectiveClassId] || '알 수 없는 클래스')
-        : '개인 배정';
-      const existing = byQuiz.get(a.quiz_id);
-      if (existing) {
-        if (!existing.sources.includes(label)) existing.sources.push(label);
-        // 클래스 배정을 대표로 삼아야 "상세보기" 링크를 쓸 수 있다.
-        if (a.class_id && !existing.assignment.class_id) {
-          existing.assignment = a;
-        }
-      } else {
-        byQuiz.set(a.quiz_id, { assignment: a, sources: [label] });
-      }
-    });
-
-    const groups: { classId: string; className: string; items: Assignment[]; sourcesByQuiz: Record<string, string[]> }[] = [];
-    byQuiz.forEach(({ assignment, sources }) => {
-      const isVocabPractice = !assignment.class_id && /어휘\s*보강/.test(assignment.quizzes?.title || '');
-      const cid = assignment.class_id || (isVocabPractice ? studentPrimaryClassId : undefined) || 'personal';
-      let group = groups.find((g) => g.classId === cid);
-      if (!group) {
-        group = {
-          classId: cid,
-          className: cid === 'personal' ? '개인 배정' : (classNameMap[cid] || '알 수 없는 클래스'),
-          items: [],
-          sourcesByQuiz: {},
-        };
-        groups.push(group);
-      }
-      group.items.push(assignment);
-      group.sourcesByQuiz[assignment.quiz_id] = sources;
-    });
-    return groups;
-  }, [assignments, classNameMap, studentPrimaryClassId]);
-
   const heroAssignment = assignments.find((a) => a.quizzes);
 
-  // 히어로 퀴즈의 활성 유형 — 유형 배지와 진행률 분모에 함께 쓴다.
+  // 히어로 퀴즈의 활성 유형 — 진행률 분모로 쓴다.
   const heroStages = useMemo(
     () =>
       heroAssignment?.quizzes
@@ -476,9 +434,28 @@ export default function StudentDashboard() {
   const heroProgressAvailable = heroStages.length > 0;
 
   const heroLastResult = results.find(r => r.quiz_id === heroAssignment?.quiz_id);
-  const heroLastStudiedDays = heroLastResult
-    ? Math.floor((Date.now() - new Date(heroLastResult.completed_at).getTime()) / 86400000)
-    : null;
+
+  // 다음에 풀어야 할 유형 — 히어로의 가장 최근(부분) 결과에서 아직 채점 안 된 첫 활성 스테이지.
+  const heroNextStage = useMemo(() => {
+    if (!heroAssignment?.quizzes || !heroLastResult) return null;
+    const quiz = asRow(heroAssignment.quizzes);
+    const stage = STAGE_ORDER.find(
+      (s) => isStageEnabled(s, quiz) && stageScore(asRow(heroLastResult), s) === null
+    );
+    return stage ? STAGE_LABELS[stage] : null;
+  }, [heroAssignment, heroLastResult]);
+
+  // 히어로를 제외한 나머지 미완료 퀴즈 — 같은 퀴즈가 클래스+개인 등 여러 경로로 중복
+  // 배정될 수 있어 quiz_id 기준으로 한 번만 남긴다.
+  const otherPendingAssignments = useMemo(() => {
+    const byQuiz = new Map<string, Assignment>();
+    assignments.forEach((a) => {
+      if (!a.quizzes) return;
+      if (heroAssignment && a.quiz_id === heroAssignment.quiz_id) return;
+      if (!byQuiz.has(a.quiz_id)) byQuiz.set(a.quiz_id, a);
+    });
+    return [...byQuiz.values()];
+  }, [assignments, heroAssignment]);
 
   const handleJoinClass = async () => {
     if (!inviteCode.trim()) {
@@ -522,6 +499,7 @@ export default function StudentDashboard() {
   };
 
   const displayName = profileName || user?.email?.split('@')[0] || '';
+  const hasClasses = classes.length > 0;
 
   return (
     <AppLayout>
@@ -537,484 +515,397 @@ export default function StudentDashboard() {
           </h1>
         </div>
 
-        {/* Hero card */}
-        {heroAssignment && (
-          <div className="relative rounded-2xl overflow-hidden mb-6 bg-gradient-to-r from-primary to-[#155237] text-white py-6 px-6 sm:py-[30px] sm:px-9">
-            {/* Background decoration */}
-            <svg
-              className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.13]"
-              viewBox="0 0 800 400"
-              preserveAspectRatio="xMaxYMid slice"
-              aria-hidden="true"
-            >
-              <g fill="#ffffff">
-                <path d="M620 -20C520 60 480 180 560 280C660 220 700 100 620 -20Z"/>
-                <path d="M620 -20L560 280" stroke="rgba(255,255,255,.5)" strokeWidth="2" fill="none"/>
-              </g>
-              <g fill="#ffffff" opacity=".7">
-                <path d="M720 180C660 220 650 320 720 360C780 320 790 220 720 180Z"/>
-                <path d="M720 180L720 360" stroke="rgba(255,255,255,.5)" strokeWidth="1.5" fill="none"/>
-              </g>
-              <g fill="#ffffff" opacity=".55">
-                <path d="M540 340C500 360 480 420 540 440C580 420 600 360 540 340Z"/>
-              </g>
-              <path d="M-20 380C200 320 400 360 800 280" stroke="rgba(255,255,255,.25)" strokeWidth="1.5" fill="none"/>
-            </svg>
-
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 sm:gap-8">
-              {/* Left */}
-              <div className="relative z-10 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {heroAssignment.class_id && classNameMap[heroAssignment.class_id] && (
-                    <span className="text-[13px] text-white/85 font-medium">
-                      {classNameMap[heroAssignment.class_id]}
-                    </span>
-                  )}
-                  <span className="bg-white/20 text-white px-[9px] py-0.5 rounded-full text-[10px] font-bold tracking-[0.04em]">
-                    {heroAssignment.quizzes?.difficulty}
-                  </span>
-                </div>
-                <h2 className="font-sans font-bold text-[26px] sm:text-[36px] leading-[1.15] sm:leading-[1.1] tracking-[-0.02em] mt-1.5 line-clamp-2 sm:truncate">
-                  {heroAssignment.quizzes?.title}
-                </h2>
-                <div className="flex items-center gap-1.5 flex-wrap mt-3">
-                  {heroStages.map((stage) => (
-                    <span
-                      key={stage}
-                      className="bg-white/15 text-white/90 px-2.5 py-1 rounded-md text-[11px] font-bold"
-                    >
-                      {STAGE_SHORT_LABELS[stage]}
-                    </span>
-                  ))}
-                </div>
-
-                {/* 모바일 전용 — 원형 진행률 대신 한 줄 텍스트 + 얇은 바 (공간 절약) */}
-                <div className="sm:hidden mt-3">
-                  <div className="flex items-center justify-between text-[12px] font-semibold">
-                    <span>
-                      {heroProgressAvailable && heroProgress
-                        ? `${heroProgress.completed}/${heroProgress.total}유형 완료`
-                        : `${heroAssignment.quizzes?.words?.length ?? 0}개 단어`}
-                    </span>
-                    <span className="text-white/70 font-normal">
-                      {heroProgressAvailable
-                        ? `${heroProgress?.percent ?? 0}%`
-                        : heroLastStudiedDays !== null
-                          ? `${heroLastStudiedDays}일 전 마지막 학습`
-                          : '학습 시작하기'}
-                    </span>
-                  </div>
-                  {heroProgressAvailable && (
-                    <div className="h-[5px] rounded-full bg-white/20 mt-1.5 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-white"
-                        style={{ width: `${heroProgress?.percent ?? 0}%` }}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <Link to={`/quiz/${heroAssignment.quiz_id}/take`} className="mt-5 sm:mt-6 block sm:inline-block">
-                  <Button className="w-full sm:w-auto justify-center bg-white text-primary hover:bg-white/90 font-bold text-[15px] py-[13px] px-[26px] h-auto gap-1.5">
-                    {heroProgress ? '이어서 풀기' : '지금 풀기'}
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </Link>
-              </div>
-
-              {/* Right — 데스크톱 전용 원형 진행률 */}
-              <div className="hidden sm:flex relative z-10 shrink-0 flex-col items-center gap-2.5">
-                {heroProgressAvailable ? (
-                  <CircleProgress percent={heroProgress?.percent ?? 0} />
-                ) : (
-                  // 활성 유형을 알 수 없어 진행률 계산 불가 → 거짓 숫자 대신 상태만 표시
-                  <div className="w-[104px] h-[104px] rounded-full border-[9px] border-white/20 flex items-center justify-center shrink-0">
-                    <span className="text-[13px] font-semibold text-white/90">
-                      {heroProgress ? '진행 중' : '시작 전'}
-                    </span>
-                  </div>
-                )}
-                <div className="text-center">
-                  <strong className="block text-[13px] font-semibold">
-                    {heroProgressAvailable && heroProgress
-                      ? `${heroProgress.total}유형 중 ${heroProgress.completed}개 완료`
-                      : `${heroAssignment.quizzes?.words?.length ?? 0}개 단어`}
-                  </strong>
-                  <span className="text-[11px] text-white/70 font-ui">
-                    {heroLastStudiedDays !== null
-                      ? `${heroLastStudiedDays}일 전 마지막 학습`
-                      : '학습 시작하기'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 오늘의 복습 히어로 — 배정 퀴즈가 없을 때만 히어로 자리를 대체한다.
-            /review(get_due_review_items)와 사이드바 배지가 쓰는 것과 같은 기준
-            (wrong_answer_progress: mastered_at IS NULL AND due_at <= now)을 써야 한다. */}
-        {!heroAssignment && stats.dueReviewCount > 0 && (
-          <div className="relative rounded-2xl overflow-hidden mb-6 bg-gradient-to-r from-primary to-[#155237] text-white py-[30px] px-9">
-            <div className="relative z-10">
-              <p className="font-ui text-[11px] font-bold tracking-[0.12em] uppercase text-white/75">
-                ▶ 오늘의 복습
+        {!hasClasses ? (
+          /* ── 클래스 미가입 상태 (시안 7a·7d) ── */
+          <div className="lg:max-w-[640px]">
+            <div className="bg-gradient-to-r from-primary to-[#155237] rounded-2xl px-6 py-6 sm:px-[30px] sm:py-7 text-white">
+              <h2 className="text-[19px] sm:text-[22px] font-bold tracking-[-0.3px] sm:tracking-[-0.4px]">클래스에 가입해 주세요</h2>
+              <p className="text-[12.5px] sm:text-[13.5px] text-white/80 mt-2 leading-[1.55] sm:leading-[1.6] sm:max-w-[420px]">
+                선생님께 받은 6자리 초대 코드를 입력하면 배정된 퀴즈와 진도가 여기에 나타납니다.
               </p>
-              <h2 className="font-sans font-bold text-[28px] leading-[1.3] tracking-[-0.02em] mt-[10px]">
-                오늘 복습할 단어 <span className="tabular-nums">{stats.dueReviewCount}</span>개가
-                <br />
-                기다리고 있어요
-              </h2>
-              <p className="text-[12px] text-white/80 mt-2">
-                {stats.weekMasteredCount > 0
-                  ? `⭐ 이번 주 마스터 ${stats.weekMasteredCount}개 · 조금만 더!`
-                  : '⭐ 맞히면 다음 복습 간격이 점점 늘어나요. 오늘 첫 단어부터 시작해 보세요'}
-              </p>
-              <div className="flex items-center gap-2 flex-wrap mt-4">
-                <Link to="/review">
-                  <Button className="bg-white text-primary hover:bg-white/90 font-bold text-[13px] h-auto py-[9px] px-[18px] gap-1.5">
-                    오늘의 복습 시작하기
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Button>
-                </Link>
-                <Link to="/wrong-answers">
-                  <Button
-                    variant="outline"
-                    className="bg-transparent border-white/40 text-white hover:bg-white/10 hover:text-white font-semibold text-[13px] h-auto py-[9px] px-[14px]"
-                  >
-                    오답노트 열기
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Quick Stats + Utilities — one grid, 2 cols x 3 rows on mobile, 3 cols x 2 rows from sm */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-          <div className="bg-card border border-border rounded-xl px-[18px] py-4 flex items-center gap-[14px]">
-            <div className="w-[38px] h-[38px] rounded-lg bg-[#FEF3C7] dark:bg-amber-950/50 flex items-center justify-center text-lg shrink-0">🔥</div>
-            <div className="min-w-0">
-              <div className="font-bold text-[18px] leading-none text-foreground tabular-nums">
-                {stats.streak}<span className="text-[13px] text-muted-foreground ml-[3px] font-medium">일</span>
-              </div>
-              <div className="font-ui text-[11px] text-muted-foreground mt-[6px]">연속 학습</div>
-            </div>
-          </div>
-          <div className="bg-card border border-border rounded-xl px-[18px] py-4 flex items-center gap-[14px]">
-            <div className="w-[38px] h-[38px] rounded-lg bg-primary/10 flex items-center justify-center text-lg shrink-0">📈</div>
-            <div className="min-w-0">
-              <div className="font-bold text-[18px] leading-none text-foreground tabular-nums">
-                {stats.weekScore !== null ? stats.weekScore : '—'}
-                {stats.weekScore !== null && (
-                  <span className="text-[13px] text-muted-foreground ml-[3px] font-medium">%</span>
-                )}
-              </div>
-              <div className="font-ui text-[11px] text-muted-foreground mt-[6px]">이번 주 정답률</div>
-            </div>
-          </div>
-          <div className="bg-card border border-border rounded-xl px-[18px] py-4 flex items-center gap-[14px]">
-            <div className="w-[38px] h-[38px] rounded-lg bg-[#DBEAFE] dark:bg-blue-950/50 flex items-center justify-center text-lg shrink-0">🎯</div>
-            <div className="min-w-0">
-              <div className="font-bold text-[18px] leading-none text-foreground tabular-nums">
-                {stats.averageScore}<span className="text-[13px] text-muted-foreground ml-[3px] font-medium">%</span>
-              </div>
-              <div className="font-ui text-[11px] text-muted-foreground mt-[6px]">최근 10회 평균</div>
-            </div>
-          </div>
-
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-                <CardContent className="flex items-center gap-[11px] px-[15px] py-[13px]">
-                  <div className="w-[34px] h-[34px] rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Users className="w-[15px] h-[15px] text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-semibold text-foreground">클래스 가입</p>
-                    <p className="text-[11px] text-muted-foreground">초대 코드로 가입</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>클래스 가입</DialogTitle>
-                <DialogDescription>선생님께 받은 6자리 초대 코드를 입력하세요</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
+              <div className="flex gap-2 sm:gap-2.5 mt-[18px] sm:mt-[22px] sm:max-w-[400px]">
                 <Input
-                  placeholder="초대 코드 (예: ABC123)"
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                   maxLength={6}
-                  className="text-center text-lg tracking-widest"
+                  placeholder="ABC123"
+                  className="flex-1 bg-white/[0.14] border-white/30 text-white placeholder:text-white/50 font-mono tracking-[0.22em] text-center rounded-[11px] h-auto py-3 px-3.5"
                 />
-                <Button className="w-full" onClick={handleJoinClass} disabled={isJoining}>
-                  {isJoining ? '가입 중...' : '가입하기'}
+                <Button
+                  onClick={handleJoinClass}
+                  disabled={isJoining}
+                  className="shrink-0 bg-white text-primary hover:bg-white/90 rounded-[11px] h-auto px-5 sm:px-7 font-bold"
+                >
+                  {isJoining ? '가입 중...' : '가입'}
                 </Button>
               </div>
-            </DialogContent>
-          </Dialog>
-
-          <Link to="/vocabulary">
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-              <CardContent className="flex items-center gap-[11px] px-[15px] py-[13px]">
-                <div className="w-[34px] h-[34px] rounded-lg bg-[#DCFCE7] dark:bg-emerald-950/50 flex items-center justify-center shrink-0">
-                  <BookMarked className="w-[15px] h-[15px] text-[#15803D]" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-foreground">나만의 단어장</p>
-                  <p className="text-[11px] text-muted-foreground">저장한 단어 복습</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link to="/wrong-answers">
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-              <CardContent className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-[11px] px-[15px] py-[13px]">
-                <div className="flex items-center gap-[11px]">
-                  <div className="w-[34px] h-[34px] rounded-lg bg-[#FEE2E2] dark:bg-red-950/50 flex items-center justify-center shrink-0">
-                    <FileX className="w-[15px] h-[15px] text-destructive" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-semibold text-foreground">오답 노트</p>
-                    <p className="text-[11px] text-muted-foreground">틀린 문제 다시 보기</p>
-                  </div>
-                </div>
-                {stats.reviewPendingCount > 0 && (
-                  <span className="self-start sm:self-center sm:ml-auto shrink-0 rounded-full bg-destructive text-destructive-foreground text-[11px] font-bold px-2.5 py-[3px] tabular-nums">
-                    복습 대기 {stats.reviewPendingCount}
-                  </span>
-                )}
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-
-        {/* Assignments grouped by class — single card */}
-        {assignmentsByClass.length > 0 && (
-          <Card className="overflow-hidden mb-8" style={{ padding: 0 }}>
-            {/* Section header */}
-            <div className="flex items-center justify-between px-[18px] py-[14px] border-b border-border">
-              <div>
-                <span className="text-[14px] font-bold">풀어야 할 퀴즈</span>
-                <span className="text-[11px] text-muted-foreground block mt-0.5">아직 완료하지 않은 퀴즈</span>
-              </div>
-              <Link to="/my-quizzes" className="text-xs text-primary hover:underline flex items-center gap-1">
-                전체 보기 <ChevronRight className="w-3 h-3" />
-              </Link>
             </div>
 
-            {assignmentsByClass.map((group, gIdx) => (
-              <div
-                key={group.classId}
-                className={`px-[18px] py-3 ${gIdx > 0 ? 'border-t border-border' : ''}`}
+            <div className="mt-3 grid sm:grid-cols-2 gap-3">
+              <Link
+                to="/quiz/example"
+                className="bg-card border border-border rounded-2xl p-[18px] sm:p-5 block hover:border-primary/40 transition-colors"
               >
-                {/* Class subheader */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5">
-                    <Users className="w-3 h-3 text-muted-foreground" />
-                    <span className="font-ui text-[10px] font-bold text-muted-foreground uppercase tracking-[.06em]">
-                      {group.className}
-                    </span>
-                  </div>
-                  {group.classId !== 'personal' && (
-                    <Link to={`/class/${group.classId}`} className="text-[10px] text-primary hover:underline">
-                      상세보기 ›
-                    </Link>
-                  )}
+                <p className="text-sm sm:text-[14.5px] font-bold">먼저 체험해 보기</p>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-[1.55]">
+                  클래스 없이도 샘플 퀴즈로 6가지 유형을 미리 풀어볼 수 있습니다.
+                </p>
+                <span className="block text-center mt-3.5 border border-primary text-primary rounded-[11px] py-[11px] text-[13.5px] font-bold">
+                  샘플 퀴즈 풀어보기 →
+                </span>
+              </Link>
+              <Link
+                to="/vocabulary"
+                className="bg-card border border-border rounded-2xl p-[18px] sm:p-5 flex sm:block items-center gap-3 hover:border-primary/40 transition-colors"
+              >
+                <BookMarked className="w-[18px] h-[18px] text-primary shrink-0" />
+                <div className="flex-1 min-w-0 sm:mt-2.5">
+                  <p className="text-sm sm:text-[14.5px] font-bold">나만의 단어장</p>
+                  <p className="text-xs text-muted-foreground mt-1 sm:mt-1.5 leading-[1.55]">
+                    저장한 단어는 클래스 없이도 언제든 복습할 수 있어요.
+                  </p>
                 </div>
+                <span className="sm:hidden text-xs text-muted-foreground shrink-0">›</span>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          /* ── 일반 대시보드 (시안 5a·4a·3a) ── */
+          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-5 lg:items-start">
+            <div className="min-w-0 flex flex-col gap-3">
 
-                {/* Quiz items — individual bordered boxes */}
-                <div className="space-y-[7px] pb-2">
-                  {group.items.map((assignment) => {
-                    const q = assignment.quizzes!;
-                    const isPartial = !!progressMap[assignment.quiz_id];
-                    const stages = STAGE_ORDER.filter((stage) => isStageEnabled(stage, asRow(q)));
+              {/* 히어로 — 진행 중 퀴즈 1개 */}
+              {heroAssignment && heroAssignment.quizzes && (
+                <div className="bg-gradient-to-r from-primary to-[#155237] rounded-2xl px-6 py-6 sm:px-7 sm:py-[26px] text-white">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-7">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[11px] sm:text-[12px] text-white/75">
+                        {(heroAssignment.class_id ? classNameMap[heroAssignment.class_id] : '개인 배정') ?? '개인 배정'}
+                        {' · '}{heroAssignment.quizzes.difficulty}{' · '}{heroAssignment.quizzes.words?.length ?? 0}개 단어
+                      </span>
+                      <h2 className="text-[23px] sm:text-[28px] font-bold tracking-[-0.4px] sm:tracking-[-0.6px] mt-1.5 line-clamp-2 sm:truncate">
+                        {heroAssignment.quizzes.title}
+                      </h2>
+
+                      {/* 모바일: 진행 바 */}
+                      <div className="sm:hidden mt-4">
+                        <div className="flex items-baseline gap-1.5 text-[13px] font-semibold">
+                          <span>{heroProgress?.completed ?? 0}/{heroProgress?.total ?? heroStages.length} 유형 완료</span>
+                          {heroNextStage && <span className="text-white/65 font-normal text-[12px]">· 다음: {heroNextStage}</span>}
+                        </div>
+                        <div className="h-1.5 rounded-full bg-white/20 mt-2 overflow-hidden">
+                          <div className="h-full bg-white rounded-full" style={{ width: `${heroProgress?.percent ?? 0}%` }} />
+                        </div>
+                      </div>
+
+                      {/* 데스크톱: 다음 유형 텍스트 */}
+                      <p className="hidden sm:block text-[13px] text-white/80 mt-2.5">
+                        {heroNextStage ? (
+                          <>다음 유형: <span className="font-bold text-white">{heroNextStage}</span> · 남은 {(heroProgress?.total ?? heroStages.length) - (heroProgress?.completed ?? 0)}유형</>
+                        ) : (
+                          '지금 시작해 보세요'
+                        )}
+                      </p>
+
+                      <Link to={`/quiz/${heroAssignment.quiz_id}/take`} className="mt-4 sm:mt-5 block sm:inline-block">
+                        <span className="block sm:inline-flex items-center justify-center gap-2 bg-white text-primary rounded-xl px-6 sm:px-[26px] py-[13px] text-[14.5px] sm:text-[15px] font-bold text-center">
+                          {heroProgress ? '이어서 풀기' : '지금 풀기'} →
+                        </span>
+                      </Link>
+                    </div>
+
+                    <div className="hidden sm:flex flex-none w-[132px] flex-col items-center">
+                      {heroProgressAvailable ? (
+                        <CircleProgress percent={heroProgress?.percent ?? 0} />
+                      ) : (
+                        <div className="w-[104px] h-[104px] rounded-full border-[9px] border-white/20 flex items-center justify-center shrink-0">
+                          <span className="text-[13px] font-semibold text-white/90">
+                            {heroProgress ? '진행 중' : '시작 전'}
+                          </span>
+                        </div>
+                      )}
+                      <p className="text-[12px] font-semibold mt-3 text-center">
+                        {heroProgressAvailable && heroProgress
+                          ? `${heroProgress.total}유형 중 ${heroProgress.completed}개 완료`
+                          : `${heroAssignment.quizzes.words?.length ?? 0}개 단어`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 다음 퀴즈 — 히어로 외 나머지, 얇은 줄로 (최대 3개, 넘으면 전체 보기) */}
+              {otherPendingAssignments.length > 0 && (
+                <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                  <div className="flex items-center justify-between px-4 sm:px-[18px] py-2.5 sm:py-[11px] border-b border-[#F5F1EC]">
+                    <span className="text-[11.5px] sm:text-xs font-bold text-muted-foreground">
+                      다음 퀴즈 {otherPendingAssignments.length}개
+                    </span>
+                    <Link to="/my-quizzes" className="text-[11px] sm:text-[11.5px] text-muted-foreground hover:text-primary">
+                      전체 보기 ›
+                    </Link>
+                  </div>
+                  {otherPendingAssignments.slice(0, 3).map((a) => {
+                    const q = a.quizzes!;
+                    const stageCount = STAGE_ORDER.filter((s) => isStageEnabled(s, asRow(q))).length;
+                    const prog = progressMap[a.quiz_id];
+                    const completed = prog?.completed ?? 0;
+                    const total = prog?.total ?? stageCount;
+                    const percent = prog?.percent ?? 0;
+                    const label = (a.class_id ? classNameMap[a.class_id] : '개인 배정') || '개인 배정';
 
                     return (
-                      <div
-                        key={assignment.id}
-                        className="flex items-center gap-[11px] px-3 py-[10px] border border-border rounded-lg hover:bg-muted/20 transition-colors"
-                      >
-                        {/* 유형이 여러 개일 수 있어 유형별 아이콘 대신 중립 아이콘을 쓴다(유형은 아래 배지로 표기) */}
-                        <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 bg-primary/10">
-                          <BookOpen className="w-[13px] h-[13px] text-primary" />
-                        </div>
+                      <div key={a.id} className="flex items-center gap-3 sm:gap-3.5 px-4 sm:px-[18px] py-3.5">
                         <div className="flex-1 min-w-0">
-                          <p className="text-[14px] font-semibold truncate">{q.title}</p>
-                          {(() => {
-                            // 이 그룹의 헤더에 이미 나온 출처는 빼고, 추가 출처만 보여준다
-                            // (예: "테스트" 그룹 안에서 또 "테스트 · 개인 배정"이라고 반복하지 않게).
-                            const extraSources = (group.sourcesByQuiz[assignment.quiz_id] ?? [])
-                              .filter((s) => s !== group.className);
-                            return extraSources.length > 0 ? (
-                              <p className="text-[10px] text-muted-foreground font-ui mt-px">
-                                + {extraSources.join(' · ')}
-                              </p>
-                            ) : null;
-                          })()}
-                          <div className="flex items-center gap-1 mt-[3px] flex-wrap">
-                            {stages.map((stage) => (
-                              <span
-                                key={stage}
-                                className="font-ui text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-px rounded"
-                              >
-                                {STAGE_SHORT_LABELS[stage]}
-                              </span>
-                            ))}
-                            <span className="text-[10px] text-muted-foreground font-ui ml-0.5">
-                              · {q.difficulty} · {q.words?.length ?? 0}개 단어
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13.5px] sm:text-sm font-bold truncate">{q.title}</span>
+                            <span className="shrink-0 text-[10px] sm:text-[10.5px] font-semibold text-muted-foreground bg-[#F2EEE8] rounded px-[6px] sm:px-[7px] py-[2px]">
+                              {label}
                             </span>
                           </div>
+                          <div className="sm:hidden flex items-center gap-2 mt-[7px]">
+                            <div className="flex-1 h-[5px] rounded-full bg-[#F0EBE5] overflow-hidden">
+                              <div className="h-full bg-primary rounded-full" style={{ width: `${percent}%` }} />
+                            </div>
+                            <span className="text-[10.5px] text-muted-foreground font-semibold shrink-0">{completed}/{total}</span>
+                          </div>
+                          <p className="hidden sm:block text-[11.5px] text-muted-foreground mt-[3px]">
+                            {q.difficulty} · {q.words?.length ?? 0}개 단어 · {prog ? `${completed}/${total} 완료` : '아직 시작 안 함'}
+                          </p>
                         </div>
-                        <Link to={`/quiz/${assignment.quiz_id}/take`} className="shrink-0">
-                          <Button
-                            size="sm"
-                            className={`h-7 text-xs px-3 ${isPartial ? 'bg-warning hover:bg-warning/90 text-white' : ''}`}
-                          >
-                            {isPartial ? '이어서 풀기' : '풀기'}
-                          </Button>
+                        <div className="hidden sm:flex flex-none w-[130px] items-center gap-2">
+                          <div className="flex-1 h-[5px] rounded-full bg-[#F0EBE5] overflow-hidden">
+                            <div className="h-full bg-primary rounded-full" style={{ width: `${percent}%` }} />
+                          </div>
+                          <span className="text-[11px] text-muted-foreground font-semibold">{completed}/{total}</span>
+                        </div>
+                        <Link to={`/quiz/${q.id}/take`} className="shrink-0">
+                          <span className="inline-block text-[12px] sm:text-[12.5px] font-bold text-primary border border-primary rounded-[10px] px-3.5 sm:px-4 py-2 sm:py-[8px]">
+                            {prog ? '이어서' : '시작하기'}
+                          </span>
                         </Link>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-            ))}
-          </Card>
-        )}
+              )}
 
-        {/* Recent Results Table */}
-        {results.length > 0 && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between py-[14px] px-[18px]">
-              <div>
-                <CardTitle className="text-[14px] font-bold">최근 결과</CardTitle>
-                <p className="text-[11px] text-muted-foreground mt-0.5">완료한 퀴즈 기록</p>
-              </div>
-              <Link to="/my-quizzes" className="text-xs text-primary hover:underline flex items-center gap-1">
-                전체 보기 <ChevronRight className="w-3 h-3" />
-              </Link>
-            </CardHeader>
-            <CardContent className="px-0 pb-0">
-              {/* 모바일: 카드 리스트 (가로 스크롤 없이 세로로 쌓음) */}
-              <div className="sm:hidden divide-y divide-border">
-                {results.filter((r) => r.quizzes).map((result) => (
-                  <div key={result.id} className="p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="font-semibold text-[13px] truncate">{result.quizzes?.title}</div>
-                        {quizClassMap[result.quiz_id] && (
-                          <div className="text-[11px] text-muted-foreground">{quizClassMap[result.quiz_id]}</div>
-                        )}
-                      </div>
-                      <div className="shrink-0 text-[11px] text-muted-foreground tabular-nums whitespace-nowrap">
-                        {formatDateFull(result.completed_at)}
-                      </div>
-                    </div>
-                    <div className="mt-2.5">
-                      <QuizTypeScoreBadges
-                        result={result}
-                        fillBlankEnabled={result.quizzes?.fill_blank_enabled}
-                        matchupEnabled={result.quizzes?.matchup_enabled}
-                        typeAnswerEnabled={result.quizzes?.type_answer_enabled}
-                        wordMagnetEnabled={result.quizzes?.word_magnet_enabled}
-                        sentenceMakingEnabled={result.quizzes?.sentence_making_enabled}
-                        recordingEnabled={result.quizzes?.recording_enabled}
-                        columns={2}
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 mt-3">
-                      <Link to={`/quiz/${result.quiz_id}/result/${result.id}`}>
-                        <Button variant="outline" size="sm" className="h-7 text-xs px-2.5">
-                          결과 확인
-                        </Button>
-                      </Link>
-                      <Link to={`/quiz/${result.quiz_id}/take`}>
-                        <Button size="sm" className="h-7 text-xs px-2.5">
-                          다시 풀기
-                        </Button>
-                      </Link>
-                    </div>
+              {/* 모바일 전용 — 통계 3분할 + 단어장/오답노트 (데스크톱은 오른쪽 레일에) */}
+              <div className="lg:hidden grid grid-cols-3 bg-card border border-border rounded-2xl divide-x divide-[#F0EBE5] py-3.5">
+                <div className="text-center">
+                  <div className="text-lg font-bold">{stats.streak}<span className="text-[11px] font-semibold text-muted-foreground ml-0.5">일</span></div>
+                  <div className="text-[11px] text-muted-foreground mt-[3px]">연속 학습</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold">
+                    {stats.weekScore ?? '—'}{stats.weekScore !== null && <span className="text-[11px] font-semibold text-muted-foreground">%</span>}
                   </div>
-                ))}
+                  <div className="text-[11px] text-muted-foreground mt-[3px]">이번 주 정답률</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold">{stats.reviewPendingCount}</div>
+                  <div className="text-[11px] text-muted-foreground mt-[3px]">복습 대기</div>
+                </div>
               </div>
 
-              {/* 데스크톱: 테이블 */}
-              <div className="hidden sm:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>퀴즈</TableHead>
-                      <TableHead className="whitespace-nowrap">점수</TableHead>
-                      <TableHead className="whitespace-nowrap">날짜</TableHead>
-                      <TableHead />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {results.filter((r) => r.quizzes).map((result) => (
-                      <TableRow key={result.id}>
-                        <TableCell>
-                          <div className="font-semibold text-[13px] truncate max-w-[140px]">
-                            {result.quizzes?.title}
-                          </div>
-                          {quizClassMap[result.quiz_id] && (
-                            <div className="text-[11px] text-muted-foreground">
-                              {quizClassMap[result.quiz_id]}
+              <div className="lg:hidden grid grid-cols-2 gap-2.5">
+                <Link to="/vocabulary" className="bg-card border border-border rounded-2xl p-3.5 hover:border-primary/40 transition-colors">
+                  <BookMarked className="w-[18px] h-[18px] text-primary" />
+                  <p className="text-[13.5px] font-bold mt-2">나만의 단어장</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">저장한 단어 복습</p>
+                </Link>
+                <Link to="/wrong-answers" className="bg-card border border-border rounded-2xl p-3.5 hover:border-primary/40 transition-colors">
+                  <FileX className="w-[18px] h-[18px] text-destructive" />
+                  <p className="text-[13.5px] font-bold mt-2">오답 노트</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{stats.reviewPendingCount}개 복습 대기</p>
+                </Link>
+              </div>
+
+              {/* 최근 결과 */}
+              {results.length > 0 && (
+                <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                  <div className="flex items-baseline justify-between px-4 sm:px-[22px] py-4 sm:pt-[18px] sm:pb-[14px]">
+                    <span className="text-sm sm:text-[15px] font-bold">최근 결과</span>
+                    <Link to="/my-quizzes" className="text-[11.5px] sm:text-xs text-muted-foreground hover:text-primary">
+                      전체 보기 ›
+                    </Link>
+                  </div>
+
+                  {/* 모바일: 최근 결과 카드 1개 (다시 풀기 버튼 유지) */}
+                  {(() => {
+                    const r = results[0];
+                    const q = r.quizzes;
+                    const missing = q
+                      ? STAGE_ORDER.filter((s) => isStageEnabled(s, asRow(q))).filter((s) => stageScore(asRow(r), s) === null).length
+                      : 0;
+                    return (
+                      <div className="sm:hidden px-4 pb-4">
+                        <div className="bg-background border border-border rounded-2xl p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold truncate">{q?.title}</p>
+                              <p className="text-[11px] text-muted-foreground mt-[3px]">
+                                {formatShortDate(r.completed_at)} · {quizClassMap[r.quiz_id] || '개인 배정'}
+                              </p>
                             </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <QuizTypeScoreBadges
-                            result={result}
-                            fillBlankEnabled={result.quizzes?.fill_blank_enabled}
-                            matchupEnabled={result.quizzes?.matchup_enabled}
-                            typeAnswerEnabled={result.quizzes?.type_answer_enabled}
-                            wordMagnetEnabled={result.quizzes?.word_magnet_enabled}
-                            sentenceMakingEnabled={result.quizzes?.sentence_making_enabled}
-                            recordingEnabled={result.quizzes?.recording_enabled}
-                            columns={2}
-                          />
-                        </TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap tabular-nums text-[11px]">
-                          {formatDateFull(result.completed_at)}
-                        </TableCell>
-                        <TableCell className="text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1">
-                            <Link to={`/quiz/${result.quiz_id}/result/${result.id}`}>
-                              <Button variant="outline" size="sm" className="h-7 text-xs px-2.5">
-                                결과 확인
-                              </Button>
+                            <div className="text-right shrink-0">
+                              <div className="text-[19px] font-bold text-primary">
+                                {r.score}<span className="text-xs text-muted-foreground font-semibold">/{r.total_questions}</span>
+                              </div>
+                              {missing > 0 && <p className="text-[11px] text-muted-foreground mt-0.5">미제출 {missing}유형</p>}
+                            </div>
+                          </div>
+                          <div className="flex gap-2 mt-3.5">
+                            <Link to={`/quiz/${r.quiz_id}/result/${r.id}`} className="flex-1">
+                              <span className="block text-center text-xs font-semibold border border-[#E2DDD8] rounded-[10px] py-2.5">결과 확인</span>
                             </Link>
-                            <Link to={`/quiz/${result.quiz_id}/take`}>
-                              <Button size="sm" className="h-7 text-xs px-2.5">
-                                다시 풀기
-                              </Button>
+                            <Link to={`/quiz/${r.quiz_id}/take`} className="flex-1">
+                              <span className="block text-center text-xs font-bold text-white bg-primary rounded-[10px] py-2.5">다시 풀기</span>
                             </Link>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 데스크톱: 테이블형 행 (다시 풀기 없음 — 지난 퀴즈를 다시 여는 진입점은 전체 퀴즈에만 둔다) */}
+                  <div className="hidden sm:block">
+                    <div className="grid grid-cols-[minmax(0,1fr)_130px_150px] gap-3 px-[22px] py-[9px] bg-background border-y border-[#F0EBE5] text-[11px] font-semibold text-muted-foreground">
+                      <span>퀴즈</span><span>점수</span><span>날짜</span>
+                    </div>
+                    {results.slice(0, 3).map((r, i, arr) => {
+                      const q = r.quizzes;
+                      const missing = q
+                        ? STAGE_ORDER.filter((s) => isStageEnabled(s, asRow(q))).filter((s) => stageScore(asRow(r), s) === null).length
+                        : 0;
+                      return (
+                        <div
+                          key={r.id}
+                          className={`grid grid-cols-[minmax(0,1fr)_130px_150px] gap-3 items-center px-[22px] py-4 ${i < arr.length - 1 ? 'border-b border-[#F5F1EC]' : ''}`}
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold truncate">{q?.title}</p>
+                            <p className="text-[11.5px] text-muted-foreground mt-0.5">
+                              {quizClassMap[r.quiz_id] || '개인 배정'}{missing > 0 && ` · 미제출 ${missing}유형`}
+                            </p>
+                          </div>
+                          <div>
+                            <div className="text-[17px] font-bold text-primary">
+                              {r.score}<span className="text-[11.5px] text-muted-foreground font-semibold">/{r.total_questions}</span>
+                            </div>
+                            <div className="flex gap-[3px] mt-1.5">
+                              {STAGE_ORDER.map((stage) => (
+                                <div
+                                  key={stage}
+                                  className="w-[15px] h-1 rounded-sm"
+                                  style={{ background: scoreBarColor(q ? asRow(q) : null, asRow(r), stage) }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between gap-2.5">
+                            <span className="text-xs text-muted-foreground">{formatShortDate(r.completed_at)}</span>
+                            <Link to={`/quiz/${r.quiz_id}/result/${r.id}`} className="text-xs font-bold text-primary shrink-0">
+                              결과 확인 ›
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 빈 상태 — 클래스는 있지만 아직 아무것도 배정/완료된 게 없을 때 */}
+              {assignments.length === 0 && results.length === 0 && (
+                <div className="bg-card border border-border rounded-2xl py-12 text-center">
+                  <Users className="w-10 h-10 mx-auto mb-3 opacity-30 text-muted-foreground" />
+                  <p className="font-medium text-muted-foreground">아직 배정된 퀴즈가 없습니다</p>
+                  <p className="text-sm text-muted-foreground mt-1">선생님이 배정하면 여기에 나타나요</p>
+                </div>
+              )}
+            </div>
+
+            {/* 오른쪽 사이드레일 (데스크톱 전용) */}
+            <div className="hidden lg:flex flex-col gap-3">
+              <div className="bg-card border border-border rounded-2xl px-5 py-[18px]">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[12.5px] text-muted-foreground">연속 학습</span>
+                  <span className="text-base font-bold">{stats.streak}<span className="text-[11px] text-muted-foreground ml-0.5">일</span></span>
+                </div>
+                <div className="h-px bg-[#F5F1EC] my-3" />
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[12.5px] text-muted-foreground">이번 주 정답률</span>
+                  <span className="text-base font-bold">
+                    {stats.weekScore ?? '—'}{stats.weekScore !== null && <span className="text-[11px] text-muted-foreground">%</span>}
+                  </span>
+                </div>
+                <div className="h-px bg-[#F5F1EC] my-3" />
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[12.5px] text-muted-foreground">최근 10회 평균</span>
+                  <span className="text-base font-bold">{stats.averageScore}<span className="text-[11px] text-muted-foreground">%</span></span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+
+              <Link to="/wrong-answers" className="bg-card border border-border rounded-2xl px-5 py-[18px] block hover:border-primary/40 transition-colors">
+                <div className="flex items-center gap-2.5">
+                  <FileX className="w-[17px] h-[17px] text-destructive" />
+                  <span className="text-sm font-bold">오답 노트</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  틀린 문제 <span className="font-bold text-destructive">{stats.reviewPendingCount}개</span> 복습 대기
+                </p>
+                <span className="block text-center mt-3.5 border border-[#E2DDD8] rounded-[10px] py-[9px] text-[12.5px] font-bold text-primary">
+                  복습 시작
+                </span>
+              </Link>
+
+              <Link to="/vocabulary" className="bg-card border border-border rounded-2xl px-5 py-4 flex items-center gap-[11px] hover:border-primary/40 transition-colors">
+                <BookMarked className="w-[17px] h-[17px] text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13.5px] font-bold">나만의 단어장</p>
+                  <p className="text-[11.5px] text-muted-foreground mt-0.5">저장한 단어 복습</p>
+                </div>
+                <span className="text-xs text-muted-foreground shrink-0">›</span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setDialogOpen(true)}
+                className="bg-[#F2EEE8] rounded-2xl px-5 py-[14px] flex items-center gap-[11px] text-left hover:bg-[#EDE7DF] transition-colors"
+              >
+                <Users className="w-[17px] h-[17px] text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold">클래스 가입</p>
+                  <p className="text-[11.5px] text-muted-foreground mt-0.5">초대 코드로 가입</p>
+                </div>
+                <span className="text-[11.5px] font-bold text-primary shrink-0">가입 ›</span>
+              </button>
+            </div>
+          </div>
         )}
 
-        {/* Empty state */}
-        {assignments.length === 0 && results.length === 0 && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Users className="w-12 h-12 mx-auto mb-3 opacity-30 text-muted-foreground" />
-              <p className="font-medium text-muted-foreground">아직 배정된 퀴즈가 없습니다</p>
-              <p className="text-sm text-muted-foreground mt-1">선생님께 초대 코드를 받아 클래스에 가입하세요</p>
-            </CardContent>
-          </Card>
-        )}
+        {/* 클래스 가입 다이얼로그 — 이미 클래스가 있는 학생이 다른 클래스를 추가로 가입할 때 */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>클래스 가입</DialogTitle>
+              <DialogDescription>선생님께 받은 6자리 초대 코드를 입력하세요</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <Input
+                placeholder="초대 코드 (예: ABC123)"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                maxLength={6}
+                className="text-center text-lg tracking-widest"
+              />
+              <Button className="w-full" onClick={handleJoinClass} disabled={isJoining}>
+                {isJoining ? '가입 중...' : '가입하기'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

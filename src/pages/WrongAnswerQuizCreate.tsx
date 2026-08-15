@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -29,7 +29,6 @@ import {
 } from '@/types/quiz';
 import {
   Loader2,
-  ArrowLeft,
   FileX,
   Users,
   BookOpen,
@@ -241,7 +240,6 @@ async function retryRegeneration(
 
 export default function WrongAnswerQuizCreate() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const { can } = usePermissions();
   const [selectedClassId, setSelectedClassId] = useState<string>('');
@@ -649,18 +647,6 @@ export default function WrongAnswerQuizCreate() {
   return (
     <AppLayout>
       <div className="container max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-            onClick={() => (location.key !== 'default' ? navigate(-1) : navigate('/dashboard'))}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            뒤로
-          </Button>
-        </div>
-
         <div className="mb-8">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <FileX className="h-6 w-6" />

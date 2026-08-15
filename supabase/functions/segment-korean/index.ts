@@ -25,24 +25,31 @@ const buildPrompt = (sentences: { id: string; text: string }[]) => {
 [분절 규칙]
 - 띄어쓰기(어절) 기준으로 의미 단위로 나눕니다.
 - 명사 + 조사 → 명사 / 조사 (예: "학생이" → "학생" / "이")
+- 조사가 두 개 이상 겹쳐 있으면("에는", "에서는", "로는", "까지는" 등) 절대 하나로 합치지 말고 전부 개별 조사 타일로 쪼갭니다. (예: "학교에는" → "학교" / "에" / "는", 절대 "학교" / "에는"이 아님. "집에서는" → "집" / "에서" / "는")
+- 명사 뒤에 붙는 서술격 조사 "이다"의 활용형(이에요/예요/이었어요/였어요/입니다/이고/이며 등)은 어미가 아니라 조사이므로 명사와 분리하고 isParticle=true 를 부여합니다. (예: "학생이에요" → "학생"(isParticle=false) / "이에요"(isParticle=true). "선생님이었어요" → "선생님" / "이었어요") 이건 동사·형용사 활용형과 다릅니다 — 아래 규칙과 헷갈리지 마세요.
 - 동사·형용사 활용형(서술어)은 어간/어미로 쪼개지 말고 어절 전체를 한 타일로 두며 isParticle=false 로 둡니다. (예: "좋아서", "냈어요", "쓰기로", "했어요", "완성해서", "드렸어요", "낮아졌다고", "해요" 는 각각 통째로 한 타일)
 - 명사·부사·관형사 등도 조사가 붙지 않았다면 어절 전체를 통째로 한 타일(isParticle=false)로 둡니다.
+- 원문에 있는 글자(받침·복수 접미사 "들" 등 포함)를 하나도 빠뜨리지 마세요. 타일을 순서대로 이어붙이면 원문과 완전히 같아야 합니다 — 아래 검증 규칙 참고.
 - 각 타일의 content를 공백 없이 순서대로 이으면 원문 문장(공백 제거)과 정확히 같아야 합니다. 글자를 추가/삭제/변형하지 마세요.
 - 문장 부호(. ? !)는 바로 앞 타일의 content에 붙입니다.
-- isParticle = true 는 오직 "명사에서 분리된 조사(격조사·보조사: 은/는/이/가/을/를/의/에/에서/한테/에게/도/만 등)"에만 부여합니다.
+- isParticle = true 는 오직 "명사에서 분리된 조사(격조사·보조사·서술격 조사: 은/는/이/가/을/를/의/에/에서/한테/에게/도/만/이에요/였어요 등)"에만 부여합니다. 조사가 겹쳐 있으면 그 조사들 전부에 isParticle=true를 부여합니다.
 - 어미·연결어미·종결어미에는 절대 isParticle=true 를 부여하지 않습니다(애초에 서술어는 분리하지 않습니다).
 - isParticle = false: 내용 형태소(명사·동사·형용사 활용형 전체·부사·관형사 등).
 
 [동음이의 주의]
 - "많이"의 "이"는 부사의 일부이므로 조사로 보고 분리하지 마세요. ("많이" 통째로)
-- "쓰기로"의 "로"는 어미이므로 분리하거나 오렌지(isParticle=true)로 만들지 마세요. ("쓰기로" 통째로)
-- "낮아졌다고"의 "다고"는 어미이므로 분리하거나 오렌지로 만들지 마세요. ("낮아졌다고" 통째로)
+- "쓰기로"의 "로"는 어미이므로 분리하거나 조사(isParticle=true)로 만들지 마세요. ("쓰기로" 통째로)
+- "낮아졌다고"의 "다고"는 어미이므로 분리하거나 조사로 만들지 마세요. ("낮아졌다고" 통째로)
 
 [예시]
 "운동하고 싶지만 시간이 없어요." →
 [{"content":"운동하고","isParticle":false},{"content":"싶지만","isParticle":false},{"content":"시간","isParticle":false},{"content":"이","isParticle":true},{"content":"없어요.","isParticle":false}]
 "요즘 한국은 출산율이 많이 낮아졌다고 해요." →
 [{"content":"요즘","isParticle":false},{"content":"한국","isParticle":false},{"content":"은","isParticle":true},{"content":"출산율","isParticle":false},{"content":"이","isParticle":true},{"content":"많이","isParticle":false},{"content":"낮아졌다고","isParticle":false},{"content":"해요.","isParticle":false}]
+"저는 학생이에요." →
+[{"content":"저","isParticle":false},{"content":"는","isParticle":true},{"content":"학생","isParticle":false},{"content":"이에요.","isParticle":true}]
+"이 동물원에는 여러 종의 동물들이 있어요." →
+[{"content":"이","isParticle":false},{"content":"동물원","isParticle":false},{"content":"에","isParticle":true},{"content":"는","isParticle":true},{"content":"여러","isParticle":false},{"content":"종","isParticle":false},{"content":"의","isParticle":true},{"content":"동물들","isParticle":false},{"content":"이","isParticle":true},{"content":"있어요.","isParticle":false}]
 
 [입력 문장]
 [
