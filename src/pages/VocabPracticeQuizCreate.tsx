@@ -196,6 +196,28 @@ export default function VocabPracticeQuizCreate() {
     enabled: !!level,
   });
 
+  // 선택된 학생들에게 "어휘 보강 퀴즈"로 이미 보낸 단어 — 두 번째 보강을 만들 때
+  // 같은 단어를 또 고르지 않도록 목록에서 아예 뺀다. 이 기능(개인 배정 + 제목에
+  // "어휘 보강" 포함)으로 나간 것만 본다 — 오답 복습 퀴즈 등 다른 개인 배정은 제외.
+  const { data: alreadySentWords } = useQuery({
+    queryKey: ['vocab-practice-sent-words', selectedStudents],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quiz_assignments')
+        .select('student_id, quizzes!inner(words, title)')
+        .in('student_id', selectedStudents)
+        .is('class_id', null)
+        .ilike('quizzes.title', '%어휘 보강%');
+      if (error) throw error;
+      const set = new Set<string>();
+      (data ?? []).forEach((row) => {
+        (row.quizzes?.words ?? []).forEach((w: string) => set.add(w));
+      });
+      return set;
+    },
+    enabled: selectedStudents.length > 0,
+  });
+
   // 이 레벨에 있는 배치 라벨 목록(필터 드롭다운용). 라벨 없는 행(기존 100단어 등)도
   // 섞여 있을 수 있어 '(배치 없음)'을 별도 옵션으로 둔다.
   const availableBatches = useMemo(() => {
@@ -230,7 +252,10 @@ export default function VocabPracticeQuizCreate() {
     return map;
   }, [filteredBankRows]);
 
-  const availableWords = useMemo(() => [...repByWord.keys()], [repByWord]);
+  const availableWords = useMemo(
+    () => [...repByWord.keys()].filter((w) => !alreadySentWords?.has(w)),
+    [repByWord, alreadySentWords]
+  );
 
   // 체크된 단어를 목록 맨 위로 올려서 스크롤 없이 바로 보이게 한다.
   const orderedWords = useMemo(() => {
@@ -688,6 +713,11 @@ export default function VocabPracticeQuizCreate() {
               <CardDescription>
                 {selectedClassName && `${selectedClassName} · `}학생 {selectedStudents.length}명 ·{' '}
                 {selectedWords.length}개 단어 선택됨
+                {!!alreadySentWords?.size && (
+                  <span className="block mt-0.5">
+                    이미 보낸 단어 {alreadySentWords.size}개는 목록에서 제외했어요
+                  </span>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

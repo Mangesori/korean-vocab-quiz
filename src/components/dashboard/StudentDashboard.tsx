@@ -26,7 +26,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { LevelBadge } from '@/components/ui/level-badge';
-import { formatDateCompact } from '@/lib/formatDate';
+import { formatDateFull } from '@/lib/formatDate';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { QuizTypeScoreBadges } from "@/components/quiz/shared/QuizTypeScoreBadges";
@@ -411,24 +411,55 @@ export default function StudentDashboard() {
     return map;
   }, [classes]);
 
+  // 어휘 보강 퀴즈의 "전체 선택"은 class_id 없이 학생마다 개인 배정 행을 만든다
+  // (교사가 반 전체를 골랐어도 마찬가지). 그래서 학생 화면에는 원래 "개인 배정"으로만
+  // 보였는데, 사실상 반 전체에 보낸 것과 다름없어 헷갈린다. 완벽하게 판별할 방법은
+  // 없지만(다른 학생들 배정까지 봐야 확실함), 제목에 "어휘 보강"이 들어간 개인 배정은
+  // 학생이 속한 첫 번째 클래스 이름으로 표시해 준다 — 순수 표시용 근사치.
+  const studentPrimaryClassId = classes[0]?.class_id;
+
   const assignmentsByClass = useMemo(() => {
-    const groups: { classId: string; className: string; items: Assignment[] }[] = [];
-    const seen = new Set<string>();
+    // 같은 퀴즈가 클래스 배정 + 개인 배정 등 여러 경로로 중복 배정될 수 있다.
+    // quiz_id 기준으로 한 번만 보여주고, 배정 출처는 태그로 합쳐서 표기한다.
+    const byQuiz = new Map<string, { assignment: Assignment; sources: string[] }>();
     assignments.forEach((a) => {
       if (!a.quizzes) return;
-      const cid = a.class_id || 'personal';
-      if (!seen.has(cid)) {
-        seen.add(cid);
-        groups.push({
+      const isVocabPractice = !a.class_id && /어휘\s*보강/.test(a.quizzes.title || '');
+      const effectiveClassId = a.class_id || (isVocabPractice ? studentPrimaryClassId : undefined);
+      const label = effectiveClassId
+        ? (classNameMap[effectiveClassId] || '알 수 없는 클래스')
+        : '개인 배정';
+      const existing = byQuiz.get(a.quiz_id);
+      if (existing) {
+        if (!existing.sources.includes(label)) existing.sources.push(label);
+        // 클래스 배정을 대표로 삼아야 "상세보기" 링크를 쓸 수 있다.
+        if (a.class_id && !existing.assignment.class_id) {
+          existing.assignment = a;
+        }
+      } else {
+        byQuiz.set(a.quiz_id, { assignment: a, sources: [label] });
+      }
+    });
+
+    const groups: { classId: string; className: string; items: Assignment[]; sourcesByQuiz: Record<string, string[]> }[] = [];
+    byQuiz.forEach(({ assignment, sources }) => {
+      const isVocabPractice = !assignment.class_id && /어휘\s*보강/.test(assignment.quizzes?.title || '');
+      const cid = assignment.class_id || (isVocabPractice ? studentPrimaryClassId : undefined) || 'personal';
+      let group = groups.find((g) => g.classId === cid);
+      if (!group) {
+        group = {
           classId: cid,
           className: cid === 'personal' ? '개인 배정' : (classNameMap[cid] || '알 수 없는 클래스'),
           items: [],
-        });
+          sourcesByQuiz: {},
+        };
+        groups.push(group);
       }
-      groups.find((g) => g.classId === cid)!.items.push(a);
+      group.items.push(assignment);
+      group.sourcesByQuiz[assignment.quiz_id] = sources;
     });
     return groups;
-  }, [assignments, classNameMap]);
+  }, [assignments, classNameMap, studentPrimaryClassId]);
 
   const heroAssignment = assignments.find((a) => a.quizzes);
 
@@ -508,7 +539,7 @@ export default function StudentDashboard() {
 
         {/* Hero card */}
         {heroAssignment && (
-          <div className="relative rounded-2xl overflow-hidden mb-6 bg-gradient-to-r from-primary to-[#155237] text-white py-[30px] px-9">
+          <div className="relative rounded-2xl overflow-hidden mb-6 bg-gradient-to-r from-primary to-[#155237] text-white py-6 px-6 sm:py-[30px] sm:px-9">
             {/* Background decoration */}
             <svg
               className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.13]"
@@ -530,13 +561,10 @@ export default function StudentDashboard() {
               <path d="M-20 380C200 320 400 360 800 280" stroke="rgba(255,255,255,.25)" strokeWidth="1.5" fill="none"/>
             </svg>
 
-            <div className="flex items-center justify-between gap-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 sm:gap-8">
               {/* Left */}
               <div className="relative z-10 min-w-0">
-                <p className="font-ui text-[11px] font-bold tracking-[0.12em] uppercase text-white/75">
-                  ▶ {heroProgress ? '이어서 풀기' : '다음 퀴즈'}
-                </p>
-                <div className="flex items-center gap-2 mt-[18px] flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
                   {heroAssignment.class_id && classNameMap[heroAssignment.class_id] && (
                     <span className="text-[13px] text-white/85 font-medium">
                       {classNameMap[heroAssignment.class_id]}
@@ -546,7 +574,7 @@ export default function StudentDashboard() {
                     {heroAssignment.quizzes?.difficulty}
                   </span>
                 </div>
-                <h2 className="font-sans font-bold text-[36px] leading-[1.1] tracking-[-0.02em] mt-1.5 truncate">
+                <h2 className="font-sans font-bold text-[26px] sm:text-[36px] leading-[1.15] sm:leading-[1.1] tracking-[-0.02em] mt-1.5 line-clamp-2 sm:truncate">
                   {heroAssignment.quizzes?.title}
                 </h2>
                 <div className="flex items-center gap-1.5 flex-wrap mt-3">
@@ -559,16 +587,43 @@ export default function StudentDashboard() {
                     </span>
                   ))}
                 </div>
-                <Link to={`/quiz/${heroAssignment.quiz_id}/take`} className="mt-6 inline-block">
-                  <Button className="bg-white text-primary hover:bg-white/90 font-bold text-[15px] py-[13px] px-[26px] h-auto gap-1.5">
+
+                {/* 모바일 전용 — 원형 진행률 대신 한 줄 텍스트 + 얇은 바 (공간 절약) */}
+                <div className="sm:hidden mt-3">
+                  <div className="flex items-center justify-between text-[12px] font-semibold">
+                    <span>
+                      {heroProgressAvailable && heroProgress
+                        ? `${heroProgress.completed}/${heroProgress.total}유형 완료`
+                        : `${heroAssignment.quizzes?.words?.length ?? 0}개 단어`}
+                    </span>
+                    <span className="text-white/70 font-normal">
+                      {heroProgressAvailable
+                        ? `${heroProgress?.percent ?? 0}%`
+                        : heroLastStudiedDays !== null
+                          ? `${heroLastStudiedDays}일 전 마지막 학습`
+                          : '학습 시작하기'}
+                    </span>
+                  </div>
+                  {heroProgressAvailable && (
+                    <div className="h-[5px] rounded-full bg-white/20 mt-1.5 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-white"
+                        style={{ width: `${heroProgress?.percent ?? 0}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <Link to={`/quiz/${heroAssignment.quiz_id}/take`} className="mt-5 sm:mt-6 block sm:inline-block">
+                  <Button className="w-full sm:w-auto justify-center bg-white text-primary hover:bg-white/90 font-bold text-[15px] py-[13px] px-[26px] h-auto gap-1.5">
                     {heroProgress ? '이어서 풀기' : '지금 풀기'}
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
               </div>
 
-              {/* Right */}
-              <div className="relative z-10 shrink-0 flex flex-col items-center gap-2.5">
+              {/* Right — 데스크톱 전용 원형 진행률 */}
+              <div className="hidden sm:flex relative z-10 shrink-0 flex-col items-center gap-2.5">
                 {heroProgressAvailable ? (
                   <CircleProgress percent={heroProgress?.percent ?? 0} />
                 ) : (
@@ -635,11 +690,11 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        {/* Quick Stats + Utilities — one grid, 2 cols x 3 rows on mobile, 3 cols x 2 rows from sm */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
           <div className="bg-card border border-border rounded-xl px-[18px] py-4 flex items-center gap-[14px]">
             <div className="w-[38px] h-[38px] rounded-lg bg-[#FEF3C7] dark:bg-amber-950/50 flex items-center justify-center text-lg shrink-0">🔥</div>
-            <div>
+            <div className="min-w-0">
               <div className="font-bold text-[18px] leading-none text-foreground tabular-nums">
                 {stats.streak}<span className="text-[13px] text-muted-foreground ml-[3px] font-medium">일</span>
               </div>
@@ -648,7 +703,7 @@ export default function StudentDashboard() {
           </div>
           <div className="bg-card border border-border rounded-xl px-[18px] py-4 flex items-center gap-[14px]">
             <div className="w-[38px] h-[38px] rounded-lg bg-primary/10 flex items-center justify-center text-lg shrink-0">📈</div>
-            <div>
+            <div className="min-w-0">
               <div className="font-bold text-[18px] leading-none text-foreground tabular-nums">
                 {stats.weekScore !== null ? stats.weekScore : '—'}
                 {stats.weekScore !== null && (
@@ -660,17 +715,14 @@ export default function StudentDashboard() {
           </div>
           <div className="bg-card border border-border rounded-xl px-[18px] py-4 flex items-center gap-[14px]">
             <div className="w-[38px] h-[38px] rounded-lg bg-[#DBEAFE] dark:bg-blue-950/50 flex items-center justify-center text-lg shrink-0">🎯</div>
-            <div>
+            <div className="min-w-0">
               <div className="font-bold text-[18px] leading-none text-foreground tabular-nums">
                 {stats.averageScore}<span className="text-[13px] text-muted-foreground ml-[3px] font-medium">%</span>
               </div>
               <div className="font-ui text-[11px] text-muted-foreground mt-[6px]">최근 10회 평균</div>
             </div>
           </div>
-        </div>
 
-        {/* Utilities — 3-col */}
-        <div className="grid grid-cols-3 gap-3 mb-8">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Card className="hover:border-primary/50 transition-colors cursor-pointer">
@@ -678,13 +730,10 @@ export default function StudentDashboard() {
                   <div className="w-[34px] h-[34px] rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <Users className="w-[15px] h-[15px] text-primary" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0">
                     <p className="text-[13px] font-semibold text-foreground">클래스 가입</p>
                     <p className="text-[11px] text-muted-foreground">초대 코드로 가입</p>
                   </div>
-                  <Button variant="outline" size="sm" className="text-[11px] h-7 px-3 py-0 border-primary/30 text-primary shrink-0 pointer-events-none">
-                    코드 입력
-                  </Button>
                 </CardContent>
               </Card>
             </DialogTrigger>
@@ -724,16 +773,18 @@ export default function StudentDashboard() {
 
           <Link to="/wrong-answers">
             <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-              <CardContent className="flex items-center gap-[11px] px-[15px] py-[13px]">
-                <div className="w-[34px] h-[34px] rounded-lg bg-[#FEE2E2] dark:bg-red-950/50 flex items-center justify-center shrink-0">
-                  <FileX className="w-[15px] h-[15px] text-destructive" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold text-foreground">오답 노트</p>
-                  <p className="text-[11px] text-muted-foreground">틀린 문제 다시 보기</p>
+              <CardContent className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-[11px] px-[15px] py-[13px]">
+                <div className="flex items-center gap-[11px]">
+                  <div className="w-[34px] h-[34px] rounded-lg bg-[#FEE2E2] dark:bg-red-950/50 flex items-center justify-center shrink-0">
+                    <FileX className="w-[15px] h-[15px] text-destructive" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-semibold text-foreground">오답 노트</p>
+                    <p className="text-[11px] text-muted-foreground">틀린 문제 다시 보기</p>
+                  </div>
                 </div>
                 {stats.reviewPendingCount > 0 && (
-                  <span className="shrink-0 rounded-full bg-destructive text-destructive-foreground text-[11px] font-bold px-2.5 py-[3px] tabular-nums">
+                  <span className="self-start sm:self-center sm:ml-auto shrink-0 rounded-full bg-destructive text-destructive-foreground text-[11px] font-bold px-2.5 py-[3px] tabular-nums">
                     복습 대기 {stats.reviewPendingCount}
                   </span>
                 )}
@@ -794,6 +845,17 @@ export default function StudentDashboard() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[14px] font-semibold truncate">{q.title}</p>
+                          {(() => {
+                            // 이 그룹의 헤더에 이미 나온 출처는 빼고, 추가 출처만 보여준다
+                            // (예: "테스트" 그룹 안에서 또 "테스트 · 개인 배정"이라고 반복하지 않게).
+                            const extraSources = (group.sourcesByQuiz[assignment.quiz_id] ?? [])
+                              .filter((s) => s !== group.className);
+                            return extraSources.length > 0 ? (
+                              <p className="text-[10px] text-muted-foreground font-ui mt-px">
+                                + {extraSources.join(' · ')}
+                              </p>
+                            ) : null;
+                          })()}
                           <div className="flex items-center gap-1 mt-[3px] flex-wrap">
                             {stages.map((stage) => (
                               <span
@@ -838,7 +900,51 @@ export default function StudentDashboard() {
               </Link>
             </CardHeader>
             <CardContent className="px-0 pb-0">
-              <div className="overflow-x-auto">
+              {/* 모바일: 카드 리스트 (가로 스크롤 없이 세로로 쌓음) */}
+              <div className="sm:hidden divide-y divide-border">
+                {results.filter((r) => r.quizzes).map((result) => (
+                  <div key={result.id} className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-[13px] truncate">{result.quizzes?.title}</div>
+                        {quizClassMap[result.quiz_id] && (
+                          <div className="text-[11px] text-muted-foreground">{quizClassMap[result.quiz_id]}</div>
+                        )}
+                      </div>
+                      <div className="shrink-0 text-[11px] text-muted-foreground tabular-nums whitespace-nowrap">
+                        {formatDateFull(result.completed_at)}
+                      </div>
+                    </div>
+                    <div className="mt-2.5">
+                      <QuizTypeScoreBadges
+                        result={result}
+                        fillBlankEnabled={result.quizzes?.fill_blank_enabled}
+                        matchupEnabled={result.quizzes?.matchup_enabled}
+                        typeAnswerEnabled={result.quizzes?.type_answer_enabled}
+                        wordMagnetEnabled={result.quizzes?.word_magnet_enabled}
+                        sentenceMakingEnabled={result.quizzes?.sentence_making_enabled}
+                        recordingEnabled={result.quizzes?.recording_enabled}
+                        columns={2}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 mt-3">
+                      <Link to={`/quiz/${result.quiz_id}/result/${result.id}`}>
+                        <Button variant="outline" size="sm" className="h-7 text-xs px-2.5">
+                          결과 확인
+                        </Button>
+                      </Link>
+                      <Link to={`/quiz/${result.quiz_id}/take`}>
+                        <Button size="sm" className="h-7 text-xs px-2.5">
+                          다시 풀기
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 데스크톱: 테이블 */}
+              <div className="hidden sm:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -874,7 +980,7 @@ export default function StudentDashboard() {
                           />
                         </TableCell>
                         <TableCell className="text-muted-foreground whitespace-nowrap tabular-nums text-[11px]">
-                          {formatDateCompact(result.completed_at)}
+                          {formatDateFull(result.completed_at)}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1">
