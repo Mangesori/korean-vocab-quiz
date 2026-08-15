@@ -35,6 +35,30 @@ export function useQuizSharing(quiz: Quiz | null, user: any, classes: Class[]) {
 
     if (membersError) throw membersError;
 
+    // 이 클래스 멤버에게 같은 퀴즈가 이미 개인 배정(student_id)돼 있으면 중복이다 —
+    // 클래스 배정이 그 학생들을 포함하므로 개인 배정 행은 정리한다.
+    const memberIds = (members ?? []).map((m) => m.student_id);
+    let mergedCount = 0;
+    if (memberIds.length > 0) {
+      const { data: redundant } = await supabase
+        .from("quiz_assignments")
+        .select("id")
+        .eq("quiz_id", quiz!.id)
+        .in("student_id", memberIds);
+
+      if (redundant && redundant.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("quiz_assignments")
+          .delete()
+          .in("id", redundant.map((r) => r.id));
+        if (deleteError) {
+          console.error("Failed to clean up redundant individual assignments:", deleteError);
+        } else {
+          mergedCount = redundant.length;
+        }
+      }
+    }
+
     const { error: assignError } = await supabase.from("quiz_assignments").insert({
       quiz_id: quiz!.id,
       class_id: selectedClassId,
@@ -68,7 +92,11 @@ export function useQuizSharing(quiz: Quiz | null, user: any, classes: Class[]) {
       }
     }
 
-    toast.success(`${selectedClass?.name} 클래스에 퀴즈를 보냈습니다!`);
+    toast.success(
+      mergedCount > 0
+        ? `${selectedClass?.name} 클래스에 퀴즈를 보냈습니다! (개인 배정 ${mergedCount}건은 클래스 배정으로 정리됨)`
+        : `${selectedClass?.name} 클래스에 퀴즈를 보냈습니다!`
+    );
     setSendDialogOpen(false);
     onSuccess();
   };

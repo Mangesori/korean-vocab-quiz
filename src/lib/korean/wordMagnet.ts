@@ -69,6 +69,19 @@ export function parseSentenceToItems(text: string): WordMagnetItem[] {
       items.push({ id: String(id++), content: core + trailingPunct, isParticle: false });
       continue;
     }
+
+    // 가드: 의존명사 "거"에 현재·미래 추측 조사(예요/이에요)가 붙으면("거예요")
+    // "거"만 남기고 쪼개는 게 부자연스러워 통째로 한 타일로 둔다. 단 과거
+    // 회상·무산된 계획을 나타내는 "거였어요"(였어요/이었어요)는 일반적인
+    // 명사+서술격 조사와 같이 "거" / "였어요"로 정상 분리한다.
+    const isPastCopula =
+      particleTiles.length === 1 &&
+      (particleTiles[0] === "였어요" || particleTiles[0] === "이었어요");
+    if (stem === "거" && !isPastCopula) {
+      items.push({ id: String(id++), content: core + trailingPunct, isParticle: false });
+      continue;
+    }
+
     items.push({ id: String(id++), content: stem, isParticle: false });
     particleTiles.forEach((particle, i) => {
       const isLast = i === particleTiles.length - 1;

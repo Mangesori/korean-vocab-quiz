@@ -28,6 +28,8 @@ const buildPrompt = (sentences: { id: string; text: string }[]) => {
 - 조사가 두 개 이상 겹쳐 있으면("에는", "에서는", "로는", "까지는" 등) 절대 하나로 합치지 말고 전부 개별 조사 타일로 쪼갭니다. (예: "학교에는" → "학교" / "에" / "는", 절대 "학교" / "에는"이 아님. "집에서는" → "집" / "에서" / "는")
 - 명사 뒤에 붙는 서술격 조사 "이다"의 활용형(이에요/예요/이었어요/였어요/입니다/이고/이며 등)은 어미가 아니라 조사이므로 명사와 분리하고 isParticle=true 를 부여합니다. (예: "학생이에요" → "학생"(isParticle=false) / "이에요"(isParticle=true). "선생님이었어요" → "선생님" / "이었어요") 이건 동사·형용사 활용형과 다릅니다 — 아래 규칙과 헷갈리지 마세요.
 - 동사·형용사 활용형(서술어)은 어간/어미로 쪼개지 말고 어절 전체를 한 타일로 두며 isParticle=false 로 둡니다. (예: "좋아서", "냈어요", "쓰기로", "했어요", "완성해서", "드렸어요", "낮아졌다고", "해요" 는 각각 통째로 한 타일)
+- "-(으)ㄹ 거예요"(미래·추측)의 의존명사 "거" + 예요/이에요는 절대 "거"와 조사로 쪼개지 마세요. "거예요" 전체를 통째로 한 타일(isParticle=false)로 둡니다. (예: "갈 거예요" → "갈"(isParticle=false) / "거예요"(isParticle=false), 절대 "갈" / "거" / "예요"가 아님)
+- 단 과거 회상·무산된 계획을 나타내는 "거였어요"(였어요/이었어요)는 위 규칙의 예외입니다 — 일반 명사+서술격 조사와 같이 "거"(isParticle=false) / "였어요"(isParticle=true)로 정상 분리합니다. (예: "갈 거였어요" → "갈"(isParticle=false) / "거"(isParticle=false) / "였어요"(isParticle=true))
 - 명사·부사·관형사 등도 조사가 붙지 않았다면 어절 전체를 통째로 한 타일(isParticle=false)로 둡니다.
 - 원문에 있는 글자(받침·복수 접미사 "들" 등 포함)를 하나도 빠뜨리지 마세요. 타일을 순서대로 이어붙이면 원문과 완전히 같아야 합니다 — 아래 검증 규칙 참고.
 - 각 타일의 content를 공백 없이 순서대로 이으면 원문 문장(공백 제거)과 정확히 같아야 합니다. 글자를 추가/삭제/변형하지 마세요.
@@ -50,6 +52,10 @@ const buildPrompt = (sentences: { id: string; text: string }[]) => {
 [{"content":"저","isParticle":false},{"content":"는","isParticle":true},{"content":"학생","isParticle":false},{"content":"이에요.","isParticle":true}]
 "이 동물원에는 여러 종의 동물들이 있어요." →
 [{"content":"이","isParticle":false},{"content":"동물원","isParticle":false},{"content":"에","isParticle":true},{"content":"는","isParticle":true},{"content":"여러","isParticle":false},{"content":"종","isParticle":false},{"content":"의","isParticle":true},{"content":"동물들","isParticle":false},{"content":"이","isParticle":true},{"content":"있어요.","isParticle":false}]
+"우리는 내일 같이 도서관에 갈 거예요." →
+[{"content":"우리","isParticle":false},{"content":"는","isParticle":true},{"content":"내일","isParticle":false},{"content":"같이","isParticle":false},{"content":"도서관","isParticle":false},{"content":"에","isParticle":true},{"content":"갈","isParticle":false},{"content":"거예요.","isParticle":false}]
+"저도 같이 갈 거였어요." →
+[{"content":"저","isParticle":false},{"content":"도","isParticle":true},{"content":"같이","isParticle":false},{"content":"갈","isParticle":false},{"content":"거","isParticle":false},{"content":"였어요.","isParticle":true}]
 
 [입력 문장]
 [
