@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -311,9 +311,12 @@ export default function WrongAnswerPractice() {
     }
   };
 
-  const handleProgressUpdate = (current: number, total: number, label: string) => {
+  // useCallback 없이 매 렌더 새 함수를 만들면, 이 함수를 deps로 쓰는 각 스테이지의
+  // useEffect(onProgressUpdate 호출 → 부모 setState → 재렌더 → 새 함수 → effect 재실행)가
+  // 무한 루프에 빠진다(Maximum update depth exceeded, 뒤로가기 등 조작 불가).
+  const handleProgressUpdate = useCallback((current: number, total: number, label: string) => {
     setStageProgress({ current, total, label });
-  };
+  }, []);
 
   const handleMatchupComplete = (resultsMap: Record<string, MatchUpResult>) => {
     const entries: Record<string, RoundResult> = {};

@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       announcements: {
@@ -193,6 +168,101 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      live_participants: {
+        Row: {
+          display_name: string
+          id: string
+          is_guest: boolean
+          joined_at: string
+          left_at: string | null
+          session_id: string
+          student_id: string | null
+        }
+        Insert: {
+          display_name: string
+          id?: string
+          is_guest?: boolean
+          joined_at?: string
+          left_at?: string | null
+          session_id: string
+          student_id?: string | null
+        }
+        Update: {
+          display_name?: string
+          id?: string
+          is_guest?: boolean
+          joined_at?: string
+          left_at?: string | null
+          session_id?: string
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_sessions: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          ended_at: string | null
+          id: string
+          join_code: string
+          quiz_id: string
+          settings: Json
+          stages: string[]
+          started_at: string | null
+          status: string
+          teacher_id: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          join_code: string
+          quiz_id: string
+          settings?: Json
+          stages?: string[]
+          started_at?: string | null
+          status?: string
+          teacher_id: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          join_code?: string
+          quiz_id?: string
+          settings?: Json
+          stages?: string[]
+          started_at?: string | null
+          status?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_sessions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_sessions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       matchup_answers: {
         Row: {
@@ -351,6 +421,27 @@ export type Database = {
           },
         ]
       }
+      plan_limits: {
+        Row: {
+          period: string
+          plan: Database["public"]["Enums"]["plan_tier"]
+          quiz_limit: number | null
+          updated_at: string
+        }
+        Insert: {
+          period: string
+          plan: Database["public"]["Enums"]["plan_tier"]
+          quiz_limit?: number | null
+          updated_at?: string
+        }
+        Update: {
+          period?: string
+          plan?: Database["public"]["Enums"]["plan_tier"]
+          quiz_limit?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -358,6 +449,7 @@ export type Database = {
           created_at: string
           daily_word_count: number | null
           name: string
+          plan: Database["public"]["Enums"]["plan_tier"]
           preferred_language:
             | Database["public"]["Enums"]["translation_language"]
             | null
@@ -373,6 +465,7 @@ export type Database = {
           created_at?: string
           daily_word_count?: number | null
           name: string
+          plan?: Database["public"]["Enums"]["plan_tier"]
           preferred_language?:
             | Database["public"]["Enums"]["translation_language"]
             | null
@@ -388,6 +481,7 @@ export type Database = {
           created_at?: string
           daily_word_count?: number | null
           name?: string
+          plan?: Database["public"]["Enums"]["plan_tier"]
           preferred_language?:
             | Database["public"]["Enums"]["translation_language"]
             | null
@@ -614,101 +708,6 @@ export type Database = {
           },
         ]
       }
-      live_participants: {
-        Row: {
-          display_name: string
-          id: string
-          is_guest: boolean
-          joined_at: string
-          left_at: string | null
-          session_id: string
-          student_id: string | null
-        }
-        Insert: {
-          display_name: string
-          id?: string
-          is_guest?: boolean
-          joined_at?: string
-          left_at?: string | null
-          session_id: string
-          student_id?: string | null
-        }
-        Update: {
-          display_name?: string
-          id?: string
-          is_guest?: boolean
-          joined_at?: string
-          left_at?: string | null
-          session_id?: string
-          student_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "live_participants_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "live_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      live_sessions: {
-        Row: {
-          class_id: string | null
-          created_at: string
-          ended_at: string | null
-          id: string
-          join_code: string
-          quiz_id: string
-          settings: Json
-          stages: string[]
-          started_at: string | null
-          status: string
-          teacher_id: string
-        }
-        Insert: {
-          class_id?: string | null
-          created_at?: string
-          ended_at?: string | null
-          id?: string
-          join_code: string
-          quiz_id: string
-          settings?: Json
-          stages?: string[]
-          started_at?: string | null
-          status?: string
-          teacher_id: string
-        }
-        Update: {
-          class_id?: string | null
-          created_at?: string
-          ended_at?: string | null
-          id?: string
-          join_code?: string
-          quiz_id?: string
-          settings?: Json
-          stages?: string[]
-          started_at?: string | null
-          status?: string
-          teacher_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "live_sessions_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "live_sessions_quiz_id_fkey"
-            columns: ["quiz_id"]
-            isOneToOne: false
-            referencedRelation: "quizzes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       quiz_shares: {
         Row: {
           allow_anonymous: boolean
@@ -851,11 +850,11 @@ export type Database = {
           pronunciation_score: number | null
           prosody_score: number | null
           quiz_id: string
+          recognized_text: string | null
           recording_duration_seconds: number | null
           recording_url: string
           result_id: string | null
           student_id: string | null
-          recognized_text: string | null
           word_level_feedback: Json | null
         }
         Insert: {
@@ -871,11 +870,11 @@ export type Database = {
           pronunciation_score?: number | null
           prosody_score?: number | null
           quiz_id: string
+          recognized_text?: string | null
           recording_duration_seconds?: number | null
           recording_url: string
           result_id?: string | null
           student_id?: string | null
-          recognized_text?: string | null
           word_level_feedback?: Json | null
         }
         Update: {
@@ -891,11 +890,11 @@ export type Database = {
           pronunciation_score?: number | null
           prosody_score?: number | null
           quiz_id?: string
+          recognized_text?: string | null
           recording_duration_seconds?: number | null
           recording_url?: string
           result_id?: string | null
           student_id?: string | null
-          recognized_text?: string | null
           word_level_feedback?: Json | null
         }
         Relationships: [
@@ -967,6 +966,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sentence_bank: {
+        Row: {
+          answer: string
+          batch_label: string | null
+          created_at: string
+          created_by: string | null
+          hint: string | null
+          id: string
+          level: string
+          meaning: string | null
+          sentence: string
+          seq: number
+          source: string
+          translation: string | null
+          word: string
+        }
+        Insert: {
+          answer: string
+          batch_label?: string | null
+          created_at?: string
+          created_by?: string | null
+          hint?: string | null
+          id?: string
+          level: string
+          meaning?: string | null
+          sentence: string
+          seq?: number
+          source?: string
+          translation?: string | null
+          word: string
+        }
+        Update: {
+          answer?: string
+          batch_label?: string | null
+          created_at?: string
+          created_by?: string | null
+          hint?: string | null
+          id?: string
+          level?: string
+          meaning?: string | null
+          sentence?: string
+          seq?: number
+          source?: string
+          translation?: string | null
+          word?: string
+        }
+        Relationships: []
       }
       sentence_making_answers: {
         Row: {
@@ -1042,54 +1089,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      sentence_bank: {
-        Row: {
-          answer: string
-          batch_label: string | null
-          created_at: string
-          created_by: string | null
-          hint: string | null
-          id: string
-          level: string
-          meaning: string | null
-          sentence: string
-          seq: number
-          source: string
-          translation: string | null
-          word: string
-        }
-        Insert: {
-          answer: string
-          batch_label?: string | null
-          created_at?: string
-          created_by?: string | null
-          hint?: string | null
-          id?: string
-          level: string
-          meaning?: string | null
-          sentence: string
-          seq?: number
-          source?: string
-          translation?: string | null
-          word: string
-        }
-        Update: {
-          answer?: string
-          batch_label?: string | null
-          created_at?: string
-          created_by?: string | null
-          hint?: string | null
-          id?: string
-          level?: string
-          meaning?: string | null
-          sentence?: string
-          seq?: number
-          source?: string
-          translation?: string | null
-          word?: string
-        }
-        Relationships: []
       }
       sentence_making_problems: {
         Row: {
@@ -1474,6 +1473,7 @@ export type Database = {
           correct_streak: number
           due_at: string | null
           last_practiced_at: string
+          level: string | null
           mastered_at: string | null
           stage: number
           student_id: string
@@ -1483,6 +1483,7 @@ export type Database = {
           correct_streak?: number
           due_at?: string | null
           last_practiced_at?: string
+          level?: string | null
           mastered_at?: string | null
           stage?: number
           student_id: string
@@ -1492,6 +1493,7 @@ export type Database = {
           correct_streak?: number
           due_at?: string | null
           last_practiced_at?: string
+          level?: string | null
           mastered_at?: string | null
           stage?: number
           student_id?: string
@@ -1504,6 +1506,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _apply_srs_word_result: {
+        Args: { _correct: boolean; _uid: string; _word: string }
+        Returns: boolean
+      }
       ensure_quiz_result: { Args: { _quiz_id: string }; Returns: Json }
       finalize_quiz_result: { Args: { _result_id: string }; Returns: undefined }
       find_live_session_by_code: {
@@ -1516,24 +1522,23 @@ export type Database = {
           status: string
         }[]
       }
-      grade_fill_blank: { Args: { _answers: Json; _quiz_id: string }; Returns: Json }
       generate_invite_code: { Args: never; Returns: string }
-      get_quiz_for_live_session: {
-        Args: { _participant_id: string; _session_id: string }
-        Returns: Json
-      }
       generate_live_join_code: { Args: never; Returns: string }
-      is_live_participant: { Args: { p_session_id: string }; Returns: boolean }
-      join_live_session_as_guest: {
-        Args: { p_code: string; p_name: string }
-        Returns: Database["public"]["Tables"]["live_participants"]["Row"]
-      }
       get_class_by_invite_code: {
         Args: { _invite_code: string }
         Returns: {
           description: string
           id: string
           name: string
+        }[]
+      }
+      get_class_srs_summary: {
+        Args: { _class_id: string }
+        Returns: {
+          due_now_count: number
+          stage: number
+          student_id: string
+          word_count: number
         }[]
       }
       get_class_with_secure_invite_code: {
@@ -1548,37 +1553,24 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_class_wrong_answers: {
+        Args: { _student_ids: string[] }
+        Returns: Json
+      }
       get_due_review_items: {
         Args: { _limit?: number }
         Returns: {
-          answer: string | null
+          answer: string
           due_at: string
-          hint: string | null
-          level: string | null
-          meaning: string | null
+          hint: string
+          level: string
+          meaning: string
           overdue_days: number
-          sentence: string | null
-          sentence_from: string | null
+          sentence: string
+          sentence_from: string
           slot: number
           stage: number
-          translation: string | null
-          word: string
-        }[]
-      }
-      get_upcoming_review_items: {
-        Args: { _limit?: number }
-        Returns: {
-          answer: string | null
-          due_at: string
-          hint: string | null
-          level: string | null
-          meaning: string | null
-          overdue_days: number
-          sentence: string | null
-          sentence_from: string | null
-          slot: number
-          stage: number
-          translation: string | null
+          translation: string
           word: string
         }[]
       }
@@ -1591,7 +1583,19 @@ export type Database = {
           word: string
         }[]
       }
+      get_quiz_for_live_session: {
+        Args: { _participant_id: string; _session_id: string }
+        Returns: Json
+      }
       get_quiz_for_student: { Args: { _quiz_id: string }; Returns: Json }
+      get_sentence_bank_coverage: {
+        Args: never
+        Returns: {
+          level: string
+          total_words: number
+          words_with_2plus: number
+        }[]
+      }
       get_student_wrong_answers: {
         Args: { _student_id: string }
         Returns: Json
@@ -1603,6 +1607,23 @@ export type Database = {
       get_type_answer_result_detail: {
         Args: { _result_id: string }
         Returns: Json
+      }
+      get_upcoming_review_items: {
+        Args: { _limit?: number }
+        Returns: {
+          answer: string
+          due_at: string
+          hint: string
+          level: string
+          meaning: string
+          overdue_days: number
+          sentence: string
+          sentence_from: string
+          slot: number
+          stage: number
+          translation: string
+          word: string
+        }[]
       }
       get_user_profiles_with_email: {
         Args: never
@@ -1626,6 +1647,10 @@ export type Database = {
       }
       get_word_magnet_result_detail: {
         Args: { _result_id: string }
+        Returns: Json
+      }
+      grade_fill_blank: {
+        Args: { _answers: Json; _quiz_id: string }
         Returns: Json
       }
       grade_type_answers: {
@@ -1652,6 +1677,7 @@ export type Database = {
         Args: { _class_id: string; _user_id: string }
         Returns: boolean
       }
+      is_live_participant: { Args: { p_session_id: string }; Returns: boolean }
       is_quiz_assigned_to_student: {
         Args: { _quiz_id: string; _user_id: string }
         Returns: boolean
@@ -1664,6 +1690,24 @@ export type Database = {
       is_teacher_or_admin:
         | { Args: never; Returns: boolean }
         | { Args: { user_id: string }; Returns: boolean }
+      join_live_session_as_guest: {
+        Args: { p_code: string; p_name: string }
+        Returns: {
+          display_name: string
+          id: string
+          is_guest: boolean
+          joined_at: string
+          left_at: string | null
+          session_id: string
+          student_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "live_participants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       korean_subject_postfix: { Args: { name: string }; Returns: string }
       notify_class_teacher_on_join: {
         Args: { _class_id: string }
@@ -1673,13 +1717,19 @@ export type Database = {
         Args: { _anonymous_name: string; _quiz_id: string }
         Returns: undefined
       }
+      quiz_quota_status: { Args: { _teacher_id: string }; Returns: Json }
+      seed_review_schedule: { Args: { _result_id: string }; Returns: number }
+      seed_review_words: {
+        Args: { _per_day?: number; _student_id: string; _words: Json }
+        Returns: Json
+      }
       submit_quiz_answers:
         | { Args: { _quiz_id: string; _student_answers: Json }; Returns: Json }
         | {
             Args: {
               _problem_order?: string[]
               _quiz_id: string
-              _result_id?: string | null
+              _result_id?: string
               _student_answers: Json
             }
             Returns: Json
@@ -1740,24 +1790,12 @@ export type Database = {
         Args: { _result_id: string; _score: number; _total: number }
         Returns: undefined
       }
-      seed_review_schedule: { Args: { _result_id: string }; Returns: number }
-      get_sentence_bank_coverage: {
-        Args: never
-        Returns: {
-          level: string
-          total_words: number
-          words_with_2plus: number
-        }[]
-      }
+      update_wa_progress: { Args: { _items: Json }; Returns: Json }
       upsert_sentence_bank: {
-        Args: { _rows: Json; _source?: string; _batch_label?: string }
+        Args: { _batch_label?: string; _rows: Json; _source?: string }
         Returns: number
       }
-      update_wa_progress: { Args: { _items: Json }; Returns: Json }
-      seed_review_words: {
-        Args: { _student_id: string; _words: Json; _per_day?: number }
-        Returns: Json
-      }
+      wa_due_after: { Args: { _days: number }; Returns: string }
     }
     Enums: {
       app_role: "teacher" | "student" | "admin"
@@ -1768,6 +1806,7 @@ export type Database = {
         | "announcement"
         | "student_joined"
         | "teacher_application"
+      plan_tier: "free" | "pro" | "school"
       recording_mode: "read" | "listen"
       sentence_source: "reuse" | "ai_generated" | "teacher_input"
       translation_language:
@@ -1907,9 +1946,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["teacher", "student", "admin"],
@@ -1921,6 +1957,7 @@ export const Constants = {
         "student_joined",
         "teacher_application",
       ],
+      plan_tier: ["free", "pro", "school"],
       recording_mode: ["read", "listen"],
       sentence_source: ["reuse", "ai_generated", "teacher_input"],
       translation_language: [

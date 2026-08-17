@@ -9,7 +9,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { PendingTeacherBanner } from '@/components/dashboard/PendingTeacherBanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BookMarked, FileX, Home, Users } from 'lucide-react';
+import { AlarmClock, BookMarked, FileX, Home, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { BaseStage, STAGE_ORDER, STAGE_LABELS, isStageEnabled } from '@/types/quiz';
@@ -702,10 +702,10 @@ export default function StudentDashboard() {
                   </div>
                   <div className="text-[11px] text-muted-foreground mt-[3px]">이번 주 정답률</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-lg font-bold">{stats.reviewPendingCount}</div>
-                  <div className="text-[11px] text-muted-foreground mt-[3px]">복습 대기</div>
-                </div>
+                <Link to="/review" className="text-center block">
+                  <div className="text-lg font-bold">{stats.dueReviewCount}</div>
+                  <div className="text-[11px] text-muted-foreground mt-[3px]">오늘의 복습</div>
+                </Link>
               </div>
 
               <div className="lg:hidden grid grid-cols-2 gap-2.5">
@@ -717,7 +717,7 @@ export default function StudentDashboard() {
                 <Link to="/wrong-answers" className="bg-card border border-border rounded-2xl p-3.5 hover:border-primary/40 transition-colors">
                   <FileX className="w-[18px] h-[18px] text-destructive" />
                   <p className="text-[13.5px] font-bold mt-2">오답 노트</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{stats.reviewPendingCount}개 복습 대기</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{stats.reviewPendingCount}개</p>
                 </Link>
               </div>
 
@@ -847,16 +847,36 @@ export default function StudentDashboard() {
                 </div>
               </div>
 
+              <Link
+                to="/review"
+                className={`bg-card border border-border rounded-2xl px-5 py-[18px] block hover:border-primary/40 transition-colors ${stats.dueReviewCount === 0 ? 'opacity-70' : ''}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <AlarmClock className="w-[17px] h-[17px] text-primary" />
+                  <span className="text-sm font-bold">오늘의 복습</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {stats.dueReviewCount > 0 ? (
+                    <>오늘 <span className="font-bold text-primary">{stats.dueReviewCount}개</span> 복습 대기</>
+                  ) : (
+                    '오늘은 복습할 게 없어요'
+                  )}
+                </p>
+                <span className="block text-center mt-3.5 border border-[#E2DDD8] rounded-[10px] py-[9px] text-[12.5px] font-bold text-primary">
+                  복습 시작
+                </span>
+              </Link>
+
               <Link to="/wrong-answers" className="bg-card border border-border rounded-2xl px-5 py-[18px] block hover:border-primary/40 transition-colors">
                 <div className="flex items-center gap-2.5">
                   <FileX className="w-[17px] h-[17px] text-destructive" />
                   <span className="text-sm font-bold">오답 노트</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  틀린 문제 <span className="font-bold text-destructive">{stats.reviewPendingCount}개</span> 복습 대기
+                  틀린 문제 <span className="font-bold text-destructive">{stats.reviewPendingCount}개</span>
                 </p>
                 <span className="block text-center mt-3.5 border border-[#E2DDD8] rounded-[10px] py-[9px] text-[12.5px] font-bold text-primary">
-                  복습 시작
+                  살펴보기
                 </span>
               </Link>
 

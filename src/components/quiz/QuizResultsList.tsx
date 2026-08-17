@@ -33,17 +33,29 @@ import { useQuizAssignments } from "@/hooks/useQuizAssignments";
 
 interface SubmissionTimeCellProps {
   result: QuizResult;
+  matchupEnabled: boolean;
+  typeAnswerEnabled: boolean;
+  wordMagnetEnabled: boolean;
   sentenceMakingEnabled: boolean;
   recordingEnabled: boolean;
 }
 
-function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }: SubmissionTimeCellProps) {
-  const isMultiStage = sentenceMakingEnabled || recordingEnabled;
-  const { times, isLoading, fetchTimes } = useSubmissionTimes(
-    result.id,
+function SubmissionTimeCell({
+  result,
+  matchupEnabled,
+  typeAnswerEnabled,
+  wordMagnetEnabled,
+  sentenceMakingEnabled,
+  recordingEnabled,
+}: SubmissionTimeCellProps) {
+  const isMultiStage = matchupEnabled || typeAnswerEnabled || wordMagnetEnabled || sentenceMakingEnabled || recordingEnabled;
+  const { times, isLoading } = useSubmissionTimes(result.id, result.completed_at, {
+    matchupEnabled,
+    typeAnswerEnabled,
+    wordMagnetEnabled,
     sentenceMakingEnabled,
-    recordingEnabled
-  );
+    recordingEnabled,
+  });
 
   const formattedDate = formatDateFull(result.completed_at);
 
@@ -51,11 +63,15 @@ function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }:
     return <span>{formattedDate}</span>;
   }
 
+  // 제출 시간 = 마지막으로 완료된 스테이지 시각. 첫 스테이지 시각(completed_at)만
+  // 쓰면 여러 날에 걸쳐 끝낸 퀴즈가 "하루 만에 끝냈다"처럼 보인다.
+  const displayDate = times ? formatDateFull(times.latest) : formattedDate;
+
   return (
-    <Popover onOpenChange={(open) => { if (open) fetchTimes(result.completed_at); }}>
+    <Popover>
       <PopoverTrigger asChild>
         <button className="text-sm underline decoration-dotted underline-offset-2 cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
-          {formattedDate}
+          {isLoading ? formattedDate : displayDate}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto" align="start">
@@ -65,12 +81,36 @@ function SubmissionTimeCell({ result, sentenceMakingEnabled, recordingEnabled }:
           </div>
         ) : times ? (
           <div className="space-y-2 text-sm">
+            {matchupEnabled && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground whitespace-nowrap">짝 맞추기</span>
+                <span className="font-medium tabular-nums whitespace-nowrap">
+                  {times.matchup ? formatDateFull(times.matchup) : "미제출"}
+                </span>
+              </div>
+            )}
+            {typeAnswerEnabled && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground whitespace-nowrap">단어 받아쓰기</span>
+                <span className="font-medium tabular-nums whitespace-nowrap">
+                  {times.typeAnswer ? formatDateFull(times.typeAnswer) : "미제출"}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between gap-3">
               <span className="text-muted-foreground whitespace-nowrap">빈칸 채우기</span>
               <span className="font-medium tabular-nums whitespace-nowrap">
                 {formatDateFull(times.fillBlank)}
               </span>
             </div>
+            {wordMagnetEnabled && (
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground whitespace-nowrap">문장 순서 맞추기</span>
+                <span className="font-medium tabular-nums whitespace-nowrap">
+                  {times.wordMagnet ? formatDateFull(times.wordMagnet) : "미제출"}
+                </span>
+              </div>
+            )}
             {sentenceMakingEnabled && (
               <div className="flex justify-between gap-3">
                 <span className="text-muted-foreground whitespace-nowrap">문장 만들기</span>
@@ -228,6 +268,9 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
       <div className="text-xs text-muted-foreground">
         <SubmissionTimeCell
           result={result}
+          matchupEnabled={matchupEnabled ?? false}
+          typeAnswerEnabled={typeAnswerEnabled ?? false}
+          wordMagnetEnabled={wordMagnetEnabled ?? false}
           sentenceMakingEnabled={sentenceMakingEnabled ?? false}
           recordingEnabled={recordingEnabled ?? false}
         />
@@ -332,6 +375,9 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
                   <TableCell className="text-muted-foreground">
                     <SubmissionTimeCell
                       result={result}
+                      matchupEnabled={matchupEnabled ?? false}
+                      typeAnswerEnabled={typeAnswerEnabled ?? false}
+                      wordMagnetEnabled={wordMagnetEnabled ?? false}
                       sentenceMakingEnabled={sentenceMakingEnabled ?? false}
                       recordingEnabled={recordingEnabled ?? false}
                     />
