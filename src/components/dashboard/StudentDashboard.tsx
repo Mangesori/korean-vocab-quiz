@@ -507,34 +507,30 @@ export default function StudentDashboard() {
 
         <PendingTeacherBanner />
 
-        {/* Greeting */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Home className="h-6 w-6 text-primary" />
-            안녕하세요, {displayName}님! 👋
-          </h1>
-        </div>
-
         {!hasClasses ? (
           /* ── 클래스 미가입 상태 (시안 7a·7d) ── */
-          <div className="lg:max-w-[640px]">
-            <div className="bg-gradient-to-r from-primary to-[#155237] rounded-2xl px-6 py-6 sm:px-[30px] sm:py-7 text-white">
+          <div className="lg:max-w-[940px]">
+            <h1 className="text-[22px] font-bold tracking-[-0.4px] mb-6">
+              안녕하세요, {displayName}님 👋
+            </h1>
+
+            <div className="bg-primary rounded-2xl sm:rounded-[18px] px-6 py-6 sm:px-[30px] sm:py-7 text-white">
               <h2 className="text-[19px] sm:text-[22px] font-bold tracking-[-0.3px] sm:tracking-[-0.4px]">클래스에 가입해 주세요</h2>
-              <p className="text-[12.5px] sm:text-[13.5px] text-white/80 mt-2 leading-[1.55] sm:leading-[1.6] sm:max-w-[420px]">
+              <p className="text-[12.5px] sm:text-[13.5px] text-white/80 mt-2 leading-[1.55] sm:leading-[1.6] sm:max-w-[560px]">
                 선생님께 받은 6자리 초대 코드를 입력하면 배정된 퀴즈와 진도가 여기에 나타납니다.
               </p>
-              <div className="flex gap-2 sm:gap-2.5 mt-[18px] sm:mt-[22px] sm:max-w-[400px]">
+              <div className="flex gap-2 sm:gap-2.5 mt-[18px] sm:mt-[22px] sm:max-w-[480px]">
                 <Input
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                   maxLength={6}
                   placeholder="ABC123"
-                  className="flex-1 bg-white/[0.14] border-white/30 text-white placeholder:text-white/50 font-mono tracking-[0.22em] text-center rounded-[11px] h-auto py-3 px-3.5"
+                  className="flex-1 bg-white/[0.14] border-white/30 text-white placeholder:text-white/50 font-mono text-[16px] tracking-[0.24em] text-center rounded-[11px] sm:rounded-xl h-auto py-3 px-3.5"
                 />
                 <Button
                   onClick={handleJoinClass}
                   disabled={isJoining}
-                  className="shrink-0 bg-white text-primary hover:bg-white/90 rounded-[11px] h-auto px-5 sm:px-7 font-bold"
+                  className="shrink-0 bg-white text-primary hover:bg-white/90 rounded-[11px] sm:rounded-xl h-auto py-[13px] px-5 sm:px-7 font-bold"
                 >
                   {isJoining ? '가입 중...' : '가입'}
                 </Button>
@@ -544,7 +540,7 @@ export default function StudentDashboard() {
             <div className="mt-3 grid sm:grid-cols-2 gap-3">
               <Link
                 to="/quiz/example"
-                className="bg-card border border-border rounded-2xl p-[18px] sm:p-5 block hover:border-primary/40 transition-colors"
+                className="bg-card border border-[#EBE5DE] rounded-2xl p-[18px] sm:p-5 block hover:border-primary/40 transition-colors"
               >
                 <p className="text-sm sm:text-[14.5px] font-bold">먼저 체험해 보기</p>
                 <p className="text-xs text-muted-foreground mt-1.5 leading-[1.55]">
@@ -556,7 +552,7 @@ export default function StudentDashboard() {
               </Link>
               <Link
                 to="/vocabulary"
-                className="bg-card border border-border rounded-2xl p-[18px] sm:p-5 flex sm:block items-center gap-3 hover:border-primary/40 transition-colors"
+                className="bg-card border border-[#EBE5DE] rounded-2xl p-[18px] sm:p-5 flex sm:block items-center gap-3 hover:border-primary/40 transition-colors"
               >
                 <BookMarked className="w-[18px] h-[18px] text-primary shrink-0" />
                 <div className="flex-1 min-w-0 sm:mt-2.5">
@@ -571,7 +567,16 @@ export default function StudentDashboard() {
           </div>
         ) : (
           /* ── 일반 대시보드 (시안 5a·4a·3a) ── */
-          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-5 lg:items-start">
+          <>
+            {/* Greeting */}
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <Home className="h-6 w-6 text-primary" />
+                안녕하세요, {displayName}님! 👋
+              </h1>
+            </div>
+
+            <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-5 lg:items-start">
             <div className="min-w-0 flex flex-col gap-3">
 
               {/* 히어로 — 진행 중 퀴즈 1개 */}
@@ -902,7 +907,8 @@ export default function StudentDashboard() {
                 <span className="text-[11.5px] font-bold text-primary shrink-0">가입 ›</span>
               </button>
             </div>
-          </div>
+            </div>
+          </>
         )}
 
         {/* 클래스 가입 다이얼로그 — 이미 클래스가 있는 학생이 다른 클래스를 추가로 가입할 때 */}

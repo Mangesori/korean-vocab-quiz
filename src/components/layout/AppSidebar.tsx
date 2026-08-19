@@ -22,6 +22,7 @@ import {
   BookOpen,
   PenSquare,
   Users,
+  UserPlus,
   Shield,
   FileX,
   BookMarked,
@@ -178,7 +179,7 @@ export function AppSidebar() {
   ];
   const studentClassItems: NavItem[] =
     myClasses.length === 0
-      ? [{ path: '/dashboard', icon: Users, label: '클래스 가입' }]
+      ? [{ path: '/dashboard', icon: UserPlus, label: '클래스 가입' }]
       : myClasses.map((c) => ({ path: `/my-class/${c.id}`, icon: Users, label: c.name }));
   // 가입 전에는 오늘의 복습·오답노트·전체 퀴즈에 데이터가 생길 수 없어 감춘다.
   const studentStudyItems: NavItem[] =
