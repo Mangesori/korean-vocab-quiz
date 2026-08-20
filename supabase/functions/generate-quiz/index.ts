@@ -208,7 +208,11 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
   // 규격이 이 평균과 잘 맞았지만(하한이 평균에 안 붙어 있었음), B1만 어절 단위로 바꿔
   // 선생님이 지정한 6-8어절로 못박는다. B2 이상은 실사용이 0건이라 데이터가 없어
   // 기존 글자 수 규격을 그대로 둔다(근거 없이 숫자를 바꾸지 않는다는 원칙 유지).
-  const shortLen = difficulty === "B1" ? "6-8어절(띄어쓰기로 나눈 덩어리 수)" : "공백 포함 20~30자";
+  // B2 이상도 7-9어절로 통일(선생님 지정, 2026-08-21) — 말하기 연습 문장이 길면
+  // 학생이 외워서 말할 수 없다는 이유. B2+는 실사용 0건이라 데이터는 없지만
+  // "학생이 듣고 한 번에 기억할 수 있는 길이"라는 이 기능의 목적 자체에 부합하는
+  // 의도적 결정이라 데이터 없이도 반영한다.
+  const shortLen = difficulty === "B1" ? "6-8어절(띄어쓰기로 나눈 덩어리 수)" : "7-9어절(띄어쓰기로 나눈 덩어리 수)";
 
   const shortSection = includeShort ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -373,7 +377,11 @@ const generateSimplePrompt = (words: string[], difficulty: string, languageName:
   // 다시 만든" 문장이 오히려 등급을 넘는다. 1문제당 입력 ~2.2k 토큰이 늘지만
   // (sonnet 입력가 기준 회당 1센트 미만) 등급 이탈을 되돌리는 비용이 더 크다.
   const a1Vocab = a1VocabSection(difficulty, "선생님이 입력한 단어");
-  const shortLen = difficulty === "B1" ? "6-8어절(띄어쓰기로 나눈 덩어리 수)" : "공백 포함 20~30자";
+  // B2 이상도 7-9어절로 통일(선생님 지정, 2026-08-21) — 말하기 연습 문장이 길면
+  // 학생이 외워서 말할 수 없다는 이유. B2+는 실사용 0건이라 데이터는 없지만
+  // "학생이 듣고 한 번에 기억할 수 있는 길이"라는 이 기능의 목적 자체에 부합하는
+  // 의도적 결정이라 데이터 없이도 반영한다.
+  const shortLen = difficulty === "B1" ? "6-8어절(띄어쓰기로 나눈 덩어리 수)" : "7-9어절(띄어쓰기로 나눈 덩어리 수)";
 
   const shortSection = includeShort ? `
 [짧은 문장(short_sentence·short_translation)] 필수
@@ -451,7 +459,11 @@ const generatePromptModePrompt = (
   // 프롬프트 모드에는 "입력 단어 배열"이 없다 — 예외 대상은 선생님이 준 자료·요청에
   // 나온 단어다. 문구를 그대로 쓰면 자료 속 단어까지 목록으로 강제하는 오독이 생긴다.
   const a1Vocab = a1VocabSection(difficulty, "선생님이 제공한 자료·요청에 나온 단어");
-  const shortLen = difficulty === "B1" ? "6-8어절(띄어쓰기로 나눈 덩어리 수)" : "공백 포함 20~30자";
+  // B2 이상도 7-9어절로 통일(선생님 지정, 2026-08-21) — 말하기 연습 문장이 길면
+  // 학생이 외워서 말할 수 없다는 이유. B2+는 실사용 0건이라 데이터는 없지만
+  // "학생이 듣고 한 번에 기억할 수 있는 길이"라는 이 기능의 목적 자체에 부합하는
+  // 의도적 결정이라 데이터 없이도 반영한다.
+  const shortLen = difficulty === "B1" ? "6-8어절(띄어쓰기로 나눈 덩어리 수)" : "7-9어절(띄어쓰기로 나눈 덩어리 수)";
 
   // ── 아래 shortSection / shortOutputFields는 generateDetailedPrompt와 동일 문구 ──
   const shortSection = includeShort ? `
