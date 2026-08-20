@@ -245,6 +245,7 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
      - "한국인이 실제로 이렇게 말할까?" (자연스러움)
      - 문법이 억지로 끼워 넣어진 느낌이 없는가?
      - 어색한 어휘 조합이 없는가?
+     - §3 목록의 문법을 자연스럽게 쓸 수 있는 후보가 있다면 그것을 우선하세요.
   ③ 세 후보 중 가장 자연스러운 문장 1개만 최종 선택하세요.
 
 [Step 3 - 문법 카테고리 분산] Step 2에서 선택한 문장의 문법 패턴을 확인하여, 문제 전체에 걸쳐 다양한 카테고리(이유, 시간, 추측, 양보, 연결 등)가 골고루 사용되도록 조정하세요.
@@ -254,7 +255,7 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
 ⚠️ 출력에는 최종 JSON 결과만 포함하세요. Step 1~3의 사고 과정은 출력하지 마세요.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-§3. 난이도별 문법 가이드 (${difficulty}) — 참고 자료
+§3. 난이도별 문법 가이드 (${difficulty})
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${selectedGuide}
 ${a1Vocab}
