@@ -204,19 +204,24 @@ ${A1_VOCAB.join(", ")}
 const generateDetailedPrompt = (words: string[], difficulty: string, languageName: string, includeShort = false) => {
   const selectedGuide = shuffleGrammarGuide(difficultyGuide(difficulty));
   const a1Vocab = a1VocabSection(difficulty, "선생님이 입력한 단어");
+  // 실측(2026-08-21, B1 120문제): short_sentence 어절 수 평균 5.88±1.05. 기존 "20~30자"
+  // 규격이 이 평균과 잘 맞았지만(하한이 평균에 안 붙어 있었음), B1만 어절 단위로 바꿔
+  // 선생님이 지정한 6-8어절로 못박는다. B2 이상은 실사용이 0건이라 데이터가 없어
+  // 기존 글자 수 규격을 그대로 둔다(근거 없이 숫자를 바꾸지 않는다는 원칙 유지).
+  const shortLen = difficulty === "B1" ? "6-8어절(띄어쓰기로 나눈 덩어리 수)" : "공백 포함 20~30자";
 
   const shortSection = includeShort ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §6-3. 짧은 문장(short_sentence·short_translation) 규칙 — 필수
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · short_sentence: 대상 단어를 포함한 완성형 한국어 문장. 괄호·빈칸 없이 정답까지 채운 자연스러운 문장.
-· 공백 포함 20~30자 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
+· ${shortLen} 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
 · 위 빈칸 채우기 문장(sentence)과는 다른, 더 짧고 쉬운 표현을 사용하세요. (같은 문장 복사 금지)
 · short_translation: short_sentence 전체를 ${languageName}로 자연스럽게 번역. 대괄호 없이 적으세요.
 ` : "";
 
   const shortOutputFields = includeShort ? `,
-      "short_sentence": "대상 단어가 들어간 20~30자의 짧은 완성형 문장.",
+      "short_sentence": "대상 단어가 들어간 ${shortLen}의 짧은 완성형 문장.",
       "short_translation": "${languageName}로 된 short_sentence 번역"` : "";
 
   return `당신은 한국어 교육 전문가이자 TOPIK 문제 출제 전문가입니다.
@@ -368,10 +373,11 @@ const generateSimplePrompt = (words: string[], difficulty: string, languageName:
   // 다시 만든" 문장이 오히려 등급을 넘는다. 1문제당 입력 ~2.2k 토큰이 늘지만
   // (sonnet 입력가 기준 회당 1센트 미만) 등급 이탈을 되돌리는 비용이 더 크다.
   const a1Vocab = a1VocabSection(difficulty, "선생님이 입력한 단어");
+  const shortLen = difficulty === "B1" ? "6-8어절(띄어쓰기로 나눈 덩어리 수)" : "공백 포함 20~30자";
 
   const shortSection = includeShort ? `
 [짧은 문장(short_sentence·short_translation)] 필수
-- short_sentence: "${words[0]}"을(를) 포함한 완성형 문장(괄호·빈칸 없음). 공백 포함 20~30자 범위로.
+- short_sentence: "${words[0]}"을(를) 포함한 완성형 문장(괄호·빈칸 없음). ${shortLen} 범위로.
 - 위 빈칸 채우기 문장과 다른, 더 짧고 쉬운 표현. 학생이 듣고 한 번에 기억할 수 있는 길이.
 - short_translation: short_sentence 전체를 ${languageName}로 번역. 대괄호 없이.
 ` : "";
@@ -445,6 +451,7 @@ const generatePromptModePrompt = (
   // 프롬프트 모드에는 "입력 단어 배열"이 없다 — 예외 대상은 선생님이 준 자료·요청에
   // 나온 단어다. 문구를 그대로 쓰면 자료 속 단어까지 목록으로 강제하는 오독이 생긴다.
   const a1Vocab = a1VocabSection(difficulty, "선생님이 제공한 자료·요청에 나온 단어");
+  const shortLen = difficulty === "B1" ? "6-8어절(띄어쓰기로 나눈 덩어리 수)" : "공백 포함 20~30자";
 
   // ── 아래 shortSection / shortOutputFields는 generateDetailedPrompt와 동일 문구 ──
   const shortSection = includeShort ? `
@@ -452,13 +459,13 @@ const generatePromptModePrompt = (
 §6-3. 짧은 문장(short_sentence·short_translation) 규칙 — 필수
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · short_sentence: 대상 단어를 포함한 완성형 한국어 문장. 괄호·빈칸 없이 정답까지 채운 자연스러운 문장.
-· 공백 포함 20~30자 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
+· ${shortLen} 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
 · 위 빈칸 채우기 문장(sentence)과는 다른, 더 짧고 쉬운 표현을 사용하세요. (같은 문장 복사 금지)
 · short_translation: short_sentence 전체를 ${languageName}로 자연스럽게 번역. 대괄호 없이 적으세요.
 ` : "";
 
   const shortOutputFields = includeShort ? `,
-      "short_sentence": "대상 단어가 들어간 20~30자의 짧은 완성형 문장.",
+      "short_sentence": "대상 단어가 들어간 ${shortLen}의 짧은 완성형 문장.",
       "short_translation": "${languageName}로 된 short_sentence 번역"` : "";
 
   const countSection = problemCount === null

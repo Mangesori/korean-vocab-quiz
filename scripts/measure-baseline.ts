@@ -411,6 +411,10 @@ async function main() {
     excludedByInput: number;
     words: number[]; // 문장당 어절 수 (공백 분할)
     chars: number[]; // 문장당 글자 수 (공백 제외)
+    // short_sentence(B1+ 문장 순서 맞추기·말하기 연습용) 글자 수·어절 수. sentence와
+    // 별개 규격("20~30자")이라 따로 잰다 — 있는 문제에서만 채워진다.
+    shortChars: number[];
+    shortWords: number[];
     morphs: number[]; // 문장당 형태소 수 (Kiwi 토큰 전체)
     morphsNoPunct: number[]; // 형태소 수에서 문장부호(S*)를 뺀 값
     ec: number[];
@@ -426,7 +430,7 @@ async function main() {
   const stats = new Map<string, Stat>();
   const blank = (): Stat => ({
     quizzes: 0, problems: 0, inRange: 0, total: 0, unknown: 0, excludedByInput: 0,
-    words: [], chars: [], morphs: [], morphsNoPunct: [],
+    words: [], chars: [], shortChars: [], shortWords: [], morphs: [], morphsNoPunct: [],
     ec: [], etm: [], over: new Map(), unk: new Map(),
     hintFrags: 0, hintMatched: 0, hintOver: new Map(), hintUnmatched: new Map(),
   });
@@ -436,7 +440,7 @@ async function main() {
     const target = CEFR_TO_GRADE[difficulty];
     if (!target) continue;
     const problems = ((q as any).problems ?? []) as {
-      sentence?: string; answer?: string; word?: string; hint?: string;
+      sentence?: string; answer?: string; word?: string; hint?: string; short_sentence?: string;
     }[];
     if (!Array.isArray(problems) || !problems.length) continue;
 
@@ -464,6 +468,11 @@ async function main() {
       // ── 문장 길이 세 단위 ──
       st.words.push(sentence.split(/\s+/).filter(Boolean).length); // 어절
       st.chars.push(sentence.replace(/\s/g, "").length); // 글자(공백 제외)
+      if (p.short_sentence?.trim()) {
+        const ss = p.short_sentence.trim();
+        st.shortChars.push(ss.length); // 공백 포함 — 프롬프트 규격이 "공백 포함 20~30자"
+        st.shortWords.push(ss.split(/\s+/).filter(Boolean).length); // 어절
+      }
       if (hasKiwi) {
         st.morphs.push(tokens.length); // 형태소 = Kiwi 토큰 수
         // 문장부호(SF/SP/SS/SE/SO 등 S로 시작)는 형태소로 보기 애매해서 따로도 센다.
@@ -592,6 +601,12 @@ async function main() {
         // 어절당 글자 수 — "등급이 오를수록 어절이 길어진다" 가설의 검증
         charsPerEojeol: mean(s.words) ? mean(s.chars) / mean(s.words) : null,
         morphsPerEojeol: mean(s.words) && s.morphs.length ? mean(s.morphs) / mean(s.words) : null,
+        shortSentenceChars: s.shortChars.length
+          ? { mean: mean(s.shortChars), sd: sd(s.shortChars), cv: cv(s.shortChars), n: s.shortChars.length }
+          : null,
+        shortSentenceWords: s.shortWords.length
+          ? { mean: mean(s.shortWords), sd: sd(s.shortWords), cv: cv(s.shortWords), n: s.shortWords.length }
+          : null,
       },
       topOver: [...s.over.entries()]
         .sort((a, b) => b[1].count - a[1].count)
@@ -630,6 +645,22 @@ async function main() {
   if (hasKiwi) {
     console.log("\n  (참고) 문장부호 제외 형태소 수:");
     for (const d of present) console.log(`    ${d}  ${fmt(stats.get(d)!.morphsNoPunct)}`);
+  }
+
+  // short_sentence(B1+ 문장 순서 맞추기·말하기 연습용) — sentence와 별개 규격("공백 포함
+  // 20~30자")이라 따로 찍는다. B1 미만은 애초에 안 만들어지므로 표에서 빈다.
+  const withShort = present.filter((d) => stats.get(d)!.shortChars.length);
+  if (withShort.length) {
+    console.log("\n═══ short_sentence 길이 (B1+ 문장 순서 맞추기·말하기 연습용) ═══");
+    console.log("(프롬프트 규격: 공백 포함 20~30자, 전 등급 동일)\n");
+    console.log("난이도   표본수   글자수(공백포함) 평균/SD/CV      어절수 평균/SD/CV");
+    for (const d of withShort) {
+      const sc = stats.get(d)!.shortChars;
+      const sw = stats.get(d)!.shortWords;
+      console.log(`${d.padEnd(8)} ${String(sc.length).padStart(4)}     ${fmt(sc).padEnd(24)} ${fmt(sw)}`);
+    }
+  } else {
+    console.log("\n═══ short_sentence 글자 수 ═══\n  표본 없음 — B1+ 퀴즈 중 short_sentence가 채워진 문제가 없습니다.");
   }
 
   // ── 가설 1 판정 ──────────────────────────────────────────────────
