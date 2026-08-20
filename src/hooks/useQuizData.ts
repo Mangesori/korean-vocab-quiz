@@ -40,6 +40,7 @@ export interface Quiz {
   matchup_enabled?: boolean;
   type_answer_enabled?: boolean;
   word_magnet_enabled?: boolean;
+  source?: string | null;
 }
 
 export type Class = ClassModel;

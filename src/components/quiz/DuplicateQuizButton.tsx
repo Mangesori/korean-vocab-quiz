@@ -102,6 +102,7 @@ export function DuplicateQuizButton({
         .insert({
           teacher_id: user.id,
           title: `${quiz.title} (복사본)`,
+          source: quiz.source,
           words: quiz.words,
           difficulty: quiz.difficulty,
           words_per_set: quiz.words_per_set,

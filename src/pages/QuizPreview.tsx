@@ -850,6 +850,7 @@ export default function QuizPreview() {
         timer_seconds: draft.timerSeconds,
         problems: JSON.parse(JSON.stringify(shuffledProblems)),
         teacher_id: user.id,
+        source: "ai_generated",
         fill_blank_enabled: draft.fillBlankEnabled !== false,
         sentence_making_enabled: draft.sentenceMakingEnabled || false,
         recording_enabled: draft.recordingEnabled || false,

@@ -334,16 +334,73 @@ async function main() {
   });
   // MEASURE_SINCE(ISO 문자열)를 주면 그 시각 이후 생성분만 잰다.
   // 배포 전후 효과를 비교할 때 전체 평균에 옛 퀴즈가 섞여 묻히는 것을 막는다.
+  //
+  // ⚠ DuplicateQuizButton은 quizzes.problems를 원본 그대로 복사하고 title에
+  //   "(복사본)"을 붙인다. created_at은 복제 시각이지만 problems의 실제 생성
+  //   시점(어떤 프롬프트를 거쳤는지)은 원본 시각이므로, MEASURE_SINCE로 최근분만
+  //   봐도 복사본이 섞이면 옛 프롬프트 산출물이 "최근 생성"으로 오판된다.
+  //   title로 걸러낸다 — 완벽하진 않다(사람이 제목을 바꿀 수 있음)는 점은 감안한다.
+  // source 컬럼: 'ai_generated' | 'imported' | null(과거 데이터, 미분류).
+  // 사람이 가져온(imported) 문제가 섞이면 등급 통제 측정이 오염되므로 기본은
+  // ai_generated만 본다. MEASURE_INCLUDE_UNCLASSIFIED=1이면 NULL(미분류)도 포함한다.
+  const includeUnclassified = process.env.MEASURE_INCLUDE_UNCLASSIFIED === "1";
+
+  // 전체 source 분포를 먼저 집계한다(필터 걸기 전 카운트) — 아래 필터링 요약에 쓴다.
+  // 마이그레이션이 아직 원격에 안 올라간 경우(42703 = undefined_column) source 없이
+  // 계속 돌 수 있게 한다 — 이때는 MEASURE_TITLES로 특정 퀴즈만 골라 재는 우회로를 쓴다.
+  const { data: sourceRows, error: sourceError } = await supabase.from("quizzes").select("source");
+  const hasSourceColumn = !sourceError;
+  if (sourceError && sourceError.code !== "42703") {
+    throw new Error(`source 분포 조회 실패: ${sourceError.message}`);
+  }
+  if (!hasSourceColumn) {
+    console.log(
+      "[source 컬럼 없음] 마이그레이션이 아직 원격에 적용되지 않았습니다.\n" +
+        "  MEASURE_TITLES=\"제목1,제목2\" 로 특정 퀴즈만 지정해 측정하는 것을 권장합니다.\n"
+    );
+  }
+  if (hasSourceColumn) {
+    const sourceCounts = { ai_generated: 0, imported: 0, null: 0 };
+    for (const row of sourceRows ?? []) {
+      const s = (row as any).source as string | null;
+      if (s === "ai_generated") sourceCounts.ai_generated++;
+      else if (s === "imported") sourceCounts.imported++;
+      else sourceCounts.null++;
+    }
+    console.log(
+      `[source 분포] 전체 ${sourceRows?.length ?? 0}건 — ai_generated=${sourceCounts.ai_generated}  ` +
+        `imported=${sourceCounts.imported}  NULL(미분류)=${sourceCounts.null}\n` +
+        `[source 필터] ${includeUnclassified ? "ai_generated + NULL(미분류) 포함" : "ai_generated만 포함"} ` +
+        `(MEASURE_INCLUDE_UNCLASSIFIED=${includeUnclassified ? "1" : "0"})\n`
+    );
+  }
+
   let query = supabase
     .from("quizzes")
-    .select("id, difficulty, words, problems, created_at")
+    .select(hasSourceColumn ? "id, title, difficulty, words, problems, created_at, source" : "id, title, difficulty, words, problems, created_at")
+    // source 필터가 있으니 사실상 중복 방어(복제본은 원본의 source를 물려받으므로
+    // source='imported'인 원본의 복사본은 아래 source 필터에서 이미 걸러진다).
+    .not("title", "ilike", "%(복사본)%")
     .order("created_at", { ascending: false })
     .limit(500);
+  if (hasSourceColumn) {
+    query = includeUnclassified
+      ? query.or("source.eq.ai_generated,source.is.null")
+      : query.eq("source", "ai_generated");
+  }
   const since = process.env.MEASURE_SINCE;
   if (since) query = query.gte("created_at", since);
+  // source 컬럼이 없을 때의 우회로 — 특정 퀴즈 제목만 콤마로 지정해 정확히 잰다.
+  const titlesEnv = process.env.MEASURE_TITLES;
+  if (titlesEnv) {
+    const titles = titlesEnv.split(",").map((t) => t.trim()).filter(Boolean);
+    query = query.in("title", titles);
+  }
   const { data, error } = await query;
   if (error) throw new Error(`조회 실패: ${error.message}`);
   if (since) console.log(`[필터] ${since} 이후 생성분만 측정 (${data?.length ?? 0}건)\n`);
+  if (titlesEnv) console.log(`[제목 필터] "${titlesEnv}" 중 일치 (${data?.length ?? 0}건)\n`);
+  console.log(`[필터 결과] ${data?.length ?? 0}건 측정 대상\n`);
 
   type Stat = {
     quizzes: number;
@@ -430,7 +487,7 @@ async function main() {
           st.hintOver.set(frag, { grade: g, count: (prev?.count ?? 0) + 1 });
           if (process.env.MEASURE_DEBUG_OVER) {
             console.log(
-              `[초과] quiz=${(q as any).id} created=${(q as any).created_at} ` +
+              `[초과] quiz=${(q as any).id} title="${(q as any).title}" created=${(q as any).created_at} ` +
                 `diff=${difficulty} hint="${p.hint}" → "${sentence}"`
             );
           }

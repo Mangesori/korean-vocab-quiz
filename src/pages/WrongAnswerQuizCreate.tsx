@@ -515,6 +515,7 @@ export default function WrongAnswerQuizCreate() {
       const quizInsert: Record<string, unknown> = {
         teacher_id: user!.id,
         title: quizTitle || '오답 복습 퀴즈',
+        source: 'imported',
         words,
         difficulty,
         words_per_set: 5,
