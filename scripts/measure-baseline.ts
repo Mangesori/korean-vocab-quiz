@@ -332,12 +332,18 @@ async function main() {
   const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_KEY!, {
     auth: { persistSession: false },
   });
-  const { data, error } = await supabase
+  // MEASURE_SINCE(ISO 문자열)를 주면 그 시각 이후 생성분만 잰다.
+  // 배포 전후 효과를 비교할 때 전체 평균에 옛 퀴즈가 섞여 묻히는 것을 막는다.
+  let query = supabase
     .from("quizzes")
     .select("id, difficulty, words, problems, created_at")
     .order("created_at", { ascending: false })
     .limit(500);
+  const since = process.env.MEASURE_SINCE;
+  if (since) query = query.gte("created_at", since);
+  const { data, error } = await query;
   if (error) throw new Error(`조회 실패: ${error.message}`);
+  if (since) console.log(`[필터] ${since} 이후 생성분만 측정 (${data?.length ?? 0}건)\n`);
 
   type Stat = {
     quizzes: number;
@@ -422,6 +428,12 @@ async function main() {
         if (g > target) {
           const prev = st.hintOver.get(frag);
           st.hintOver.set(frag, { grade: g, count: (prev?.count ?? 0) + 1 });
+          if (process.env.MEASURE_DEBUG_OVER) {
+            console.log(
+              `[초과] quiz=${(q as any).id} created=${(q as any).created_at} ` +
+                `diff=${difficulty} hint="${p.hint}" → "${sentence}"`
+            );
+          }
         }
       }
 
