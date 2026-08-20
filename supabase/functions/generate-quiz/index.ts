@@ -391,7 +391,7 @@ const generateSimplePrompt = (words: string[], difficulty: string, languageName:
 ` : "";
 
   const shortOutputFields = includeShort ? `,
-      "short_sentence": "20~30자 짧은 완성형 문장.",
+      "short_sentence": "${shortLen}의 짧은 완성형 문장.",
       "short_translation": "${languageName} 번역"` : "";
   // 가이드에서 문법 목록 부분만 간단히 사용 (줄바꿈 등으로 인해 전체 텍스트가 들어가지만, 위쪽의 긴 설명들은 제외됨)
 
