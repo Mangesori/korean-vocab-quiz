@@ -35,6 +35,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as kiwiNlpNs from "kiwi-nlp";
 import { expandSlash } from "./lib/grammar-notation.ts";
+import { LEVEL_SENTENCE_LENGTH } from "../supabase/functions/_shared/grammar.ts";
 
 const require = createRequire(import.meta.url);
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -554,11 +555,15 @@ async function main() {
   };
   const pct = (n: number, d: number) => (d ? ((n / d) * 100).toFixed(1) + "%" : "—");
   const ORDER = ["A1", "A2", "B1", "B2", "C1", "C2"];
-  // 프롬프트 DIFFICULTY_GUIDES의 `길이:` 값 (측정 대조용) — supabase/functions/_shared/grammar.ts
-  // LEVEL_SENTENCE_LENGTH와 반드시 같은 숫자를 유지한다.
-  const LEN_GUIDE: Record<string, string> = {
-    A1: "5-8", A2: "7-10", B1: "9-13", B2: "12-17", C1: "16-24", C2: "16-28",
-  };
+  // 프롬프트 §3 "길이:" 값 — _shared/grammar.ts의 LEVEL_SENTENCE_LENGTH에서 직접 뽑는다.
+  // 예전엔 여기 숫자를 손으로 따로 적어뒀다가 프롬프트를 고친 뒤 안 맞춰서 옛 값(9-13)이
+  // 남아 있었다. 소스를 import하면 구조적으로 어긋날 수 없다.
+  const LEN_GUIDE: Record<string, string> = Object.fromEntries(
+    Object.entries(LEVEL_SENTENCE_LENGTH).map(([level, text]) => [
+      level,
+      /^(\d+-\d+)/.exec(text)?.[1] ?? text,
+    ])
+  );
   /** "5-8" → [5, 8]. 가설 1(모델이 "단어"를 형태소로 읽는가) 판정에 쓴다. */
   const guideRange = (d: string): [number, number] | undefined => {
     const m = /^(\d+)-(\d+)$/.exec(LEN_GUIDE[d] ?? "");

@@ -126,6 +126,70 @@ function difficultyGuide(level: string): string {
   return renderGuide(CEFR_LEVELS.includes(level as CefrLevel) ? (level as CefrLevel) : "A1");
 }
 
+// short_sentence(B1+ 문장 순서 맞추기·말하기 연습용) 길이 규격. 세 프롬프트 빌더와
+// selfCheckSection이 전부 이 함수를 쓴다 — 예전에 손으로 3곳에 따로 적어뒀다가
+// 한 곳만 못 고쳐서 옛 규격("20~30자")이 남았던 사고(c1bfd88)가 있었다.
+function shortSentenceLen(difficulty: string): string {
+  return difficulty === "B1"
+    ? "6-8어절(띄어쓰기로 나눈 덩어리 수)"
+    : "7-9어절(띄어쓰기로 나눈 덩어리 수)";
+}
+
+/**
+ * §8 자기 점검 블록. generateDetailedPrompt·generatePromptModePrompt가 공유한다(문구 동일).
+ *
+ * ⑤(문법 자기점검)는 A1을 제외한다 — A1은 §3 라벨에 "반드시 포함"이 없어 문법이
+ * 필수가 아니므로, 이 체크를 A1에도 적용하면 없는 규칙을 검증하라는 모순이 된다.
+ *
+ * 실측(2026-08-21): ④를 추가했는데도 B1 15문제 중 5개가 hint "-았/었어요" 단독으로만
+ * 나왔다(895b3dc가 §3을 "필수"로 격상했는데도 마지막 재확인이 없어 못 걸렀다) — 그래서
+ * ④와 같은 패턴(자연스러움이 항상 우선이라는 단서 포함)으로 ⑤를 추가한다.
+ *
+ * ⑥(short_sentence 길이)은 includeShort일 때만 넣는다 — §2 후보 평가는 빈칸 채우기
+ * sentence 얘기라 short_sentence(§6-3, 별도 규격)는 거기 안 걸린다. 실측(2026-08-21):
+ * ④·⑤ 배포 후에도 short_sentence 어절 평균이 4.51(지시 6-8) — sentence 쪽만 좋아지고
+ * short_sentence는 그대로였다. 자기점검이 아예 없었으니 당연한 결과.
+ */
+function selfCheckSection(difficulty: string, includeShort = false): string {
+  const includeGrammarCheck = difficulty !== "A1";
+  const grammarCheckItem = includeGrammarCheck
+    ? `
+⑤ **hint가 단순 종결어미뿐인가** — hint가 "-아/어요", "-았/었어요", "-습니다" 같은 기본
+   종결형 하나뿐이면, 위 §3 목록에서 자연스럽게 결합할 수 있는 ${difficulty} 문법이 있는지
+   다시 확인해 추가하세요. 단, 억지로 끼워 넣어 부자연스러워질 바엔 종결어미만 쓰는 쪽을
+   택하세요(이 점검도 §1보다 낮은 우선순위입니다).`
+    : "";
+  const shortCheckItem = includeShort
+    ? `
+⑥ **short_sentence 길이를 지켰는가** — short_sentence의 어절 수를 세어 §6-3에 명시된
+   ${shortSentenceLen(difficulty)} 범위인지 확인하세요. 이 점검도 §1보다 낮은
+   우선순위입니다 — 억지로 늘리거나 줄여 부자연스러워질 바엔 범위를 살짝 벗어나는
+   쪽을 택하세요.`
+    : "";
+  const itemCount = 3 + Number(includeGrammarCheck) + 1 + Number(includeShort);
+  const count = ["", "한", "두", "세", "네", "다섯", "여섯"][itemCount];
+
+  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§8. 자연스러움 최종 점검
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· 완성된 각 문장을 읽고 "한국인 친구에게 이 문장을 보여줘도 어색하지 않은가?"를 점검하세요.
+· 문장 끝에 마침표(.) 또는 물음표(?)를 반드시 붙이세요.
+
+각 문제를 출력하기 전에 아래 ${count} 가지를 스스로 확인하세요.
+① **목록 밖 문법 금지** — 사용한 문법이 위 ${difficulty} 목록에 실제로 있는지 확인하세요.
+   목록에 없으면 학생이 아직 배우지 않은 문법이므로 쓰지 말고, 목록 안의 다른 문법으로 바꾸세요.
+   대상 단어를 제외한 나머지 어휘도 ${difficulty} 수준을 넘지 않아야 합니다.
+② **( ) 뒤에 보조용언이 남지 않았는가** — "( ) 해요", "( ) 싶어요", "( ) 있어요"는 전부 틀렸습니다.
+   그 보조용언까지 answer에 넣고 sentence에서는 빼세요.
+③ **hint에 종결 어미를 붙였는가** — answer가 "-아/어요"나 "-습니다"로 끝나면
+   hint도 "기본 문법 + 아/어요" 형태여야 합니다.
+④ **sentence가 §3의 "길이:" 범위 안인가** — 완성 문장(( ) 안에 answer를 채운 상태)의 어절 수를
+   세어 범위를 벗어났으면, 부족하면 상황·이유·부가설명을 자연스럽게 덧붙이고 초과하면
+   군더더기를 정리해 조정하세요. 단, 이 점검은 §1·§7보다 낮은 우선순위입니다 — 억지로
+   끼워 맞춰 부자연스러워질 바엔 범위를 살짝 벗어나는 쪽을 택하세요.${grammarCheckItem}${shortCheckItem}
+· ${difficulty} 어휘 수준을 준수하되, 문맥상 자연스러운 표현을 우선하세요.`;
+}
+
 // 문법 카테고리 줄을 랜덤 셔플하여 AI의 나열 순서 편향을 제거
 function shuffleGrammarGuide(guide: string): string {
   const lines = guide.split('\n');
@@ -212,7 +276,7 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
   // 학생이 외워서 말할 수 없다는 이유. B2+는 실사용 0건이라 데이터는 없지만
   // "학생이 듣고 한 번에 기억할 수 있는 길이"라는 이 기능의 목적 자체에 부합하는
   // 의도적 결정이라 데이터 없이도 반영한다.
-  const shortLen = difficulty === "B1" ? "6-8어절(띄어쓰기로 나눈 덩어리 수)" : "7-9어절(띄어쓰기로 나눈 덩어리 수)";
+  const shortLen = shortSentenceLen(difficulty);
 
   const shortSection = includeShort ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -220,6 +284,9 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · short_sentence: 대상 단어를 포함한 완성형 한국어 문장. 괄호·빈칸 없이 정답까지 채운 자연스러운 문장.
 · ${shortLen} 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
+· 완성 후 어절 수를 스스로 세어 위 범위를 지키는지 확인하세요. 부족하면 상황·이유·감정 등
+  자연스러운 요소 하나를 덧붙여 늘리세요(예: "친구한테서 편지를 받았어요." → "오랜만에
+  친구한테서 편지 한 통을 받아서 기뻤어요."). 초과하면 군더더기를 정리해 줄이세요.
 · 위 빈칸 채우기 문장(sentence)과는 다른, 더 짧고 쉬운 표현을 사용하세요. (같은 문장 복사 금지)
 · short_translation: short_sentence 전체를 ${languageName}로 자연스럽게 번역. 대괄호 없이 적으세요.
 ` : "";
@@ -344,21 +411,7 @@ ${shortSection}
 ✗ 두 가지 이상의 고급 문법 과잉 결합: 한 문장에 고급 문법을 여러 개 억지로 넣지 마세요.
 ✗ 부자연스러운 어휘 조합: "식사를 먹다", "한국 언어를 배우다" → "밥을 먹다", "한국어를 배우다"가 자연스럽습니다.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-§8. 자연스러움 최종 점검
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-· 완성된 각 문장을 읽고 "한국인 친구에게 이 문장을 보여줘도 어색하지 않은가?"를 점검하세요.
-· 문장 끝에 마침표(.) 또는 물음표(?)를 반드시 붙이세요.
-
-각 문제를 출력하기 전에 아래 세 가지를 스스로 확인하세요.
-① **목록 밖 문법 금지** — 사용한 문법이 위 ${difficulty} 목록에 실제로 있는지 확인하세요.
-   목록에 없으면 학생이 아직 배우지 않은 문법이므로 쓰지 말고, 목록 안의 다른 문법으로 바꾸세요.
-   대상 단어를 제외한 나머지 어휘도 ${difficulty} 수준을 넘지 않아야 합니다.
-② **( ) 뒤에 보조용언이 남지 않았는가** — "( ) 해요", "( ) 싶어요", "( ) 있어요"는 전부 틀렸습니다.
-   그 보조용언까지 answer에 넣고 sentence에서는 빼세요.
-③ **hint에 종결 어미를 붙였는가** — answer가 "-아/어요"나 "-습니다"로 끝나면
-   hint도 "기본 문법 + 아/어요" 형태여야 합니다.
-· ${difficulty} 어휘 수준을 준수하되, 문맥상 자연스러운 표현을 우선하세요.
+${selfCheckSection(difficulty, includeShort)}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 출력 형식 (JSON만, 설명·코드블록 없이)
@@ -390,7 +443,7 @@ const generateSimplePrompt = (words: string[], difficulty: string, languageName:
   // 학생이 외워서 말할 수 없다는 이유. B2+는 실사용 0건이라 데이터는 없지만
   // "학생이 듣고 한 번에 기억할 수 있는 길이"라는 이 기능의 목적 자체에 부합하는
   // 의도적 결정이라 데이터 없이도 반영한다.
-  const shortLen = difficulty === "B1" ? "6-8어절(띄어쓰기로 나눈 덩어리 수)" : "7-9어절(띄어쓰기로 나눈 덩어리 수)";
+  const shortLen = shortSentenceLen(difficulty);
 
   // "가벼운 프롬프트"라 §2 후보평가·§8 자기점검이 없다 — 그래서 실측 사고(14어절 초과)가
   // 났다. §8 전체를 옮기면 "가벼운" 취지가 깨지므로 길이 지시 한 줄만 더한다.
@@ -399,6 +452,7 @@ const generateSimplePrompt = (words: string[], difficulty: string, languageName:
   const shortSection = includeShort ? `
 [짧은 문장(short_sentence·short_translation)] 필수
 - short_sentence: "${words[0]}"을(를) 포함한 완성형 문장(괄호·빈칸 없음). ${shortLen} 범위로.
+- 완성 후 어절 수를 세어 범위를 지키는지 확인하고, 부족하면 상황·이유 등 자연스러운 요소를 덧붙이세요.
 - 위 빈칸 채우기 문장과 다른, 더 짧고 쉬운 표현. 학생이 듣고 한 번에 기억할 수 있는 길이.
 - short_translation: short_sentence 전체를 ${languageName}로 번역. 대괄호 없이.
 ` : "";
@@ -481,7 +535,7 @@ const generatePromptModePrompt = (
   // 학생이 외워서 말할 수 없다는 이유. B2+는 실사용 0건이라 데이터는 없지만
   // "학생이 듣고 한 번에 기억할 수 있는 길이"라는 이 기능의 목적 자체에 부합하는
   // 의도적 결정이라 데이터 없이도 반영한다.
-  const shortLen = difficulty === "B1" ? "6-8어절(띄어쓰기로 나눈 덩어리 수)" : "7-9어절(띄어쓰기로 나눈 덩어리 수)";
+  const shortLen = shortSentenceLen(difficulty);
 
   // ── 아래 shortSection / shortOutputFields는 generateDetailedPrompt와 동일 문구 ──
   const shortSection = includeShort ? `
@@ -490,6 +544,9 @@ const generatePromptModePrompt = (
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · short_sentence: 대상 단어를 포함한 완성형 한국어 문장. 괄호·빈칸 없이 정답까지 채운 자연스러운 문장.
 · ${shortLen} 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
+· 완성 후 어절 수를 스스로 세어 위 범위를 지키는지 확인하세요. 부족하면 상황·이유·감정 등
+  자연스러운 요소 하나를 덧붙여 늘리세요(예: "친구한테서 편지를 받았어요." → "오랜만에
+  친구한테서 편지 한 통을 받아서 기뻤어요."). 초과하면 군더더기를 정리해 줄이세요.
 · 위 빈칸 채우기 문장(sentence)과는 다른, 더 짧고 쉬운 표현을 사용하세요. (같은 문장 복사 금지)
 · short_translation: short_sentence 전체를 ${languageName}로 자연스럽게 번역. 대괄호 없이 적으세요.
 ` : "";
@@ -619,21 +676,7 @@ ${shortSection}
 ✗ 두 가지 이상의 고급 문법 과잉 결합: 한 문장에 고급 문법을 여러 개 억지로 넣지 마세요.
 ✗ 부자연스러운 어휘 조합: "식사를 먹다", "한국 언어를 배우다" → "밥을 먹다", "한국어를 배우다"가 자연스럽습니다.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-§8. 자연스러움 최종 점검
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-· 완성된 각 문장을 읽고 "한국인 친구에게 이 문장을 보여줘도 어색하지 않은가?"를 점검하세요.
-· 문장 끝에 마침표(.) 또는 물음표(?)를 반드시 붙이세요.
-
-각 문제를 출력하기 전에 아래 세 가지를 스스로 확인하세요.
-① **목록 밖 문법 금지** — 사용한 문법이 위 ${difficulty} 목록에 실제로 있는지 확인하세요.
-   목록에 없으면 학생이 아직 배우지 않은 문법이므로 쓰지 말고, 목록 안의 다른 문법으로 바꾸세요.
-   대상 단어를 제외한 나머지 어휘도 ${difficulty} 수준을 넘지 않아야 합니다.
-② **( ) 뒤에 보조용언이 남지 않았는가** — "( ) 해요", "( ) 싶어요", "( ) 있어요"는 전부 틀렸습니다.
-   그 보조용언까지 answer에 넣고 sentence에서는 빼세요.
-③ **hint에 종결 어미를 붙였는가** — answer가 "-아/어요"나 "-습니다"로 끝나면
-   hint도 "기본 문법 + 아/어요" 형태여야 합니다.
-· ${difficulty} 어휘 수준을 준수하되, 문맥상 자연스러운 표현을 우선하세요.
+${selfCheckSection(difficulty, includeShort)}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §9. 선생님 요청
