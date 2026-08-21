@@ -45,6 +45,10 @@ interface SentenceMakingStageProps {
   onComplete: (results: Record<string, SentenceAttempt[]>) => void;
   onBack?: () => void;
   backLabel?: string;
+  /** 공유 링크로 비로그인 응시 중이면 넘긴다. grade-sentence가 이 값으로 익명 채점을 허용한다. */
+  shareToken?: string;
+  /** 라이브 세션 게스트(비로그인)로 응시 중이면 넘긴다. 위와 같은 이유. */
+  liveParticipantId?: string;
 }
 
 type Phase = "input" | "grading" | "results";
@@ -59,6 +63,8 @@ export function SentenceMakingStage({
   onComplete,
   onBack,
   backLabel,
+  shareToken,
+  liveParticipantId,
 }: SentenceMakingStageProps) {
   const [phase, setPhase] = useState<Phase>("input");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -181,6 +187,9 @@ export function SentenceMakingStage({
               problems: chunk,
               difficulty,
               translationLanguage,
+              // 비로그인 응시자(공유 링크·라이브 게스트)는 이 값으로 서버가 익명 채점을 허용한다.
+              ...(shareToken ? { shareToken } : {}),
+              ...(liveParticipantId ? { liveParticipantId } : {}),
             },
           }));
         } finally {

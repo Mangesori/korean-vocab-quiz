@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /**
  * 문장 만들기 채점.
@@ -372,6 +373,88 @@ const SYSTEM_INSTRUCTION =
   "You are a Korean language education expert. You classify errors in student sentences. " +
   "You never assign numeric scores. Respond only in valid JSON with no markdown.";
 
+// ── 인증 ───────────────────────────────────────────────────────────
+//
+// 이 함수는 Claude API를 직접 호출하는 과금 대상이라 아무나 부를 수 없어야 한다.
+// 하지만 "문장 만들기"는 학생이 푸는 기능이고, 학생은 세 갈래로 들어온다:
+//   1) 로그인 학생/교사 — Authorization에 진짜 유저 JWT가 실린다.
+//   2) 공유 링크(quiz_shares.share_token) — 로그인 없이 링크만으로 푼다.
+//   3) 라이브 세션 게스트(live_participants, is_guest=true) — 로그인 없이 6자리 코드로 입장한다.
+// 셋 중 하나도 증명하지 못하면 거부한다. (교사 전용 segment-korean과 달리
+// 여기는 역할 제한이 없다 — "인증된 사용자"거나 "유효한 익명 경로"면 통과.)
+async function authorizeRequest(
+  req: Request,
+  body: Record<string, unknown>
+): Promise<{ ok: true } | { ok: false; status: number; message: string }> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+  // 1) 로그인 사용자 — Authorization 헤더의 JWT를 검증한다.
+  //    (비로그인 클라이언트도 anon key를 Authorization으로 보내지만, anon key로는
+  //     auth.getUser()가 유저를 못 찾으므로 자연히 다음 단계로 넘어간다.)
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader && supabaseUrl && supabaseAnonKey) {
+    try {
+      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error } = await userClient.auth.getUser();
+      if (!error && user) return { ok: true };
+    } catch (e) {
+      console.error("auth.getUser() 실패:", e);
+    }
+  }
+
+  // 2) 공유 링크 — quiz_shares는 RLS가 누구나 SELECT 가능하도록 열려 있다
+  //    (익명 응시자가 퀴즈 자체를 불러와야 하므로). 토큰이 실존하고 만료되지
+  //    않았는지만 확인한다.
+  const shareToken = typeof body.shareToken === "string" ? body.shareToken.trim() : "";
+  if (shareToken && supabaseUrl && supabaseAnonKey) {
+    try {
+      const anonClient = createClient(supabaseUrl, supabaseAnonKey);
+      const { data } = await anonClient
+        .from("quiz_shares")
+        .select("expires_at")
+        .eq("share_token", shareToken)
+        .maybeSingle();
+      if (data && (!data.expires_at || new Date(data.expires_at) > new Date())) {
+        return { ok: true };
+      }
+    } catch (e) {
+      console.error("quiz_shares 조회 실패:", e);
+    }
+  }
+
+  // 3) 라이브 세션 게스트 — live_participants는 RLS상 본인 auth.uid()로만
+  //    조회 가능한데 게스트는 auth.uid()가 없다. 그래서 service role로
+  //    "이 participant id가 살아있는 세션에 실제로 존재하는가"만 확인한다
+  //    (그 이상의 권한은 주지 않는다 — 이 조회 하나로 끝).
+  const liveParticipantId =
+    typeof body.liveParticipantId === "string" ? body.liveParticipantId.trim() : "";
+  if (liveParticipantId && supabaseUrl) {
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (serviceRoleKey) {
+      try {
+        const adminClient = createClient(supabaseUrl, serviceRoleKey);
+        const { data } = await adminClient
+          .from("live_participants")
+          .select("left_at, live_sessions:session_id(status)")
+          .eq("id", liveParticipantId)
+          .maybeSingle();
+        const session = data?.live_sessions as { status?: string } | { status?: string }[] | null;
+        const status = Array.isArray(session) ? session[0]?.status : session?.status;
+        if (data && data.left_at === null && status && status !== "ended") {
+          return { ok: true };
+        }
+      } catch (e) {
+        console.error("live_participants 조회 실패:", e);
+      }
+    }
+  }
+
+  return { ok: false, status: 401, message: "인증이 필요합니다." };
+}
+
 // ── 핸들러 ─────────────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -389,6 +472,12 @@ serve(async (req) => {
 
   try {
     const reqBody = await req.json();
+
+    const auth = await authorizeRequest(req, reqBody);
+    if (!auth.ok) {
+      return json({ error: auth.message }, auth.status);
+    }
+
     const targetLang = reqBody.translationLanguage || "English";
 
     // 재채점 모드: 선생님이 추천 문장을 수정했을 때

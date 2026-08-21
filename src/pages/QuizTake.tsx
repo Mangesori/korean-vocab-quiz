@@ -2012,6 +2012,8 @@ export default function QuizTake() {
             onComplete={handleSentenceMakingComplete}
             onBack={goBackToPrev("sentence_making")}
             backLabel={prevResultLabel("sentence_making")}
+            shareToken={shareToken || undefined}
+            liveParticipantId={liveParticipantId || undefined}
           />
         </div>
       );
