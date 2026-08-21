@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { renderGuide, type CefrLevel } from "../_shared/grammar.ts";
+import { renderGuide, LEVEL_SENTENCE_LENGTH, type CefrLevel } from "../_shared/grammar.ts";
 import { A1_VOCAB } from "../_shared/vocab-a1.ts";
 
 const corsHeaders = {
@@ -255,6 +255,7 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
      - 문법이 억지로 끼워 넣어진 느낌이 없는가?
      - 어색한 어휘 조합이 없는가?
      - §3 목록의 문법을 자연스럽게 쓸 수 있는 후보가 있다면 그것을 우선하세요.
+     - §3의 "길이:" 범위 안에 드는 후보를 우선하세요.
   ③ 세 후보 중 가장 자연스러운 문장 1개만 최종 선택하세요.
 
 [Step 3 - 문법 카테고리 분산] Step 2에서 선택한 문장의 문법 패턴을 확인하여, 문제 전체에 걸쳐 다양한 카테고리(이유, 시간, 추측, 양보, 연결 등)가 골고루 사용되도록 조정하세요.
@@ -291,6 +292,14 @@ ${a1Vocab}
   · 예: word "오다" → sentence "하늘을 보니 비가 ( ).", answer "올 것 같아요", hint "-(으)ㄹ 것 같다 + 아/어요"
   · 예: word "가다" → sentence "학교에 ( ) 밥 먹었어요.", answer "가기 전에", hint "-기 전에"
   · 예: word "주요하다" → sentence "경제에 ( ) 역할을 합니다.", answer "주요한", hint "-(으)ㄴ"
+
+▶ 관용구(붙박이 목적어·조사가 있는 동사구) — 예: 침을 뱉다, 눈을 질끈 감다, 마음에 걸리다:
+  · word가 "N을/를/에/에서 (부사) V" 형태면 이 규칙을 씁니다. 그 N과 조사는 다른 명사로
+    바꿀 수 없는 관용구 자체의 일부이므로, sentence에 남기지 말고 answer에 통째로 포함합니다.
+  · answer = 관용구 전체(붙박이 목적어+조사 포함) + 문법 패턴. 위 "동사/형용사 어휘" 규칙과
+    똑같이 ( ) 뒤에 아무것도 안 남게 합니다.
+  · 예: word "침을 뱉다" → sentence "화가 많이 났지만 길에 ( ).", answer "침을 뱉지는 않았어요", hint "-지 않다 + 았/었어요"
+  · 예: word "눈을 질끈 감다" → sentence "너무 무서운 장면이 나와서 ( ).", answer "눈을 질끈 감았어요", hint "-았/었어요"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §5. hint 작성 규칙
@@ -383,6 +392,10 @@ const generateSimplePrompt = (words: string[], difficulty: string, languageName:
   // 의도적 결정이라 데이터 없이도 반영한다.
   const shortLen = difficulty === "B1" ? "6-8어절(띄어쓰기로 나눈 덩어리 수)" : "7-9어절(띄어쓰기로 나눈 덩어리 수)";
 
+  // "가벼운 프롬프트"라 §2 후보평가·§8 자기점검이 없다 — 그래서 실측 사고(14어절 초과)가
+  // 났다. §8 전체를 옮기면 "가벼운" 취지가 깨지므로 길이 지시 한 줄만 더한다.
+  const mainLen = LEVEL_SENTENCE_LENGTH[difficulty as CefrLevel] ?? LEVEL_SENTENCE_LENGTH.A1;
+
   const shortSection = includeShort ? `
 [짧은 문장(short_sentence·short_translation)] 필수
 - short_sentence: "${words[0]}"을(를) 포함한 완성형 문장(괄호·빈칸 없음). ${shortLen} 범위로.
@@ -414,6 +427,11 @@ ${a1Vocab}
   예: word "미술관" → sentence "내일 친구하고 ( ) 가요.", answer "미술관에", hint "에"
 ▶ 동사/형용사: answer에 문법 패턴 전체 포함. sentence 빈칸 뒤에 문법 요소 없음.
   예: word "가다" → answer "가기 때문에", hint "-기 때문에"
+▶ 관용구(N을/를/에 + (부사) + V, 예: 침을 뱉다, 눈을 질끈 감다): 그 N과 조사도 관용구의
+  일부이니 sentence에 남기지 말고 answer에 통째로 포함하세요.
+  예: word "침을 뱉다" → sentence "화가 많이 났지만 길에 ( ).", answer "침을 뱉지는 않았어요"
+
+[길이] sentence는 ${difficulty} 기준 ${mainLen} 범위여야 합니다. 벗어나면 자연스럽게 조정하세요.
 
 [hint] 문법 형태만 간결하게. 설명·의미 금지.
   명사: "학교에" → "에" / 동사: "먹어서" → "-아서/어서" / 복합: "가고 싶어요" → "-고 싶다 + 아/어요"
@@ -511,6 +529,7 @@ const generatePromptModePrompt = (
      - 문법이 억지로 끼워 넣어진 느낌이 없는가?
      - 어색한 어휘 조합이 없는가?
      - 선생님이 제공한 자료의 맥락에 맞는가?
+     - §3의 "길이:" 범위 안에 드는 후보를 우선하세요.
   ③ 세 후보 중 가장 자연스러운 문장 1개만 최종 선택하세요.
 
 [Step 3 - 문법 다양성] 문제 전체에서 같은 문법 패턴만 반복되지 않도록 조정하세요.
@@ -548,6 +567,14 @@ ${a1Vocab}
   · 예: word "오다" → sentence "하늘을 보니 비가 ( ).", answer "올 것 같아요", hint "-(으)ㄹ 것 같다 + 아/어요"
   · 예: word "가다" → sentence "학교에 ( ) 밥 먹었어요.", answer "가기 전에", hint "-기 전에"
   · 예: word "주요하다" → sentence "경제에 ( ) 역할을 합니다.", answer "주요한", hint "-(으)ㄴ"
+
+▶ 관용구(붙박이 목적어·조사가 있는 동사구) — 예: 침을 뱉다, 눈을 질끈 감다, 마음에 걸리다:
+  · word가 "N을/를/에/에서 (부사) V" 형태면 이 규칙을 씁니다. 그 N과 조사는 다른 명사로
+    바꿀 수 없는 관용구 자체의 일부이므로, sentence에 남기지 말고 answer에 통째로 포함합니다.
+  · answer = 관용구 전체(붙박이 목적어+조사 포함) + 문법 패턴. 위 "동사/형용사 어휘" 규칙과
+    똑같이 ( ) 뒤에 아무것도 안 남게 합니다.
+  · 예: word "침을 뱉다" → sentence "화가 많이 났지만 길에 ( ).", answer "침을 뱉지는 않았어요", hint "-지 않다 + 았/었어요"
+  · 예: word "눈을 질끈 감다" → sentence "너무 무서운 장면이 나와서 ( ).", answer "눈을 질끈 감았어요", hint "-았/었어요"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §5. hint 작성 규칙
