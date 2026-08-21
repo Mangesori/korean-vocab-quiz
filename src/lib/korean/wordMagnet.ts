@@ -18,6 +18,15 @@ const ADVERB_STOPLIST = new Set([
 ]);
 
 /**
+ * 격조사 뒤에 붙어 두 겹째로 겹칠 수 있는 보조사(는/도/만/조차/마저/밖에).
+ * 한국어에서 조사가 두 겹 겹치는 경우는 사실상 [격조사]+[보조사] 순서뿐이다.
+ * 이 집합에 없는 조사가 먼저 벗겨졌다면(예: "이","가","로" 등 격조사) 그 자체로
+ * 어절이 끝난 것으로 보고 더 벗기지 않는다 — 안 그러면 "벽난로"(명사)의 "로",
+ * "제주도"의 "도"처럼 조사가 아닌 어간 끝음절까지 조사로 오인해 쪼갠다.
+ */
+const OUTER_STACKABLE_PARTICLES = new Set(["는", "도", "만", "조차", "마저", "밖에"]);
+
+/**
  * 어절 하나에서 뒤쪽 조사를 한 겹만 벗긴다. 못 벗기면 null.
  * (예: "동물원에는" → { stem: "동물원에", particle: "는" })
  */
@@ -54,15 +63,25 @@ export function parseSentenceToItems(text: string): WordMagnetItem[] {
       continue;
     }
 
-    // 조사가 겹쳐 있으면("에는", "에서는") 한 겹만 벗기고 멈추지 않고, 더 이상
-    // 벗겨지지 않을 때까지 반복해서 전부 개별 조사 타일로 쪼갠다.
+    // 조사가 겹쳐 있으면("에는", "에서는") 벗긴다. 단, 무한정 반복하면
+    // "벽난로에"→"벽난"+[로]+[에]처럼 조사가 아닌 어간 끝음절까지 조사로
+    // 오인해 과도하게 쪼개는 사고가 난다(실측: Kiwi 채점 기준 정답률이 오히려
+    // 떨어짐). 한국어 조사는 [격조사] + [보조사](는/도/만/조차/마저/밖에)
+    // 순으로만 두 겹 겹치므로, 첫 겹이 보조사일 때만 한 겹 더 벗기고 그 이상은
+    // 시도하지 않는다(최대 2겹).
     const particleTiles: string[] = [];
     let stem = core;
-    while (true) {
-      const peeled = peelOneParticle(stem);
-      if (!peeled) break;
-      particleTiles.unshift(peeled.particle);
-      stem = peeled.stem;
+    const firstPeel = peelOneParticle(stem);
+    if (firstPeel) {
+      particleTiles.unshift(firstPeel.particle);
+      stem = firstPeel.stem;
+      if (OUTER_STACKABLE_PARTICLES.has(firstPeel.particle)) {
+        const secondPeel = peelOneParticle(stem);
+        if (secondPeel) {
+          particleTiles.unshift(secondPeel.particle);
+          stem = secondPeel.stem;
+        }
+      }
     }
 
     if (particleTiles.length === 0) {

@@ -1,0 +1,81 @@
+{
+  "measuredAt": "2026-08-20T15:59:39.818Z",
+  "hasKiwi": true,
+  "byDifficulty": {
+    "A1": {
+      "quizzes": 3,
+      "problems": 45,
+      "coverage": 0.9612403100775194,
+      "unknownRate": 0.007751937984496124,
+      "contentWords": 129,
+      "excludedByInput": 65,
+      "avgWords": 4.888888888888889,
+      "avgEC": 0.6666666666666666,
+      "avgETM": 0.3111111111111111,
+      "lengthUnits": {
+        "guide": "5-8",
+        "eojeol": {
+          "mean": 4.888888888888889,
+          "sd": 1.0492902844351994,
+          "cv": 0.21462755817992715
+        },
+        "chars": {
+          "mean": 14.133333333333333,
+          "sd": 2.8090761988435076,
+          "cv": 0.19875539142760668
+        },
+        "morphs": {
+          "mean": 10.444444444444445,
+          "sd": 2.0949675149960885,
+          "cv": 0.20058199611664676
+        },
+        "morphsNoPunct": {
+          "mean": 9.444444444444445,
+          "sd": 2.0949675149960885,
+          "cv": 0.22182008982311524
+        },
+        "charsPerEojeol": 2.8909090909090907,
+        "morphsPerEojeol": 2.1363636363636362,
+        "shortSentenceChars": null,
+        "shortSentenceWords": null
+      },
+      "topOver": [
+        {
+          "word": "여기",
+          "grade": 3,
+          "count": 1
+        },
+        {
+          "word": "자리",
+          "grade": 2,
+          "count": 1
+        },
+        {
+          "word": "편해",
+          "grade": 2,
+          "count": 1
+        },
+        {
+          "word": "도시",
+          "grade": 2,
+          "count": 1
+        },
+        {
+          "word": "품질",
+          "grade": 3,
+          "count": 1
+        }
+      ]
+    }
+  },
+  "lengthGuideCheck": {
+    "A1": {
+      "guide": "5-8",
+      "eojeolInGuide": false,
+      "charsInGuide": false,
+      "morphsInGuide": false,
+      "morphsNoPunctInGuide": false
+    }
+  },
+  "gradeSeparation": {}
+}

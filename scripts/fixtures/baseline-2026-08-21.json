@@ -1,0 +1,121 @@
+{
+  "measuredAt": "2026-08-21T12:38:31.143Z",
+  "hasKiwi": true,
+  "byDifficulty": {
+    "B1": {
+      "quizzes": 3,
+      "problems": 45,
+      "coverage": 0.9493670886075949,
+      "unknownRate": 0.016877637130801686,
+      "contentWords": 237,
+      "excludedByInput": 69,
+      "avgWords": 7.866666666666666,
+      "avgEC": 1.3555555555555556,
+      "avgETM": 0.5777777777777777,
+      "lengthUnits": {
+        "guide": "8-11",
+        "eojeol": {
+          "mean": 7.866666666666666,
+          "sd": 1.9140627898886613,
+          "cv": 0.24331306651127052
+        },
+        "chars": {
+          "mean": 22.8,
+          "sd": 4.600395239937148,
+          "cv": 0.20177172104987492
+        },
+        "morphs": {
+          "mean": 16.333333333333332,
+          "sd": 3.1333978072025612,
+          "cv": 0.1918406820736262
+        },
+        "morphsNoPunct": {
+          "mean": 15.333333333333334,
+          "sd": 3.1333978072025612,
+          "cv": 0.20435203090451484
+        },
+        "charsPerEojeol": 2.898305084745763,
+        "morphsPerEojeol": 2.0762711864406778,
+        "shortSentenceChars": {
+          "mean": 17.57777777777778,
+          "sd": 3.144178523216928,
+          "cv": 0.17887235593522346,
+          "n": 45
+        },
+        "shortSentenceWords": {
+          "mean": 4.511111111111111,
+          "sd": 1.0140428138312643,
+          "cv": 0.22478781587392557,
+          "n": 45
+        }
+      },
+      "topOver": [
+        {
+          "word": "새",
+          "grade": 4,
+          "count": 2
+        },
+        {
+          "word": "뜯기",
+          "grade": 4,
+          "count": 1
+        },
+        {
+          "word": "호기심",
+          "grade": 4,
+          "count": 1
+        },
+        {
+          "word": "다퉜",
+          "grade": 4,
+          "count": 1
+        },
+        {
+          "word": "자존심",
+          "grade": 4,
+          "count": 1
+        },
+        {
+          "word": "사정해",
+          "grade": 4,
+          "count": 1
+        },
+        {
+          "word": "해답",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "전등",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "상사",
+          "grade": 4,
+          "count": 1
+        },
+        {
+          "word": "이직",
+          "grade": 5,
+          "count": 1
+        },
+        {
+          "word": "딴",
+          "grade": 4,
+          "count": 1
+        }
+      ]
+    }
+  },
+  "lengthGuideCheck": {
+    "B1": {
+      "guide": "8-11",
+      "eojeolInGuide": false,
+      "charsInGuide": false,
+      "morphsInGuide": false,
+      "morphsNoPunctInGuide": false
+    }
+  },
+  "gradeSeparation": {}
+}
