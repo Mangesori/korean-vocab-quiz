@@ -2,6 +2,60 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { renderGuide, LEVEL_SENTENCE_LENGTH, type CefrLevel } from "../_shared/grammar.ts";
 import { A1_VOCAB } from "../_shared/vocab-a1.ts";
+import {
+  callClaude,
+  ClaudeApiError,
+  stripMarkdownJsonFence,
+  type ClaudeJsonSchemaFormat,
+} from "../_shared/claude.ts";
+
+// 빈칸 채우기 출력 스키마(§ 출력 형식 JSON 블록과 한 글자도 다르면 안 된다).
+// includeShort일 때만 short_sentence/short_translation을 필드에 추가하고 필수로 둔다
+// (§6-3이 "필수"라고 명시하므로 구조화된 출력에서도 그대로 강제한다).
+function generateQuizOutputSchema(includeShort: boolean): ClaudeJsonSchemaFormat {
+  const shortProperties = includeShort
+    ? {
+        short_sentence: { type: "string" },
+        short_translation: { type: "string" },
+      }
+    : {};
+  const required = [
+    "word",
+    "answer",
+    "sentence",
+    "hint",
+    "translation",
+    "meaning",
+    ...(includeShort ? ["short_sentence", "short_translation"] : []),
+  ];
+  return {
+    type: "json_schema",
+    schema: {
+      type: "object",
+      properties: {
+        problems: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              word: { type: "string" },
+              answer: { type: "string" },
+              sentence: { type: "string" },
+              hint: { type: "string" },
+              translation: { type: "string" },
+              meaning: { type: "string" },
+              ...shortProperties,
+            },
+            required,
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["problems"],
+      additionalProperties: false,
+    },
+  };
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -462,7 +516,7 @@ ${shortSection}
 ${selfCheckSection(difficulty, includeShort)}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-출력 형식 (JSON만, 설명·코드블록 없이)
+출력 형식 (구조화된 출력으로 강제됩니다 — 아래 필드만 채우세요)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {
   "problems": [
@@ -475,8 +529,7 @@ ${selfCheckSection(difficulty, includeShort)}
       "meaning": "${languageName}로 된 단어의 짧은 뜻"${shortOutputFields}
     }
   ]
-}
-첫 글자는 반드시 { 로 시작하세요. \`\`\`json 마크다운 블록을 사용하지 마세요.`;
+}`;
 };
 
 // 가벼운 프롬프트 (Single Regeneration용)
@@ -741,7 +794,7 @@ ${countSection}
 위 요청은 여기까지입니다. 이제 아래 형식대로만 답하세요.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-출력 형식 (JSON만, 설명·코드블록 없이)
+출력 형식 (구조화된 출력으로 강제됩니다 — 아래 필드만 채우세요)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {
   "problems": [
@@ -754,8 +807,7 @@ ${countSection}
       "meaning": "${languageName}로 된 단어의 짧은 뜻"${shortOutputFields}
     }
   ]
-}
-첫 글자는 반드시 { 로 시작하세요. \`\`\`json 마크다운 블록을 사용하지 마세요.`;
+}`;
 };
 
 // AI가 준 문제 항목이 쓸 수 있는 형태인지 본다.
@@ -934,104 +986,65 @@ serve(async (req) => {
           : `Generating quiz using Claude for ${words.length} words at ${difficulty} level`
       );
 
-      const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-      if (!ANTHROPIC_API_KEY) {
-        throw new Error("ANTHROPIC_API_KEY is not configured");
-      }
+      // 재생성(단어 1개)은 isB1Plus, 상세/프롬프트 모드는 includeShortDetailed로 short_sentence
+      // 유무가 갈린다 — 위에서 실제로 고른 프롬프트 빌더와 같은 조건이어야 스키마가 맞는다.
+      const includeShortForSchema = isPromptMode
+        ? includeShortDetailed
+        : regenerateSingle
+        ? isB1Plus
+        : includeShortDetailed;
 
-      let content: string;
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 130000);
       const startedAt = Date.now();
-
+      let result;
       try {
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "claude-sonnet-5",
-            // Sonnet 5는 thinking(adaptive)이 기본으로 켜지고, thinking과 응답이 이 예산을
-            // 함께 나눠 쓴다. 예전 8192로는 15문제 JSON을 다 뽑기 전에 잘릴 수 있다.
-            // 16000을 넘기면 비스트리밍 요청이 HTTP 타임아웃 위험에 들어가므로,
-            // 스트리밍 없이 갈 수 있는 상한에 맞췄다.
-            max_tokens: 16000,
-            // temperature는 넣지 말 것 — Sonnet 5는 기본값이 아닌 sampling 파라미터를
-            // 400으로 거부한다. 예전의 temperature: 0.7이 담당하던 다양성은
-            // 프롬프트 §2(후보 3개 생성 후 선택)가 대신한다.
-            //
-            // effort: Sonnet 5 medium ≈ Sonnet 4.6 high. 지정 안 하면 기본 high라
-            // 불필요하게 느리고 비싸진다. low는 쓰지 말 것 — 낮은 effort에서는 지시를
-            // 곧이곧대로 따라 §2의 후보 생성 과정을 건너뛴다.
-            output_config: { effort: "medium" },
-            messages: [{ role: "user", content: prompt }],
-          }),
-          signal: controller.signal,
+        result = await callClaude(prompt, {
+          // Sonnet 5는 thinking(adaptive)이 기본으로 켜지고, thinking과 응답이 이 예산을
+          // 함께 나눠 쓴다. 예전 8192로는 15문제 JSON을 다 뽑기 전에 잘릴 수 있다.
+          // 16000을 넘기면 비스트리밍 요청이 HTTP 타임아웃 위험에 들어가므로,
+          // 스트리밍 없이 갈 수 있는 상한에 맞췄다.
+          maxTokens: 16000,
+          // effort: Sonnet 5 medium ≈ Sonnet 4.6 high. 지정 안 하면 기본 high라
+          // 불필요하게 느리고 비싸진다. low는 쓰지 말 것 — 낮은 effort에서는 지시를
+          // 곧이곧대로 따라 §2의 후보 생성 과정을 건너뛴다.
+          effort: "medium",
+          timeoutMs: 130000,
+          outputSchema: generateQuizOutputSchema(includeShortForSchema),
         });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Claude API error:", response.status, errorText);
-
-          if (response.status === 429) {
-            return new Response(
-              JSON.stringify({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }),
-              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-
-          throw new Error(`Claude API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        // Sonnet 5는 adaptive thinking이 기본이라 content[0]이 thinking 블록일 수 있다.
-        // 인덱스로 집지 말고 type === "text"인 블록을 찾아야 한다.
-        // (thinking 블록에는 .text가 없어 undefined가 되고 "No content received from AI"로 떨어진다.)
-        content = data.content?.find(
-          (block: { type?: string; text?: string }) => block?.type === "text"
-        )?.text;
-
-        // 비용·지연 기준선. Sonnet 5는 thinking도 출력 토큰으로 과금되므로 output이
-        // 입력보다 비용에 크게 기여한다($3 vs $15 per MTok). stop_reason이 max_tokens면
-        // 잘린 것이니 max_tokens를 올려야 한다.
-        console.log(
-          `[usage] mode=${isPromptMode ? "prompt" : "words"} difficulty=${difficulty} ` +
-            `words=${words.length} ms=${Date.now() - startedAt} ` +
-            `in=${data.usage?.input_tokens} out=${data.usage?.output_tokens} ` +
-            `stop=${data.stop_reason} blocks=${data.content?.map((b: { type?: string }) => b?.type).join(",")}`
-        );
       } catch (error) {
-        clearTimeout(timeoutId);
+        if (error instanceof ClaudeApiError && error.status === 429) {
+          return new Response(
+            JSON.stringify({ error: error.message }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
         throw error;
       }
 
-      if (!content) {
-        throw new Error("No content received from AI");
-      }
+      const content = result.text;
 
-      // Parse JSON from response (handle markdown code blocks)
-      let jsonStr = content.trim();
-      if (jsonStr.startsWith("```")) {
-        jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```$/g, "").trim();
-      }
+      // 비용·지연 기준선. Sonnet 5는 thinking도 출력 토큰으로 과금되므로 output이
+      // 입력보다 비용에 크게 기여한다($3 vs $15 per MTok). stop_reason이 max_tokens면
+      // 잘린 것이니 max_tokens를 올려야 한다.
+      console.log(
+        `[usage] mode=${isPromptMode ? "prompt" : "words"} difficulty=${difficulty} ` +
+          `words=${words.length} ms=${Date.now() - startedAt} ` +
+          `in=${result.usage?.input_tokens} out=${result.usage?.output_tokens} ` +
+          `stop=${result.stopReason} blocks=${result.blockTypes?.join(",")}`
+      );
 
-      // Validate JSON starts correctly
-      if (!jsonStr.startsWith("{")) {
-        console.error("AI response not JSON:", jsonStr.substring(0, 200));
-        throw new Error("AI가 JSON이 아닌 텍스트로 응답했습니다. 다시 시도해주세요.");
-      }
-
+      // 구조화된 출력(outputSchema)이 정상 동작하면 content는 이미 스키마를 따르는 JSON
+      // 문자열이라 마크다운 스트립이 필요 없다. 혹시 실패하면(예: 모델이 스키마를 못 지킨
+      // 예외적인 경우) 예전 마크다운 스트립 폴백으로 한 번 더 시도한다.
       let parsed;
       try {
-        parsed = JSON.parse(jsonStr);
+        parsed = JSON.parse(content);
       } catch (_parseError) {
-        console.error("JSON parse error:", jsonStr.substring(0, 200));
-        throw new Error("AI 응답을 JSON으로 변환할 수 없습니다. 다시 시도해주세요.");
+        try {
+          parsed = JSON.parse(stripMarkdownJsonFence(content));
+        } catch {
+          console.error("JSON parse error:", content.substring(0, 200));
+          throw new Error("AI 응답을 JSON으로 변환할 수 없습니다. 다시 시도해주세요.");
+        }
       }
 
       if (!parsed.problems || parsed.problems.length === 0) {
