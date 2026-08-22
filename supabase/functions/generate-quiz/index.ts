@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { renderGuide, LEVEL_SENTENCE_LENGTH, type CefrLevel } from "../_shared/grammar.ts";
+import { renderGuide, LEVEL_SENTENCE_LENGTH, sentenceLengthRange, type CefrLevel } from "../_shared/grammar.ts";
 import { A1_VOCAB } from "../_shared/vocab-a1.ts";
 import {
   callClaude,
@@ -448,6 +448,12 @@ ${a1Vocab}
   · 조사를 sentence에 쓰지 마세요 — 조사는 answer에 포함됩니다.
   · 예: word "미술관" → sentence "내일 친구하고 ( ) 가요.", answer "미술관에", hint "에"
   · 예: word "지구력" → sentence "( ) 필요해요.", answer "지구력이", hint "이/가"
+  · word가 "숫자 + 단위명사"(예: "한 통", "두 명", "세 개") 형태면 숫자는 word 자체에 포함돼
+    있어도 sentence에 남기고, ( )와 answer에는 단위명사+조사만 넣으세요 — 숫자는 셀 때마다
+    바뀌는 수량 표현이지 그 단어의 일부가 아닙니다. hint에는 "[단위 명사]+조사" 식으로 표기해
+    단위명사 어휘라는 걸 밝히세요.
+    ✗ word "한 통" → sentence "편지 ( ) 받았어요.", answer "한 통을"  ← 숫자까지 answer에 있다
+    ✓ word "한 통" → sentence "편지 한 ( ) 받았어요.", answer "통을", hint "[단위 명사]+을/를"
 
 ▶ 동사/형용사 어휘:
   · answer = "어휘 활용형 + 문법 패턴" 전체를 포함. 문법을 answer와 sentence에 쪼개지 마세요.
@@ -474,6 +480,12 @@ ${a1Vocab}
 §5. hint 작성 규칙
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · hint에는 설명·의미를 쓰지 말고 문법 형태만 간결하게 표기하세요.
+  **"관용구", "관용구 그대로", "관용구 + " 같은 라벨이나 "하도"·"너무" 같은 부사를 hint에
+  끼워 넣지 마세요 — 그건 설명이지 문법 형태가 아닙니다.**
+  ✗ "관용구 + -았/었다"  → ✓ "-았/었다"
+  ✗ "관용구 그대로"      → ✓ answer가 활용 안 된 원형 그대로면(예: "고개를 젓다"→"고개를 저었다"처럼
+    활용됐다면 그 활용형에 맞는 문법을) 실제 어미를 표기하세요.
+  ✗ "하도 -아/어서"      → ✓ "-아/어서" (부사 "하도"는 sentence에 남기고 hint에서 뺍니다)
 · 명사: 사용된 조사만 표기 (예: "에", "을/를"). 조사 없는 부사형이면 빈 문자열 "".
 · 동사/형용사 단독 활용: "-아/어요", "-기 전에", "-느라고", "-게 되다" 등.
 · 관형사형: "-(으)ㄴ", "-는", "-(으)ㄹ"
@@ -491,9 +503,13 @@ ${a1Vocab}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · ( )가 아닌 answer가 들어간 완전한 문장을 ${languageName}로 자연스럽게 번역하세요.
 · 정답 단어의 핵심 의미(순수 어휘)만 대괄호 []로 감싸세요. 문법 패턴·보조 동사는 대괄호 밖에 둡니다.
+  전치사·목적어 대명사처럼 핵심 동사에 문법적으로 딸려오는 말도 대괄호 밖입니다.
   예: answer "가고 싶어요" → "I want to [go] home."
   예: answer "구독하기로 했어요" → "I decided to [subscribe] to this channel."
   예: answer "연예인인 것 같아요" → "That person seems like a [celebrity]."
+  예: answer "바라보다가" → "I [gazed] at the window." (✗ "[gazed at]" — "at"은 핵심 의미가 아니다)
+  예: answer "들여다보니까" → "When I [looked] into the box." (✗ "[looked into]")
+  예: answer "마음에 걸려서" → "It [bothered] me." (✗ "[bothered me]")
 · 모든 문제의 translation에 대괄호가 반드시 하나 있어야 합니다.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -512,6 +528,10 @@ ${shortSection}
 ✗ 주어 없이 문법만 나열: "때문에 좋아요", "그래서 했어요" → 누가, 무엇을, 왜 하는지 맥락이 있어야 합니다.
 ✗ 두 가지 이상의 고급 문법 과잉 결합: 한 문장에 고급 문법을 여러 개 억지로 넣지 마세요.
 ✗ 부자연스러운 어휘 조합: "식사를 먹다", "한국 언어를 배우다" → "밥을 먹다", "한국어를 배우다"가 자연스럽습니다.
+✗ 3인칭 주어를 "그"/"그녀"로 쓰기: 한국어는 주어를 생략하거나 구체적인 명사(이름·직업·관계·역할 등)를
+  쓰는 게 자연스럽습니다. "그는 고개를 저었어요" 대신 "선생님은 고개를 저었어요"나 문맥상
+  주어가 분명하면 그냥 생략하세요("이해가 안 되는지 고개를 저었어요"). 문제 전체에서 "그"·"그녀"가
+  주어로 반복되지 않게 하세요.
 
 ${selfCheckSection(difficulty, includeShort)}
 
@@ -595,6 +615,7 @@ ${a1Vocab}
   예: answer "가고 싶어요" → "I want to [go]."
 ${shortSection}
 [금지 패턴] 맥락 없는 감정 나열, 교과서식 인위적 문장, 부자연스러운 어휘 조합은 절대 금지.
+주어를 "그"/"그녀"로 쓰지 말고 생략하거나 구체적 명사(이름·직업·관계 등)를 쓰세요.
 
 [출력 - JSON Only, 코드블록 없이]
 {
@@ -712,6 +733,12 @@ ${a1Vocab}
   · 조사를 sentence에 쓰지 마세요 — 조사는 answer에 포함됩니다.
   · 예: word "미술관" → sentence "내일 친구하고 ( ) 가요.", answer "미술관에", hint "에"
   · 예: word "지구력" → sentence "( ) 필요해요.", answer "지구력이", hint "이/가"
+  · word가 "숫자 + 단위명사"(예: "한 통", "두 명", "세 개") 형태면 숫자는 word 자체에 포함돼
+    있어도 sentence에 남기고, ( )와 answer에는 단위명사+조사만 넣으세요 — 숫자는 셀 때마다
+    바뀌는 수량 표현이지 그 단어의 일부가 아닙니다. hint에는 "[단위 명사]+조사" 식으로 표기해
+    단위명사 어휘라는 걸 밝히세요.
+    ✗ word "한 통" → sentence "편지 ( ) 받았어요.", answer "한 통을"  ← 숫자까지 answer에 있다
+    ✓ word "한 통" → sentence "편지 한 ( ) 받았어요.", answer "통을", hint "[단위 명사]+을/를"
 
 ▶ 동사/형용사 어휘:
   · answer = "어휘 활용형 + 문법 패턴" 전체를 포함. 문법을 answer와 sentence에 쪼개지 마세요.
@@ -738,6 +765,12 @@ ${a1Vocab}
 §5. hint 작성 규칙
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · hint에는 설명·의미를 쓰지 말고 문법 형태만 간결하게 표기하세요.
+  **"관용구", "관용구 그대로", "관용구 + " 같은 라벨이나 "하도"·"너무" 같은 부사를 hint에
+  끼워 넣지 마세요 — 그건 설명이지 문법 형태가 아닙니다.**
+  ✗ "관용구 + -았/었다"  → ✓ "-았/었다"
+  ✗ "관용구 그대로"      → ✓ answer가 활용 안 된 원형 그대로면(예: "고개를 젓다"→"고개를 저었다"처럼
+    활용됐다면 그 활용형에 맞는 문법을) 실제 어미를 표기하세요.
+  ✗ "하도 -아/어서"      → ✓ "-아/어서" (부사 "하도"는 sentence에 남기고 hint에서 뺍니다)
 · 명사: 사용된 조사만 표기 (예: "에", "을/를"). 조사 없는 부사형이면 빈 문자열 "".
 · 동사/형용사 단독 활용: "-아/어요", "-기 전에", "-느라고", "-게 되다" 등.
 · 관형사형: "-(으)ㄴ", "-는", "-(으)ㄹ"
@@ -755,9 +788,13 @@ ${a1Vocab}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · ( )가 아닌 answer가 들어간 완전한 문장을 ${languageName}로 자연스럽게 번역하세요.
 · 정답 단어의 핵심 의미(순수 어휘)만 대괄호 []로 감싸세요. 문법 패턴·보조 동사는 대괄호 밖에 둡니다.
+  전치사·목적어 대명사처럼 핵심 동사에 문법적으로 딸려오는 말도 대괄호 밖입니다.
   예: answer "가고 싶어요" → "I want to [go] home."
   예: answer "구독하기로 했어요" → "I decided to [subscribe] to this channel."
   예: answer "연예인인 것 같아요" → "That person seems like a [celebrity]."
+  예: answer "바라보다가" → "I [gazed] at the window." (✗ "[gazed at]" — "at"은 핵심 의미가 아니다)
+  예: answer "들여다보니까" → "When I [looked] into the box." (✗ "[looked into]")
+  예: answer "마음에 걸려서" → "It [bothered] me." (✗ "[bothered me]")
 · 모든 문제의 translation에 대괄호가 반드시 하나 있어야 합니다.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -776,6 +813,10 @@ ${shortSection}
 ✗ 주어 없이 문법만 나열: "때문에 좋아요", "그래서 했어요" → 누가, 무엇을, 왜 하는지 맥락이 있어야 합니다.
 ✗ 두 가지 이상의 고급 문법 과잉 결합: 한 문장에 고급 문법을 여러 개 억지로 넣지 마세요.
 ✗ 부자연스러운 어휘 조합: "식사를 먹다", "한국 언어를 배우다" → "밥을 먹다", "한국어를 배우다"가 자연스럽습니다.
+✗ 3인칭 주어를 "그"/"그녀"로 쓰기: 한국어는 주어를 생략하거나 구체적인 명사(이름·직업·관계·역할 등)를
+  쓰는 게 자연스럽습니다. "그는 고개를 저었어요" 대신 "선생님은 고개를 저었어요"나 문맥상
+  주어가 분명하면 그냥 생략하세요("이해가 안 되는지 고개를 저었어요"). 문제 전체에서 "그"·"그녀"가
+  주어로 반복되지 않게 하세요.
 
 ${selfCheckSection(difficulty, includeShort)}
 
@@ -818,6 +859,126 @@ const hasText = (value: unknown): value is string =>
 
 const isUsableProblem = (p: Problem | null | undefined): p is Problem =>
   !!p && hasText(p.word) && hasText(p.answer) && hasText(p.sentence);
+
+/** 공백 기준 어절 수. §3 "길이:" 규격과 같은 단위(measure-baseline.ts와도 동일 방식). */
+const countEojeol = (text: string): number =>
+  text.trim().split(/\s+/).filter(Boolean).length;
+
+/** sentence의 "( )"를 answer로 채운 완성 문장. 학생이 실제로 보는 최종 형태이자
+ * 길이 검증 기준이다 — 빈칸 자리표시자만 세면 answer만큼 어절 수가 늘 적게 잡힌다. */
+const fillBlank = (sentence: string, answer: string): string =>
+  sentence.replace("( )", answer);
+
+// A1의 "서술/종결" 문법(이에요/예요, 아/어요, 았/었어요, 지요?)과 그 흔한 표기 변형들.
+// hint가 이 중 하나뿐이면(연결 안 된 단독 종결어미) A2 이상에서는 "목록 밖 문법이 아니라
+// 아예 문법을 안 쓴 것"이라 §8 ⑤가 잡아야 하는 케이스인데, 문구 지시만으로는 실측
+// 15문제 중 3개꼴로 계속 새 나갔다(2026-08-22) — 길이와 같은 이유로 코드 검증을 추가한다.
+// 정확한 문법 분류가 아니라 실사용에서 나온 표기 변형을 모은 실용적 집합이다.
+const BARE_ENDING_FORMS = new Set([
+  "이에요/예요", "예요/이에요",
+  "아/어요", "어/아요", "아요/어요", "어요/아요",
+  "았/었어요", "었/았어요", "았어요/었어요", "었어요/았어요",
+  "습니다", "ㅂ니다", "습니다/ㅂ니다", "ㅂ니다/습니다",
+  "지요?", "죠?",
+]);
+
+/** hint가 연결어미·문형 없이 단독 종결어미뿐인지(="+"로 결합되지 않았는지) 본다. */
+function isBareEndingHint(hint: string): boolean {
+  const trimmed = hint.trim();
+  if (!trimmed || trimmed.includes("+")) return false;
+  return BARE_ENDING_FORMS.has(trimmed.replace(/^-/, ""));
+}
+
+/** hint에 "관용구" 같은 설명 라벨이 섞였는지 본다(§5 "설명·의미 금지" 위반, 등급 무관). */
+function hasDescriptiveLabel(hint: string): boolean {
+  return hint.includes("관용구");
+}
+
+// 한글 완성형 음절 범위. meaning은 §6-2가 "languageName로, 1~3 단어"라고 명시하는데
+// (LANGUAGE_NAMES에 한국어 자체는 없다 — 학생이 배우는 언어가 한국어라 번역 대상이 될 일이
+// 없다), 관용구처럼 짧게 옮기기 애매한 단어에서 AI가 종종 한국어 설명 문장으로 도망친다
+// (예: "고개를 기울이다" → "이해가 안 되거나 의아할 때 고개를 한쪽으로 기울이는 행동").
+// 한 글자라도 한글이 섞이면 규칙 위반으로 본다 — meaning은 정의상 항상 학생 언어라 정상
+// 출력엔 한글이 전혀 없어야 한다.
+const HANGUL_PATTERN = /[가-힣]/;
+
+/** meaning이 규칙(항상 languageName)을 어기고 한국어로 나왔는지 본다. */
+function isKoreanMeaning(meaning: string): boolean {
+  return HANGUL_PATTERN.test(meaning);
+}
+
+/**
+ * 프롬프트 자기점검(§8 ④·⑤)만으로는 길이·문법 필수·meaning 언어 준수가 들쭉날쭉했다 —
+ * 길이는 실측 두 번에서 87%·33%로 흔들렸고(2026-08-21), 문법도 ⑤ 추가 후에도 15문제 중
+ * 2~3개꼴로 bare 종결어미가 나왔고(2026-08-22), meaning도 관용구 위주로 20개 중 6개가
+ * 한국어로 새 나갔다(2026-08-22, §6-2 위반). 프롬프트 텍스트는 "선호"일 뿐 보장이 아니라서,
+ * 셋 중 하나라도 걸리는 문제만 프로그램적으로 골라 가벼운 프롬프트(generateSimplePrompt,
+ * 길이·문법·meaning 지시 다 있음)로 그 단어만 다시 생성한다. 재시도는 문제당 1회만 — 그래도
+ * 안 고쳐지면 그 결과를 그대로 두고 로그만 남긴다(무한 재시도로 지연·비용을 키우지 않기 위해).
+ */
+async function fixLowQualityProblems(
+  problems: Problem[],
+  difficulty: string,
+  languageName: string,
+): Promise<void> {
+  const level = CEFR_LEVELS.includes(difficulty as CefrLevel) ? (difficulty as CefrLevel) : "A1";
+  const [lenMin, lenMax] = sentenceLengthRange(level);
+  const checkGrammar = level !== "A1"; // A1은 문법이 "필수"가 아니다(selfCheckSection과 동일 기준).
+
+  const flagged = problems
+    .map((p, idx) => {
+      const count = countEojeol(fillBlank(p.sentence, p.answer));
+      const lengthBad = count < lenMin || count > lenMax;
+      const grammarBad = (checkGrammar && isBareEndingHint(p.hint)) || hasDescriptiveLabel(p.hint);
+      const meaningBad = isKoreanMeaning(p.meaning);
+      return { idx, lengthBad, grammarBad, meaningBad };
+    })
+    .filter(({ lengthBad, grammarBad, meaningBad }) => lengthBad || grammarBad || meaningBad);
+
+  if (flagged.length === 0) return;
+
+  console.warn(
+    `[quality-check] ${flagged.length}/${problems.length} problem(s) flagged ` +
+      `(length=${flagged.filter((f) => f.lengthBad).length}, grammar=${flagged.filter((f) => f.grammarBad).length}, ` +
+      `meaning=${flagged.filter((f) => f.meaningBad).length}) — regenerating those words`
+  );
+
+  await Promise.all(
+    flagged.map(async ({ idx }) => {
+      const original = problems[idx];
+      try {
+        const fixPrompt = generateSimplePrompt([original.word], difficulty, languageName, false);
+        const fixResult = await callClaude(fixPrompt, {
+          maxTokens: 2000,
+          effort: "medium",
+          timeoutMs: 60000,
+          outputSchema: generateQuizOutputSchema(false),
+        });
+        const fixParsed = JSON.parse(fixResult.text);
+        const fixed = (fixParsed.problems as Problem[] | undefined)?.find(isUsableProblem);
+        if (!fixed) {
+          console.error(`[quality-check] regeneration returned no usable problem for "${original.word}"`);
+          return;
+        }
+        const before = countEojeol(fillBlank(original.sentence, original.answer));
+        const after = countEojeol(fillBlank(fixed.sentence, fixed.answer));
+        console.log(
+          `[quality-check] "${original.word}": ${before}어절→${after}어절, hint "${original.hint}"→"${fixed.hint}"`
+        );
+        problems[idx] = {
+          ...original,
+          answer: fixed.answer,
+          sentence: fixed.sentence,
+          hint: fixed.hint || original.hint,
+          translation: fixed.translation,
+          meaning: fixed.meaning || original.meaning,
+        };
+      } catch (error) {
+        console.error(`[quality-check] regeneration failed for "${original.word}":`, error);
+      }
+    })
+  );
+}
 
 serve(async (req) => {
   console.log("Request received:", req.method, req.url); // Log every request
@@ -1110,6 +1271,8 @@ serve(async (req) => {
         short_sentence: p.short_sentence,
         short_translation: p.short_translation,
       }));
+
+      await fixLowQualityProblems(problems, difficulty, languageName);
 
       console.log(`Successfully generated ${problems.length} fill-blank problems`);
     } else {

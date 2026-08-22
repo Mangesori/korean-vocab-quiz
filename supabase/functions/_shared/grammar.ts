@@ -34,6 +34,18 @@ export const LEVEL_SENTENCE_LENGTH: Record<CefrLevel, string> = {
   C2: "13-18어절(띄어쓰기로 나눈 덩어리 수)",
 };
 
+/**
+ * LEVEL_SENTENCE_LENGTH 문자열("8-11어절...")에서 숫자 범위만 뽑는다.
+ *
+ * 프롬프트 문구(문자열)와 후처리 검증(generate-quiz의 어절 수 체크)이 서로 다른 숫자를
+ * 손으로 따로 들고 있다가 한쪽만 고쳐서 어긋나는 사고(c1bfd88류)를 막기 위해, 문자열을
+ * 유일한 소스로 두고 검증 코드는 이 함수로 파싱해서 쓴다.
+ */
+export function sentenceLengthRange(level: CefrLevel): [number, number] {
+  const [min, max] = LEVEL_SENTENCE_LENGTH[level].split("-").map((n) => parseInt(n, 10));
+  return [min, max];
+}
+
 export const GRAMMAR_ITEMS: GrammarItem[] = [
   { id: "a1-1-1", form: "-이에요/예요", level: "A1", category: "서술/종결" },
   { id: "a1-1-2", form: "-아/어요", level: "A1", category: "서술/종결" },

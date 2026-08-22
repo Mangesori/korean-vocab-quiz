@@ -787,7 +787,7 @@ export default function QuizPreview() {
     text: string,
     quizId: string,
     problemId: string,
-    type: "sentence" | "hint"
+    type: "sentence" | "hint" | "recording"
   ): Promise<string | null> => {
     try {
       const problem = draft.problems.find((p) => p.id === problemId);
@@ -1049,11 +1049,14 @@ export default function QuizPreview() {
                 audioUrl = fillBlankAudioMap.get(recProblem.problem_id);
               } else {
                 // B1+ 짧은 문장: recording 문장과 다르므로 recording 문장으로 오디오 직접 생성.
+                // type을 "recording"으로 따로 둬서 파일 경로(${problemId}_${type}.mp3)가 빈칸
+                // 채우기 sentence 오디오(${problemId}_sentence.mp3)와 겹치지 않게 한다 — 겹치면
+                // upsert:true라 나중에 업로드되는 이쪽이 먼저 만든 파일을 덮어써 버린다.
                 audioUrl = await generateAndUploadAudio(
                   recProblem.sentence,
                   data.id,
                   recProblem.problem_id,
-                  "sentence"
+                  "recording"
                 );
               }
 
