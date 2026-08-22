@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+body{margin:0;background:#EFEBE4;font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,sans-serif;color:#1A1714}
+a{color:#1E6B47}a:hover{color:#155237}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 "Pretendard Variable",sans-serif;color:#1a1a1a}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:block;max-width:420px;font:400 11px/1.45 "Pretendard Variable",sans-serif;color:rgba(0,0,0,.55)}
+.dv-olabel>.dv-oid:first-child{float:left;margin:0 8px 0 0}
+.dv-olabel code{font:400 10.5px ui-monospace,Menlo,monospace;background:rgba(0,0,0,.06);border-radius:3px;padding:1px 4px}
+.dv-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden;width:420px}
+.dv-card.w{width:1180px}
+.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+.dv-note{max-width:420px;margin:2px 0 0;font:11.5px/1.6 "Pretendard Variable",sans-serif;color:rgba(0,0,0,.5)}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t4">
+<div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">오답 복습 · 어휘 보강 — 문장을 보이는 목록으로</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="4a">
+<div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>오답 2단계. 접힌 상태에도 <b>대표 문장 한 줄</b>을 둬서 펼치지 않고 훑을 수 있게 했습니다. 펼침은 학생별 답변 전체를 보는 용도. <a href="#4c">4c</a>와 같은 배치 — 헤더 우측은 전체 개수, 그 아래 컨트롤 줄, 그 아래 제외 안내, 목록 헤더에 전체 선택.</div>
+<div class="dv-card" style="width:860px">
+  <div style="padding:24px 28px 26px;background:#FAF8F5">
+    <div style="display:flex;align-items:center;gap:9px">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="1.8" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M9.5 13.5l5 5M14.5 13.5l-5 5"></path></svg>
+      <div style="font-size:20px;font-weight:700;letter-spacing:-.4px">오답 복습 퀴즈 만들기</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:16px">
+      <span style="display:inline-flex;align-items:center;gap:7px">
+        <span style="width:24px;height:24px;border-radius:50%;background:#1E6B47;display:grid;place-items:center;flex:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+        <span style="font-size:13px;font-weight:600;color:#1E6B47">학생</span>
+      </span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C4BDB6" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+      <span style="display:inline-flex;align-items:center;gap:7px">
+        <span style="width:24px;height:24px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">2</span>
+        <span style="font-size:13px;font-weight:700">단어</span>
+      </span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C4BDB6" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+      <span style="display:inline-flex;align-items:center;gap:7px;opacity:.45">
+        <span style="width:24px;height:24px;border-radius:50%;border:1.5px solid #C4BDB6;color:#8A837D;display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">3</span>
+        <span style="font-size:13px;font-weight:600;color:#6B6460">유형·설정</span>
+      </span>
+    </div>
+
+    <div style="margin-top:16px;background:#fff;border:1px solid #EBE5DE;border-radius:16px;padding:22px 24px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between">
+        <div>
+          <div style="font-size:16px;font-weight:700;letter-spacing:-.2px">복습할 단어</div>
+          <div style="font-size:12.5px;color:#8A837D;margin-top:4px">올리비아 · 학생 1명 · <b style="color:#1A1714">3개</b> 선택됨</div>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:#8A837D">9개 중</span>
+      </div>
+
+      <div style="margin-top:12px;display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+        <span style="font-size:12.5px;color:#4A443F;font-weight:600">정렬</span>
+        <span style="flex:1;min-width:150px;background:#FAF8F5;border:1px solid #E3DCD3;border-radius:9px;padding:9px 13px;font-size:12.5px;color:#4A443F;font-weight:600;display:flex;align-items:center;justify-content:space-between">자주 틀린 순 <span style="color:#A29B94">⌄</span></span>
+      </div>
+
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;align-items:center;gap:8px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:10px;padding:10px 13px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2" stroke-linecap="round" style="flex:none"><path d="M20 6L9 17l-5-5"></path></svg>
+          <span style="font-size:11.5px;color:#6B6460;line-height:1.5;flex:1">두 번 연속 맞힌 <b>익힌 단어 12개</b>는 숨겼습니다.</span>
+          <span style="font-size:11.5px;font-weight:700;color:#1E6B47;white-space:nowrap">보기</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:10px;padding:10px 13px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A837D" stroke-width="2" stroke-linecap="round" style="flex:none"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v.01M12 11v5"></path></svg>
+          <span style="font-size:11.5px;color:#6B6460;line-height:1.5">문장 순서 맞추기에서만 틀린 단어 <b>3개</b>는 제외했습니다 — 어순 실수와 어휘 부족을 구분할 수 없습니다.</span>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;border:1px solid #EFE9E2;border-radius:13px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:11px;padding:11px 16px;background:#FBF9F6;border-bottom:1px solid #EFE9E2">
+          <span style="width:19px;height:19px;border-radius:50%;border:1.5px solid #C4BDB6;flex:none"></span>
+          <span style="font-size:12.5px;font-weight:600;color:#4A443F">전체 선택 / 해제</span>
+        </div>
+
+        <div style="background:#F4F9F6;border-bottom:1px solid #E4EDE8">
+          <div style="display:flex;align-items:center;gap:12px;padding:14px 16px">
+            <span style="width:19px;height:19px;border-radius:50%;background:#1E6B47;display:grid;place-items:center;flex:none"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+            <span style="font-size:14px;font-weight:700;flex:none">부르다</span>
+            <span style="font-size:10.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:6px;padding:4px 8px;flex:none">빈칸</span>
+            <span style="font-size:12px;color:#B4552D;font-weight:700;flex:none">2회</span>
+            <span style="flex:1"></span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7FA893" stroke-width="2.2" stroke-linecap="round"><path d="M6 15l6-6 6 6"></path></svg>
+          </div>
+          <div style="padding:0 16px 16px 47px;display:flex;flex-direction:column;gap:14px">
+            <div>
+              <div style="font-size:13.5px;line-height:1.6">한국에서는 식당에서 손을 들고 직원을 <b style="color:#1E6B47">불러도 돼요.</b></div>
+              <div style="font-size:12px;color:#8A837D;margin-top:3px">In Korea, it's acceptable to raise your hand and [call] a staff member.</div>
+              <div style="font-size:12.5px;margin-top:5px;color:#6B6460">올리비아 <span style="color:#C1554A;font-weight:600">"부라도 되어요"</span></div>
+            </div>
+            <div>
+              <div style="font-size:13.5px;line-height:1.6">친구가 멀리서 제 이름을 <b style="color:#1E6B47">불렀어요.</b></div>
+              <div style="font-size:12px;color:#8A837D;margin-top:3px">My friend [called] my name from far away.</div>
+              <div style="font-size:12.5px;margin-top:5px;color:#6B6460">올리비아 <span style="color:#C1554A;font-weight:600">"부렸어요"</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-bottom:1px solid #F4F0EA">
+          <span style="width:19px;height:19px;border-radius:50%;background:#1E6B47;display:grid;place-items:center;flex:none;margin-top:1px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="font-size:14px;font-weight:700">노래를 부르다</span>
+              <span style="font-size:10.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:6px;padding:4px 8px">빈칸</span>
+              <span style="font-size:12px;color:#B4552D;font-weight:700">2회</span>
+            </div>
+            <div style="font-size:12.5px;color:#6B6460;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">친구 생일에 다 같이 <b style="color:#4A443F">노래를 불렀어요.</b> · 올리비아 "노래를 부러요"</div>
+          </div>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4BDB6" stroke-width="2.2" stroke-linecap="round" style="margin-top:3px;flex:none"><path d="M6 9l6 6 6-6"></path></svg>
+        </div>
+
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-bottom:1px solid #F4F0EA">
+          <span style="width:19px;height:19px;border-radius:50%;background:#1E6B47;display:grid;place-items:center;flex:none;margin-top:1px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="font-size:14px;font-weight:700">빌리다</span>
+              <span style="font-size:10.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:6px;padding:4px 8px">빈칸</span>
+              <span style="font-size:10.5px;font-weight:700;color:#6B6460;background:#F1EDE7;border-radius:6px;padding:4px 8px">짝맞추기</span>
+              <span style="font-size:12px;color:#8A837D;font-weight:700">1회</span>
+            </div>
+            <div style="font-size:12.5px;color:#6B6460;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">도서관에서 책을 세 권 <b style="color:#4A443F">빌렸어요.</b> · 올리비아 "빌었어요"</div>
+          </div>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4BDB6" stroke-width="2.2" stroke-linecap="round" style="margin-top:3px;flex:none"><path d="M6 9l6 6 6-6"></path></svg>
+        </div>
+
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 16px">
+          <span style="width:19px;height:19px;border-radius:50%;border:1.5px solid #D5CEC6;flex:none;margin-top:1px"></span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="font-size:14px;font-weight:700;color:#4A443F">고치다</span>
+              <span style="font-size:10.5px;font-weight:700;color:#6B6460;background:#F1EDE7;border-radius:6px;padding:4px 8px">받아쓰기</span>
+              <span style="font-size:12px;color:#8A837D;font-weight:700">1회</span>
+            </div>
+            <div style="font-size:12.5px;color:#8A837D;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">뜻 "to fix, repair" · 올리비아 "고치어요"</div>
+          </div>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4BDB6" stroke-width="2.2" stroke-linecap="round" style="margin-top:3px;flex:none"><path d="M6 9l6 6 6-6"></path></svg>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12.5px;color:#8A837D"><b style="color:#1A1714">3개</b> 선택됨 · 9개 중</span>
+        <div style="display:flex;gap:8px">
+          <span style="font-size:13px;font-weight:600;color:#4A443F;border:1px solid #E3DCD3;border-radius:11px;padding:11px 18px">이전</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#fff;background:#1E6B47;border-radius:11px;padding:11px 18px">다음 · 유형·설정으로 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:860px">받아쓰기 오답은 문장이 없어 뜻을 대표 줄에 씁니다(<code>meaning</code>). 유형 칩이 두 개 이상이면 그 단어를 여러 유형에서 틀린 것이라 우선순위가 높습니다.</p>
+</div>
+
+<div class="dv-opt" id="4b">
+<div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>오답 3단계 — <b>6개 유형 전부</b>. 오답 단어를 <code>generate-quiz</code>에 넘겨 새 문장을 받는 경로가 이미 있으므로(현재의 "AI로 새 예문 생성"), 응답에서 유형별 문항을 함께 꺼내면 열립니다. <b>제목 입력</b>도 추가 — <code>kind</code> 컬럼 선행 필요.</div>
+<div class="dv-card" style="width:860px">
+  <div style="padding:24px 28px 26px;background:#FAF8F5">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="display:inline-flex;align-items:center;gap:7px">
+        <span style="width:24px;height:24px;border-radius:50%;background:#1E6B47;display:grid;place-items:center;flex:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+        <span style="font-size:13px;font-weight:600;color:#1E6B47">학생</span>
+      </span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C4BDB6" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+      <span style="display:inline-flex;align-items:center;gap:7px">
+        <span style="width:24px;height:24px;border-radius:50%;background:#1E6B47;display:grid;place-items:center;flex:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+        <span style="font-size:13px;font-weight:600;color:#1E6B47">단어</span>
+      </span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C4BDB6" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+      <span style="display:inline-flex;align-items:center;gap:7px">
+        <span style="width:24px;height:24px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">3</span>
+        <span style="font-size:13px;font-weight:700">유형·설정</span>
+      </span>
+    </div>
+
+    <div style="margin-top:16px;background:#fff;border:1px solid #EBE5DE;border-radius:16px;padding:22px 24px">
+      <div style="font-size:16px;font-weight:700;letter-spacing:-.2px">설정과 생성</div>
+      <div style="font-size:12.5px;color:#8A837D;margin-top:4px">올리비아 · 단어 3개 · 세트당 5단어 → 1세트</div>
+
+      <div style="margin-top:16px;font-size:12.5px;font-weight:600;color:#4A443F">퀴즈 제목</div>
+      <div style="margin-top:8px;background:#FAF8F5;border:1px solid #E3DCD3;border-radius:11px;padding:12px 15px;font-size:13px;color:#4A443F;font-weight:600;display:flex;align-items:center;justify-content:space-between">
+        올리비아 오답 복습 · 8월 22일
+        <span style="font-size:11.5px;color:#8A837D;font-weight:500">수정 가능</span>
+      </div>
+
+      <div style="margin-top:18px;font-size:12.5px;font-weight:600;color:#4A443F">문장 출처</div>
+      <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="border:1.5px solid #1E6B47;background:#F4F9F6;border-radius:11px;padding:13px 15px;display:flex;align-items:center;justify-content:space-between">
+          <div><div style="font-size:13px;font-weight:700">틀렸던 문장 그대로</div><div style="font-size:11px;color:#5C7D6C;margin-top:2px">학생이 실제로 본 문장</div></div>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg>
+        </div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:13px 15px">
+          <div style="font-size:13px;font-weight:700">AI로 새 예문 생성</div><div style="font-size:11px;color:#8A837D;margin-top:2px">같은 단어, 다른 문장</div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;display:flex;align-items:baseline;justify-content:space-between">
+        <span style="font-size:12.5px;font-weight:600;color:#4A443F">퀴즈 유형</span>
+        <span style="font-size:11.5px;color:#8A837D">2개 선택 · 선택한 유형이 모두 같은 단어에 적용됩니다</span>
+      </div>
+      <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="border:1.5px solid #1E6B47;background:#F4F9F6;border-radius:11px;padding:13px 15px;display:flex;align-items:center;justify-content:space-between">
+          <div><div style="font-size:13px;font-weight:700">빈칸 채우기</div><div style="font-size:11px;color:#5C7D6C;margin-top:2px">문장 완성하기</div></div>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg>
+        </div>
+        <div style="border:1.5px solid #1E6B47;background:#F4F9F6;border-radius:11px;padding:13px 15px;display:flex;align-items:center;justify-content:space-between">
+          <div><div style="font-size:13px;font-weight:700">단어 받아쓰기</div><div style="font-size:11px;color:#5C7D6C;margin-top:2px">뜻 보고 단어 쓰기</div></div>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg>
+        </div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:13px 15px">
+          <div style="font-size:13px;font-weight:700">짝 맞추기</div><div style="font-size:11px;color:#8A837D;margin-top:2px">단어 매칭</div>
+        </div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:13px 15px">
+          <div style="font-size:13px;font-weight:700">문장 순서 맞추기</div><div style="font-size:11px;color:#8A837D;margin-top:2px">순서대로 단어 배치</div>
+        </div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:13px 15px">
+          <div style="font-size:13px;font-weight:700">문장 만들기</div><div style="font-size:11px;color:#8A837D;margin-top:2px">단어 보고 문장 쓰기</div>
+        </div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:13px 15px">
+          <div style="font-size:13px;font-weight:700">말하기 연습</div><div style="font-size:11px;color:#8A837D;margin-top:2px">읽거나 듣고 따라 말하기</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;font-size:12.5px;color:#1E6B47;font-weight:600">추가 설정 (난이도 · 세트당 단어 수 · 번역 언어 · 제한 시간) ⌄</div>
+
+      <div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12px;color:#8A837D">배정: 올리비아에게만</span>
+        <div style="display:flex;gap:8px">
+          <span style="font-size:13px;font-weight:600;color:#4A443F;border:1px solid #E3DCD3;border-radius:11px;padding:11px 18px">이전</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#fff;background:#1E6B47;border-radius:11px;padding:11px 20px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"><path d="M12 2l2.2 6.4L21 10l-6.8 1.6L12 18l-2.2-6.4L3 10l6.8-1.6z"></path></svg>
+            퀴즈 만들기
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:860px">"틀렸던 문장 그대로"는 빈칸 채우기 오답이 있는 단어에만 가능합니다 — 없는 단어가 섞이면 그 단어만 자동으로 AI 생성으로 넘어가고, 지금처럼 <b>선생님에게 토글을 켜라고 요구하지 않습니다</b>.</p>
+</div>
+
+<div class="dv-opt" id="4c">
+<div class="dv-olabel"><a class="dv-oid" href="#4c">4c</a>어휘 보강 2단계 — 목록 형태(단어 + 뜻 + 예문 인라인)는 현재 것이 이미 적절해 유지했습니다. 바뀐 곳은 스크롤 목록 <b>아래에도 선택 개수와 다음 버튼</b>, 그리고 단계 이름을 오답 쪽과 <b>같은 골격</b>(학생 / 단어 / 유형·설정)으로 맞춘 것입니다. 제목 입력은 두 화면 모두 3단계로 모았습니다(<a href="#4b">4b</a>).</div>
+<div class="dv-card" style="width:860px">
+  <div style="padding:24px 28px 26px;background:#FAF8F5">
+    <div style="display:flex;align-items:center;gap:9px">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="1.8" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+      <div style="font-size:20px;font-weight:700;letter-spacing:-.4px">어휘 보강 퀴즈 만들기</div>
+    </div>
+    <div style="font-size:12.5px;color:#8A837D;margin-top:5px">레벨을 지정해 문장 은행에서 문제를 뽑아 특정 학생에게만 보내요.</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:16px">
+      <span style="display:inline-flex;align-items:center;gap:7px">
+        <span style="width:24px;height:24px;border-radius:50%;background:#1E6B47;display:grid;place-items:center;flex:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+        <span style="font-size:13px;font-weight:600;color:#1E6B47">학생</span>
+      </span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C4BDB6" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+      <span style="display:inline-flex;align-items:center;gap:7px">
+        <span style="width:24px;height:24px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">2</span>
+        <span style="font-size:13px;font-weight:700">단어</span>
+      </span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C4BDB6" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+      <span style="display:inline-flex;align-items:center;gap:7px;opacity:.45">
+        <span style="width:24px;height:24px;border-radius:50%;border:1.5px solid #C4BDB6;color:#8A837D;display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">3</span>
+        <span style="font-size:13px;font-weight:600;color:#6B6460">유형·설정</span>
+      </span>
+    </div>
+
+    <div style="margin-top:16px;background:#fff;border:1px solid #EBE5DE;border-radius:16px;padding:22px 24px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between">
+        <div>
+          <div style="font-size:16px;font-weight:700;letter-spacing:-.2px">보강할 단어</div>
+          <div style="font-size:12.5px;color:#8A837D;margin-top:4px">올리비아 · 학생 1명 · <b style="color:#1A1714">10개</b> 선택됨</div>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:#8A837D">438개 중</span>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:7px">
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:700;color:#15803D;background:#DCFCE7;border:1.5px solid #15803D;border-radius:10px;padding:9px 0">A1</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">A2</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">B1</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">B2</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">C1</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">C2</span>
+      </div>
+
+      <div style="margin-top:12px;display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+        <span style="font-size:12.5px;color:#4A443F;font-weight:600">개수</span>
+        <span style="background:#FAF8F5;border:1px solid #E3DCD3;border-radius:9px;padding:9px 16px;font-size:12.5px;font-weight:600">10</span>
+        <span style="flex:1;min-width:150px;background:#FAF8F5;border:1px solid #E3DCD3;border-radius:9px;padding:9px 13px;font-size:12.5px;color:#4A443F;font-weight:600;display:flex;align-items:center;justify-content:space-between">전체 배치 <span style="color:#A29B94">⌄</span></span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#1E6B47;border:1px solid #C8DED3;border-radius:9px;padding:9px 12px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.1" stroke-linecap="round"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg>
+          다시 뽑기
+        </span>
+      </div>
+
+      <div style="margin-top:12px;display:flex;align-items:center;gap:8px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:10px;padding:10px 13px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A837D" stroke-width="2" stroke-linecap="round" style="flex:none"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v.01M12 11v5"></path></svg>
+        <span style="font-size:11.5px;color:#6B6460;line-height:1.5">이 학생에게 이미 보낸 어휘 보강 단어는 목록에서 제외했습니다.</span>
+      </div>
+
+      <div style="margin-top:14px;border:1px solid #EFE9E2;border-radius:13px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:11px;padding:11px 15px;background:#FBF9F6;border-bottom:1px solid #EFE9E2">
+          <span style="width:18px;height:18px;border-radius:50%;border:1.5px solid #C4BDB6;flex:none"></span>
+          <span style="font-size:12.5px;font-weight:600;color:#4A443F">전체 선택 / 해제</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:11px;padding:12px 15px;border-bottom:1px solid #F4F0EA">
+          <span style="width:18px;height:18px;border-radius:50%;background:#1E6B47;display:grid;place-items:center;flex:none;margin-top:1px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13.5px;font-weight:700">공중에 떠있다</span><span style="font-size:12px;color:#8A837D">to float in the air</span></div>
+            <div style="font-size:12.5px;color:#6B6460;margin-top:3px">비행기가 공중에 떠 있어요.</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:11px;padding:12px 15px;border-bottom:1px solid #F4F0EA">
+          <span style="width:18px;height:18px;border-radius:50%;background:#1E6B47;display:grid;place-items:center;flex:none;margin-top:1px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13.5px;font-weight:700">너무</span><span style="font-size:12px;color:#8A837D">too</span></div>
+            <div style="font-size:12.5px;color:#6B6460;margin-top:3px">너무 피곤해서 지금 자고 싶어요.</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:11px;padding:12px 15px;border-bottom:1px solid #F4F0EA">
+          <span style="width:18px;height:18px;border-radius:50%;background:#1E6B47;display:grid;place-items:center;flex:none;margin-top:1px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13.5px;font-weight:700">닫다</span><span style="font-size:12px;color:#8A837D">to close</span></div>
+            <div style="font-size:12.5px;color:#6B6460;margin-top:3px">저는 밤에 창문을 닫아요.</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:11px;padding:12px 15px">
+          <span style="width:18px;height:18px;border-radius:50%;border:1.5px solid #D5CEC6;flex:none;margin-top:1px"></span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13.5px;font-weight:700;color:#4A443F">목</span><span style="font-size:12px;color:#8A837D">neck</span></div>
+            <div style="font-size:12.5px;color:#8A837D;margin-top:3px">어머니께서 제 목에 목걸이를 걸어 주셨어요.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12.5px;color:#8A837D"><b style="color:#1A1714">10개</b> 선택됨 · 438개 중</span>
+        <div style="display:flex;gap:8px">
+          <span style="font-size:13px;font-weight:600;color:#4A443F;border:1px solid #E3DCD3;border-radius:11px;padding:11px 18px">이전</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#fff;background:#1E6B47;border-radius:11px;padding:11px 18px">다음 · 유형·설정으로 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:860px">"하루 노출 개수 / 복습 큐에 바로 추가"는 이 단계의 다른 입력과 성격이 달라(퀴즈 만들기가 아니라 복습 큐 적재) 3단계로 옮기는 편이 낫습니다. 제목 입력을 열려면 <code>ilike('%어휘 보강%')</code>로 이미 보낸 단어를 찾는 현재 방식을 <code>kind</code> 컬럼으로 바꿔야 합니다.</p>
+</div>
+
+</div>
+</section>
+
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">퀴즈 만들기 — 단계별 노출</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="3a">
+<div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>퀴즈 만들기 진입 직후. 세 흐름은 데이터 소스와 마법사가 달라 <b>페이지를 합치지 않고</b>, 상단에 얇은 <b>연결 줄</b>만 둡니다 — 발견성 문제만 해결하고 구조는 그대로. 아래 단계는 비활성 목록으로 존재를 알립니다.</div>
+<div class="dv-card" style="width:756px">
+  <div style="padding:26px 30px 30px;background:#FAF8F5">
+    <div style="display:flex;align-items:center;gap:10px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+      <div style="font-size:21px;font-weight:700;letter-spacing:-.4px">퀴즈 만들기</div>
+    </div>
+    <div style="margin-top:18px;background:#fff;border:1px solid #EBE5DE;border-radius:18px;padding:26px 28px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:20px;border-bottom:1px solid #F2EDE7">
+        <span style="font-size:12px;color:#8A837D;margin-right:2px">다른 방식으로 만들기</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;border:1px solid #E3DCD3;border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:600;color:#4A443F">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B4552D" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg>
+          오답 복습 <span style="color:#8A837D;font-weight:500">오스틴 12 · 사라 8</span>
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:6px;border:1px solid #E3DCD3;border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:600;color:#4A443F">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          어휘 보강
+        </span>
+      </div>
+
+      <div style="margin-top:22px;display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none">1</div>
+        <div style="font-size:15.5px;font-weight:700;letter-spacing:-.2px">퀴즈 제목과 단어</div>
+      </div>
+      <div style="margin-top:13px;display:flex;gap:6px;background:#F5F1EB;border-radius:11px;padding:4px">
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:700;color:#fff;background:#1E6B47;border-radius:8px;padding:9px 0">단어 입력</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;padding:9px 0">프롬프트 입력</span>
+      </div>
+      <div style="margin-top:11px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:11px;padding:13px 15px;font-size:13px;color:#A29B94">퀴즈 제목 <span style="color:#B4552D">*</span></div>
+      <div style="margin-top:10px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:11px;padding:14px 15px;font-size:13px;color:#A29B94;line-height:1.7;min-height:88px">학생, 선생님, 먹다, 마시다, 마음에 들다, 예쁘다<br><br>또는 한 줄에 하나씩</div>
+      <div style="display:flex;justify-content:space-between;margin-top:9px;font-size:11.5px;color:#8A837D"><span>입력된 단어: <b style="color:#1A1714">0개</b></span><span>쉼표(,) 또는 줄바꿈으로 구분</span></div>
+
+      <div style="margin-top:24px;padding-top:20px;border-top:1px solid #F2EDE7;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:10px;opacity:.42">
+          <div style="width:24px;height:24px;border-radius:50%;border:1.5px solid #C4BDB6;color:#8A837D;display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">2</div>
+          <span style="font-size:13.5px;font-weight:600;color:#6B6460">난이도 · 퀴즈 유형</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;opacity:.42">
+          <div style="width:24px;height:24px;border-radius:50%;border:1.5px solid #C4BDB6;color:#8A837D;display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">3</div>
+          <span style="font-size:13.5px;font-weight:600;color:#6B6460">추가 설정 (세트당 단어 수 · 번역 언어 · 제한 시간)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="3b">
+<div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a><b style="color:#B4552D">폐기</b> — 네 갈래를 한 페이지에서 고르는 전제였으나, 오답·어휘 보강이 이미 별도 페이지로 존재해 성립하지 않습니다. 단계 접기 방식만 <a href="#3d">3d</a>·<a href="#3e">3e</a>로 옮겼습니다.</div>
+<div class="dv-card" style="width:756px">
+  <div style="padding:26px 30px 30px;background:#FAF8F5">
+    <div style="display:flex;align-items:center;gap:10px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+      <div style="font-size:21px;font-weight:700;letter-spacing:-.4px">퀴즈 만들기</div>
+    </div>
+    <div style="margin-top:18px;background:#fff;border:1px solid #EBE5DE;border-radius:18px;padding:22px 28px 26px">
+
+      <div style="display:flex;align-items:center;gap:12px;background:#F4F9F6;border:1px solid #DCE9E2;border-radius:12px;padding:12px 15px">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.3" stroke-linecap="round" style="flex:none"><path d="M20 6L9 17l-5-5"></path></svg>
+        <div style="flex:1;min-width:0;display:flex;align-items:baseline;gap:8px">
+          <span style="font-size:11px;font-weight:700;color:#7FA893;letter-spacing:.04em">1</span>
+          <span style="font-size:13.5px;font-weight:700">단어를 직접 입력</span>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:#1E6B47">변경</span>
+      </div>
+
+      <div style="margin-top:24px;display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none">2</div>
+        <div style="font-size:15.5px;font-weight:700;letter-spacing:-.2px">퀴즈 제목과 단어</div>
+      </div>
+      <div style="margin-top:13px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:11px;padding:13px 15px;font-size:13px;color:#A29B94">예: 1과 어휘 퀴즈</div>
+      <div style="margin-top:10px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:11px;padding:14px 15px;font-size:13px;color:#A29B94;line-height:1.7;min-height:92px">학생, 선생님, 먹다, 마시다, 마음에 들다, 예쁘다<br>또는 한 줄에 하나씩</div>
+      <div style="margin-top:9px;font-size:11.5px;color:#8A837D">입력된 단어: <b style="color:#1A1714">0개</b> · 쉼표(,) 또는 줄바꿈으로 구분</div>
+
+      <div style="margin-top:26px;padding-top:22px;border-top:1px solid #F2EDE7;display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none">3</div>
+        <div style="font-size:15.5px;font-weight:700;letter-spacing:-.2px">난이도와 유형</div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:7px">
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border:1.5px solid #1E6B47;border-radius:10px;padding:9px 0">A1</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">A2</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">B1</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">B2</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">C1</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">C2</span>
+      </div>
+      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600">짝 맞추기</div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600">단어 받아쓰기</div>
+        <div style="border:1.5px solid #1E6B47;background:#F4F9F6;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between">빈칸 채우기<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg></div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600">문장 순서 맞추기</div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600">문장 만들기</div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600">말하기 연습</div>
+      </div>
+      <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:#1E6B47;font-weight:600">추가 설정 (세트당 단어 수 · 번역 언어 · 제한 시간) ⌄</div>
+
+      <div style="margin-top:20px;background:#CBD9D1;color:#fff;font-size:14px;font-weight:700;border-radius:13px;padding:15px 0;text-align:center">AI로 퀴즈 생성</div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:756px">6단계를 3단계로 합쳤습니다 — 제목·단어는 한 덩어리, 난이도·유형·설정도 한 덩어리(설정은 접힘).</p>
+</div>
+
+<div class="dv-opt" id="3c">
+<div class="dv-olabel"><a class="dv-oid" href="#3c">3c</a>프롬프트 입력 모드. 소스 확인 결과 <b>문제 수 선택은 이미 있습니다</b>(자동 / 5~40, <code>PROBLEM_COUNT_OPTIONS</code>) — 새로 넣을 필요 없이 배치만 정리했습니다. 프롬프트는 단어 목록이 아니라 <b>지문·단어·문법 요청을 함께 쓰는 칸</b>이라 예시를 실제 것으로 바꿨습니다.</div>
+<div class="dv-card" style="width:756px">
+  <div style="padding:26px 30px 30px;background:#FAF8F5">
+    <div style="display:flex;align-items:center;gap:10px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+      <div style="font-size:21px;font-weight:700;letter-spacing:-.4px">퀴즈 만들기</div>
+    </div>
+    <div style="margin-top:18px;background:#fff;border:1px solid #EBE5DE;border-radius:18px;padding:22px 28px 26px">
+      <div style="display:flex;align-items:center;gap:12px;background:#F4F9F6;border:1px solid #DCE9E2;border-radius:12px;padding:12px 15px">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.3" stroke-linecap="round" style="flex:none"><path d="M20 6L9 17l-5-5"></path></svg>
+        <div style="flex:1;min-width:0;display:flex;align-items:baseline;gap:8px">
+          <span style="font-size:11px;font-weight:700;color:#7FA893;letter-spacing:.04em">1</span>
+          <span style="font-size:13.5px;font-weight:700">프롬프트로 설명</span>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:#1E6B47">변경</span>
+      </div>
+
+      <div style="margin-top:24px;display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none">2</div>
+        <div style="font-size:15.5px;font-weight:700;letter-spacing:-.2px">어떤 단어가 필요한가요</div>
+      </div>
+      <div style="margin-top:13px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:11px;padding:14px 15px;font-size:13px;color:#A29B94;line-height:1.7;min-height:96px">어제 서울 지하철 2호선에서 작은 화재가 났다. 승객들은 안내 방송에 따라 침착하게 대피했고, 다친 사람은 없었다.<br><br>단어: 화재, 승객, 대피하다, 침착하다, 전선<br><br>이번 수업에서 '-느라고'를 배웠으니 3문제는 그 문법으로 만들어 주세요.</div>
+      <div style="display:flex;justify-content:space-between;margin-top:9px;font-size:11.5px;color:#8A837D"><span>지문·단어·문법 요청을 함께 쓸 수 있습니다</span><span>0 / 8,000자</span></div>
+      <div style="margin-top:13px;display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+        <span style="font-size:12.5px;color:#4A443F;font-weight:600">문제 수</span>
+        <div style="display:flex;gap:6px">
+          <span style="font-size:12px;font-weight:700;color:#1E6B47;background:#E8F1EB;border:1.5px solid #1E6B47;border-radius:8px;padding:6px 12px">자동</span>
+          <span style="font-size:12px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:8px;padding:7px 13px">10</span>
+          <span style="font-size:12px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:8px;padding:7px 13px">20</span>
+          <span style="font-size:12px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:8px;padding:7px 13px">30</span>
+          <span style="font-size:12px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:8px;padding:7px 13px">40</span>
+        </div>
+      </div>
+      <div style="margin-top:13px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:11px;padding:13px 15px;font-size:13px;color:#A29B94">퀴즈 제목 <span style="color:#B4552D">*</span></div>
+
+      <div style="margin-top:26px;padding-top:22px;border-top:1px solid #F2EDE7;display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none">3</div>
+        <div style="font-size:15.5px;font-weight:700;letter-spacing:-.2px">난이도와 유형</div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:7px">
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border:1.5px solid #1E6B47;border-radius:10px;padding:9px 0">A1</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">A2</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">B1</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">B2</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">C1</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">C2</span>
+      </div>
+      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="border:1.5px solid #1E6B47;background:#F4F9F6;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between">짝 맞추기<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg></div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600">단어 받아쓰기</div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600">빈칸 채우기</div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600">문장 순서 맞추기</div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600">문장 만들기</div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:12px 14px;font-size:13px;font-weight:600">말하기 연습</div>
+      </div>
+      <div style="margin-top:14px;font-size:12.5px;color:#1E6B47;font-weight:600">추가 설정 (세트당 단어 수 · 번역 언어 · 제한 시간) ⌄</div>
+      <div style="margin-top:20px;background:#1E6B47;color:#fff;font-size:14px;font-weight:700;border-radius:13px;padding:15px 0;text-align:center">AI로 퀴즈 생성</div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:756px">"자동"은 엣지 함수가 프롬프트 속 단어 수에 맞춰 정하는 현재 기본값(<code>problemCount = null</code>)입니다. 프롬프트 모드는 배치 분할이 없어 40문제가 상한입니다. 제목은 두 모드 모두 필수라(<code>canGenerate</code>) 자동 생성 제안은 넣지 않았습니다.</p>
+</div>
+
+<div class="dv-opt" id="3d">
+<div class="dv-olabel"><a class="dv-oid" href="#3d">3d</a><b style="color:#B4552D">대체됨 → <a href="#4a">4a</a>·<a href="#4b">4b</a></b>. 문장을 보여주지 않아 선생님이 고를 근거가 없었습니다. 오답 복습 퀴즈 (별도 페이지). 소스의 3단계 <code>대상 / 문제 선택 / 설정·생성</code>을 그대로 쓰고, 각 단계를 <b>완료 후 접기</b>로 바꿨습니다. 유형은 <b>빈칸 채우기·받아쓰기 두 개뿐</b>입니다.</div>
+<div class="dv-card" style="width:756px">
+  <div style="padding:26px 30px 30px;background:#FAF8F5">
+    <div style="display:flex;align-items:center;gap:10px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+      <div style="font-size:21px;font-weight:700;letter-spacing:-.4px">퀴즈 만들기</div>
+    </div>
+    <div style="margin-top:18px;background:#fff;border:1px solid #EBE5DE;border-radius:18px;padding:22px 28px 26px">
+      <div style="display:flex;align-items:center;gap:12px;background:#F4F9F6;border:1px solid #DCE9E2;border-radius:12px;padding:12px 15px">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.3" stroke-linecap="round" style="flex:none"><path d="M20 6L9 17l-5-5"></path></svg>
+        <div style="flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:700;color:#7FA893;letter-spacing:.04em">1</span>
+          <span style="font-size:13.5px;font-weight:700">대상</span>
+          <span style="font-size:12.5px;color:#5C7D6C">오스틴 클래스 · 학생 1명</span>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:#1E6B47">변경</span>
+      </div>
+
+      <div style="margin-top:24px;display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none">2</div>
+        <div style="font-size:15.5px;font-weight:700;letter-spacing:-.2px">문제 선택</div>
+        <span style="font-size:12.5px;color:#8A837D">12개 중 <b style="color:#1A1714">11개</b> 선택</span>
+      </div>
+      <div style="margin-top:13px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:12px;padding:15px">
+        <div style="display:flex;flex-wrap:wrap;gap:7px">
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">마음에 들다 <span style="color:#B4552D;font-weight:700">3회</span> <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">불편하다 <span style="color:#B4552D;font-weight:700">3회</span> <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">약속하다 <span style="color:#B4552D;font-weight:700">2회</span> <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">조용하다 <span style="color:#B4552D;font-weight:700">2회</span> <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">그만두다 <span style="color:#8A837D;font-weight:700">1회</span> <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">서두르다 <span style="color:#8A837D;font-weight:700">1회</span> <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">지키다 <span style="color:#8A837D;font-weight:700">1회</span> <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">빌리다 <span style="color:#8A837D;font-weight:700">1회</span> <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">고치다 <span style="color:#8A837D;font-weight:700">1회</span> <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">참다 <span style="color:#8A837D;font-weight:700">1회</span> <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">놓치다 <span style="color:#8A837D;font-weight:700">1회</span> <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;color:#A29B94;background:#F1EDE7;border:1px dashed #DCD4CA;border-radius:8px;padding:7px 11px">어제 친구를 만났어요 <span style="font-size:10.5px;color:#8A837D">문장 순서 · 선택 불가</span></span>
+        </div>
+        <div style="margin-top:13px;padding-top:12px;border-top:1px solid #EFE9E2;font-size:11.5px;color:#8A837D;line-height:1.6">틀린 횟수가 많은 순서. 문장 순서 맞추기 오답은 단어가 아니라 문장 전체라 어휘 퀴즈로 만들 수 없어 흐리게 표시합니다.</div>
+      </div>
+      <div style="margin-top:11px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:11px;padding:13px 15px;font-size:13px;color:#4A443F;font-weight:600">오스틴 오답 복습 · 8월 20일</div>
+
+      <div style="margin-top:26px;padding-top:22px;border-top:1px solid #F2EDE7;display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none">3</div>
+        <div style="font-size:15.5px;font-weight:700;letter-spacing:-.2px">설정과 생성</div>
+      </div>
+      <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="border:1.5px solid #1E6B47;background:#F4F9F6;border-radius:11px;padding:13px 14px;display:flex;align-items:center;justify-content:space-between">
+          <div><div style="font-size:13px;font-weight:700">빈칸 채우기</div><div style="font-size:11px;color:#5C7D6C;margin-top:2px">문장 완성하기</div></div>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg>
+        </div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:13px 14px">
+          <div style="font-size:13px;font-weight:700">단어 받아쓰기</div><div style="font-size:11px;color:#8A837D;margin-top:2px">뜻 보고 단어 쓰기</div>
+        </div>
+      </div>
+      <div style="margin-top:11px;display:flex;align-items:center;gap:9px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:11px;padding:11px 14px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A837D" stroke-width="2" stroke-linecap="round" style="flex:none"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v.01M12 11v5"></path></svg>
+        <span style="font-size:12px;color:#6B6460;line-height:1.5">오답 복습에서는 이 두 유형만 만들 수 있습니다. 짝 맞추기·문장 순서 맞추기는 오답 데이터로 문제를 구성할 수 없습니다.</span>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:7px">
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border:1.5px solid #1E6B47;border-radius:10px;padding:9px 0">A1 입문</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">A2 기초</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">B1 중급</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">B2 중상급</span>
+      </div>
+      <div style="margin-top:12px;font-size:12.5px;color:#1E6B47;font-weight:600">추가 설정 (세트당 단어 수 · 번역 언어 · 제한 시간) ⌄</div>
+      <div style="margin-top:20px;background:#1E6B47;color:#fff;font-size:14px;font-weight:700;border-radius:13px;padding:15px 0;text-align:center">AI로 퀴즈 생성</div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:756px">단어별 <b>틀린 횟수</b>는 <code>get_class_wrong_answers</code>가 이미 집계해 돌려주므로 새 데이터가 필요 없습니다. 화면에 추가되는 건 단계 접기와 선택 불가 사유 표시뿐입니다.</p>
+</div>
+
+<div class="dv-opt" id="3e">
+<div class="dv-olabel"><a class="dv-oid" href="#3e">3e</a><b style="color:#B4552D">대체됨 → <a href="#4c">4c</a></b>. 단어 칩만 두어 뜻·예문이 사라졌습니다. 어휘 보강 퀴즈 (별도 페이지). "이전 퀴즈에서 만들기"라는 기능은 없었습니다 — 실제로는 <b>레벨을 지정해 문장 은행에서 뽑는</b> 흐름입니다. 소스의 3단계 <code>학생 선택 / 레벨·단어 / 유형·생성</code>을 따릅니다.</div>
+<div class="dv-card" style="width:756px">
+  <div style="padding:26px 30px 30px;background:#FAF8F5">
+    <div style="display:flex;align-items:center;gap:10px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+      <div style="font-size:21px;font-weight:700;letter-spacing:-.4px">퀴즈 만들기</div>
+    </div>
+    <div style="margin-top:18px;background:#fff;border:1px solid #EBE5DE;border-radius:18px;padding:22px 28px 26px">
+      <div style="display:flex;align-items:center;gap:12px;background:#F4F9F6;border:1px solid #DCE9E2;border-radius:12px;padding:12px 15px">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.3" stroke-linecap="round" style="flex:none"><path d="M20 6L9 17l-5-5"></path></svg>
+        <div style="flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:700;color:#7FA893;letter-spacing:.04em">1</span>
+          <span style="font-size:13.5px;font-weight:700">학생 선택</span>
+          <span style="font-size:12.5px;color:#5C7D6C">오스틴 클래스 · 오스틴</span>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:#1E6B47">변경</span>
+      </div>
+
+      <div style="margin-top:24px;display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none">2</div>
+        <div style="font-size:15.5px;font-weight:700;letter-spacing:-.2px">레벨과 단어</div>
+      </div>
+      <div style="margin-top:13px;display:flex;gap:7px">
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:700;color:#0E7490;background:#CFFAFE;border:1.5px solid #0E7490;border-radius:10px;padding:9px 0">A2</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">A1</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">B1</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">B2</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">C1</span>
+        <span style="flex:1;text-align:center;font-size:12.5px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:10px;padding:9px 0">C2</span>
+      </div>
+      <div style="margin-top:11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px;background:#FAF8F5;border:1px solid #E3DCD3;border-radius:10px;padding:10px 13px;font-size:12.5px;color:#4A443F;font-weight:600;display:flex;align-items:center;justify-content:space-between">배치: 전체<span style="color:#A29B94">⌄</span></div>
+        <span style="font-size:12.5px;color:#4A443F;font-weight:600">단어 수</span>
+        <div style="display:flex;gap:6px">
+          <span style="font-size:12px;font-weight:700;color:#1E6B47;background:#E8F1EB;border:1.5px solid #1E6B47;border-radius:8px;padding:6px 12px">10</span>
+          <span style="font-size:12px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:8px;padding:7px 13px">15</span>
+          <span style="font-size:12px;font-weight:600;color:#6B6460;background:#F5F1EB;border-radius:8px;padding:7px 13px">20</span>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#1E6B47;border:1px solid #C8DED3;border-radius:8px;padding:6px 11px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.1" stroke-linecap="round"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg>
+          다시 뽑기
+        </span>
+      </div>
+      <div style="margin-top:11px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:12px;padding:15px">
+        <div style="display:flex;flex-wrap:wrap;gap:7px">
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">먹다 <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">마시다 <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">마음에 들다 <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">예쁘다 <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">조용하다 <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">불편하다 <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">약속하다 <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DCD4CA;border-radius:8px;padding:7px 11px">서두르다 <span style="color:#B9B2AB">✕</span></span>
+          <span style="font-size:12.5px;color:#8A837D;font-weight:600;padding:7px 4px">+2개</span>
+        </div>
+        <div style="margin-top:13px;padding-top:12px;border-top:1px solid #EFE9E2;font-size:11.5px;color:#8A837D;line-height:1.6">A2 문장 은행에서 무작위로 뽑았습니다. ✕로 빼거나 다시 뽑을 수 있습니다.</div>
+      </div>
+      <div style="margin-top:11px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:11px;padding:13px 15px;font-size:13px;color:#4A443F;font-weight:600">오스틴 A2 어휘 보강 · 8월 20일</div>
+
+      <div style="margin-top:26px;padding-top:22px;border-top:1px solid #F2EDE7;display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none">3</div>
+        <div style="font-size:15.5px;font-weight:700;letter-spacing:-.2px">유형과 생성</div>
+      </div>
+      <div style="margin-top:13px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:13px 14px"><div style="font-size:13px;font-weight:700">짝 맞추기</div><div style="font-size:11px;color:#8A837D;margin-top:2px">단어 매칭</div></div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:13px 14px"><div style="font-size:13px;font-weight:700">단어 받아쓰기</div><div style="font-size:11px;color:#8A837D;margin-top:2px">뜻 보고 단어 쓰기</div></div>
+        <div style="border:1.5px solid #1E6B47;background:#F4F9F6;border-radius:11px;padding:13px 14px;display:flex;align-items:center;justify-content:space-between">
+          <div><div style="font-size:13px;font-weight:700">빈칸 채우기</div><div style="font-size:11px;color:#5C7D6C;margin-top:2px">문장 완성하기</div></div>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"></path></svg>
+        </div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:13px 14px"><div style="font-size:13px;font-weight:700">문장 순서 맞추기</div><div style="font-size:11px;color:#8A837D;margin-top:2px">순서대로 단어 배치</div></div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:13px 14px"><div style="font-size:13px;font-weight:700">문장 만들기</div><div style="font-size:11px;color:#8A837D;margin-top:2px">단어 보고 문장 쓰기</div></div>
+        <div style="border:1px solid #E7E1DA;border-radius:11px;padding:13px 14px"><div style="font-size:13px;font-weight:700">말하기 연습</div><div style="font-size:11px;color:#8A837D;margin-top:2px">읽거나 듣고 따라 말하기</div></div>
+      </div>
+      <div style="margin-top:11px;display:flex;align-items:center;gap:9px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:11px;padding:11px 14px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A837D" stroke-width="2" stroke-linecap="round" style="flex:none"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v.01M12 11v5"></path></svg>
+        <span style="font-size:12px;color:#6B6460;line-height:1.5">문장 은행에서 뽑았으므로 6가지 유형을 모두 만들 수 있습니다. 배정은 <b>선택한 학생에게만</b> 이뤄집니다 — 반 전체에 노출되지 않습니다.</span>
+      </div>
+      <div style="margin-top:12px;font-size:12.5px;color:#1E6B47;font-weight:600">추가 설정 (세트당 단어 수 · 번역 언어 · 제한 시간) ⌄</div>
+      <div style="margin-top:20px;background:#1E6B47;color:#fff;font-size:14px;font-weight:700;border-radius:13px;padding:15px 0;text-align:center">AI로 퀴즈 생성</div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:756px">오답 이력과 무관하게 "이 학생은 A2가 부족하다"는 판단으로 뽑는 기능입니다. <code>quiz_assignments</code>에 <code>student_id</code>만 넣고 <code>class_id</code>는 넣지 않는 현재 규칙을 화면에도 문장으로 드러냈습니다.</p>
+</div>
+
+</div>
+</section>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">레일 보강 · 상태별 히어로</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a">
+<div class="dv-olabel" style="max-width:1180px"><a class="dv-oid" href="#2a">2a</a>레일 보강. 요약 카드(클래스 27)는 그대로 두고, 최근 만든 퀴즈 아래에 <b>최근 활동 클래스</b> 카드를 추가했습니다. 카드 하단에 새 클래스 만들기.</div>
+<div class="dv-card w">
+  <div style="padding:26px 30px 32px;background:#FAF8F5">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <div style="font-size:21px;font-weight:700;letter-spacing:-.4px">안녕하세요, JK 선생님</div>
+      <div style="font-size:12px;color:#8A837D">2026년 8월 20일 목요일</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 296px;gap:20px;margin-top:18px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="background:#1E6B47;border-radius:18px;padding:26px 28px 22px;color:#fff">
+          <div style="font-size:11.5px;font-weight:600;letter-spacing:.06em;color:rgba(255,255,255,.62)">확인할 결과</div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-top:6px">
+            <div style="font-size:22px;font-weight:700;letter-spacing:-.4px">제출된 퀴즈 5건</div>
+            <div style="font-size:12.5px;font-weight:600;color:rgba(255,255,255,.82);white-space:nowrap">전체 보기 →</div>
+          </div>
+          <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.11);border-radius:12px;padding:13px 16px">
+              <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">JK</div>
+              <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600">서울대 1B pt.3</div><div style="font-size:11.5px;color:rgba(255,255,255,.62);margin-top:2px">오스틴 · 2시간 전 제출</div></div>
+              <div style="font-size:15px;font-weight:700">18/20</div>
+              <div style="background:#fff;color:#1E6B47;font-size:12px;font-weight:700;border-radius:9px;padding:8px 15px">결과 보기</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.11);border-radius:12px;padding:13px 16px">
+              <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">사라</div>
+              <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600">8.15 사라</div><div style="font-size:11.5px;color:rgba(255,255,255,.62);margin-top:2px">사라 · 어제 제출</div></div>
+              <div style="font-size:15px;font-weight:700">11/15</div>
+              <div style="background:#fff;color:#1E6B47;font-size:12px;font-weight:700;border-radius:9px;padding:8px 15px">결과 보기</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.11);border-radius:12px;padding:13px 16px">
+              <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">유나</div>
+              <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600">서울대 1B pt.2</div><div style="font-size:11.5px;color:rgba(255,255,255,.62);margin-top:2px">유나 · 2일 전 제출</div></div>
+              <div style="font-size:15px;font-weight:700">20/20</div>
+              <div style="background:#fff;color:#1E6B47;font-size:12px;font-weight:700;border-radius:9px;padding:8px 15px">결과 보기</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:16px;padding:20px 22px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <div style="font-size:14.5px;font-weight:700;letter-spacing:-.2px">아직 안 푼 학생 <span style="color:#B4552D">2명</span></div>
+            <div style="font-size:12px;color:#1E6B47;font-weight:600">전체 배정 보기 →</div>
+          </div>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:1px">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid #F2EDE7">
+              <div style="width:26px;height:26px;border-radius:50%;background:#F3F0EA;display:grid;place-items:center;font-size:10.5px;font-weight:700;color:#6B6460;flex:none">막스</div>
+              <div style="flex:1;min-width:0;font-size:13px;font-weight:600">막스</div>
+              <div style="font-size:12px;color:#8A837D">8.8 사라 · 12일 전 배정</div>
+              <div style="border:1px solid #E3DCD3;color:#4A443F;font-size:11.5px;font-weight:600;border-radius:8px;padding:6px 12px">재알림</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid #F2EDE7">
+              <div style="width:26px;height:26px;border-radius:50%;background:#F3F0EA;display:grid;place-items:center;font-size:10.5px;font-weight:700;color:#6B6460;flex:none">에릭</div>
+              <div style="flex:1;min-width:0;font-size:13px;font-weight:600">에릭</div>
+              <div style="font-size:12px;color:#8A837D">서울대 1B pt.1 · 5일 전 배정</div>
+              <div style="border:1px solid #E3DCD3;color:#4A443F;font-size:11.5px;font-weight:600;border-radius:8px;padding:6px 12px">재알림</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="background:#1E6B47;border-radius:14px;padding:15px 18px;color:#fff;display:flex;align-items:center;gap:10px">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+          <div><div style="font-size:13.5px;font-weight:700">새 퀴즈 만들기</div><div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:1px">AI로 문제 자동 생성</div></div>
+        </div>
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:14px;padding:6px 18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid #F2EDE7"><span style="font-size:12.5px;color:#6B6460">클래스</span><span style="font-size:15px;font-weight:700">27</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid #F2EDE7"><span style="font-size:12.5px;color:#6B6460">학생</span><span style="font-size:15px;font-weight:700">26</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0"><span style="font-size:12.5px;color:#6B6460">만든 퀴즈</span><span style="font-size:15px;font-weight:700">173</span></div>
+        </div>
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:14px;padding:18px">
+          <div style="font-size:13px;font-weight:700;letter-spacing:-.1px">최근 만든 퀴즈</div>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-size:9.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:5px;padding:3px 6px;flex:none">A1</span><span style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">서울대 1B pt.3</span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-size:9.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:5px;padding:3px 6px;flex:none">A1</span><span style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">서울대 1B pt.2</span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-size:9.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:5px;padding:3px 6px;flex:none">A2</span><span style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">8.15 사라</span></div>
+          </div>
+          <div style="margin-top:14px;font-size:12px;color:#1E6B47;font-weight:600">내 퀴즈 173개 전체 보기 →</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:14px;padding:18px">
+          <div style="font-size:13px;font-weight:700;letter-spacing:-.1px">최근 활동 클래스</div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:1px">
+            <div style="display:flex;align-items:center;gap:9px;padding:10px 0;border-top:1px solid #F4F0EA">
+              <div style="width:24px;height:24px;border-radius:50%;background:#E8F1EB;display:grid;place-items:center;font-size:9.5px;font-weight:700;color:#1E6B47;flex:none">오스</div>
+              <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">오스틴</div><div style="font-size:10.5px;color:#8A837D;margin-top:1px">2시간 전</div></div>
+              <span style="font-size:11.5px;font-weight:700;color:#1E6B47">88%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:10px 0;border-top:1px solid #F4F0EA">
+              <div style="width:24px;height:24px;border-radius:50%;background:#E8F1EB;display:grid;place-items:center;font-size:9.5px;font-weight:700;color:#1E6B47;flex:none">사라</div>
+              <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">사라</div><div style="font-size:10.5px;color:#8A837D;margin-top:1px">어제</div></div>
+              <span style="font-size:11.5px;font-weight:700;color:#1E6B47">73%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:10px 0;border-top:1px solid #F4F0EA">
+              <div style="width:24px;height:24px;border-radius:50%;background:#E8F1EB;display:grid;place-items:center;font-size:9.5px;font-weight:700;color:#1E6B47;flex:none">유나</div>
+              <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">유나</div><div style="font-size:10.5px;color:#8A837D;margin-top:1px">2일 전</div></div>
+              <span style="font-size:11.5px;font-weight:700;color:#1E6B47">95%</span>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid #F2EDE7">
+            <span style="font-size:12px;color:#1E6B47;font-weight:600">내 클래스 27개 →</span>
+            <span style="display:inline-flex;align-items:center;gap:4px;border:1px solid #1E6B47;color:#1E6B47;font-size:11px;font-weight:700;border-radius:8px;padding:5px 10px">＋ 새 클래스</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:1180px">"최근 활동"은 학생이 마지막으로 퀴즈를 제출한 순서입니다. 클래스가 3개 이하인 선생님에게는 이 카드가 곧 전체 목록이 되므로 "내 클래스 N개" 링크는 그대로 둡니다.</p>
+</div>
+
+<div class="dv-opt" id="2b">
+<div class="dv-olabel" style="max-width:1180px"><a class="dv-oid" href="#2b">2b</a>신규 가입 (퀴즈 0 · 클래스 0). 레일에 채울 값이 없으니 렌더하지 않고 본문을 <b>오른쪽 끝까지</b> 씁니다 — 학생 7d와 같은 처리. 히어로 안에 단어 붙여넣기 입력창을 직접 두어 첫 퀴즈까지 한 화면.</div>
+<div class="dv-card w">
+  <div style="padding:26px 30px 32px;background:#FAF8F5">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <div style="font-size:21px;font-weight:700;letter-spacing:-.4px">안녕하세요, JK 선생님</div>
+      <div style="font-size:12px;color:#8A837D">2026년 8월 20일 목요일</div>
+    </div>
+    <div style="margin-top:18px;display:flex;flex-direction:column;gap:12px">
+      <div style="background:#1E6B47;border-radius:18px;padding:28px 30px;color:#fff">
+        <div style="font-size:22px;font-weight:700;letter-spacing:-.4px">첫 퀴즈를 만들어 보세요</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.78);margin-top:7px;line-height:1.55;max-width:560px">가르칠 단어를 붙여넣으면 AI가 6가지 유형의 문제를 만듭니다. 클래스는 나중에 만들어도 됩니다.</div>
+        <div style="margin-top:20px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.26);border-radius:13px;padding:15px 17px;font-size:13px;color:rgba(255,255,255,.55);line-height:1.7;min-height:74px">학생, 선생님, 먹다, 마시다, 마음에 들다, 예쁘다<br>또는 한 줄에 하나씩</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px">
+          <span style="font-size:11.5px;color:rgba(255,255,255,.6)">쉼표(,) 또는 줄바꿈으로 구분</span>
+          <div style="background:#fff;color:#1E6B47;font-size:13.5px;font-weight:700;border-radius:12px;padding:13px 26px">AI로 퀴즈 만들기</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:16px;padding:20px 22px">
+          <div style="font-size:14px;font-weight:700;letter-spacing:-.2px">먼저 체험해 보기</div>
+          <div style="font-size:12.5px;color:#6B6460;margin-top:6px;line-height:1.6">단어를 넣기 전에 샘플 퀴즈로 6가지 유형이 어떤 문제인지 확인할 수 있습니다.</div>
+          <div style="margin-top:16px;border:1px solid #1E6B47;color:#1E6B47;font-size:12.5px;font-weight:700;border-radius:11px;padding:11px 0;text-align:center">샘플 퀴즈 보기 →</div>
+        </div>
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:16px;padding:20px 22px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="1.9" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path></svg>
+            <div style="font-size:14px;font-weight:700;letter-spacing:-.2px">클래스 만들기</div>
+          </div>
+          <div style="font-size:12.5px;color:#6B6460;margin-top:6px;line-height:1.6">클래스를 만들면 초대 코드가 생성되고, 학생이 가입하면 퀴즈를 배정할 수 있습니다.</div>
+          <div style="margin-top:16px;border:1px solid #1E6B47;color:#1E6B47;font-size:12.5px;font-weight:700;border-radius:11px;padding:11px 0;text-align:center">＋ 새 클래스</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="2c">
+<div class="dv-olabel" style="max-width:1180px"><a class="dv-oid" href="#2c">2c</a>모두 확인함 (퀴즈 있음 · 미확인 0). 보낸 퀴즈가 있으니 왼쪽 컬럼과 레일은 <b>그대로 유지</b>하고 히어로만 바뀝니다. 히어로 높이가 줄어드는 만큼 아래 카드가 올라옵니다.</div>
+<div class="dv-card w">
+  <div style="padding:26px 30px 32px;background:#FAF8F5">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <div style="font-size:21px;font-weight:700;letter-spacing:-.4px">안녕하세요, JK 선생님</div>
+      <div style="font-size:12px;color:#8A837D">2026년 8월 20일 목요일</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 296px;gap:20px;margin-top:18px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="background:#1E6B47;border-radius:18px;padding:26px 28px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:24px">
+          <div>
+            <div style="font-size:11.5px;font-weight:600;letter-spacing:.06em;color:rgba(255,255,255,.62)">확인할 결과</div>
+            <div style="font-size:21px;font-weight:700;letter-spacing:-.4px;margin-top:6px">모두 확인했습니다</div>
+            <div style="font-size:13px;color:rgba(255,255,255,.78);margin-top:6px;line-height:1.55;max-width:440px">제출된 결과를 전부 봤습니다. 다음 수업에 쓸 퀴즈를 미리 만들어 두세요.</div>
+          </div>
+          <div style="background:#fff;color:#1E6B47;font-size:13.5px;font-weight:700;border-radius:12px;padding:13px 24px;white-space:nowrap">새 퀴즈 만들기</div>
+        </div>
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:16px;padding:20px 22px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <div style="font-size:14.5px;font-weight:700;letter-spacing:-.2px">아직 안 푼 학생 <span style="color:#B4552D">2명</span></div>
+            <div style="font-size:12px;color:#1E6B47;font-weight:600">전체 배정 보기 →</div>
+          </div>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:1px">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid #F2EDE7">
+              <div style="width:26px;height:26px;border-radius:50%;background:#F3F0EA;display:grid;place-items:center;font-size:10.5px;font-weight:700;color:#6B6460;flex:none">막스</div>
+              <div style="flex:1;min-width:0;font-size:13px;font-weight:600">막스</div>
+              <div style="font-size:12px;color:#8A837D">8.8 사라 · 12일 전 배정</div>
+              <div style="border:1px solid #E3DCD3;color:#4A443F;font-size:11.5px;font-weight:600;border-radius:8px;padding:6px 12px">재알림</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid #F2EDE7">
+              <div style="width:26px;height:26px;border-radius:50%;background:#F3F0EA;display:grid;place-items:center;font-size:10.5px;font-weight:700;color:#6B6460;flex:none">에릭</div>
+              <div style="flex:1;min-width:0;font-size:13px;font-weight:600">에릭</div>
+              <div style="font-size:12px;color:#8A837D">서울대 1B pt.1 · 5일 전 배정</div>
+              <div style="border:1px solid #E3DCD3;color:#4A443F;font-size:11.5px;font-weight:600;border-radius:8px;padding:6px 12px">재알림</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:16px;padding:20px 22px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <div style="font-size:14.5px;font-weight:700;letter-spacing:-.2px">최근 결과</div>
+            <div style="font-size:12px;color:#1E6B47;font-weight:600">전체 결과 보기 →</div>
+          </div>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:1px">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid #F2EDE7">
+              <div style="width:26px;height:26px;border-radius:50%;background:#E8F1EB;display:grid;place-items:center;font-size:10.5px;font-weight:700;color:#1E6B47;flex:none">오스</div>
+              <div style="flex:1;min-width:0;font-size:13px;font-weight:600">서울대 1B pt.3</div>
+              <div style="font-size:12px;color:#8A837D">오스틴 · 2시간 전</div>
+              <div style="font-size:13.5px;font-weight:700;color:#1E6B47">18/20</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid #F2EDE7">
+              <div style="width:26px;height:26px;border-radius:50%;background:#E8F1EB;display:grid;place-items:center;font-size:10.5px;font-weight:700;color:#1E6B47;flex:none">사라</div>
+              <div style="flex:1;min-width:0;font-size:13px;font-weight:600">8.15 사라</div>
+              <div style="font-size:12px;color:#8A837D">사라 · 어제</div>
+              <div style="font-size:13.5px;font-weight:700;color:#B4552D">11/15</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="background:#1E6B47;border-radius:14px;padding:15px 18px;color:#fff;display:flex;align-items:center;gap:10px">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+          <div><div style="font-size:13.5px;font-weight:700">새 퀴즈 만들기</div><div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:1px">AI로 문제 자동 생성</div></div>
+        </div>
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:14px;padding:6px 18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid #F2EDE7"><span style="font-size:12.5px;color:#6B6460">클래스</span><span style="font-size:15px;font-weight:700">27</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid #F2EDE7"><span style="font-size:12.5px;color:#6B6460">학생</span><span style="font-size:15px;font-weight:700">26</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0"><span style="font-size:12.5px;color:#6B6460">만든 퀴즈</span><span style="font-size:15px;font-weight:700">173</span></div>
+        </div>
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:14px;padding:18px">
+          <div style="font-size:13px;font-weight:700;letter-spacing:-.1px">최근 만든 퀴즈</div>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-size:9.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:5px;padding:3px 6px;flex:none">A1</span><span style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">서울대 1B pt.3</span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-size:9.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:5px;padding:3px 6px;flex:none">A1</span><span style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">서울대 1B pt.2</span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-size:9.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:5px;padding:3px 6px;flex:none">A2</span><span style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">8.15 사라</span></div>
+          </div>
+          <div style="margin-top:14px;font-size:12px;color:#1E6B47;font-weight:600">내 퀴즈 173개 전체 보기 →</div>
+        </div>
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:14px;padding:18px">
+          <div style="font-size:13px;font-weight:700">최근 활동 클래스</div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:1px">
+            <div style="display:flex;align-items:center;gap:9px;padding:10px 0;border-top:1px solid #F4F0EA">
+              <div style="width:24px;height:24px;border-radius:50%;background:#E8F1EB;display:grid;place-items:center;font-size:9.5px;font-weight:700;color:#1E6B47;flex:none">오스</div>
+              <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600">오스틴</div><div style="font-size:10.5px;color:#8A837D;margin-top:1px">2시간 전</div></div>
+              <span style="font-size:11.5px;font-weight:700;color:#1E6B47">88%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:10px 0;border-top:1px solid #F4F0EA">
+              <div style="width:24px;height:24px;border-radius:50%;background:#E8F1EB;display:grid;place-items:center;font-size:9.5px;font-weight:700;color:#1E6B47;flex:none">사라</div>
+              <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600">사라</div><div style="font-size:10.5px;color:#8A837D;margin-top:1px">어제</div></div>
+              <span style="font-size:11.5px;font-weight:700;color:#1E6B47">73%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:10px 0;border-top:1px solid #F4F0EA">
+              <div style="width:24px;height:24px;border-radius:50%;background:#E8F1EB;display:grid;place-items:center;font-size:9.5px;font-weight:700;color:#1E6B47;flex:none">유나</div>
+              <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600">유나</div><div style="font-size:10.5px;color:#8A837D;margin-top:1px">2일 전</div></div>
+              <span style="font-size:11.5px;font-weight:700;color:#1E6B47">95%</span>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid #F2EDE7">
+            <span style="font-size:12px;color:#1E6B47;font-weight:600">내 클래스 27개 →</span>
+            <span style="border:1px solid #1E6B47;color:#1E6B47;font-size:11px;font-weight:700;border-radius:8px;padding:5px 10px">＋ 새 클래스</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:1180px">"확인할 결과 0 + 미제출 0 + 결과 없음"이 동시에 성립하는 건 사실상 신규 가입 직후뿐이므로, 그 경우만 <a href="#2b">2b</a>로 갈라집니다.</p>
+</div>
+
+<div class="dv-opt" id="2d">
+<div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a><b style="color:#B4552D">폐기</b> — 0단계로 네 갈래를 묶는 전제였으나, 오답 복습·어휘 보강은 이미 별도 페이지이고 "이전 퀴즈에서 만들기"는 존재하지 않는 기능입니다. 대체안은 <a href="#3a">3a</a>의 상단 연결 줄.</div>
+<div class="dv-card" style="width:756px">
+  <div style="padding:26px 30px 30px;background:#FAF8F5">
+    <div style="display:flex;align-items:center;gap:10px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+      <div style="font-size:21px;font-weight:700;letter-spacing:-.4px">퀴즈 만들기</div>
+    </div>
+    <div style="margin-top:18px;background:#fff;border:1px solid #EBE5DE;border-radius:18px;padding:26px 28px">
+
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none">1</div>
+        <div style="font-size:15.5px;font-weight:700;letter-spacing:-.2px">무엇으로 만들까요</div>
+      </div>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:9px">
+        <div style="border:1.5px solid #1E6B47;background:#F4F9F6;border-radius:13px;padding:15px 17px;display:flex;align-items:flex-start;gap:13px">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="1.9" stroke-linecap="round" style="margin-top:1px;flex:none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700">단어를 직접 입력</div>
+            <div style="font-size:12px;color:#6B6460;margin-top:3px;line-height:1.55">교재나 수업 자료의 단어를 붙여넣습니다.</div>
+          </div>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.4" stroke-linecap="round" style="flex:none"><path d="M20 6L9 17l-5-5"></path></svg>
+        </div>
+        <div style="border:1px solid #E7E1DA;border-radius:13px;padding:15px 17px;display:flex;align-items:flex-start;gap:13px">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#B4552D" stroke-width="1.9" stroke-linecap="round" style="margin-top:1px;flex:none"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700">학생 오답에서 만들기</div>
+            <div style="font-size:12px;color:#6B6460;margin-top:3px;line-height:1.55">학생·클래스를 고르면 틀린 단어가 자동으로 채워집니다.</div>
+            <div style="margin-top:11px;display:flex;gap:7px;flex-wrap:wrap">
+              <span style="font-size:11.5px;font-weight:600;color:#4A443F;background:#F5F1EB;border-radius:8px;padding:6px 11px">오스틴 · 12단어</span>
+              <span style="font-size:11.5px;font-weight:600;color:#4A443F;background:#F5F1EB;border-radius:8px;padding:6px 11px">사라 · 8단어</span>
+              <span style="font-size:11.5px;font-weight:600;color:#8A837D;background:#F5F1EB;border-radius:8px;padding:6px 11px">학생 선택 ⌄</span>
+            </div>
+          </div>
+        </div>
+        <div style="border:1px solid #E7E1DA;border-radius:13px;padding:15px 17px;display:flex;align-items:flex-start;gap:13px">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6B6460" stroke-width="1.9" stroke-linecap="round" style="margin-top:1px;flex:none"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700">이전 퀴즈에서 만들기</div>
+            <div style="font-size:12px;color:#6B6460;margin-top:3px;line-height:1.55">같은 단어를 다른 유형으로 다시 출제합니다. 어휘 보강에 씁니다.</div>
+            <div style="margin-top:11px;border:1px solid #E3DCD3;border-radius:9px;padding:9px 12px;font-size:12px;color:#A29B94">퀴즈 선택… (내 퀴즈 173개)</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:26px;padding-top:22px;border-top:1px solid #F2EDE7;display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none">2</div>
+        <div style="font-size:15.5px;font-weight:700;letter-spacing:-.2px">퀴즈 제목</div>
+      </div>
+      <div style="margin-top:12px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:11px;padding:13px 15px;font-size:13px;color:#A29B94">예: 1과 어휘 퀴즈</div>
+
+      <div style="margin-top:24px;display:flex;align-items:center;gap:10px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#1E6B47;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none">3</div>
+        <div style="font-size:15.5px;font-weight:700;letter-spacing:-.2px">단어 입력</div>
+        <span style="font-size:11.5px;color:#8A837D;margin-left:2px">프롬프트로 입력 →</span>
+      </div>
+      <div style="margin-top:12px;background:#FAF8F5;border:1px solid #EBE5DE;border-radius:11px;padding:14px 15px;font-size:13px;color:#A29B94;line-height:1.7;min-height:76px">학생, 선생님, 먹다, 마시다, 마음에 들다, 예쁘다<br>또는 한 줄에 하나씩</div>
+      <div style="display:flex;justify-content:space-between;margin-top:9px;font-size:11.5px;color:#8A837D"><span>입력된 단어: <b style="color:#1A1714">0개</b></span><span>쉼표(,) 또는 줄바꿈으로 구분</span></div>
+
+      <div style="margin-top:22px;padding-top:20px;border-top:1px solid #F2EDE7;font-size:12.5px;color:#8A837D">4 난이도 · 5 퀴즈 유형 · 6 추가 설정 — 기존과 동일</div>
+      <div style="margin-top:18px;background:#CBD9D1;color:#fff;font-size:14px;font-weight:700;border-radius:13px;padding:15px 0;text-align:center">AI로 퀴즈 생성</div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:756px">이 시안이 "입력 방식" 탭을 링크로 내린 것도 폐기했습니다 — 단어 입력과 프롬프트 입력은 우열이 없는 동등한 선택이라 <a href="#3a">3a</a>에서 탭으로 되돌렸습니다.</p>
+</div>
+
+</div>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">선생님 대시보드 · 내 퀴즈 · 클래스 카드</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel" style="max-width:1180px"><a class="dv-oid" href="#1a">1a</a>대시보드 재구성. 통계 4분할을 걷어내고 히어로에 <b>확인할 결과</b>를 놓았습니다. 학생 대시보드와 같은 규칙 — 히어로 1개 + 나머지는 얇은 행. 클래스 목록은 대시보드에서 빼고 <code>/classes</code>로 넘깁니다(시간 기준 vs 코호트 기준 분리).</div>
+<div class="dv-card w">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px solid #F0EBE5">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B6460" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 3v18"></path></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B6460" stroke-width="1.8" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
+  </div>
+  <div style="padding:26px 30px 32px;background:#FAF8F5">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <div style="font-size:21px;font-weight:700;letter-spacing:-.4px">안녕하세요, JK 선생님</div>
+      <div style="font-size:12px;color:#8A837D">2026년 8월 20일 목요일</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 296px;gap:20px;margin-top:18px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <div style="background:#1E6B47;border-radius:18px;padding:26px 28px 22px;color:#fff">
+          <div style="font-size:11.5px;font-weight:600;letter-spacing:.06em;color:rgba(255,255,255,.62)">확인할 결과</div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-top:6px">
+            <div style="font-size:22px;font-weight:700;letter-spacing:-.4px">제출된 퀴즈 5건</div>
+            <div style="font-size:12.5px;font-weight:600;color:rgba(255,255,255,.82);white-space:nowrap">전체 보기 →</div>
+          </div>
+          <div style="font-size:13px;color:rgba(255,255,255,.78);margin-top:6px;line-height:1.55;max-width:520px">학생이 풀었지만 아직 결과를 보지 않은 퀴즈입니다.</div>
+          <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.11);border-radius:12px;padding:13px 16px">
+              <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">JK</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13.5px;font-weight:600">서울대 1B pt.3</div>
+                <div style="font-size:11.5px;color:rgba(255,255,255,.62);margin-top:2px">오스틴 · 2시간 전 제출</div>
+              </div>
+              <div style="font-size:15px;font-weight:700;letter-spacing:-.2px">18/20</div>
+              <div style="background:#fff;color:#1E6B47;font-size:12px;font-weight:700;border-radius:9px;padding:8px 15px">결과 보기</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.11);border-radius:12px;padding:13px 16px">
+              <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">사라</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13.5px;font-weight:600">8.15 사라</div>
+                <div style="font-size:11.5px;color:rgba(255,255,255,.62);margin-top:2px">사라 · 어제 제출</div>
+              </div>
+              <div style="font-size:15px;font-weight:700;letter-spacing:-.2px">11/15</div>
+              <div style="background:#fff;color:#1E6B47;font-size:12px;font-weight:700;border-radius:9px;padding:8px 15px">결과 보기</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.11);border-radius:12px;padding:13px 16px">
+              <div style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:11.5px;font-weight:700;flex:none">유나</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13.5px;font-weight:600">서울대 1B pt.2</div>
+                <div style="font-size:11.5px;color:rgba(255,255,255,.62);margin-top:2px">유나 · 2일 전 제출</div>
+              </div>
+              <div style="font-size:15px;font-weight:700;letter-spacing:-.2px">20/20</div>
+              <div style="background:#fff;color:#1E6B47;font-size:12px;font-weight:700;border-radius:9px;padding:8px 15px">결과 보기</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:16px;padding:20px 22px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <div style="font-size:14.5px;font-weight:700;letter-spacing:-.2px">아직 안 푼 학생 <span style="color:#B4552D">2명</span></div>
+            <div style="font-size:12px;color:#1E6B47;font-weight:600">전체 배정 보기 →</div>
+          </div>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:1px">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid #F2EDE7">
+              <div style="width:26px;height:26px;border-radius:50%;background:#F3F0EA;display:grid;place-items:center;font-size:10.5px;font-weight:700;color:#6B6460;flex:none">막스</div>
+              <div style="flex:1;min-width:0;font-size:13px;font-weight:600">막스</div>
+              <div style="font-size:12px;color:#8A837D">8.8 사라 · 12일 전 배정</div>
+              <div style="border:1px solid #E3DCD3;color:#4A443F;font-size:11.5px;font-weight:600;border-radius:8px;padding:6px 12px">재알림</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid #F2EDE7">
+              <div style="width:26px;height:26px;border-radius:50%;background:#F3F0EA;display:grid;place-items:center;font-size:10.5px;font-weight:700;color:#6B6460;flex:none">에릭</div>
+              <div style="flex:1;min-width:0;font-size:13px;font-weight:600">에릭</div>
+              <div style="font-size:12px;color:#8A837D">서울대 1B pt.1 · 5일 전 배정</div>
+              <div style="border:1px solid #E3DCD3;color:#4A443F;font-size:11.5px;font-weight:600;border-radius:8px;padding:6px 12px">재알림</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="background:#1E6B47;border-radius:14px;padding:15px 18px;color:#fff;display:flex;align-items:center;gap:10px">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+          <div>
+            <div style="font-size:13.5px;font-weight:700">새 퀴즈 만들기</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:1px">AI로 문제 자동 생성</div>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:14px;padding:6px 18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid #F2EDE7">
+            <span style="font-size:12.5px;color:#6B6460">클래스</span><span style="font-size:15px;font-weight:700">27</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid #F2EDE7">
+            <span style="font-size:12.5px;color:#6B6460">학생</span><span style="font-size:15px;font-weight:700">26</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0">
+            <span style="font-size:12.5px;color:#6B6460">만든 퀴즈</span><span style="font-size:15px;font-weight:700">173</span>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:14px;padding:18px">
+          <div style="font-size:13px;font-weight:700;letter-spacing:-.1px">최근 만든 퀴즈</div>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:9.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:5px;padding:3px 6px;flex:none">A1</span>
+              <span style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">서울대 1B pt.3</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:9.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:5px;padding:3px 6px;flex:none">A1</span>
+              <span style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">서울대 1B pt.2</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:9.5px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:5px;padding:3px 6px;flex:none">A2</span>
+              <span style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">8.15 사라</span>
+            </div>
+          </div>
+          <div style="margin-top:14px;font-size:12px;color:#1E6B47;font-weight:600">내 퀴즈 173개 전체 보기 →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:1180px">액션 카드 4개는 사이드레일의 "새 퀴즈 만들기" 하나로 줄였습니다. 오답 복습·어휘 보강은 진입 빈도가 낮아 퀴즈 만들기 화면 안의 선택지로, 새 클래스는 <code>/classes</code>의 기존 버튼으로 넘깁니다.</p>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel" style="max-width:1180px"><a class="dv-oid" href="#1b">1b</a>확인할 결과가 0건일 때. 히어로 자리를 비워두지 않고 <b>새 퀴즈 만들기</b>가 올라옵니다 — 학생 대시보드 미가입 상태(7d)와 같은 처리.</div>
+<div class="dv-card w">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px solid #F0EBE5">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B6460" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 3v18"></path></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B6460" stroke-width="1.8" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
+  </div>
+  <div style="padding:26px 30px 32px;background:#FAF8F5">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <div style="font-size:21px;font-weight:700;letter-spacing:-.4px">안녕하세요, JK 선생님</div>
+      <div style="font-size:12px;color:#8A837D">2026년 8월 20일 목요일</div>
+    </div>
+    <div style="max-width:940px;margin-top:18px;display:flex;flex-direction:column;gap:12px">
+      <div style="background:#1E6B47;border-radius:18px;padding:28px 30px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:24px">
+        <div>
+          <div style="font-size:21px;font-weight:700;letter-spacing:-.4px">확인할 결과가 없습니다</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.78);margin-top:7px;line-height:1.55;max-width:520px">제출된 퀴즈를 모두 확인했습니다. 다음 수업에 쓸 퀴즈를 미리 만들어 두세요.</div>
+        </div>
+        <div style="background:#fff;color:#1E6B47;font-size:13.5px;font-weight:700;border-radius:12px;padding:14px 26px;white-space:nowrap">새 퀴즈 만들기</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:16px;padding:20px 22px">
+          <div style="font-size:14px;font-weight:700;letter-spacing:-.2px">오답 복습 퀴즈</div>
+          <div style="font-size:12.5px;color:#6B6460;margin-top:6px;line-height:1.6">학생이 틀린 단어만 모아 복습용 퀴즈를 만듭니다.</div>
+          <div style="margin-top:16px;border:1px solid #1E6B47;color:#1E6B47;font-size:12.5px;font-weight:700;border-radius:11px;padding:11px 0;text-align:center">오답으로 만들기 →</div>
+        </div>
+        <div style="background:#fff;border:1px solid #EBE5DE;border-radius:16px;padding:20px 22px">
+          <div style="font-size:14px;font-weight:700;letter-spacing:-.2px">배정 안 된 퀴즈 <span style="color:#B4552D">12개</span></div>
+          <div style="font-size:12.5px;color:#6B6460;margin-top:6px;line-height:1.6">만들었지만 아무에게도 보내지 않은 퀴즈가 있습니다.</div>
+          <div style="margin-top:16px;border:1px solid #1E6B47;color:#1E6B47;font-size:12.5px;font-weight:700;border-radius:11px;padding:11px 0;text-align:center">목록 보기 →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>내 퀴즈 카드 — 배정 요약을 <b>클릭 없이</b> 메타 줄에 노출. 위: 1명 배정 / 가운데: 여러 명 / 아래: 미배정(가장 중요한 상태). 사람 아이콘은 "배정 편집"으로 남습니다.</div>
+<div class="dv-card" style="background:#FAF8F5;padding:18px;width:456px;box-sizing:border-box">
+  <div style="display:flex;flex-direction:column;gap:12px">
+
+    <div style="background:#fff;border:1px solid #EBE5DE;border-radius:14px;padding:18px 20px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="1.7" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+        <span style="font-size:10px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:6px;padding:4px 8px">A1</span>
+      </div>
+      <div style="font-size:15px;font-weight:700;letter-spacing:-.2px;margin-top:12px">서울대 1B pt.3</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12px;color:#6B6460">
+        <span>20개 단어 · 4세트</span>
+        <span style="color:#D8D1C8">|</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;color:#1E6B47;font-weight:600">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+          오스틴
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:1px solid #F2EDE7">
+        <span style="font-size:11.5px;color:#8A837D">8월 18일</span>
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="border:1px solid #E3DCD3;color:#4A443F;font-size:11.5px;font-weight:600;border-radius:8px;padding:6px 12px">공유</div>
+          <div style="background:#1E6B47;color:#fff;font-size:11.5px;font-weight:700;border-radius:8px;padding:6px 13px">결과 확인</div>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9A938D" stroke-width="1.9" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 11h-6"></path></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C1554A" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6M14 11v6"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#fff;border:1px solid #EBE5DE;border-radius:14px;padding:18px 20px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="1.7" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+        <span style="font-size:10px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:6px;padding:4px 8px">A2</span>
+      </div>
+      <div style="font-size:15px;font-weight:700;letter-spacing:-.2px;margin-top:12px">8.15 사라</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12px;color:#6B6460">
+        <span>15개 단어 · 3세트</span>
+        <span style="color:#D8D1C8">|</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;color:#1E6B47;font-weight:600">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+          사라, 유나 +1
+        </span>
+        <span style="font-size:11.5px;color:#8A837D">· 2명 제출</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:1px solid #F2EDE7">
+        <span style="font-size:11.5px;color:#8A837D">8월 15일</span>
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="border:1px solid #E3DCD3;color:#4A443F;font-size:11.5px;font-weight:600;border-radius:8px;padding:6px 12px">공유</div>
+          <div style="background:#1E6B47;color:#fff;font-size:11.5px;font-weight:700;border-radius:8px;padding:6px 13px">결과 확인</div>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9A938D" stroke-width="1.9" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 11h-6"></path></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C1554A" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6M14 11v6"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#fff;border:1px dashed #DCD4CA;border-radius:14px;padding:18px 20px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#A29B94" stroke-width="1.7" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+        <span style="font-size:10px;font-weight:700;color:#7C756F;background:#F1EDE7;border-radius:6px;padding:4px 8px">B1</span>
+      </div>
+      <div style="font-size:15px;font-weight:700;letter-spacing:-.2px;margin-top:12px;color:#4A443F">서울대 1B pt.1</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12px;color:#8A837D">
+        <span>20개 단어 · 4세트</span>
+        <span style="color:#D8D1C8">|</span>
+        <span style="font-weight:600;color:#B4552D">배정 안 됨</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:1px solid #F2EDE7">
+        <span style="font-size:11.5px;color:#8A837D">8월 15일</span>
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="background:#1E6B47;color:#fff;font-size:11.5px;font-weight:700;border-radius:8px;padding:6px 14px">학생에게 배정</div>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C1554A" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6M14 11v6"></path></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:456px">미배정 카드는 점선 테두리 + 회색 제목으로 눌러 놓고, 하단 버튼도 "결과 확인"이 아니라 <b>학생에게 배정</b>으로 바뀝니다. 결과가 없는 퀴즈에 결과 확인 버튼을 두는 지금 동작이 사라집니다.</p>
+</div>
+
+<div class="dv-opt" id="1d">
+<div class="dv-olabel" style="max-width:1180px"><a class="dv-oid" href="#1d">1d</a>내 퀴즈 173개 — 카드 그리드를 <b>테이블</b>로. 학생 대시보드에서 퀴즈 목록을 행으로 바꾼 것과 같은 판단입니다. 상단에 레벨·배정 여부 필터, 정렬.</div>
+<div class="dv-card w">
+  <div style="padding:26px 30px 30px;background:#FAF8F5">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:21px;font-weight:700;letter-spacing:-.4px">내 퀴즈</div>
+      <div style="background:#1E6B47;color:#fff;font-size:13px;font-weight:700;border-radius:11px;padding:11px 20px">＋ 새 퀴즈 만들기</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:18px;flex-wrap:wrap">
+      <div style="flex:1;min-width:280px;background:#fff;border:1px solid #E3DCD3;border-radius:11px;padding:11px 15px;font-size:13px;color:#A29B94">퀴즈 제목 또는 단어로 검색…</div>
+      <div style="display:flex;gap:6px;background:#fff;border:1px solid #E3DCD3;border-radius:11px;padding:4px">
+        <span style="font-size:12px;font-weight:700;background:#1E6B47;color:#fff;border-radius:8px;padding:7px 13px">전체 173</span>
+        <span style="font-size:12px;font-weight:600;color:#6B6460;padding:7px 13px">배정됨 161</span>
+        <span style="font-size:12px;font-weight:600;color:#B4552D;padding:7px 13px">미배정 12</span>
+      </div>
+      <div style="background:#fff;border:1px solid #E3DCD3;border-radius:11px;padding:11px 14px;font-size:12.5px;color:#4A443F;font-weight:600">레벨 전체 ⌄</div>
+      <div style="background:#fff;border:1px solid #E3DCD3;border-radius:11px;padding:11px 14px;font-size:12.5px;color:#4A443F;font-weight:600">최신순 ⌄</div>
+    </div>
+
+    <div style="margin-top:16px;background:#fff;border:1px solid #EBE5DE;border-radius:16px;overflow:hidden">
+      <div style="display:grid;grid-template-columns:52px 1fr 150px 200px 130px 190px;gap:14px;padding:13px 22px;background:#FBF9F6;border-bottom:1px solid #EFE9E2;font-size:11px;font-weight:700;color:#8A837D;letter-spacing:.03em">
+        <span>레벨</span><span>제목</span><span>분량</span><span>배정</span><span>제출</span><span style="text-align:right">만든 날짜</span>
+      </div>
+      <div style="display:grid;grid-template-columns:52px 1fr 150px 200px 130px 190px;gap:14px;padding:15px 22px;border-bottom:1px solid #F4F0EA;align-items:center">
+        <span style="font-size:10px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:6px;padding:4px 0;text-align:center">A1</span>
+        <span style="font-size:13.5px;font-weight:600">서울대 1B pt.3</span>
+        <span style="font-size:12.5px;color:#6B6460">20개 · 4세트</span>
+        <span style="font-size:12.5px;color:#1E6B47;font-weight:600">오스틴</span>
+        <span style="font-size:12.5px;color:#6B6460">1 / 1</span>
+        <span style="font-size:12.5px;color:#8A837D;text-align:right">2026. 8. 18.</span>
+      </div>
+      <div style="display:grid;grid-template-columns:52px 1fr 150px 200px 130px 190px;gap:14px;padding:15px 22px;border-bottom:1px solid #F4F0EA;align-items:center">
+        <span style="font-size:10px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:6px;padding:4px 0;text-align:center">A2</span>
+        <span style="font-size:13.5px;font-weight:600">8.15 사라</span>
+        <span style="font-size:12.5px;color:#6B6460">15개 · 3세트</span>
+        <span style="font-size:12.5px;color:#1E6B47;font-weight:600">사라, 유나 +1</span>
+        <span style="font-size:12.5px;color:#6B6460">2 / 3</span>
+        <span style="font-size:12.5px;color:#8A837D;text-align:right">2026. 8. 15.</span>
+      </div>
+      <div style="display:grid;grid-template-columns:52px 1fr 150px 200px 130px 190px;gap:14px;padding:15px 22px;border-bottom:1px solid #F4F0EA;align-items:center;background:#FDFCFA">
+        <span style="font-size:10px;font-weight:700;color:#7C756F;background:#F1EDE7;border-radius:6px;padding:4px 0;text-align:center">B1</span>
+        <span style="font-size:13.5px;font-weight:600;color:#4A443F">서울대 1B pt.1</span>
+        <span style="font-size:12.5px;color:#8A837D">20개 · 4세트</span>
+        <span style="font-size:12.5px;color:#B4552D;font-weight:600">배정 안 됨</span>
+        <span style="font-size:12.5px;color:#B9B2AB">—</span>
+        <span style="font-size:12.5px;color:#8A837D;text-align:right">2026. 8. 15.</span>
+      </div>
+      <div style="display:grid;grid-template-columns:52px 1fr 150px 200px 130px 190px;gap:14px;padding:15px 22px;border-bottom:1px solid #F4F0EA;align-items:center">
+        <span style="font-size:10px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:6px;padding:4px 0;text-align:center">A1</span>
+        <span style="font-size:13.5px;font-weight:600">8.15 오스틴 - 1B-1과 part 1</span>
+        <span style="font-size:12.5px;color:#6B6460">15개 · 3세트</span>
+        <span style="font-size:12.5px;color:#1E6B47;font-weight:600">오스틴</span>
+        <span style="font-size:12.5px;color:#6B6460">1 / 1</span>
+        <span style="font-size:12.5px;color:#8A837D;text-align:right">2026. 8. 15.</span>
+      </div>
+      <div style="display:grid;grid-template-columns:52px 1fr 150px 200px 130px 190px;gap:14px;padding:15px 22px;align-items:center">
+        <span style="font-size:10px;font-weight:700;color:#1E6B47;background:#E8F1EB;border-radius:6px;padding:4px 0;text-align:center">A2</span>
+        <span style="font-size:13.5px;font-weight:600">8.8 사라</span>
+        <span style="font-size:12.5px;color:#6B6460">20개 · 4세트</span>
+        <span style="font-size:12.5px;color:#1E6B47;font-weight:600">막스</span>
+        <span style="font-size:12.5px;color:#B4552D;font-weight:600">0 / 1</span>
+        <span style="font-size:12.5px;color:#8A837D;text-align:right">2026. 8. 8.</span>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:1180px">행 hover 시 우측에 공유·결과·배정·삭제 아이콘이 나타납니다(항상 보이면 5열이 시끄러워짐). 단어 미리보기 칩은 테이블에서 빠지고 상세 화면에만 남습니다.</p>
+</div>
+
+<div class="dv-opt" id="1e">
+<div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>클래스 카드 — 학생 수에 따라 다르게. 위: 1인 클래스(지금 상황)는 학생 이름·진도를 바로 표시. 아래: 그룹 수업은 인원과 미제출 인원을 표시. 클래스 개념은 그대로 유지됩니다.</div>
+<div class="dv-card" style="background:#FAF8F5;padding:18px;width:456px;box-sizing:border-box">
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="background:#fff;border:1px solid #EBE5DE;border-radius:14px;padding:18px 20px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;border-radius:50%;background:#E8F1EB;display:grid;place-items:center;font-size:11.5px;font-weight:700;color:#1E6B47">오스</div>
+          <div>
+            <div style="font-size:15px;font-weight:700;letter-spacing:-.2px">오스틴</div>
+            <div style="font-size:11.5px;color:#8A837D;margin-top:2px">1:1 · Austin Norris</div>
+          </div>
+        </div>
+        <div style="font-size:11.5px;font-weight:700;color:#1E6B47;letter-spacing:.04em">UQ2NGW</div>
+      </div>
+      <div style="display:flex;gap:22px;margin-top:16px;padding-top:14px;border-top:1px solid #F2EDE7">
+        <div><div style="font-size:10.5px;color:#8A837D">배정 퀴즈</div><div style="font-size:15px;font-weight:700;margin-top:3px">4</div></div>
+        <div><div style="font-size:10.5px;color:#8A837D">평균 점수</div><div style="font-size:15px;font-weight:700;margin-top:3px">88%</div></div>
+        <div><div style="font-size:10.5px;color:#8A837D">마지막 활동</div><div style="font-size:15px;font-weight:700;margin-top:3px">2시간 전</div></div>
+      </div>
+      <div style="margin-top:14px;background:#1E6B47;color:#fff;font-size:12px;font-weight:700;border-radius:9px;padding:10px 0;text-align:center">클래스 열기</div>
+    </div>
+
+    <div style="background:#fff;border:1px solid #EBE5DE;border-radius:14px;padding:18px 20px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;border-radius:50%;background:#E8F1EB;display:grid;place-items:center;flex:none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path></svg>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;letter-spacing:-.2px">화요일 저녁반</div>
+            <div style="font-size:11.5px;color:#8A837D;margin-top:2px">학생 6명</div>
+          </div>
+        </div>
+        <div style="font-size:11.5px;font-weight:700;color:#1E6B47;letter-spacing:.04em">AATLDF</div>
+      </div>
+      <div style="display:flex;gap:22px;margin-top:16px;padding-top:14px;border-top:1px solid #F2EDE7">
+        <div><div style="font-size:10.5px;color:#8A837D">배정 퀴즈</div><div style="font-size:15px;font-weight:700;margin-top:3px">9</div></div>
+        <div><div style="font-size:10.5px;color:#8A837D">평균 점수</div><div style="font-size:15px;font-weight:700;margin-top:3px">74%</div></div>
+        <div><div style="font-size:10.5px;color:#8A837D">미제출</div><div style="font-size:15px;font-weight:700;margin-top:3px;color:#B4552D">2명</div></div>
+      </div>
+      <div style="margin-top:14px;background:#1E6B47;color:#fff;font-size:12px;font-weight:700;border-radius:9px;padding:10px 0;text-align:center">클래스 열기</div>
+    </div>
+  </div>
+</div>
+<p class="dv-note" style="max-width:456px">초대 코드는 우측 상단에 작게 두고 복사는 코드 클릭으로. 지금은 코드가 카드에서 가장 크게 보이는데, 이미 가입한 학생의 클래스에서는 거의 쓰지 않는 정보입니다.</p>
+</div>
+
+</div>
+</section>
+
+</x-dc>
+</body>
+</html>
