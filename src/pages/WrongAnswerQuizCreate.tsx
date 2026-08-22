@@ -1,18 +1,23 @@
 import { useState, useMemo } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { supabase } from '@/integrations/supabase/client';
 import { readEdgeFunctionError, isQuotaExceeded, quizInsertErrorMessage } from '@/lib/supabaseErrors';
-import type { TablesInsert } from '@/integrations/supabase/types';
+import type { TablesInsert, Database } from '@/integrations/supabase/types';
+import { buildProblems, type ImportRow } from '@/lib/quiz/importFormat';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import {
   Select,
   SelectContent,
@@ -21,8 +26,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  STAGE_ENABLED_KEY,
-  STAGE_LABELS,
   STAGE_SHORT_LABELS,
   type BaseStage,
   type Problem,
@@ -36,6 +39,10 @@ import {
   Settings2,
   Type,
   Keyboard,
+  Link2,
+  Magnet,
+  PenLine,
+  Mic,
   Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -132,12 +139,16 @@ type UntypedRpcClient = {
 
 const BLANK_RE = /\(\s*\)/;
 
-// 이 화면에서 만들 수 있는 퀴즈 유형.
-// 빈칸 채우기는 quizzes.problems JSONB만으로 출제되고, 받아쓰기는 type_answer_problems 행을
-// 따로 넣어야 한다. 짝 맞추기·문장 순서 맞추기는 여기서 만들지 않는다(README 참고: 보고 내용).
-const QUIZ_TYPES: { stage: Extract<BaseStage, 'fill_blank' | 'type_answer'>; icon: typeof Type; desc: string }[] = [
-  { stage: 'fill_blank', icon: Type, desc: '문장 완성하기' },
-  { stage: 'type_answer', icon: Keyboard, desc: '뜻 보고 단어 쓰기' },
+// 6유형 모두 만들 수 있다 — 오답 단어를 generate-quiz(AI 새 예문) 또는 기존 문장으로
+// ImportRow를 채운 뒤 buildProblems(어휘 보강과 같은 순수 함수)에 넘기면
+// matchup/type_answer/fill_blank/word_magnet/sentence_making/recording이 한 번에 나온다.
+const STAGE_CARDS: { key: BaseStage; label: string; desc: string; icon: typeof Type }[] = [
+  { key: 'matchup', label: '짝 맞추기', desc: '단어 매칭', icon: Link2 },
+  { key: 'type_answer', label: '단어 받아쓰기', desc: '뜻 보고 단어 쓰기', icon: Keyboard },
+  { key: 'fill_blank', label: '빈칸 채우기', desc: '문장 완성하기', icon: Type },
+  { key: 'word_magnet', label: '문장 순서 맞추기', desc: '순서대로 단어 배치', icon: Magnet },
+  { key: 'sentence_making', label: '문장 만들기', desc: '단어 보고 문장 쓰기', icon: PenLine },
+  { key: 'recording', label: '말하기 연습', desc: '읽거나 듣고 따라 말하기', icon: Mic },
 ];
 
 const DIFFICULTY_LEVELS = [
@@ -272,14 +283,26 @@ export default function WrongAnswerQuizCreate() {
   const [quizTitle, setQuizTitle] = useState('');
   const [difficulty, setDifficulty] = useState('B1');
   const [translationLanguage, setTranslationLanguage] = useState('en');
-  const [regenerate, setRegenerate] = useState(false);
+  // 문장 출처 2택. 'reuse'여도 문장이 없는 단어는 자동으로 AI 생성으로 넘어간다
+  // (선생님이 알아야 할 구분이 아니다 — README 6단계).
+  const [sentenceSource, setSentenceSource] = useState<'reuse' | 'regenerate'>('reuse');
   const [assignToClass, setAssignToClass] = useState(true);
+  const [wordsPerSet, setWordsPerSet] = useState(5);
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(60);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [sortBy, setSortBy] = useState<'count' | 'recent'>('count');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedWrongAnswers, setSelectedWrongAnswers] = useState<string[]>([]);
-  const [fillBlankEnabled, setFillBlankEnabled] = useState(true);
-  const [typeAnswerEnabled, setTypeAnswerEnabled] = useState(false);
+  const [stages, setStages] = useState<Record<BaseStage, boolean>>({
+    matchup: false,
+    type_answer: false,
+    fill_blank: true,
+    word_magnet: false,
+    sentence_making: false,
+    recording: false,
+  });
 
   const { data: classes, isLoading: classesLoading } = useQuery({
     queryKey: ['teacher-classes', user?.id],
@@ -331,6 +354,15 @@ export default function WrongAnswerQuizCreate() {
     (students ?? []).forEach((s) => map.set(s.student_id, s.name));
     return map;
   }, [students]);
+
+  // 기본 제목 "학생명 오답 복습 · 8월 22일" — 여러 명이면 "학생명 외 N명".
+  const defaultTitle = useMemo(() => {
+    const names = selectedStudents.map((id) => studentNameById.get(id) ?? '학생');
+    const dateLabel = format(new Date(), 'M월 d일', { locale: ko });
+    if (names.length === 0) return `오답 복습 · ${dateLabel}`;
+    if (names.length === 1) return `${names[0]} 오답 복습 · ${dateLabel}`;
+    return `${names[0]} 외 ${names.length - 1}명 오답 복습 · ${dateLabel}`;
+  }, [selectedStudents, studentNameById]);
 
   // 오답 집계 — 학생 오답 노트와 같은 소스(4유형 통합 RPC)를 쓴다.
   // 예전엔 quiz_results.answers JSON을 직접 파싱해 빈칸 채우기 오답만 잡혔고,
@@ -440,56 +472,31 @@ export default function WrongAnswerQuizCreate() {
       if (selectedProblems.length === 0) {
         throw new Error('선택한 문제가 없어요');
       }
-      if (!fillBlankEnabled && !typeAnswerEnabled) {
+      const anyStage = Object.values(stages).some(Boolean);
+      if (!anyStage) {
         throw new Error('퀴즈 유형을 최소 하나 선택해 주세요');
       }
 
-      const words = selectedProblems.map((p) => p.word);
+      // 문장 출처: 'reuse'는 기존 문장을 쓰고 문장 없는 단어만 AI로 채운다.
+      // 'regenerate'는 선택한 전부를 새로 만든다. 어느 쪽이든 결과는 buildProblems(어휘
+      // 보강과 같은 순수 함수)로 6유형을 한 번에 만든다.
+      const needsAi =
+        sentenceSource === 'regenerate' ? selectedProblems : selectedProblems.filter((p) => !p.sentence);
 
-      // 빈칸 채우기는 빈칸( )이 있는 문장이 있어야 출제된다. 짝 맞추기/받아쓰기에서만
-      // 틀린 단어는 문장이 없으므로, 새 예문 생성을 켜지 않으면 빈 문제가 된다.
-      if (fillBlankEnabled && !regenerate) {
-        const missing = selectedProblems.filter((p) => !p.sentence);
-        if (missing.length > 0) {
-          throw new Error(
-            `문장이 없는 단어가 있어요 (${missing
-              .map((p) => p.word)
-              .join(', ')}) — "AI로 새 예문 생성"을 켜주세요`
-          );
-        }
-      }
-
-      let problems: Problem[] = selectedProblems.map((p, index) => ({
-        id: `wrong-${index}`,
-        word: p.word,
-        answer: p.correct_answer,
-        sentence: p.sentence,
-        hint: '',
-        translation: p.translation || '',
-      }));
-
-      // 받아쓰기 프롬프트로 쓸 뜻. 기존 오답에서 얻은 뜻이 우선(학생이 실제로 본 뜻이라서).
-      const meaningByWord = new Map<string, string>();
-      selectedProblems.forEach((p) => {
-        if (p.meaning) meaningByWord.set(p.word, p.meaning);
-      });
-
-      // AI 호출이 필요한 경우:
-      //  - 새 예문 생성을 켰거나(regenerate)
-      //  - 받아쓰기를 켰는데 뜻을 모르는 단어가 있을 때
-      const needMeanings = typeAnswerEnabled && selectedProblems.some((p) => !p.meaning);
+      const sentenceByWord = new Map<string, { sentence: string; answer: string; hint: string; translation: string }>();
+      const meaningFromAi = new Map<string, string>();
       let regenerateFailed = false;
 
-      if (regenerate || needMeanings) {
+      if (needsAi.length > 0) {
         const { data: genData, error: genError } = await supabase.functions.invoke<GenerateQuizResponse>(
           'generate-quiz',
           {
             body: {
-              words,
+              words: needsAi.map((p) => p.word),
               difficulty,
               translationLanguage,
               wordsPerSet: 5,
-              typeAnswerEnabled,
+              typeAnswerEnabled: stages.type_answer,
               // 바로 아래에서 quizzes에 INSERT하는 새 퀴즈다 → 한도 사전 체크 대상.
               purpose: 'create',
             },
@@ -497,58 +504,74 @@ export default function WrongAnswerQuizCreate() {
         );
 
         if (genError || !genData?.problems?.length) {
-          // 한도 초과면 아래 INSERT가 트리거에 어차피 막힌다. 여기서 조용히 폴백하면
-          // 그때까지 헛일을 하고, 뜻을 못 구해 '받아쓰기에 쓸 단어 뜻이 없어요' 같은
-          // 엉뚱한 문구로 끝날 수도 있다. 한도 문구를 그대로 올린다.
           if (genError) {
             const parsed = await readEdgeFunctionError(genError, '새 예문 생성에 실패했어요');
             if (isQuotaExceeded(parsed)) throw new Error(parsed.message);
           }
-          // 그 외 실패는 예전처럼 기존 문장으로 폴백하되(선생님이 실패를 모르지 않도록)
-          // onSuccess에서 알리고 재시도를 제공한다.
-          if (regenerate) regenerateFailed = true;
+          regenerateFailed = true;
         } else {
-          if (regenerate) problems = genData.problems;
-          // AI가 만든 뜻으로 빈자리만 채운다.
+          genData.problems.forEach((p) => {
+            sentenceByWord.set(p.word, {
+              sentence: p.sentence,
+              answer: p.answer,
+              hint: p.hint || '',
+              translation: p.translation || '',
+            });
+          });
           (genData.typeAnswerProblems ?? []).forEach((p) => {
-            if (p.prompt?.trim() && !meaningByWord.has(p.answer)) {
-              meaningByWord.set(p.answer, p.prompt.trim());
-            }
+            if (p.prompt?.trim()) meaningFromAi.set(p.answer, p.prompt.trim());
           });
         }
       }
 
-      // 받아쓰기 문항. 뜻이 없는 단어는 프롬프트를 만들 수 없어 제외한다.
-      const typeAnswerProblems = typeAnswerEnabled
-        ? selectedProblems
-            .map((p, index) => ({
-              problem_id: `ta-${index}`,
-              prompt: (meaningByWord.get(p.word) ?? '').trim(),
-              answer: p.word,
-            }))
-            .filter((p) => p.prompt && p.answer)
-        : [];
+      // ImportRow로 통일 — 문장이 없거나 AI 대상이었는데 AI도 실패한 단어는 뺀다.
+      const rows: ImportRow[] = [];
+      let droppedCount = 0;
+      selectedProblems.forEach((p) => {
+        const useAi = sentenceSource === 'regenerate' || !p.sentence;
+        const ai = useAi ? sentenceByWord.get(p.word) : undefined;
+        const sentence = ai?.sentence || (!useAi ? p.sentence : '');
+        const answer = ai?.answer || p.correct_answer;
+        if (!sentence || !answer) {
+          droppedCount++;
+          return;
+        }
+        rows.push({
+          word: p.word,
+          meaning: p.meaning || meaningFromAi.get(p.word) || '',
+          level: difficulty,
+          sentence,
+          answer,
+          hint: ai?.hint || '',
+          translation: ai?.translation || p.translation || '',
+        });
+      });
 
-      // 유형 플래그만 켜고 문항 데이터가 없으면 학생 화면에 빈 스테이지가 생겨
-      // 진행이 막힌다(QuizTake는 플래그만 보고 스테이지를 만든다). 그래서
-      // 실제 문항이 있을 때만 플래그를 켠다.
-      const typeAnswerReady = typeAnswerProblems.length > 0;
-      if (!fillBlankEnabled && !typeAnswerReady) {
-        throw new Error('받아쓰기에 쓸 단어 뜻이 없어요 — 빈칸 채우기를 함께 선택해 주세요');
-      }
+      if (rows.length === 0) throw new Error('문제를 만들 수 없어요');
+
+      const built = buildProblems(rows, { level: difficulty, perWordLimit: 1 });
+      if (built.problems.length === 0) throw new Error('문제를 만들 수 없어요');
+
+      const title = quizTitle.trim() || defaultTitle;
 
       const quizInsert: Record<string, unknown> = {
+        title,
+        words: built.words,
+        difficulty: difficulty as Database['public']['Enums']['difficulty_level'],
+        translation_language: translationLanguage as Database['public']['Enums']['translation_language'],
+        words_per_set: Math.min(wordsPerSet, built.words.length) || wordsPerSet,
+        timer_enabled: timerEnabled,
+        timer_seconds: timerEnabled ? timerSeconds : null,
+        problems: JSON.parse(JSON.stringify(built.problems)),
         teacher_id: user!.id,
-        title: quizTitle || '오답 복습 퀴즈',
         source: 'imported',
-        words,
-        difficulty,
-        words_per_set: 5,
-        timer_enabled: false,
-        translation_language: translationLanguage,
-        problems: JSON.parse(JSON.stringify(problems)),
-        [STAGE_ENABLED_KEY.fill_blank]: fillBlankEnabled,
-        [STAGE_ENABLED_KEY.type_answer]: typeAnswerReady,
+        kind: 'wrong_review',
+        fill_blank_enabled: stages.fill_blank,
+        sentence_making_enabled: stages.sentence_making,
+        recording_enabled: stages.recording,
+        matchup_enabled: stages.matchup,
+        type_answer_enabled: stages.type_answer && built.typeAnswer.length > 0,
+        word_magnet_enabled: stages.word_magnet,
       };
 
       const { data, error } = await supabase
@@ -561,24 +584,111 @@ export default function WrongAnswerQuizCreate() {
       // onError가 message를 그대로 띄우므로, 그 외 DB 에러(영문)는 헬퍼가 fallback으로 덮는다.
       if (error) throw new Error(quizInsertErrorMessage(error, '퀴즈를 만들지 못했어요'));
 
-      let typeAnswerDropped = false;
-      if (typeAnswerReady) {
-        const rowsToInsert: TablesInsert<'type_answer_problems'>[] = typeAnswerProblems.map((p) => ({
-          quiz_id: data.id,
-          problem_id: p.problem_id,
-          prompt: p.prompt,
-          answer: p.answer,
-        }));
-        const { error: taError } = await supabase.from('type_answer_problems').insert(rowsToInsert);
-        if (taError) {
-          // 문항 저장에 실패했는데 플래그가 켜져 있으면 학생이 빈 스테이지에 갇힌다. 플래그를 되돌린다.
-          console.error('Failed to save type answer problems:', taError);
-          await supabase
-            .from('quizzes')
-            .update({ [STAGE_ENABLED_KEY.type_answer]: false })
-            .eq('id', data.id);
-          typeAnswerDropped = true;
-        }
+      const quizId = data.id;
+
+      // quiz_answers는 필수 — 실패하면 방금 만든 quizzes 행을 되돌린다 (VocabPracticeQuizCreate와 동일 순서).
+      const { error: answersError } = await supabase.from('quiz_answers').insert(
+        built.problems.map((p) => ({
+          quiz_id: quizId,
+          problem_id: p.id,
+          correct_answer: p.answer,
+          word: p.word,
+        }))
+      );
+      if (answersError) {
+        console.error('Failed to save quiz answers:', answersError);
+        await supabase.from('quizzes').delete().eq('id', quizId);
+        throw new Error('문제 정보를 저장하지 못했어요');
+      }
+
+      const { error: problemsError } = await supabase.from('quiz_problems').insert(
+        built.problems.map((p) => ({
+          quiz_id: quizId,
+          problem_id: p.id,
+          word: p.word,
+          sentence: p.sentence,
+          hint: p.hint || null,
+          translation: p.translation || null,
+          sentence_audio_url: null,
+          hint_audio_url: null,
+        }))
+      );
+      if (problemsError) console.error('Failed to save quiz problems:', problemsError);
+
+      if (stages.matchup && built.matchup.length) {
+        const { error: e } = await supabase.from('matchup_problems').insert(
+          built.matchup.map((p, i) => ({
+            quiz_id: quizId,
+            problem_id: p.problem_id,
+            korean_text: p.korean_text,
+            meaning_text: p.meaning_text,
+            sort_order: i,
+          }))
+        );
+        if (e) console.error('Failed to save matchup problems:', e);
+      }
+
+      let typeAnswerReady = false;
+      if (stages.type_answer && built.typeAnswer.length) {
+        const { error: e } = await supabase.from('type_answer_problems').insert(
+          built.typeAnswer.map((p, i) => ({
+            quiz_id: quizId,
+            problem_id: p.problem_id,
+            prompt: p.prompt,
+            answer: p.answer,
+            sort_order: i,
+          }))
+        );
+        if (e) console.error('Failed to save type answer problems:', e);
+        else typeAnswerReady = true;
+      }
+      // 유형 플래그만 켜고 문항이 없으면 학생 화면에 빈 스테이지가 생긴다 — 되돌린다.
+      if (stages.type_answer && !typeAnswerReady) {
+        await supabase.from('quizzes').update({ type_answer_enabled: false }).eq('id', quizId);
+      }
+
+      if (stages.word_magnet && built.wordMagnet.length) {
+        const { error: e } = await supabase.from('word_magnet_problems').insert(
+          built.wordMagnet.map((p, i) => ({
+            quiz_id: quizId,
+            problem_id: p.problem_id,
+            base_text: p.base_text,
+            translation: p.translation || null,
+            items: p.items,
+            sort_order: i,
+          })) as unknown as Database['public']['Tables']['word_magnet_problems']['Insert'][]
+        );
+        if (e) console.error('Failed to save word magnet problems:', e);
+      }
+
+      if (stages.sentence_making && built.sentenceMaking.length) {
+        const { error: e } = await supabase.from('sentence_making_problems').insert(
+          built.sentenceMaking.map((p, i) => ({
+            quiz_id: quizId,
+            problem_id: p.problem_id,
+            word: p.word,
+            word_meaning: p.word_meaning || null,
+            model_answer: p.model_answer,
+            sort_order: i,
+          }))
+        );
+        if (e) console.error('Failed to save sentence making problems:', e);
+      }
+
+      if (stages.recording && built.recording.length) {
+        const { error: e } = await supabase.from('recording_problems').insert(
+          built.recording.map((p, i) => ({
+            quiz_id: quizId,
+            problem_id: p.problem_id,
+            sentence: p.sentence,
+            mode: p.mode,
+            translation: p.translation || null,
+            source_type: 'reuse' as const,
+            sort_order: i,
+            label: null,
+          }))
+        );
+        if (e) console.error('Failed to save recording problems:', e);
       }
 
       // 생성한 퀴즈를 선택한 클래스에 바로 배정. 실패는 치명적이지 않으므로 경고만.
@@ -586,37 +696,32 @@ export default function WrongAnswerQuizCreate() {
         try {
           const { error: assignError } = await supabase
             .from('quiz_assignments')
-            .insert({ quiz_id: data.id, class_id: selectedClassId });
+            .insert({ quiz_id: quizId, class_id: selectedClassId });
           if (assignError) throw assignError;
         } catch {
           toast.warning('퀴즈는 만들었지만 클래스 배정에 실패했어요');
         }
       }
 
-      const skippedTypeAnswer =
-        typeAnswerEnabled && typeAnswerReady && typeAnswerProblems.length < selectedProblems.length;
-
-      return { quiz: data, words, regenerateFailed, typeAnswerDropped, skippedTypeAnswer };
+      return { quizId, words: built.words, regenerateFailed, droppedCount };
     },
-    onSuccess: ({ quiz, words, regenerateFailed, typeAnswerDropped, skippedTypeAnswer }) => {
+    onSuccess: ({ quizId, words, regenerateFailed, droppedCount }) => {
       toast.success('오답 복습 퀴즈를 만들었어요');
 
       if (regenerateFailed) {
-        toast.warning('새 예문 생성 실패 — 기존 문장으로 만들었어요', {
+        toast.warning('새 예문 생성 실패 — 기존 문장이 있던 단어만 남기고 만들었어요', {
           duration: 10000,
           action: {
             label: '재시도',
-            onClick: () => retryRegeneration(quiz.id, words, difficulty, translationLanguage),
+            onClick: () => retryRegeneration(quizId, words, difficulty, translationLanguage),
           },
         });
       }
-      if (typeAnswerDropped) {
-        toast.warning('받아쓰기 문제를 저장하지 못해 빼고 만들었어요');
-      } else if (skippedTypeAnswer) {
-        toast.warning('뜻을 모르는 단어는 받아쓰기에서 뺐어요');
+      if (droppedCount > 0) {
+        toast.warning(`문장을 만들 수 없는 단어 ${droppedCount}개는 빼고 만들었어요`);
       }
 
-      navigate(`/quiz/${quiz.id}`);
+      navigate(`/quiz/${quizId}`);
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : '퀴즈를 만들지 못했어요');
@@ -1024,79 +1129,58 @@ export default function WrongAnswerQuizCreate() {
                   id="title"
                   value={quizTitle}
                   onChange={(e) => setQuizTitle(e.target.value)}
-                  placeholder="오답 복습 퀴즈"
+                  placeholder={defaultTitle}
                 />
               </div>
 
-              {/* 난이도 — 브랜드 그린 단색 (선택=채움, 미선택=중립) */}
+              {/* 문장 출처 2택 */}
               <div className="space-y-2">
-                <Label>난이도</Label>
-                <div className="grid grid-cols-6 gap-2">
-                  {DIFFICULTY_LEVELS.map(({ level }) => (
+                <Label>문장 출처</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    ['reuse', '틀렸던 문장 그대로'],
+                    ['regenerate', 'AI로 새 예문 생성'],
+                  ] as const).map(([value, label]) => (
                     <button
-                      key={level}
+                      key={value}
                       type="button"
-                      onClick={() => setDifficulty(level)}
-                      className={`py-2.5 rounded-full border-2 font-bold text-sm transition-all ${
-                        difficulty === level
+                      onClick={() => setSentenceSource(value)}
+                      className={`py-2.5 rounded-xl border-2 font-semibold text-sm transition-all ${
+                        sentenceSource === value
                           ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                           : 'bg-card text-muted-foreground border-border hover:border-primary/40'
                       }`}
                     >
-                      {level}
+                      {label}
                     </button>
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {(() => {
-                    const selected = DIFFICULTY_LEVELS.find((d) => d.level === difficulty);
-                    return selected ? `${selected.level} · ${selected.label}` : null;
-                  })()}
+                  {sentenceSource === 'reuse'
+                    ? '문장이 없는 단어(짝 맞추기·받아쓰기에서만 틀린 단어)만 AI가 새로 만들어요'
+                    : '선택한 단어 전부 AI가 새 예문을 만들어요'}
                 </p>
               </div>
 
-              {/* 번역 언어 */}
-              <div className="space-y-2">
-                <Label>번역 언어</Label>
-                <Select value={translationLanguage} onValueChange={setTranslationLanguage}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TRANSLATION_LANGUAGES.map((lang) => (
-                      <SelectItem key={lang.value} value={lang.value}>
-                        {lang.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* 퀴즈 유형 */}
+              {/* 퀴즈 유형 6개 */}
               <div className="space-y-2">
                 <Label>퀴즈 유형</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  {QUIZ_TYPES.map(({ stage, icon: Icon, desc }) => {
-                    const enabled = stage === 'fill_blank' ? fillBlankEnabled : typeAnswerEnabled;
-                    const setEnabled =
-                      stage === 'fill_blank' ? setFillBlankEnabled : setTypeAnswerEnabled;
+                  {STAGE_CARDS.map(({ key, label, desc, icon: Icon }) => {
+                    const enabled = stages[key];
                     return (
                       <button
-                        key={stage}
+                        key={key}
                         type="button"
-                        onClick={() => setEnabled(!enabled)}
+                        onClick={() => setStages((s) => ({ ...s, [key]: !s[key] }))}
                         className={`relative p-4 rounded-xl border-2 text-left transition-all ${
                           enabled ? 'border-primary bg-accent' : 'border-border hover:border-primary/40'
                         }`}
                       >
                         {enabled && <Check className="absolute top-3 right-3 w-4 h-4 text-primary" />}
                         <div className="flex items-center gap-2 mb-1">
-                          <Icon
-                            className={`w-4 h-4 ${enabled ? 'text-primary' : 'text-muted-foreground'}`}
-                          />
-                          <span className="font-bold text-sm text-foreground">
-                            {STAGE_LABELS[stage]}
-                          </span>
+                          <Icon className={`w-4 h-4 ${enabled ? 'text-primary' : 'text-muted-foreground'}`} />
+                          <span className="font-bold text-sm text-foreground">{label}</span>
                         </div>
                         <div className={`text-xs ${enabled ? 'text-primary' : 'text-muted-foreground'}`}>
                           {desc}
@@ -1105,36 +1189,109 @@ export default function WrongAnswerQuizCreate() {
                     );
                   })}
                 </div>
-                {typeAnswerEnabled && (
-                  <p className="text-xs text-muted-foreground">
-                    받아쓰기는 단어 뜻이 필요해요 — 뜻을 모르는 단어는 AI가 채우거나 빠져요
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  선택한 유형이 모두 같은 단어에 적용됩니다
+                </p>
               </div>
 
-              {/* 생성 옵션 */}
-              <div className="space-y-3 pt-2 border-t">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="regenerate"
-                    checked={regenerate}
-                    onCheckedChange={(v) => setRegenerate(!!v)}
-                  />
-                  <Label htmlFor="regenerate" className="cursor-pointer">
-                    AI로 새 예문 생성 (기존 문장 재사용 안 함)
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="assignToClass"
-                    checked={assignToClass}
-                    disabled={!selectedClassId}
-                    onCheckedChange={(v) => setAssignToClass(!!v)}
-                  />
-                  <Label htmlFor="assignToClass" className="cursor-pointer">
-                    선택한 클래스에 바로 배정
-                  </Label>
-                </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="assignToClass"
+                  checked={assignToClass}
+                  disabled={!selectedClassId}
+                  onCheckedChange={(v) => setAssignToClass(!!v)}
+                />
+                <Label htmlFor="assignToClass" className="cursor-pointer">
+                  선택한 클래스에 바로 배정
+                </Label>
+              </div>
+
+              {/* 추가 설정 — 기본 접힘 */}
+              <div className="pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen((v) => !v)}
+                  className="w-full flex items-center justify-between text-sm font-semibold text-primary py-1"
+                >
+                  추가 설정 (난이도 · 세트당 단어 수 · 번역 언어 · 제한 시간)
+                  <ChevronDown className={`h-4 w-4 transition-transform ${settingsOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {settingsOpen && (
+                  <div className="space-y-5 mt-3">
+                    <div className="space-y-2">
+                      <Label>난이도</Label>
+                      <div className="grid grid-cols-6 gap-2">
+                        {DIFFICULTY_LEVELS.map(({ level }) => (
+                          <button
+                            key={level}
+                            type="button"
+                            onClick={() => setDifficulty(level)}
+                            className={`py-2.5 rounded-full border-2 font-bold text-sm transition-all ${
+                              difficulty === level
+                                ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                : 'bg-card text-muted-foreground border-border hover:border-primary/40'
+                            }`}
+                          >
+                            {level}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {(() => {
+                          const selected = DIFFICULTY_LEVELS.find((d) => d.level === difficulty);
+                          return selected ? `${selected.level} · ${selected.label}` : null;
+                        })()}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>세트당 단어 수</Label>
+                        <span className="text-sm font-semibold text-foreground">{wordsPerSet}개</span>
+                      </div>
+                      <Slider value={[wordsPerSet]} onValueChange={(v) => setWordsPerSet(v[0])} min={1} max={10} step={1} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>번역 언어</Label>
+                      <Select value={translationLanguage} onValueChange={setTranslationLanguage}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TRANSLATION_LANGUAGES.map((lang) => (
+                            <SelectItem key={lang.value} value={lang.value}>
+                              {lang.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="rounded-xl border border-border p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-medium text-foreground">세트당 제한 시간</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">세트마다 타이머가 초기화됩니다</div>
+                        </div>
+                        <Switch checked={timerEnabled} onCheckedChange={setTimerEnabled} />
+                      </div>
+                      {timerEnabled && (
+                        <div className="space-y-2 pt-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">제한 시간</span>
+                            <span className="text-sm font-semibold text-foreground">
+                              {Math.floor(timerSeconds / 60) > 0 && `${Math.floor(timerSeconds / 60)}분 `}
+                              {timerSeconds % 60}초
+                            </span>
+                          </div>
+                          <Slider value={[timerSeconds]} onValueChange={(v) => setTimerSeconds(v[0])} min={10} max={300} step={10} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-between">
@@ -1145,7 +1302,7 @@ export default function WrongAnswerQuizCreate() {
                   onClick={() => createQuizMutation.mutate()}
                   disabled={
                     selectedWrongAnswers.length === 0 ||
-                    (!fillBlankEnabled && !typeAnswerEnabled) ||
+                    !Object.values(stages).some(Boolean) ||
                     createQuizMutation.isPending
                   }
                 >

@@ -203,10 +203,10 @@ export default function VocabPracticeQuizCreate() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('quiz_assignments')
-        .select('student_id, quizzes!inner(words, title)')
+        .select('student_id, quizzes!inner(words, kind)')
         .in('student_id', selectedStudents)
         .is('class_id', null)
-        .ilike('quizzes.title', '%어휘 보강%');
+        .eq('quizzes.kind', 'vocab_practice');
       if (error) throw error;
       const set = new Set<string>();
       (data ?? []).forEach((row) => {
@@ -363,6 +363,7 @@ export default function VocabPracticeQuizCreate() {
         problems: JSON.parse(JSON.stringify(built.problems)),
         teacher_id: user!.id,
         source: 'imported',
+        kind: 'vocab_practice',
         fill_blank_enabled: stages.fill_blank,
         sentence_making_enabled: stages.sentence_making,
         recording_enabled: stages.recording,

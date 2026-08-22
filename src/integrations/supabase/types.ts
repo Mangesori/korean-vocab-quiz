@@ -772,6 +772,7 @@ export type Database = {
           difficulty: Database["public"]["Enums"]["difficulty_level"]
           fill_blank_enabled: boolean
           id: string
+          kind: string | null
           matchup_enabled: boolean
           problems: Json
           recording_enabled: boolean
@@ -794,6 +795,7 @@ export type Database = {
           difficulty?: Database["public"]["Enums"]["difficulty_level"]
           fill_blank_enabled?: boolean
           id?: string
+          kind?: string | null
           matchup_enabled?: boolean
           problems?: Json
           recording_enabled?: boolean
@@ -816,6 +818,7 @@ export type Database = {
           difficulty?: Database["public"]["Enums"]["difficulty_level"]
           fill_blank_enabled?: boolean
           id?: string
+          kind?: string | null
           matchup_enabled?: boolean
           problems?: Json
           recording_enabled?: boolean
