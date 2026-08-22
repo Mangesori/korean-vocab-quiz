@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Trash2, Scissors, Link2, Sparkles, RefreshCw, GripVertical } from "lucide-react";
+import { unmaskTranslation } from "@/utils/maskTranslation";
 
 export interface TileItem {
   content: string;
@@ -157,7 +158,7 @@ export function WordMagnetEditCard({
               placeholder="문장 번역 입력"
             />
           ) : (
-            <p className="px-3 py-2 rounded-md bg-muted text-sm">{translation || "(없음)"}</p>
+            <p className="px-3 py-2 rounded-md bg-muted text-sm">{unmaskTranslation(translation) || "(없음)"}</p>
           )}
         </div>
 

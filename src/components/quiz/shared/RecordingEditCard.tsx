@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { unmaskTranslation } from "@/utils/maskTranslation";
 
 /**
  * 말하기 연습 편집 카드. QuizPreview(퀴즈 생성 직후)와 QuizDetail(나중에 수정) 화면이 공유한다.
@@ -210,7 +211,7 @@ export function RecordingEditCard({
               className="bg-muted min-h-[60px]"
             />
           ) : (
-            <p className="px-3 py-2 rounded-md bg-muted text-sm">{translation || "(없음)"}</p>
+            <p className="px-3 py-2 rounded-md bg-muted text-sm">{unmaskTranslation(translation) || "(없음)"}</p>
           )}
         </div>
       </CardContent>

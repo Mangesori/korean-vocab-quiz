@@ -210,6 +210,7 @@ export default function QuizImport() {
         timer_seconds: timerEnabled ? timerSeconds : null,
         problems: JSON.parse(JSON.stringify(built.problems)),
         teacher_id: user.id,
+        source: "imported",
         fill_blank_enabled: stages.fill_blank,
         sentence_making_enabled: stages.sentence_making,
         recording_enabled: stages.recording,

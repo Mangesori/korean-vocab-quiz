@@ -773,6 +773,7 @@ export type Database = {
           problems: Json
           recording_enabled: boolean
           sentence_making_enabled: boolean
+          source: string | null
           teacher_id: string
           timer_enabled: boolean
           timer_seconds: number | null
@@ -794,6 +795,7 @@ export type Database = {
           problems?: Json
           recording_enabled?: boolean
           sentence_making_enabled?: boolean
+          source?: string | null
           teacher_id: string
           timer_enabled?: boolean
           timer_seconds?: number | null
@@ -815,6 +817,7 @@ export type Database = {
           problems?: Json
           recording_enabled?: boolean
           sentence_making_enabled?: boolean
+          source?: string | null
           teacher_id?: string
           timer_enabled?: boolean
           timer_seconds?: number | null

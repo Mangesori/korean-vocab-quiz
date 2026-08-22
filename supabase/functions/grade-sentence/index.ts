@@ -1,4 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  callClaude,
+  stripMarkdownJsonFence,
+  type ClaudeJsonSchemaFormat,
+} from "../_shared/claude.ts";
 
 /**
  * 문장 만들기 채점.
@@ -135,9 +141,67 @@ const JUDGEMENT_RULES = `**판정 1 — 목표 단어를 제대로 썼는가 (ta
 영어 번역이나 "Example:" 같은 접두어를 붙이지 마세요.`;
 
 const jsonRules = (targetLang: string) => `🚨 출력 규칙
-- JSON만 출력하세요. 마크다운 코드 블록 금지.
 - 점수를 매기지 마세요. 숫자 필드는 없습니다. 판정과 오류 목록만 내면 됩니다.
 - feedback은 반드시 ${targetLang}로, 격려하는 톤으로 2-3문장.`;
+
+// ── 구조화된 출력 스키마 — 위 "응답 형식" 블록과 한 글자도 다르면 안 된다 ──────
+const gradeObjectSchema = {
+  type: "object",
+  properties: {
+    targetWordVerdict: { type: "string", enum: ["ok", "misused", "collocation_error"] },
+    sentenceMeaningBroken: { type: "boolean" },
+    errors: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          text: { type: "string" },
+          severity: { type: "string", enum: ["major", "minor"] },
+        },
+        required: ["text", "severity"],
+        additionalProperties: false,
+      },
+    },
+    modelAnswer: { type: "string" },
+    feedback: { type: "string" },
+  },
+  required: [
+    "targetWordVerdict",
+    "sentenceMeaningBroken",
+    "errors",
+    "modelAnswer",
+    "feedback",
+  ],
+  additionalProperties: false,
+};
+
+/** 단건·재채점 응답용(단일 객체). */
+const SINGLE_GRADE_SCHEMA: ClaudeJsonSchemaFormat = {
+  type: "json_schema",
+  schema: gradeObjectSchema,
+};
+
+/**
+ * 일괄 채점 응답용. Anthropic structured outputs 공식 문서의 예시가 전부 최상위
+ * type: "object"이고 최상위 array 지원 여부가 명시돼 있지 않아, 배열을 그대로 쓰지 않고
+ * { "results": [...] } 로 감싼다 — 검증 안 된 조합을 프로덕션에 걸지 않기 위함.
+ * 프롬프트의 "응답 형식" 예시(배열)와는 다르지만, 구조화된 출력이 켜지면 모델은
+ * jsonRules가 아니라 이 스키마를 따른다.
+ */
+const BATCH_GRADE_SCHEMA: ClaudeJsonSchemaFormat = {
+  type: "json_schema",
+  schema: {
+    type: "object",
+    properties: {
+      results: {
+        type: "array",
+        items: gradeObjectSchema,
+      },
+    },
+    required: ["results"],
+    additionalProperties: false,
+  },
+};
 
 function generateSingleGradingPrompt(
   word: string,
@@ -168,8 +232,7 @@ ${JUDGEMENT_RULES}
   "feedback": "${targetLang}로 2-3문장"
 }
 
-${jsonRules(targetLang)}
-- 첫 글자는 반드시 { 입니다.`;
+${jsonRules(targetLang)}`;
 }
 
 function generateBatchGradingPrompt(
@@ -205,8 +268,7 @@ ${JUDGEMENT_RULES}
   }
 ]
 
-${jsonRules(targetLang)}
-- 첫 글자는 반드시 [ 입니다.`;
+${jsonRules(targetLang)}`;
 }
 
 /** 선생님이 추천 문장을 고쳤을 때 그 기준으로 다시 판정한다. */
@@ -239,8 +301,7 @@ ${JUDGEMENT_RULES}
   "feedback": "${targetLang}로 2-3문장"
 }
 
-${jsonRules(targetLang)}
-- 첫 글자는 반드시 { 입니다.`;
+${jsonRules(targetLang)}`;
 }
 
 // ── 점수 계산 — 모델이 아니라 여기가 정한다 ─────────────────────────
@@ -310,67 +371,113 @@ function failedGrade(studentSentence: string): GradeResponse {
 }
 
 // ── Claude 호출 ────────────────────────────────────────────────────
-
-async function callClaude(prompt: string, systemInstruction: string): Promise<string> {
-  const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!ANTHROPIC_API_KEY) {
-    throw new Error("ANTHROPIC_API_KEY is not configured");
-  }
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        // Sonnet 5는 adaptive thinking이 기본이고 thinking도 이 예산을 나눠 쓴다.
-        max_tokens: MAX_TOKENS,
-        // temperature는 넣지 말 것 — Sonnet 5는 기본값이 아닌 sampling 파라미터를 400으로 거부한다.
-        // effort: 학생이 화면에서 기다리는 동기 호출이라 기본값 high보다 낮춘다.
-        output_config: { effort: "medium" },
-        system: systemInstruction,
-        messages: [{ role: "user", content: prompt }],
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Claude API error:", response.status, errorText);
-      throw new Error(`Claude API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    // adaptive thinking이 켜지면 content[0]이 thinking 블록일 수 있다.
-    // 인덱스로 집지 말고 type === "text"인 블록을 찾아야 한다.
-    const content = data.content?.find(
-      (block: { type?: string; text?: string }) => block?.type === "text"
-    )?.text;
-
-    if (!content) throw new Error("No content received from AI");
-
-    let jsonStr = content.trim();
-    if (jsonStr.startsWith("```")) {
-      jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```$/g, "").trim();
-    }
-    return jsonStr;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
-  }
+//
+// 실제 호출은 _shared/claude.ts의 공통 헬퍼(재시도 포함)로 위임한다.
+// 여기서는 이 함수의 고정값(MODEL/MAX_TOKENS/TIMEOUT_MS/system)만 채워 얇게 감싼다.
+// outputSchema를 넘기면 마크다운 스트립 없이 스키마를 따르는 JSON 문자열을 바로 돌려받는다
+// (정상 동작 시). 실패 시를 대비한 마크다운 스트립 폴백은 호출부에서 stripMarkdownJsonFence로 한다.
+async function callGradingClaude(
+  prompt: string,
+  systemInstruction: string,
+  outputSchema: ClaudeJsonSchemaFormat
+): Promise<string> {
+  const result = await callClaude(prompt, {
+    model: MODEL,
+    maxTokens: MAX_TOKENS,
+    // effort: 학생이 화면에서 기다리는 동기 호출이라 기본값 high보다 낮춘다.
+    effort: "medium",
+    timeoutMs: TIMEOUT_MS,
+    system: systemInstruction,
+    outputSchema,
+  });
+  return result.text;
 }
 
 const SYSTEM_INSTRUCTION =
   "You are a Korean language education expert. You classify errors in student sentences. " +
   "You never assign numeric scores. Respond only in valid JSON with no markdown.";
+
+// ── 인증 ───────────────────────────────────────────────────────────
+//
+// 이 함수는 Claude API를 직접 호출하는 과금 대상이라 아무나 부를 수 없어야 한다.
+// 하지만 "문장 만들기"는 학생이 푸는 기능이고, 학생은 세 갈래로 들어온다:
+//   1) 로그인 학생/교사 — Authorization에 진짜 유저 JWT가 실린다.
+//   2) 공유 링크(quiz_shares.share_token) — 로그인 없이 링크만으로 푼다.
+//   3) 라이브 세션 게스트(live_participants, is_guest=true) — 로그인 없이 6자리 코드로 입장한다.
+// 셋 중 하나도 증명하지 못하면 거부한다. (교사 전용 segment-korean과 달리
+// 여기는 역할 제한이 없다 — "인증된 사용자"거나 "유효한 익명 경로"면 통과.)
+async function authorizeRequest(
+  req: Request,
+  body: Record<string, unknown>
+): Promise<{ ok: true } | { ok: false; status: number; message: string }> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+  // 1) 로그인 사용자 — Authorization 헤더의 JWT를 검증한다.
+  //    (비로그인 클라이언트도 anon key를 Authorization으로 보내지만, anon key로는
+  //     auth.getUser()가 유저를 못 찾으므로 자연히 다음 단계로 넘어간다.)
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader && supabaseUrl && supabaseAnonKey) {
+    try {
+      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error } = await userClient.auth.getUser();
+      if (!error && user) return { ok: true };
+    } catch (e) {
+      console.error("auth.getUser() 실패:", e);
+    }
+  }
+
+  // 2) 공유 링크 — quiz_shares는 RLS가 누구나 SELECT 가능하도록 열려 있다
+  //    (익명 응시자가 퀴즈 자체를 불러와야 하므로). 토큰이 실존하고 만료되지
+  //    않았는지만 확인한다.
+  const shareToken = typeof body.shareToken === "string" ? body.shareToken.trim() : "";
+  if (shareToken && supabaseUrl && supabaseAnonKey) {
+    try {
+      const anonClient = createClient(supabaseUrl, supabaseAnonKey);
+      const { data } = await anonClient
+        .from("quiz_shares")
+        .select("expires_at")
+        .eq("share_token", shareToken)
+        .maybeSingle();
+      if (data && (!data.expires_at || new Date(data.expires_at) > new Date())) {
+        return { ok: true };
+      }
+    } catch (e) {
+      console.error("quiz_shares 조회 실패:", e);
+    }
+  }
+
+  // 3) 라이브 세션 게스트 — live_participants는 RLS상 본인 auth.uid()로만
+  //    조회 가능한데 게스트는 auth.uid()가 없다. 그래서 service role로
+  //    "이 participant id가 살아있는 세션에 실제로 존재하는가"만 확인한다
+  //    (그 이상의 권한은 주지 않는다 — 이 조회 하나로 끝).
+  const liveParticipantId =
+    typeof body.liveParticipantId === "string" ? body.liveParticipantId.trim() : "";
+  if (liveParticipantId && supabaseUrl) {
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (serviceRoleKey) {
+      try {
+        const adminClient = createClient(supabaseUrl, serviceRoleKey);
+        const { data } = await adminClient
+          .from("live_participants")
+          .select("left_at, live_sessions:session_id(status)")
+          .eq("id", liveParticipantId)
+          .maybeSingle();
+        const session = data?.live_sessions as { status?: string } | { status?: string }[] | null;
+        const status = Array.isArray(session) ? session[0]?.status : session?.status;
+        if (data && data.left_at === null && status && status !== "ended") {
+          return { ok: true };
+        }
+      } catch (e) {
+        console.error("live_participants 조회 실패:", e);
+      }
+    }
+  }
+
+  return { ok: false, status: 401, message: "인증이 필요합니다." };
+}
 
 // ── 핸들러 ─────────────────────────────────────────────────────────
 
@@ -389,6 +496,12 @@ serve(async (req) => {
 
   try {
     const reqBody = await req.json();
+
+    const auth = await authorizeRequest(req, reqBody);
+    if (!auth.ok) {
+      return json({ error: auth.message }, auth.status);
+    }
+
     const targetLang = reqBody.translationLanguage || "English";
 
     // 재채점 모드: 선생님이 추천 문장을 수정했을 때
@@ -398,18 +511,24 @@ serve(async (req) => {
         return json({ error: "word, studentSentence, modelAnswer는 필수입니다." }, 400);
       }
 
-      const jsonStr = await callClaude(
+      const jsonStr = await callGradingClaude(
         generateRegradePrompt(word, studentSentence, modelAnswer, targetLang),
-        SYSTEM_INSTRUCTION
+        SYSTEM_INSTRUCTION,
+        SINGLE_GRADE_SCHEMA
       );
 
       let parsed: unknown;
       try {
         parsed = JSON.parse(jsonStr);
       } catch {
-        // 판정을 못 얻었으면 점수를 건드리지 않는다. 피드백만 돌려주면
-        // 클라이언트가 점수 갱신을 건너뛴다(QuizResultDialog는 totalScore 유무로 분기).
-        return json({ feedback: jsonStr.trim() });
+        // 구조화된 출력이 실패했을 때의 폴백 — 예전 마크다운 스트립 방식으로 한 번 더 시도.
+        try {
+          parsed = JSON.parse(stripMarkdownJsonFence(jsonStr));
+        } catch {
+          // 판정을 못 얻었으면 점수를 건드리지 않는다. 피드백만 돌려주면
+          // 클라이언트가 점수 갱신을 건너뛴다(QuizResultDialog는 totalScore 유무로 분기).
+          return json({ feedback: jsonStr.trim() });
+        }
       }
 
       const graded = computeGrade(normalizeRaw(parsed, studentSentence));
@@ -426,28 +545,44 @@ serve(async (req) => {
 
       console.log(`Batch grading ${problems.length} sentences at ${difficulty}, feedback in ${targetLang}`);
 
-      const jsonStr = await callClaude(
+      const jsonStr = await callGradingClaude(
         generateBatchGradingPrompt(
           problems.map((p) => ({ word: p.word, studentSentence: p.studentSentence })),
           difficulty,
           targetLang
         ),
-        SYSTEM_INSTRUCTION
+        SYSTEM_INSTRUCTION,
+        BATCH_GRADE_SCHEMA
       );
+
+      // 구조화된 출력 스키마는 { "results": [...] }로 감싸져 있다(BATCH_GRADE_SCHEMA 주석
+      // 참고 — 최상위 array가 문서에 없어 object로 감쌌다). 폴백 경로(마크다운 스트립)는
+      // 스키마 강제가 없던 시절의 프롬프트 형식(순수 배열)을 대비해 배열도 함께 받아준다.
+      const extractList = (parsed: unknown): unknown[] => {
+        if (Array.isArray(parsed)) return parsed;
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          Array.isArray((parsed as { results?: unknown }).results)
+        ) {
+          return (parsed as { results: unknown[] }).results;
+        }
+        throw new Error("Expected JSON array response from AI");
+      };
 
       let parsedList: unknown[];
       try {
-        const parsed = JSON.parse(jsonStr);
-        if (!Array.isArray(parsed)) {
-          console.error("AI returned non-array JSON:", jsonStr.substring(0, 500));
-          throw new Error("Expected JSON array response from AI");
+        parsedList = extractList(JSON.parse(jsonStr));
+      } catch {
+        // 구조화된 출력이 실패했을 때의 폴백 — 예전 마크다운 스트립 방식으로 한 번 더 시도.
+        try {
+          parsedList = extractList(JSON.parse(stripMarkdownJsonFence(jsonStr)));
+        } catch (parseError) {
+          console.error("JSON parse failed. Raw AI response:", jsonStr.substring(0, 1000));
+          throw new Error(
+            `AI returned invalid JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}`
+          );
         }
-        parsedList = parsed;
-      } catch (parseError) {
-        console.error("JSON parse failed. Raw AI response:", jsonStr.substring(0, 1000));
-        throw new Error(
-          `AI returned invalid JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}`
-        );
       }
 
       if (parsedList.length !== problems.length) {
@@ -473,11 +608,19 @@ serve(async (req) => {
 
     console.log(`Grading "${word}" at ${difficulty}, feedback in ${targetLang}`);
 
-    const jsonStr = await callClaude(
+    const jsonStr = await callGradingClaude(
       generateSingleGradingPrompt(word, studentSentence, difficulty, targetLang),
-      SYSTEM_INSTRUCTION
+      SYSTEM_INSTRUCTION,
+      SINGLE_GRADE_SCHEMA
     );
-    const graded = computeGrade(normalizeRaw(JSON.parse(jsonStr), studentSentence));
+    let parsedSingle: unknown;
+    try {
+      parsedSingle = JSON.parse(jsonStr);
+    } catch {
+      // 구조화된 출력이 실패했을 때의 폴백 — 예전 마크다운 스트립 방식으로 한 번 더 시도.
+      parsedSingle = JSON.parse(stripMarkdownJsonFence(jsonStr));
+    }
+    const graded = computeGrade(normalizeRaw(parsedSingle, studentSentence));
 
     console.log(
       `Grading complete: ${graded.totalScore}점 (${graded.isPassed ? "합격" : "불합격"}), ` +

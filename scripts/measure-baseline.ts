@@ -35,6 +35,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as kiwiNlpNs from "kiwi-nlp";
 import { expandSlash } from "./lib/grammar-notation.ts";
+import { LEVEL_SENTENCE_LENGTH } from "../supabase/functions/_shared/grammar.ts";
 
 const require = createRequire(import.meta.url);
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -332,12 +333,75 @@ async function main() {
   const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_KEY!, {
     auth: { persistSession: false },
   });
-  const { data, error } = await supabase
+  // MEASURE_SINCE(ISO 문자열)를 주면 그 시각 이후 생성분만 잰다.
+  // 배포 전후 효과를 비교할 때 전체 평균에 옛 퀴즈가 섞여 묻히는 것을 막는다.
+  //
+  // ⚠ DuplicateQuizButton은 quizzes.problems를 원본 그대로 복사하고 title에
+  //   "(복사본)"을 붙인다. created_at은 복제 시각이지만 problems의 실제 생성
+  //   시점(어떤 프롬프트를 거쳤는지)은 원본 시각이므로, MEASURE_SINCE로 최근분만
+  //   봐도 복사본이 섞이면 옛 프롬프트 산출물이 "최근 생성"으로 오판된다.
+  //   title로 걸러낸다 — 완벽하진 않다(사람이 제목을 바꿀 수 있음)는 점은 감안한다.
+  // source 컬럼: 'ai_generated' | 'imported' | null(과거 데이터, 미분류).
+  // 사람이 가져온(imported) 문제가 섞이면 등급 통제 측정이 오염되므로 기본은
+  // ai_generated만 본다. MEASURE_INCLUDE_UNCLASSIFIED=1이면 NULL(미분류)도 포함한다.
+  const includeUnclassified = process.env.MEASURE_INCLUDE_UNCLASSIFIED === "1";
+
+  // 전체 source 분포를 먼저 집계한다(필터 걸기 전 카운트) — 아래 필터링 요약에 쓴다.
+  // 마이그레이션이 아직 원격에 안 올라간 경우(42703 = undefined_column) source 없이
+  // 계속 돌 수 있게 한다 — 이때는 MEASURE_TITLES로 특정 퀴즈만 골라 재는 우회로를 쓴다.
+  const { data: sourceRows, error: sourceError } = await supabase.from("quizzes").select("source");
+  const hasSourceColumn = !sourceError;
+  if (sourceError && sourceError.code !== "42703") {
+    throw new Error(`source 분포 조회 실패: ${sourceError.message}`);
+  }
+  if (!hasSourceColumn) {
+    console.log(
+      "[source 컬럼 없음] 마이그레이션이 아직 원격에 적용되지 않았습니다.\n" +
+        "  MEASURE_TITLES=\"제목1,제목2\" 로 특정 퀴즈만 지정해 측정하는 것을 권장합니다.\n"
+    );
+  }
+  if (hasSourceColumn) {
+    const sourceCounts = { ai_generated: 0, imported: 0, null: 0 };
+    for (const row of sourceRows ?? []) {
+      const s = (row as any).source as string | null;
+      if (s === "ai_generated") sourceCounts.ai_generated++;
+      else if (s === "imported") sourceCounts.imported++;
+      else sourceCounts.null++;
+    }
+    console.log(
+      `[source 분포] 전체 ${sourceRows?.length ?? 0}건 — ai_generated=${sourceCounts.ai_generated}  ` +
+        `imported=${sourceCounts.imported}  NULL(미분류)=${sourceCounts.null}\n` +
+        `[source 필터] ${includeUnclassified ? "ai_generated + NULL(미분류) 포함" : "ai_generated만 포함"} ` +
+        `(MEASURE_INCLUDE_UNCLASSIFIED=${includeUnclassified ? "1" : "0"})\n`
+    );
+  }
+
+  let query = supabase
     .from("quizzes")
-    .select("id, difficulty, words, problems, created_at")
+    .select(hasSourceColumn ? "id, title, difficulty, words, problems, created_at, source" : "id, title, difficulty, words, problems, created_at")
+    // source 필터가 있으니 사실상 중복 방어(복제본은 원본의 source를 물려받으므로
+    // source='imported'인 원본의 복사본은 아래 source 필터에서 이미 걸러진다).
+    .not("title", "ilike", "%(복사본)%")
     .order("created_at", { ascending: false })
     .limit(500);
+  if (hasSourceColumn) {
+    query = includeUnclassified
+      ? query.or("source.eq.ai_generated,source.is.null")
+      : query.eq("source", "ai_generated");
+  }
+  const since = process.env.MEASURE_SINCE;
+  if (since) query = query.gte("created_at", since);
+  // source 컬럼이 없을 때의 우회로 — 특정 퀴즈 제목만 콤마로 지정해 정확히 잰다.
+  const titlesEnv = process.env.MEASURE_TITLES;
+  if (titlesEnv) {
+    const titles = titlesEnv.split(",").map((t) => t.trim()).filter(Boolean);
+    query = query.in("title", titles);
+  }
+  const { data, error } = await query;
   if (error) throw new Error(`조회 실패: ${error.message}`);
+  if (since) console.log(`[필터] ${since} 이후 생성분만 측정 (${data?.length ?? 0}건)\n`);
+  if (titlesEnv) console.log(`[제목 필터] "${titlesEnv}" 중 일치 (${data?.length ?? 0}건)\n`);
+  console.log(`[필터 결과] ${data?.length ?? 0}건 측정 대상\n`);
 
   type Stat = {
     quizzes: number;
@@ -348,6 +412,10 @@ async function main() {
     excludedByInput: number;
     words: number[]; // 문장당 어절 수 (공백 분할)
     chars: number[]; // 문장당 글자 수 (공백 제외)
+    // short_sentence(B1+ 문장 순서 맞추기·말하기 연습용) 글자 수·어절 수. sentence와
+    // 별개 규격("20~30자")이라 따로 잰다 — 있는 문제에서만 채워진다.
+    shortChars: number[];
+    shortWords: number[];
     morphs: number[]; // 문장당 형태소 수 (Kiwi 토큰 전체)
     morphsNoPunct: number[]; // 형태소 수에서 문장부호(S*)를 뺀 값
     ec: number[];
@@ -363,7 +431,7 @@ async function main() {
   const stats = new Map<string, Stat>();
   const blank = (): Stat => ({
     quizzes: 0, problems: 0, inRange: 0, total: 0, unknown: 0, excludedByInput: 0,
-    words: [], chars: [], morphs: [], morphsNoPunct: [],
+    words: [], chars: [], shortChars: [], shortWords: [], morphs: [], morphsNoPunct: [],
     ec: [], etm: [], over: new Map(), unk: new Map(),
     hintFrags: 0, hintMatched: 0, hintOver: new Map(), hintUnmatched: new Map(),
   });
@@ -373,7 +441,7 @@ async function main() {
     const target = CEFR_TO_GRADE[difficulty];
     if (!target) continue;
     const problems = ((q as any).problems ?? []) as {
-      sentence?: string; answer?: string; word?: string; hint?: string;
+      sentence?: string; answer?: string; word?: string; hint?: string; short_sentence?: string;
     }[];
     if (!Array.isArray(problems) || !problems.length) continue;
 
@@ -401,6 +469,11 @@ async function main() {
       // ── 문장 길이 세 단위 ──
       st.words.push(sentence.split(/\s+/).filter(Boolean).length); // 어절
       st.chars.push(sentence.replace(/\s/g, "").length); // 글자(공백 제외)
+      if (p.short_sentence?.trim()) {
+        const ss = p.short_sentence.trim();
+        st.shortChars.push(ss.length); // 공백 포함 — 프롬프트 규격이 "공백 포함 20~30자"
+        st.shortWords.push(ss.split(/\s+/).filter(Boolean).length); // 어절
+      }
       if (hasKiwi) {
         st.morphs.push(tokens.length); // 형태소 = Kiwi 토큰 수
         // 문장부호(SF/SP/SS/SE/SO 등 S로 시작)는 형태소로 보기 애매해서 따로도 센다.
@@ -422,6 +495,12 @@ async function main() {
         if (g > target) {
           const prev = st.hintOver.get(frag);
           st.hintOver.set(frag, { grade: g, count: (prev?.count ?? 0) + 1 });
+          if (process.env.MEASURE_DEBUG_OVER) {
+            console.log(
+              `[초과] quiz=${(q as any).id} title="${(q as any).title}" created=${(q as any).created_at} ` +
+                `diff=${difficulty} hint="${p.hint}" → "${sentence}"`
+            );
+          }
         }
       }
 
@@ -476,11 +555,15 @@ async function main() {
   };
   const pct = (n: number, d: number) => (d ? ((n / d) * 100).toFixed(1) + "%" : "—");
   const ORDER = ["A1", "A2", "B1", "B2", "C1", "C2"];
-  // 프롬프트 DIFFICULTY_GUIDES의 `길이:` 값 (측정 대조용) — supabase/functions/_shared/grammar.ts
-  // LEVEL_SENTENCE_LENGTH와 반드시 같은 숫자를 유지한다.
-  const LEN_GUIDE: Record<string, string> = {
-    A1: "5-8", A2: "7-10", B1: "9-13", B2: "12-17", C1: "16-24", C2: "16-28",
-  };
+  // 프롬프트 §3 "길이:" 값 — _shared/grammar.ts의 LEVEL_SENTENCE_LENGTH에서 직접 뽑는다.
+  // 예전엔 여기 숫자를 손으로 따로 적어뒀다가 프롬프트를 고친 뒤 안 맞춰서 옛 값(9-13)이
+  // 남아 있었다. 소스를 import하면 구조적으로 어긋날 수 없다.
+  const LEN_GUIDE: Record<string, string> = Object.fromEntries(
+    Object.entries(LEVEL_SENTENCE_LENGTH).map(([level, text]) => [
+      level,
+      /^(\d+-\d+)/.exec(text)?.[1] ?? text,
+    ])
+  );
   /** "5-8" → [5, 8]. 가설 1(모델이 "단어"를 형태소로 읽는가) 판정에 쓴다. */
   const guideRange = (d: string): [number, number] | undefined => {
     const m = /^(\d+)-(\d+)$/.exec(LEN_GUIDE[d] ?? "");
@@ -523,6 +606,12 @@ async function main() {
         // 어절당 글자 수 — "등급이 오를수록 어절이 길어진다" 가설의 검증
         charsPerEojeol: mean(s.words) ? mean(s.chars) / mean(s.words) : null,
         morphsPerEojeol: mean(s.words) && s.morphs.length ? mean(s.morphs) / mean(s.words) : null,
+        shortSentenceChars: s.shortChars.length
+          ? { mean: mean(s.shortChars), sd: sd(s.shortChars), cv: cv(s.shortChars), n: s.shortChars.length }
+          : null,
+        shortSentenceWords: s.shortWords.length
+          ? { mean: mean(s.shortWords), sd: sd(s.shortWords), cv: cv(s.shortWords), n: s.shortWords.length }
+          : null,
       },
       topOver: [...s.over.entries()]
         .sort((a, b) => b[1].count - a[1].count)
@@ -561,6 +650,22 @@ async function main() {
   if (hasKiwi) {
     console.log("\n  (참고) 문장부호 제외 형태소 수:");
     for (const d of present) console.log(`    ${d}  ${fmt(stats.get(d)!.morphsNoPunct)}`);
+  }
+
+  // short_sentence(B1+ 문장 순서 맞추기·말하기 연습용) — sentence와 별개 규격("공백 포함
+  // 20~30자")이라 따로 찍는다. B1 미만은 애초에 안 만들어지므로 표에서 빈다.
+  const withShort = present.filter((d) => stats.get(d)!.shortChars.length);
+  if (withShort.length) {
+    console.log("\n═══ short_sentence 길이 (B1+ 문장 순서 맞추기·말하기 연습용) ═══");
+    console.log("(프롬프트 규격: 공백 포함 20~30자, 전 등급 동일)\n");
+    console.log("난이도   표본수   글자수(공백포함) 평균/SD/CV      어절수 평균/SD/CV");
+    for (const d of withShort) {
+      const sc = stats.get(d)!.shortChars;
+      const sw = stats.get(d)!.shortWords;
+      console.log(`${d.padEnd(8)} ${String(sc.length).padStart(4)}     ${fmt(sc).padEnd(24)} ${fmt(sw)}`);
+    }
+  } else {
+    console.log("\n═══ short_sentence 글자 수 ═══\n  표본 없음 — B1+ 퀴즈 중 short_sentence가 채워진 문제가 없습니다.");
   }
 
   // ── 가설 1 판정 ──────────────────────────────────────────────────

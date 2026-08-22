@@ -1,7 +1,61 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { renderGuide, type CefrLevel } from "../_shared/grammar.ts";
+import { renderGuide, LEVEL_SENTENCE_LENGTH, sentenceLengthRange, type CefrLevel } from "../_shared/grammar.ts";
 import { A1_VOCAB } from "../_shared/vocab-a1.ts";
+import {
+  callClaude,
+  ClaudeApiError,
+  stripMarkdownJsonFence,
+  type ClaudeJsonSchemaFormat,
+} from "../_shared/claude.ts";
+
+// 빈칸 채우기 출력 스키마(§ 출력 형식 JSON 블록과 한 글자도 다르면 안 된다).
+// includeShort일 때만 short_sentence/short_translation을 필드에 추가하고 필수로 둔다
+// (§6-3이 "필수"라고 명시하므로 구조화된 출력에서도 그대로 강제한다).
+function generateQuizOutputSchema(includeShort: boolean): ClaudeJsonSchemaFormat {
+  const shortProperties = includeShort
+    ? {
+        short_sentence: { type: "string" },
+        short_translation: { type: "string" },
+      }
+    : {};
+  const required = [
+    "word",
+    "answer",
+    "sentence",
+    "hint",
+    "translation",
+    "meaning",
+    ...(includeShort ? ["short_sentence", "short_translation"] : []),
+  ];
+  return {
+    type: "json_schema",
+    schema: {
+      type: "object",
+      properties: {
+        problems: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              word: { type: "string" },
+              answer: { type: "string" },
+              sentence: { type: "string" },
+              hint: { type: "string" },
+              translation: { type: "string" },
+              meaning: { type: "string" },
+              ...shortProperties,
+            },
+            required,
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["problems"],
+      additionalProperties: false,
+    },
+  };
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -126,6 +180,70 @@ function difficultyGuide(level: string): string {
   return renderGuide(CEFR_LEVELS.includes(level as CefrLevel) ? (level as CefrLevel) : "A1");
 }
 
+// short_sentence(B1+ 문장 순서 맞추기·말하기 연습용) 길이 규격. 세 프롬프트 빌더와
+// selfCheckSection이 전부 이 함수를 쓴다 — 예전에 손으로 3곳에 따로 적어뒀다가
+// 한 곳만 못 고쳐서 옛 규격("20~30자")이 남았던 사고(c1bfd88)가 있었다.
+function shortSentenceLen(difficulty: string): string {
+  return difficulty === "B1"
+    ? "6-8어절(띄어쓰기로 나눈 덩어리 수)"
+    : "7-9어절(띄어쓰기로 나눈 덩어리 수)";
+}
+
+/**
+ * §8 자기 점검 블록. generateDetailedPrompt·generatePromptModePrompt가 공유한다(문구 동일).
+ *
+ * ⑤(문법 자기점검)는 A1을 제외한다 — A1은 §3 라벨에 "반드시 포함"이 없어 문법이
+ * 필수가 아니므로, 이 체크를 A1에도 적용하면 없는 규칙을 검증하라는 모순이 된다.
+ *
+ * 실측(2026-08-21): ④를 추가했는데도 B1 15문제 중 5개가 hint "-았/었어요" 단독으로만
+ * 나왔다(895b3dc가 §3을 "필수"로 격상했는데도 마지막 재확인이 없어 못 걸렀다) — 그래서
+ * ④와 같은 패턴(자연스러움이 항상 우선이라는 단서 포함)으로 ⑤를 추가한다.
+ *
+ * ⑥(short_sentence 길이)은 includeShort일 때만 넣는다 — §2 후보 평가는 빈칸 채우기
+ * sentence 얘기라 short_sentence(§6-3, 별도 규격)는 거기 안 걸린다. 실측(2026-08-21):
+ * ④·⑤ 배포 후에도 short_sentence 어절 평균이 4.51(지시 6-8) — sentence 쪽만 좋아지고
+ * short_sentence는 그대로였다. 자기점검이 아예 없었으니 당연한 결과.
+ */
+function selfCheckSection(difficulty: string, includeShort = false): string {
+  const includeGrammarCheck = difficulty !== "A1";
+  const grammarCheckItem = includeGrammarCheck
+    ? `
+⑤ **hint가 단순 종결어미뿐인가** — hint가 "-아/어요", "-았/었어요", "-습니다" 같은 기본
+   종결형 하나뿐이면, 위 §3 목록에서 자연스럽게 결합할 수 있는 ${difficulty} 문법이 있는지
+   다시 확인해 추가하세요. 단, 억지로 끼워 넣어 부자연스러워질 바엔 종결어미만 쓰는 쪽을
+   택하세요(이 점검도 §1보다 낮은 우선순위입니다).`
+    : "";
+  const shortCheckItem = includeShort
+    ? `
+⑥ **short_sentence 길이를 지켰는가** — short_sentence의 어절 수를 세어 §6-3에 명시된
+   ${shortSentenceLen(difficulty)} 범위인지 확인하세요. 이 점검도 §1보다 낮은
+   우선순위입니다 — 억지로 늘리거나 줄여 부자연스러워질 바엔 범위를 살짝 벗어나는
+   쪽을 택하세요.`
+    : "";
+  const itemCount = 3 + Number(includeGrammarCheck) + 1 + Number(includeShort);
+  const count = ["", "한", "두", "세", "네", "다섯", "여섯"][itemCount];
+
+  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§8. 자연스러움 최종 점검
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+· 완성된 각 문장을 읽고 "한국인 친구에게 이 문장을 보여줘도 어색하지 않은가?"를 점검하세요.
+· 문장 끝에 마침표(.) 또는 물음표(?)를 반드시 붙이세요.
+
+각 문제를 출력하기 전에 아래 ${count} 가지를 스스로 확인하세요.
+① **목록 밖 문법 금지** — 사용한 문법이 위 ${difficulty} 목록에 실제로 있는지 확인하세요.
+   목록에 없으면 학생이 아직 배우지 않은 문법이므로 쓰지 말고, 목록 안의 다른 문법으로 바꾸세요.
+   대상 단어를 제외한 나머지 어휘도 ${difficulty} 수준을 넘지 않아야 합니다.
+② **( ) 뒤에 보조용언이 남지 않았는가** — "( ) 해요", "( ) 싶어요", "( ) 있어요"는 전부 틀렸습니다.
+   그 보조용언까지 answer에 넣고 sentence에서는 빼세요.
+③ **hint에 종결 어미를 붙였는가** — answer가 "-아/어요"나 "-습니다"로 끝나면
+   hint도 "기본 문법 + 아/어요" 형태여야 합니다.
+④ **sentence가 §3의 "길이:" 범위 안인가** — 완성 문장(( ) 안에 answer를 채운 상태)의 어절 수를
+   세어 범위를 벗어났으면, 부족하면 상황·이유·부가설명을 자연스럽게 덧붙이고 초과하면
+   군더더기를 정리해 조정하세요. 단, 이 점검은 §1·§7보다 낮은 우선순위입니다 — 억지로
+   끼워 맞춰 부자연스러워질 바엔 범위를 살짝 벗어나는 쪽을 택하세요.${grammarCheckItem}${shortCheckItem}
+· ${difficulty} 어휘 수준을 준수하되, 문맥상 자연스러운 표현을 우선하세요.`;
+}
+
 // 문법 카테고리 줄을 랜덤 셔플하여 AI의 나열 순서 편향을 제거
 function shuffleGrammarGuide(guide: string): string {
   const lines = guide.split('\n');
@@ -184,6 +302,54 @@ function shuffleGrammarGuide(guide: string): string {
  * @param subjectNoun 예외로 두는 "선생님이 준 단어"를 뭐라고 부를지. 단어 모드와
  *   프롬프트 모드에서 입력 형태가 달라 문구를 갈라 쓴다.
  */
+/**
+ * §1-2. 등급별 자연스러운 문장 예시 블록.
+ *
+ * 왜 필요한가: §7 블랙리스트(나쁜 예)는 있는데 좋은 예가 하나도 없었다. 금지 지시보다
+ * 긍정 예시에 더 잘 반응하는 경향이 있어서, 각 등급의 실제 자연스러운 문장을 보여준다.
+ *
+ * 여기 쓰인 문법 표현은 전부 _shared/grammar.ts의 GRAMMAR_ITEMS에 실제로 있는 form이다
+ * (지어낸 문법을 프롬프트에 넣었다가 발각된 전례가 있어, 반드시 실제 데이터에서 확인 후 사용).
+ * generateDetailedPrompt·generatePromptModePrompt가 공유한다(문구 동일).
+ */
+function goodExampleSection(difficulty: string): string {
+  const examples: Record<CefrLevel, string[]> = {
+    A1: [
+      '"배가 고파서 라면을 끓였어요." (문법: -아서/어서, -았/었어요)',
+      '"주말에 친구를 만나고 싶어요." (문법: -고 싶다)',
+    ],
+    A2: [
+      '"길이 막혀서 회의에 늦을 것 같아요." (문법: -(으)ㄹ 것 같다)',
+      '"다이어트를 하기 때문에 저녁을 조금만 먹어요." (문법: -기 때문에)',
+    ],
+    B1: [
+      '"요즘 바빠서 운동을 못 했더니 살이 좀 찐 것 같아요." (문법: -았/었더니, -(으)ㄴ 것 같다)',
+      '"선생님이 숙제를 다시 해 오라고 하셔서 밤새 고생했어요." (문법: -(으)라고 하다)',
+    ],
+    B2: [
+      '"갑자기 소나기가 오는 바람에 우산도 없이 다 젖어서 감기에 걸리고 말았어요." (문법: -는 바람에)',
+      '"예전보다 요즘 물가가 오르는 탓에 장을 볼 때마다 부담을 느껴요." (문법: -는 탓에)',
+    ],
+    C1: [
+      '"면접장에서 너무 긴장한 나머지 미리 준비했던 말을 다 잊어버리고 한참 동안 횡설수설하고 말았어요." (문법: -(으)ㄴ 나머지)',
+      '"다들 아시다시피 이 동네는 옛날부터 교통이 불편하기로 유명했어요." (문법: -다시피)',
+    ],
+    C2: [
+      '"아무리 앞날이 불확실할지라도 자신이 선택한 길이니 끝까지 최선을 다하겠다고 다짐했어요." (문법: -(으)ㄹ지라도)',
+      '"규칙만 지키는 한 이 동아리는 누구나 자유롭게 가입할 수 있어요." (문법: -(으)ㄴ/는 한)',
+    ],
+  };
+  const list = examples[CEFR_LEVELS.includes(difficulty as CefrLevel) ? (difficulty as CefrLevel) : "A1"];
+  return `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§1-2. ${difficulty} 수준 자연스러운 문장 예시
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+아래는 ${difficulty} 수준에서 실제로 자연스러운 문장의 예입니다. §2에서 후보 문장을 만들고 평가할 때
+이 예시들의 자연스러움을 기준으로 삼으세요(단어·상황을 그대로 베끼라는 뜻은 아닙니다).
+${list.map((e) => `· ${e}`).join('\n')}
+`;
+}
+
 function a1VocabSection(difficulty: string, subjectNoun: string): string {
   if (difficulty !== "A1") return "";
   return `
@@ -204,19 +370,31 @@ ${A1_VOCAB.join(", ")}
 const generateDetailedPrompt = (words: string[], difficulty: string, languageName: string, includeShort = false) => {
   const selectedGuide = shuffleGrammarGuide(difficultyGuide(difficulty));
   const a1Vocab = a1VocabSection(difficulty, "선생님이 입력한 단어");
+  // 실측(2026-08-21, B1 120문제): short_sentence 어절 수 평균 5.88±1.05. 기존 "20~30자"
+  // 규격이 이 평균과 잘 맞았지만(하한이 평균에 안 붙어 있었음), B1만 어절 단위로 바꿔
+  // 선생님이 지정한 6-8어절로 못박는다. B2 이상은 실사용이 0건이라 데이터가 없어
+  // 기존 글자 수 규격을 그대로 둔다(근거 없이 숫자를 바꾸지 않는다는 원칙 유지).
+  // B2 이상도 7-9어절로 통일(선생님 지정, 2026-08-21) — 말하기 연습 문장이 길면
+  // 학생이 외워서 말할 수 없다는 이유. B2+는 실사용 0건이라 데이터는 없지만
+  // "학생이 듣고 한 번에 기억할 수 있는 길이"라는 이 기능의 목적 자체에 부합하는
+  // 의도적 결정이라 데이터 없이도 반영한다.
+  const shortLen = shortSentenceLen(difficulty);
 
   const shortSection = includeShort ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §6-3. 짧은 문장(short_sentence·short_translation) 규칙 — 필수
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · short_sentence: 대상 단어를 포함한 완성형 한국어 문장. 괄호·빈칸 없이 정답까지 채운 자연스러운 문장.
-· 공백 포함 20~30자 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
+· ${shortLen} 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
+· 완성 후 어절 수를 스스로 세어 위 범위를 지키는지 확인하세요. 부족하면 상황·이유·감정 등
+  자연스러운 요소 하나를 덧붙여 늘리세요(예: "친구한테서 편지를 받았어요." → "오랜만에
+  친구한테서 편지 한 통을 받아서 기뻤어요."). 초과하면 군더더기를 정리해 줄이세요.
 · 위 빈칸 채우기 문장(sentence)과는 다른, 더 짧고 쉬운 표현을 사용하세요. (같은 문장 복사 금지)
 · short_translation: short_sentence 전체를 ${languageName}로 자연스럽게 번역. 대괄호 없이 적으세요.
 ` : "";
 
   const shortOutputFields = includeShort ? `,
-      "short_sentence": "대상 단어가 들어간 20~30자의 짧은 완성형 문장.",
+      "short_sentence": "대상 단어가 들어간 ${shortLen}의 짧은 완성형 문장.",
       "short_translation": "${languageName}로 된 short_sentence 번역"` : "";
 
   return `당신은 한국어 교육 전문가이자 TOPIK 문제 출제 전문가입니다.
@@ -231,13 +409,13 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
 · 가장 중요한 것은 한국인이 실제 일상에서 말하는 것처럼 자연스러운 문장을 만드는 것입니다.
 · 문법은 자연스러운 문장 안에 녹아들어야 하며, 문법을 보여주기 위해 문장을 억지로 만들지 마세요.
 · "이 상황에서 한국 사람이 정말 이렇게 말할까?"를 항상 자문하세요.
-
+${goodExampleSection(difficulty)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §2. 문장 생성 프로세스 (반드시 이 순서를 따르세요)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[Step 1 - 상황 구상] 각 단어에 대해 한국인이 일상에서 자연스럽게 사용할 만한 구체적인 상황을 먼저 떠올리세요.
-  · 학교, 직장, 카페, 여행, 요리, 운동, 쇼핑, 건강, 날씨, 친구/가족 관계, 취미 등 다양한 맥락을 활용하세요.
-  · 단어마다 서로 다른 상황을 설정하세요. 비슷한 소재가 반복되면 안 됩니다.
+[Step 1 - 맥락 판단] 각 단어가 실제 한국어에서 가장 자연스럽게 쓰이는 맥락이 무엇인지 먼저 판단하세요.
+  · 그 단어를 실제로 쓸 법한 구체적인 장면을 정하세요.
+  · 여러 단어가 같은 소재를 공유하는 것은 자연스럽습니다. 다만 장면과 화자는 겹치지 않게 하세요.
 
 [Step 2 - 후보 생성 및 선택] 각 단어마다 다음 과정을 머릿속에서 수행하세요 (출력 금지).
   ① 해당 단어를 사용한 후보 문장 3개를 떠올리세요. 문법 패턴을 서로 다르게 적용하세요.
@@ -245,6 +423,8 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
      - "한국인이 실제로 이렇게 말할까?" (자연스러움)
      - 문법이 억지로 끼워 넣어진 느낌이 없는가?
      - 어색한 어휘 조합이 없는가?
+     - §3 목록의 문법을 자연스럽게 쓸 수 있는 후보가 있다면 그것을 우선하세요.
+     - §3의 "길이:" 범위 안에 드는 후보를 우선하세요.
   ③ 세 후보 중 가장 자연스러운 문장 1개만 최종 선택하세요.
 
 [Step 3 - 문법 카테고리 분산] Step 2에서 선택한 문장의 문법 패턴을 확인하여, 문제 전체에 걸쳐 다양한 카테고리(이유, 시간, 추측, 양보, 연결 등)가 골고루 사용되도록 조정하세요.
@@ -254,7 +434,7 @@ const generateDetailedPrompt = (words: string[], difficulty: string, languageNam
 ⚠️ 출력에는 최종 JSON 결과만 포함하세요. Step 1~3의 사고 과정은 출력하지 마세요.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-§3. 난이도별 문법 가이드 (${difficulty}) — 참고 자료
+§3. 난이도별 문법 가이드 (${difficulty})
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${selectedGuide}
 ${a1Vocab}
@@ -268,6 +448,12 @@ ${a1Vocab}
   · 조사를 sentence에 쓰지 마세요 — 조사는 answer에 포함됩니다.
   · 예: word "미술관" → sentence "내일 친구하고 ( ) 가요.", answer "미술관에", hint "에"
   · 예: word "지구력" → sentence "( ) 필요해요.", answer "지구력이", hint "이/가"
+  · word가 "숫자 + 단위명사"(예: "한 통", "두 명", "세 개") 형태면 숫자는 word 자체에 포함돼
+    있어도 sentence에 남기고, ( )와 answer에는 단위명사+조사만 넣으세요 — 숫자는 셀 때마다
+    바뀌는 수량 표현이지 그 단어의 일부가 아닙니다. hint에는 "[단위 명사]+조사" 식으로 표기해
+    단위명사 어휘라는 걸 밝히세요.
+    ✗ word "한 통" → sentence "편지 ( ) 받았어요.", answer "한 통을"  ← 숫자까지 answer에 있다
+    ✓ word "한 통" → sentence "편지 한 ( ) 받았어요.", answer "통을", hint "[단위 명사]+을/를"
 
 ▶ 동사/형용사 어휘:
   · answer = "어휘 활용형 + 문법 패턴" 전체를 포함. 문법을 answer와 sentence에 쪼개지 마세요.
@@ -282,10 +468,24 @@ ${a1Vocab}
   · 예: word "가다" → sentence "학교에 ( ) 밥 먹었어요.", answer "가기 전에", hint "-기 전에"
   · 예: word "주요하다" → sentence "경제에 ( ) 역할을 합니다.", answer "주요한", hint "-(으)ㄴ"
 
+▶ 관용구(붙박이 목적어·조사가 있는 동사구) — 예: 침을 뱉다, 눈을 질끈 감다, 마음에 걸리다:
+  · word가 "N을/를/에/에서 (부사) V" 형태면 이 규칙을 씁니다. 그 N과 조사는 다른 명사로
+    바꿀 수 없는 관용구 자체의 일부이므로, sentence에 남기지 말고 answer에 통째로 포함합니다.
+  · answer = 관용구 전체(붙박이 목적어+조사 포함) + 문법 패턴. 위 "동사/형용사 어휘" 규칙과
+    똑같이 ( ) 뒤에 아무것도 안 남게 합니다.
+  · 예: word "침을 뱉다" → sentence "화가 많이 났지만 길에 ( ).", answer "침을 뱉지는 않았어요", hint "-지 않다 + 았/었어요"
+  · 예: word "눈을 질끈 감다" → sentence "너무 무서운 장면이 나와서 ( ).", answer "눈을 질끈 감았어요", hint "-았/었어요"
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §5. hint 작성 규칙
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · hint에는 설명·의미를 쓰지 말고 문법 형태만 간결하게 표기하세요.
+  **"관용구", "관용구 그대로", "관용구 + " 같은 라벨이나 "하도"·"너무" 같은 부사를 hint에
+  끼워 넣지 마세요 — 그건 설명이지 문법 형태가 아닙니다.**
+  ✗ "관용구 + -았/었다"  → ✓ "-았/었다"
+  ✗ "관용구 그대로"      → ✓ answer가 활용 안 된 원형 그대로면(예: "고개를 젓다"→"고개를 저었다"처럼
+    활용됐다면 그 활용형에 맞는 문법을) 실제 어미를 표기하세요.
+  ✗ "하도 -아/어서"      → ✓ "-아/어서" (부사 "하도"는 sentence에 남기고 hint에서 뺍니다)
 · 명사: 사용된 조사만 표기 (예: "에", "을/를"). 조사 없는 부사형이면 빈 문자열 "".
 · 동사/형용사 단독 활용: "-아/어요", "-기 전에", "-느라고", "-게 되다" 등.
 · 관형사형: "-(으)ㄴ", "-는", "-(으)ㄹ"
@@ -303,9 +503,13 @@ ${a1Vocab}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · ( )가 아닌 answer가 들어간 완전한 문장을 ${languageName}로 자연스럽게 번역하세요.
 · 정답 단어의 핵심 의미(순수 어휘)만 대괄호 []로 감싸세요. 문법 패턴·보조 동사는 대괄호 밖에 둡니다.
+  전치사·목적어 대명사처럼 핵심 동사에 문법적으로 딸려오는 말도 대괄호 밖입니다.
   예: answer "가고 싶어요" → "I want to [go] home."
   예: answer "구독하기로 했어요" → "I decided to [subscribe] to this channel."
   예: answer "연예인인 것 같아요" → "That person seems like a [celebrity]."
+  예: answer "바라보다가" → "I [gazed] at the window." (✗ "[gazed at]" — "at"은 핵심 의미가 아니다)
+  예: answer "들여다보니까" → "When I [looked] into the box." (✗ "[looked into]")
+  예: answer "마음에 걸려서" → "It [bothered] me." (✗ "[bothered me]")
 · 모든 문제의 translation에 대괄호가 반드시 하나 있어야 합니다.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -324,25 +528,15 @@ ${shortSection}
 ✗ 주어 없이 문법만 나열: "때문에 좋아요", "그래서 했어요" → 누가, 무엇을, 왜 하는지 맥락이 있어야 합니다.
 ✗ 두 가지 이상의 고급 문법 과잉 결합: 한 문장에 고급 문법을 여러 개 억지로 넣지 마세요.
 ✗ 부자연스러운 어휘 조합: "식사를 먹다", "한국 언어를 배우다" → "밥을 먹다", "한국어를 배우다"가 자연스럽습니다.
+✗ 3인칭 주어를 "그"/"그녀"로 쓰기: 한국어는 주어를 생략하거나 구체적인 명사(이름·직업·관계·역할 등)를
+  쓰는 게 자연스럽습니다. "그는 고개를 저었어요" 대신 "선생님은 고개를 저었어요"나 문맥상
+  주어가 분명하면 그냥 생략하세요("이해가 안 되는지 고개를 저었어요"). 문제 전체에서 "그"·"그녀"가
+  주어로 반복되지 않게 하세요.
+
+${selfCheckSection(difficulty, includeShort)}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-§8. 자연스러움 최종 점검
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-· 완성된 각 문장을 읽고 "한국인 친구에게 이 문장을 보여줘도 어색하지 않은가?"를 점검하세요.
-· 문장 끝에 마침표(.) 또는 물음표(?)를 반드시 붙이세요.
-
-각 문제를 출력하기 전에 아래 세 가지를 스스로 확인하세요.
-① **목록 밖 문법 금지** — 사용한 문법이 위 ${difficulty} 목록에 실제로 있는지 확인하세요.
-   목록에 없으면 학생이 아직 배우지 않은 문법이므로 쓰지 말고, 목록 안의 다른 문법으로 바꾸세요.
-   대상 단어를 제외한 나머지 어휘도 ${difficulty} 수준을 넘지 않아야 합니다.
-② **( ) 뒤에 보조용언이 남지 않았는가** — "( ) 해요", "( ) 싶어요", "( ) 있어요"는 전부 틀렸습니다.
-   그 보조용언까지 answer에 넣고 sentence에서는 빼세요.
-③ **hint에 종결 어미를 붙였는가** — answer가 "-아/어요"나 "-습니다"로 끝나면
-   hint도 "기본 문법 + 아/어요" 형태여야 합니다.
-· ${difficulty} 어휘 수준을 준수하되, 문맥상 자연스러운 표현을 우선하세요.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-출력 형식 (JSON만, 설명·코드블록 없이)
+출력 형식 (구조화된 출력으로 강제됩니다 — 아래 필드만 채우세요)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {
   "problems": [
@@ -355,8 +549,7 @@ ${shortSection}
       "meaning": "${languageName}로 된 단어의 짧은 뜻"${shortOutputFields}
     }
   ]
-}
-첫 글자는 반드시 { 로 시작하세요. \`\`\`json 마크다운 블록을 사용하지 마세요.`;
+}`;
 };
 
 // 가벼운 프롬프트 (Single Regeneration용)
@@ -367,16 +560,26 @@ const generateSimplePrompt = (words: string[], difficulty: string, languageName:
   // 다시 만든" 문장이 오히려 등급을 넘는다. 1문제당 입력 ~2.2k 토큰이 늘지만
   // (sonnet 입력가 기준 회당 1센트 미만) 등급 이탈을 되돌리는 비용이 더 크다.
   const a1Vocab = a1VocabSection(difficulty, "선생님이 입력한 단어");
+  // B2 이상도 7-9어절로 통일(선생님 지정, 2026-08-21) — 말하기 연습 문장이 길면
+  // 학생이 외워서 말할 수 없다는 이유. B2+는 실사용 0건이라 데이터는 없지만
+  // "학생이 듣고 한 번에 기억할 수 있는 길이"라는 이 기능의 목적 자체에 부합하는
+  // 의도적 결정이라 데이터 없이도 반영한다.
+  const shortLen = shortSentenceLen(difficulty);
+
+  // "가벼운 프롬프트"라 §2 후보평가·§8 자기점검이 없다 — 그래서 실측 사고(14어절 초과)가
+  // 났다. §8 전체를 옮기면 "가벼운" 취지가 깨지므로 길이 지시 한 줄만 더한다.
+  const mainLen = LEVEL_SENTENCE_LENGTH[difficulty as CefrLevel] ?? LEVEL_SENTENCE_LENGTH.A1;
 
   const shortSection = includeShort ? `
 [짧은 문장(short_sentence·short_translation)] 필수
-- short_sentence: "${words[0]}"을(를) 포함한 완성형 문장(괄호·빈칸 없음). 공백 포함 20~30자 범위로.
+- short_sentence: "${words[0]}"을(를) 포함한 완성형 문장(괄호·빈칸 없음). ${shortLen} 범위로.
+- 완성 후 어절 수를 세어 범위를 지키는지 확인하고, 부족하면 상황·이유 등 자연스러운 요소를 덧붙이세요.
 - 위 빈칸 채우기 문장과 다른, 더 짧고 쉬운 표현. 학생이 듣고 한 번에 기억할 수 있는 길이.
 - short_translation: short_sentence 전체를 ${languageName}로 번역. 대괄호 없이.
 ` : "";
 
   const shortOutputFields = includeShort ? `,
-      "short_sentence": "20~30자 짧은 완성형 문장.",
+      "short_sentence": "${shortLen}의 짧은 완성형 문장.",
       "short_translation": "${languageName} 번역"` : "";
   // 가이드에서 문법 목록 부분만 간단히 사용 (줄바꿈 등으로 인해 전체 텍스트가 들어가지만, 위쪽의 긴 설명들은 제외됨)
 
@@ -399,6 +602,11 @@ ${a1Vocab}
   예: word "미술관" → sentence "내일 친구하고 ( ) 가요.", answer "미술관에", hint "에"
 ▶ 동사/형용사: answer에 문법 패턴 전체 포함. sentence 빈칸 뒤에 문법 요소 없음.
   예: word "가다" → answer "가기 때문에", hint "-기 때문에"
+▶ 관용구(N을/를/에 + (부사) + V, 예: 침을 뱉다, 눈을 질끈 감다): 그 N과 조사도 관용구의
+  일부이니 sentence에 남기지 말고 answer에 통째로 포함하세요.
+  예: word "침을 뱉다" → sentence "화가 많이 났지만 길에 ( ).", answer "침을 뱉지는 않았어요"
+
+[길이] sentence는 ${difficulty} 기준 ${mainLen} 범위여야 합니다. 벗어나면 자연스럽게 조정하세요.
 
 [hint] 문법 형태만 간결하게. 설명·의미 금지.
   명사: "학교에" → "에" / 동사: "먹어서" → "-아서/어서" / 복합: "가고 싶어요" → "-고 싶다 + 아/어요"
@@ -407,6 +615,7 @@ ${a1Vocab}
   예: answer "가고 싶어요" → "I want to [go]."
 ${shortSection}
 [금지 패턴] 맥락 없는 감정 나열, 교과서식 인위적 문장, 부자연스러운 어휘 조합은 절대 금지.
+주어를 "그"/"그녀"로 쓰지 말고 생략하거나 구체적 명사(이름·직업·관계 등)를 쓰세요.
 
 [출력 - JSON Only, 코드블록 없이]
 {
@@ -444,6 +653,11 @@ const generatePromptModePrompt = (
   // 프롬프트 모드에는 "입력 단어 배열"이 없다 — 예외 대상은 선생님이 준 자료·요청에
   // 나온 단어다. 문구를 그대로 쓰면 자료 속 단어까지 목록으로 강제하는 오독이 생긴다.
   const a1Vocab = a1VocabSection(difficulty, "선생님이 제공한 자료·요청에 나온 단어");
+  // B2 이상도 7-9어절로 통일(선생님 지정, 2026-08-21) — 말하기 연습 문장이 길면
+  // 학생이 외워서 말할 수 없다는 이유. B2+는 실사용 0건이라 데이터는 없지만
+  // "학생이 듣고 한 번에 기억할 수 있는 길이"라는 이 기능의 목적 자체에 부합하는
+  // 의도적 결정이라 데이터 없이도 반영한다.
+  const shortLen = shortSentenceLen(difficulty);
 
   // ── 아래 shortSection / shortOutputFields는 generateDetailedPrompt와 동일 문구 ──
   const shortSection = includeShort ? `
@@ -451,13 +665,16 @@ const generatePromptModePrompt = (
 §6-3. 짧은 문장(short_sentence·short_translation) 규칙 — 필수
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · short_sentence: 대상 단어를 포함한 완성형 한국어 문장. 괄호·빈칸 없이 정답까지 채운 자연스러운 문장.
-· 공백 포함 20~30자 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
+· ${shortLen} 범위로 만드세요(너무 짧지도 길지도 않게). 학생이 듣고 한 번에 기억할 수 있는 길이여야 합니다.
+· 완성 후 어절 수를 스스로 세어 위 범위를 지키는지 확인하세요. 부족하면 상황·이유·감정 등
+  자연스러운 요소 하나를 덧붙여 늘리세요(예: "친구한테서 편지를 받았어요." → "오랜만에
+  친구한테서 편지 한 통을 받아서 기뻤어요."). 초과하면 군더더기를 정리해 줄이세요.
 · 위 빈칸 채우기 문장(sentence)과는 다른, 더 짧고 쉬운 표현을 사용하세요. (같은 문장 복사 금지)
 · short_translation: short_sentence 전체를 ${languageName}로 자연스럽게 번역. 대괄호 없이 적으세요.
 ` : "";
 
   const shortOutputFields = includeShort ? `,
-      "short_sentence": "대상 단어가 들어간 20~30자의 짧은 완성형 문장.",
+      "short_sentence": "대상 단어가 들어간 ${shortLen}의 짧은 완성형 문장.",
       "short_translation": "${languageName}로 된 short_sentence 번역"` : "";
 
   const countSection = problemCount === null
@@ -476,7 +693,7 @@ const generatePromptModePrompt = (
 · 가장 중요한 것은 한국인이 실제 일상에서 말하는 것처럼 자연스러운 문장을 만드는 것입니다.
 · 문법은 자연스러운 문장 안에 녹아들어야 하며, 문법을 보여주기 위해 문장을 억지로 만들지 마세요.
 · "이 상황에서 한국 사람이 정말 이렇게 말할까?"를 항상 자문하세요.
-
+${goodExampleSection(difficulty)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §2. 문장 생성 프로세스 (반드시 이 순서를 따르세요)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -491,6 +708,7 @@ const generatePromptModePrompt = (
      - 문법이 억지로 끼워 넣어진 느낌이 없는가?
      - 어색한 어휘 조합이 없는가?
      - 선생님이 제공한 자료의 맥락에 맞는가?
+     - §3의 "길이:" 범위 안에 드는 후보를 우선하세요.
   ③ 세 후보 중 가장 자연스러운 문장 1개만 최종 선택하세요.
 
 [Step 3 - 문법 다양성] 문제 전체에서 같은 문법 패턴만 반복되지 않도록 조정하세요.
@@ -515,6 +733,12 @@ ${a1Vocab}
   · 조사를 sentence에 쓰지 마세요 — 조사는 answer에 포함됩니다.
   · 예: word "미술관" → sentence "내일 친구하고 ( ) 가요.", answer "미술관에", hint "에"
   · 예: word "지구력" → sentence "( ) 필요해요.", answer "지구력이", hint "이/가"
+  · word가 "숫자 + 단위명사"(예: "한 통", "두 명", "세 개") 형태면 숫자는 word 자체에 포함돼
+    있어도 sentence에 남기고, ( )와 answer에는 단위명사+조사만 넣으세요 — 숫자는 셀 때마다
+    바뀌는 수량 표현이지 그 단어의 일부가 아닙니다. hint에는 "[단위 명사]+조사" 식으로 표기해
+    단위명사 어휘라는 걸 밝히세요.
+    ✗ word "한 통" → sentence "편지 ( ) 받았어요.", answer "한 통을"  ← 숫자까지 answer에 있다
+    ✓ word "한 통" → sentence "편지 한 ( ) 받았어요.", answer "통을", hint "[단위 명사]+을/를"
 
 ▶ 동사/형용사 어휘:
   · answer = "어휘 활용형 + 문법 패턴" 전체를 포함. 문법을 answer와 sentence에 쪼개지 마세요.
@@ -529,10 +753,24 @@ ${a1Vocab}
   · 예: word "가다" → sentence "학교에 ( ) 밥 먹었어요.", answer "가기 전에", hint "-기 전에"
   · 예: word "주요하다" → sentence "경제에 ( ) 역할을 합니다.", answer "주요한", hint "-(으)ㄴ"
 
+▶ 관용구(붙박이 목적어·조사가 있는 동사구) — 예: 침을 뱉다, 눈을 질끈 감다, 마음에 걸리다:
+  · word가 "N을/를/에/에서 (부사) V" 형태면 이 규칙을 씁니다. 그 N과 조사는 다른 명사로
+    바꿀 수 없는 관용구 자체의 일부이므로, sentence에 남기지 말고 answer에 통째로 포함합니다.
+  · answer = 관용구 전체(붙박이 목적어+조사 포함) + 문법 패턴. 위 "동사/형용사 어휘" 규칙과
+    똑같이 ( ) 뒤에 아무것도 안 남게 합니다.
+  · 예: word "침을 뱉다" → sentence "화가 많이 났지만 길에 ( ).", answer "침을 뱉지는 않았어요", hint "-지 않다 + 았/었어요"
+  · 예: word "눈을 질끈 감다" → sentence "너무 무서운 장면이 나와서 ( ).", answer "눈을 질끈 감았어요", hint "-았/었어요"
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §5. hint 작성 규칙
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · hint에는 설명·의미를 쓰지 말고 문법 형태만 간결하게 표기하세요.
+  **"관용구", "관용구 그대로", "관용구 + " 같은 라벨이나 "하도"·"너무" 같은 부사를 hint에
+  끼워 넣지 마세요 — 그건 설명이지 문법 형태가 아닙니다.**
+  ✗ "관용구 + -았/었다"  → ✓ "-았/었다"
+  ✗ "관용구 그대로"      → ✓ answer가 활용 안 된 원형 그대로면(예: "고개를 젓다"→"고개를 저었다"처럼
+    활용됐다면 그 활용형에 맞는 문법을) 실제 어미를 표기하세요.
+  ✗ "하도 -아/어서"      → ✓ "-아/어서" (부사 "하도"는 sentence에 남기고 hint에서 뺍니다)
 · 명사: 사용된 조사만 표기 (예: "에", "을/를"). 조사 없는 부사형이면 빈 문자열 "".
 · 동사/형용사 단독 활용: "-아/어요", "-기 전에", "-느라고", "-게 되다" 등.
 · 관형사형: "-(으)ㄴ", "-는", "-(으)ㄹ"
@@ -550,9 +788,13 @@ ${a1Vocab}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 · ( )가 아닌 answer가 들어간 완전한 문장을 ${languageName}로 자연스럽게 번역하세요.
 · 정답 단어의 핵심 의미(순수 어휘)만 대괄호 []로 감싸세요. 문법 패턴·보조 동사는 대괄호 밖에 둡니다.
+  전치사·목적어 대명사처럼 핵심 동사에 문법적으로 딸려오는 말도 대괄호 밖입니다.
   예: answer "가고 싶어요" → "I want to [go] home."
   예: answer "구독하기로 했어요" → "I decided to [subscribe] to this channel."
   예: answer "연예인인 것 같아요" → "That person seems like a [celebrity]."
+  예: answer "바라보다가" → "I [gazed] at the window." (✗ "[gazed at]" — "at"은 핵심 의미가 아니다)
+  예: answer "들여다보니까" → "When I [looked] into the box." (✗ "[looked into]")
+  예: answer "마음에 걸려서" → "It [bothered] me." (✗ "[bothered me]")
 · 모든 문제의 translation에 대괄호가 반드시 하나 있어야 합니다.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -571,22 +813,12 @@ ${shortSection}
 ✗ 주어 없이 문법만 나열: "때문에 좋아요", "그래서 했어요" → 누가, 무엇을, 왜 하는지 맥락이 있어야 합니다.
 ✗ 두 가지 이상의 고급 문법 과잉 결합: 한 문장에 고급 문법을 여러 개 억지로 넣지 마세요.
 ✗ 부자연스러운 어휘 조합: "식사를 먹다", "한국 언어를 배우다" → "밥을 먹다", "한국어를 배우다"가 자연스럽습니다.
+✗ 3인칭 주어를 "그"/"그녀"로 쓰기: 한국어는 주어를 생략하거나 구체적인 명사(이름·직업·관계·역할 등)를
+  쓰는 게 자연스럽습니다. "그는 고개를 저었어요" 대신 "선생님은 고개를 저었어요"나 문맥상
+  주어가 분명하면 그냥 생략하세요("이해가 안 되는지 고개를 저었어요"). 문제 전체에서 "그"·"그녀"가
+  주어로 반복되지 않게 하세요.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-§8. 자연스러움 최종 점검
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-· 완성된 각 문장을 읽고 "한국인 친구에게 이 문장을 보여줘도 어색하지 않은가?"를 점검하세요.
-· 문장 끝에 마침표(.) 또는 물음표(?)를 반드시 붙이세요.
-
-각 문제를 출력하기 전에 아래 세 가지를 스스로 확인하세요.
-① **목록 밖 문법 금지** — 사용한 문법이 위 ${difficulty} 목록에 실제로 있는지 확인하세요.
-   목록에 없으면 학생이 아직 배우지 않은 문법이므로 쓰지 말고, 목록 안의 다른 문법으로 바꾸세요.
-   대상 단어를 제외한 나머지 어휘도 ${difficulty} 수준을 넘지 않아야 합니다.
-② **( ) 뒤에 보조용언이 남지 않았는가** — "( ) 해요", "( ) 싶어요", "( ) 있어요"는 전부 틀렸습니다.
-   그 보조용언까지 answer에 넣고 sentence에서는 빼세요.
-③ **hint에 종결 어미를 붙였는가** — answer가 "-아/어요"나 "-습니다"로 끝나면
-   hint도 "기본 문법 + 아/어요" 형태여야 합니다.
-· ${difficulty} 어휘 수준을 준수하되, 문맥상 자연스러운 표현을 우선하세요.
+${selfCheckSection(difficulty, includeShort)}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 §9. 선생님 요청
@@ -603,7 +835,7 @@ ${countSection}
 위 요청은 여기까지입니다. 이제 아래 형식대로만 답하세요.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-출력 형식 (JSON만, 설명·코드블록 없이)
+출력 형식 (구조화된 출력으로 강제됩니다 — 아래 필드만 채우세요)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {
   "problems": [
@@ -616,8 +848,7 @@ ${countSection}
       "meaning": "${languageName}로 된 단어의 짧은 뜻"${shortOutputFields}
     }
   ]
-}
-첫 글자는 반드시 { 로 시작하세요. \`\`\`json 마크다운 블록을 사용하지 마세요.`;
+}`;
 };
 
 // AI가 준 문제 항목이 쓸 수 있는 형태인지 본다.
@@ -628,6 +859,126 @@ const hasText = (value: unknown): value is string =>
 
 const isUsableProblem = (p: Problem | null | undefined): p is Problem =>
   !!p && hasText(p.word) && hasText(p.answer) && hasText(p.sentence);
+
+/** 공백 기준 어절 수. §3 "길이:" 규격과 같은 단위(measure-baseline.ts와도 동일 방식). */
+const countEojeol = (text: string): number =>
+  text.trim().split(/\s+/).filter(Boolean).length;
+
+/** sentence의 "( )"를 answer로 채운 완성 문장. 학생이 실제로 보는 최종 형태이자
+ * 길이 검증 기준이다 — 빈칸 자리표시자만 세면 answer만큼 어절 수가 늘 적게 잡힌다. */
+const fillBlank = (sentence: string, answer: string): string =>
+  sentence.replace("( )", answer);
+
+// A1의 "서술/종결" 문법(이에요/예요, 아/어요, 았/었어요, 지요?)과 그 흔한 표기 변형들.
+// hint가 이 중 하나뿐이면(연결 안 된 단독 종결어미) A2 이상에서는 "목록 밖 문법이 아니라
+// 아예 문법을 안 쓴 것"이라 §8 ⑤가 잡아야 하는 케이스인데, 문구 지시만으로는 실측
+// 15문제 중 3개꼴로 계속 새 나갔다(2026-08-22) — 길이와 같은 이유로 코드 검증을 추가한다.
+// 정확한 문법 분류가 아니라 실사용에서 나온 표기 변형을 모은 실용적 집합이다.
+const BARE_ENDING_FORMS = new Set([
+  "이에요/예요", "예요/이에요",
+  "아/어요", "어/아요", "아요/어요", "어요/아요",
+  "았/었어요", "었/았어요", "았어요/었어요", "었어요/았어요",
+  "습니다", "ㅂ니다", "습니다/ㅂ니다", "ㅂ니다/습니다",
+  "지요?", "죠?",
+]);
+
+/** hint가 연결어미·문형 없이 단독 종결어미뿐인지(="+"로 결합되지 않았는지) 본다. */
+function isBareEndingHint(hint: string): boolean {
+  const trimmed = hint.trim();
+  if (!trimmed || trimmed.includes("+")) return false;
+  return BARE_ENDING_FORMS.has(trimmed.replace(/^-/, ""));
+}
+
+/** hint에 "관용구" 같은 설명 라벨이 섞였는지 본다(§5 "설명·의미 금지" 위반, 등급 무관). */
+function hasDescriptiveLabel(hint: string): boolean {
+  return hint.includes("관용구");
+}
+
+// 한글 완성형 음절 범위. meaning은 §6-2가 "languageName로, 1~3 단어"라고 명시하는데
+// (LANGUAGE_NAMES에 한국어 자체는 없다 — 학생이 배우는 언어가 한국어라 번역 대상이 될 일이
+// 없다), 관용구처럼 짧게 옮기기 애매한 단어에서 AI가 종종 한국어 설명 문장으로 도망친다
+// (예: "고개를 기울이다" → "이해가 안 되거나 의아할 때 고개를 한쪽으로 기울이는 행동").
+// 한 글자라도 한글이 섞이면 규칙 위반으로 본다 — meaning은 정의상 항상 학생 언어라 정상
+// 출력엔 한글이 전혀 없어야 한다.
+const HANGUL_PATTERN = /[가-힣]/;
+
+/** meaning이 규칙(항상 languageName)을 어기고 한국어로 나왔는지 본다. */
+function isKoreanMeaning(meaning: string): boolean {
+  return HANGUL_PATTERN.test(meaning);
+}
+
+/**
+ * 프롬프트 자기점검(§8 ④·⑤)만으로는 길이·문법 필수·meaning 언어 준수가 들쭉날쭉했다 —
+ * 길이는 실측 두 번에서 87%·33%로 흔들렸고(2026-08-21), 문법도 ⑤ 추가 후에도 15문제 중
+ * 2~3개꼴로 bare 종결어미가 나왔고(2026-08-22), meaning도 관용구 위주로 20개 중 6개가
+ * 한국어로 새 나갔다(2026-08-22, §6-2 위반). 프롬프트 텍스트는 "선호"일 뿐 보장이 아니라서,
+ * 셋 중 하나라도 걸리는 문제만 프로그램적으로 골라 가벼운 프롬프트(generateSimplePrompt,
+ * 길이·문법·meaning 지시 다 있음)로 그 단어만 다시 생성한다. 재시도는 문제당 1회만 — 그래도
+ * 안 고쳐지면 그 결과를 그대로 두고 로그만 남긴다(무한 재시도로 지연·비용을 키우지 않기 위해).
+ */
+async function fixLowQualityProblems(
+  problems: Problem[],
+  difficulty: string,
+  languageName: string,
+): Promise<void> {
+  const level = CEFR_LEVELS.includes(difficulty as CefrLevel) ? (difficulty as CefrLevel) : "A1";
+  const [lenMin, lenMax] = sentenceLengthRange(level);
+  const checkGrammar = level !== "A1"; // A1은 문법이 "필수"가 아니다(selfCheckSection과 동일 기준).
+
+  const flagged = problems
+    .map((p, idx) => {
+      const count = countEojeol(fillBlank(p.sentence, p.answer));
+      const lengthBad = count < lenMin || count > lenMax;
+      const grammarBad = (checkGrammar && isBareEndingHint(p.hint)) || hasDescriptiveLabel(p.hint);
+      const meaningBad = isKoreanMeaning(p.meaning);
+      return { idx, lengthBad, grammarBad, meaningBad };
+    })
+    .filter(({ lengthBad, grammarBad, meaningBad }) => lengthBad || grammarBad || meaningBad);
+
+  if (flagged.length === 0) return;
+
+  console.warn(
+    `[quality-check] ${flagged.length}/${problems.length} problem(s) flagged ` +
+      `(length=${flagged.filter((f) => f.lengthBad).length}, grammar=${flagged.filter((f) => f.grammarBad).length}, ` +
+      `meaning=${flagged.filter((f) => f.meaningBad).length}) — regenerating those words`
+  );
+
+  await Promise.all(
+    flagged.map(async ({ idx }) => {
+      const original = problems[idx];
+      try {
+        const fixPrompt = generateSimplePrompt([original.word], difficulty, languageName, false);
+        const fixResult = await callClaude(fixPrompt, {
+          maxTokens: 2000,
+          effort: "medium",
+          timeoutMs: 60000,
+          outputSchema: generateQuizOutputSchema(false),
+        });
+        const fixParsed = JSON.parse(fixResult.text);
+        const fixed = (fixParsed.problems as Problem[] | undefined)?.find(isUsableProblem);
+        if (!fixed) {
+          console.error(`[quality-check] regeneration returned no usable problem for "${original.word}"`);
+          return;
+        }
+        const before = countEojeol(fillBlank(original.sentence, original.answer));
+        const after = countEojeol(fillBlank(fixed.sentence, fixed.answer));
+        console.log(
+          `[quality-check] "${original.word}": ${before}어절→${after}어절, hint "${original.hint}"→"${fixed.hint}"`
+        );
+        problems[idx] = {
+          ...original,
+          answer: fixed.answer,
+          sentence: fixed.sentence,
+          hint: fixed.hint || original.hint,
+          translation: fixed.translation,
+          meaning: fixed.meaning || original.meaning,
+        };
+      } catch (error) {
+        console.error(`[quality-check] regeneration failed for "${original.word}":`, error);
+      }
+    })
+  );
+}
 
 serve(async (req) => {
   console.log("Request received:", req.method, req.url); // Log every request
@@ -796,104 +1147,66 @@ serve(async (req) => {
           : `Generating quiz using Claude for ${words.length} words at ${difficulty} level`
       );
 
-      const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-      if (!ANTHROPIC_API_KEY) {
-        throw new Error("ANTHROPIC_API_KEY is not configured");
-      }
+      // 재생성(단어 1개)은 isB1Plus, 상세/프롬프트 모드는 includeShortDetailed로 short_sentence
+      // 유무가 갈린다 — 위에서 실제로 고른 프롬프트 빌더와 같은 조건이어야 스키마가 맞는다.
+      const includeShortForSchema = isPromptMode
+        ? includeShortDetailed
+        : regenerateSingle
+        ? isB1Plus
+        : includeShortDetailed;
 
-      let content: string;
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 130000);
       const startedAt = Date.now();
-
+      let result;
       try {
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "claude-sonnet-5",
-            // Sonnet 5는 thinking(adaptive)이 기본으로 켜지고, thinking과 응답이 이 예산을
-            // 함께 나눠 쓴다. 예전 8192로는 15문제 JSON을 다 뽑기 전에 잘릴 수 있다.
-            // 16000을 넘기면 비스트리밍 요청이 HTTP 타임아웃 위험에 들어가므로,
-            // 스트리밍 없이 갈 수 있는 상한에 맞췄다.
-            max_tokens: 16000,
-            // temperature는 넣지 말 것 — Sonnet 5는 기본값이 아닌 sampling 파라미터를
-            // 400으로 거부한다. 예전의 temperature: 0.7이 담당하던 다양성은
-            // 프롬프트 §2(후보 3개 생성 후 선택)가 대신한다.
-            //
-            // effort: Sonnet 5 medium ≈ Sonnet 4.6 high. 지정 안 하면 기본 high라
-            // 불필요하게 느리고 비싸진다. low는 쓰지 말 것 — 낮은 effort에서는 지시를
-            // 곧이곧대로 따라 §2의 후보 생성 과정을 건너뛴다.
-            output_config: { effort: "medium" },
-            messages: [{ role: "user", content: prompt }],
-          }),
-          signal: controller.signal,
+        result = await callClaude(prompt, {
+          // Sonnet 5는 thinking(adaptive)이 기본으로 켜지고, thinking과 응답이 이 예산을
+          // 함께 나눠 쓴다. 예전 8192로는 15문제 JSON을 다 뽑기 전에 잘릴 수 있다.
+          // 16000을 넘기면 비스트리밍 요청이 HTTP 타임아웃 위험에 들어가므로,
+          // 스트리밍 없이 갈 수 있는 상한에 맞췄다.
+          maxTokens: 16000,
+          // effort: Sonnet 5 medium ≈ Sonnet 4.6 high. 지정 안 하면 기본 high라
+          // 불필요하게 느리고 비싸진다. low는 쓰지 말 것 — 낮은 effort에서는 지시를
+          // 곧이곧대로 따라 §2의 후보 생성 과정을 건너뛴다.
+          effort: "medium",
+          timeoutMs: 130000,
+          outputSchema: generateQuizOutputSchema(includeShortForSchema),
         });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Claude API error:", response.status, errorText);
-
-          if (response.status === 429) {
-            return new Response(
-              JSON.stringify({ error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." }),
-              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-
-          throw new Error(`Claude API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        // Sonnet 5는 adaptive thinking이 기본이라 content[0]이 thinking 블록일 수 있다.
-        // 인덱스로 집지 말고 type === "text"인 블록을 찾아야 한다.
-        // (thinking 블록에는 .text가 없어 undefined가 되고 "No content received from AI"로 떨어진다.)
-        content = data.content?.find(
-          (block: { type?: string; text?: string }) => block?.type === "text"
-        )?.text;
-
-        // 비용·지연 기준선. Sonnet 5는 thinking도 출력 토큰으로 과금되므로 output이
-        // 입력보다 비용에 크게 기여한다($3 vs $15 per MTok). stop_reason이 max_tokens면
-        // 잘린 것이니 max_tokens를 올려야 한다.
-        console.log(
-          `[usage] mode=${isPromptMode ? "prompt" : "words"} difficulty=${difficulty} ` +
-            `words=${words.length} ms=${Date.now() - startedAt} ` +
-            `in=${data.usage?.input_tokens} out=${data.usage?.output_tokens} ` +
-            `stop=${data.stop_reason} blocks=${data.content?.map((b: { type?: string }) => b?.type).join(",")}`
-        );
       } catch (error) {
-        clearTimeout(timeoutId);
+        if (error instanceof ClaudeApiError && error.status === 429) {
+          return new Response(
+            JSON.stringify({ error: error.message }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
         throw error;
       }
 
-      if (!content) {
-        throw new Error("No content received from AI");
-      }
+      const content = result.text;
 
-      // Parse JSON from response (handle markdown code blocks)
-      let jsonStr = content.trim();
-      if (jsonStr.startsWith("```")) {
-        jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```$/g, "").trim();
-      }
+      // 비용·지연 기준선. Sonnet 5는 thinking도 출력 토큰으로 과금되므로 output이
+      // 입력보다 비용에 크게 기여한다($2 vs $10 per MTok, 2026-08-22 공식 문서 기준 —
+      // "인트로 할인"이 아니라 표준가다). stop_reason이 max_tokens면 잘린 것이니
+      // max_tokens를 올려야 한다.
+      console.log(
+        `[usage] mode=${isPromptMode ? "prompt" : "words"} difficulty=${difficulty} ` +
+          `words=${words.length} ms=${Date.now() - startedAt} ` +
+          `in=${result.usage?.input_tokens} out=${result.usage?.output_tokens} ` +
+          `stop=${result.stopReason} blocks=${result.blockTypes?.join(",")}`
+      );
 
-      // Validate JSON starts correctly
-      if (!jsonStr.startsWith("{")) {
-        console.error("AI response not JSON:", jsonStr.substring(0, 200));
-        throw new Error("AI가 JSON이 아닌 텍스트로 응답했습니다. 다시 시도해주세요.");
-      }
-
+      // 구조화된 출력(outputSchema)이 정상 동작하면 content는 이미 스키마를 따르는 JSON
+      // 문자열이라 마크다운 스트립이 필요 없다. 혹시 실패하면(예: 모델이 스키마를 못 지킨
+      // 예외적인 경우) 예전 마크다운 스트립 폴백으로 한 번 더 시도한다.
       let parsed;
       try {
-        parsed = JSON.parse(jsonStr);
+        parsed = JSON.parse(content);
       } catch (_parseError) {
-        console.error("JSON parse error:", jsonStr.substring(0, 200));
-        throw new Error("AI 응답을 JSON으로 변환할 수 없습니다. 다시 시도해주세요.");
+        try {
+          parsed = JSON.parse(stripMarkdownJsonFence(content));
+        } catch {
+          console.error("JSON parse error:", content.substring(0, 200));
+          throw new Error("AI 응답을 JSON으로 변환할 수 없습니다. 다시 시도해주세요.");
+        }
       }
 
       if (!parsed.problems || parsed.problems.length === 0) {
@@ -959,6 +1272,8 @@ serve(async (req) => {
         short_sentence: p.short_sentence,
         short_translation: p.short_translation,
       }));
+
+      await fixLowQualityProblems(problems, difficulty, languageName);
 
       console.log(`Successfully generated ${problems.length} fill-blank problems`);
     } else {
