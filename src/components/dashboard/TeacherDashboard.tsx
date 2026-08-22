@@ -10,30 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Users } from "lucide-react";
 import { toast } from "sonner";
-import { BaseStage, STAGE_ORDER, isStageEnabled } from "@/types/quiz";
-
-// 스테이지 → quiz_results의 점수 컬럼. StudentDashboard.tsx의 이어풀기 판정과 동일한 규칙 —
-// "완료"의 기준이 화면마다 다르면 학생 쪽에서는 진행 중인데 선생님 쪽에서는 미제출로 보인다.
-const STAGE_SCORE_KEY: Record<BaseStage, string> = {
-  matchup: "matchup_score",
-  type_answer: "type_answer_score",
-  fill_blank: "fill_blank_score",
-  word_magnet: "word_magnet_score",
-  sentence_making: "sentence_making_score",
-  recording: "recording_score",
-};
+import { isResultComplete } from "@/types/quiz";
 
 function asRow(value: unknown): Record<string, unknown> {
   return (value ?? {}) as Record<string, unknown>;
-}
-
-function stageScore(result: Record<string, unknown>, stage: BaseStage): number | null {
-  const value = result[STAGE_SCORE_KEY[stage]];
-  return typeof value === "number" ? value : null;
-}
-
-function isResultComplete(quiz: Record<string, unknown>, result: Record<string, unknown>): boolean {
-  return STAGE_ORDER.every((stage) => !isStageEnabled(stage, quiz) || stageScore(result, stage) !== null);
 }
 
 // "2시간 전" / "어제" / "N일 전" — date-fns formatDistanceToNow는 "1일 전"이라 시안과 다르다.
