@@ -1184,8 +1184,9 @@ serve(async (req) => {
       const content = result.text;
 
       // 비용·지연 기준선. Sonnet 5는 thinking도 출력 토큰으로 과금되므로 output이
-      // 입력보다 비용에 크게 기여한다($3 vs $15 per MTok). stop_reason이 max_tokens면
-      // 잘린 것이니 max_tokens를 올려야 한다.
+      // 입력보다 비용에 크게 기여한다($2 vs $10 per MTok, 2026-08-22 공식 문서 기준 —
+      // "인트로 할인"이 아니라 표준가다). stop_reason이 max_tokens면 잘린 것이니
+      // max_tokens를 올려야 한다.
       console.log(
         `[usage] mode=${isPromptMode ? "prompt" : "words"} difficulty=${difficulty} ` +
           `words=${words.length} ms=${Date.now() - startedAt} ` +
