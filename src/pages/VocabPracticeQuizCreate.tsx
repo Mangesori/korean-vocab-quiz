@@ -88,7 +88,7 @@ const STAGE_CARDS: { key: BaseStage; label: string; desc: string; icon: typeof L
   { key: 'recording', label: '말하기 연습', desc: '읽거나 듣고 따라 말하기', icon: Mic },
 ];
 
-const STEPS = ['학생 선택', '레벨·단어', '유형·생성'];
+const STEPS = ['학생', '단어', '유형·설정'];
 
 // Fisher-Yates. 순서만 섞으면 되므로 원본 배열은 건드리지 않는다.
 function shuffle<T>(list: T[]): T[] {
@@ -586,27 +586,29 @@ export default function VocabPracticeQuizCreate() {
         </div>
 
         {/* Step Indicator */}
-        <div className="flex items-center gap-2 mb-8">
+        <div className="flex items-center gap-2.5 mb-8">
           {STEPS.map((label, idx) => {
             const stepNumber = idx + 1;
-            const reached = step >= stepNumber;
             const done = step > stepNumber;
+            const current = step === stepNumber;
             return (
-              <div key={label} className="flex items-center gap-2">
-                {idx > 0 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                <div
-                  className={`flex items-center gap-2 ${
-                    reached ? 'text-primary' : 'text-muted-foreground'
-                  } ${step === stepNumber ? 'font-bold' : 'font-semibold'}`}
-                >
+              <div key={label} className="flex items-center gap-2.5">
+                {idx > 0 && <ChevronRight className="h-[13px] w-[13px] text-[#C4BDB6]" />}
+                <div className={`flex items-center gap-2 ${!done && !current ? 'opacity-45' : ''}`}>
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      reached ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[11.5px] font-bold shrink-0 ${
+                      done || current ? 'bg-primary text-white' : 'border-[1.5px] border-[#C4BDB6] text-[#8A837D]'
                     }`}
                   >
-                    {done ? <Check className="h-4 w-4" /> : stepNumber}
+                    {done ? <Check className="h-3.5 w-3.5" /> : stepNumber}
                   </div>
-                  <span className="hidden sm:inline">{label}</span>
+                  <span
+                    className={`hidden sm:inline text-[13px] ${
+                      done ? 'font-semibold text-primary' : current ? 'font-bold' : 'font-semibold text-[#6B6460]'
+                    }`}
+                  >
+                    {label}
+                  </span>
                 </div>
               </div>
             );
@@ -619,7 +621,7 @@ export default function VocabPracticeQuizCreate() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                학생 선택
+                학생
               </CardTitle>
               <CardDescription>퀴즈를 받을 클래스와 학생을 고르세요.</CardDescription>
             </CardHeader>
@@ -695,25 +697,23 @@ export default function VocabPracticeQuizCreate() {
           </Card>
         )}
 
-        {/* Step 2: 레벨 + 단어 선택 */}
+        {/* Step 2: 단어 */}
         {step === 2 && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                레벨·단어
-              </CardTitle>
-              <CardDescription>
-                {selectedClassName && `${selectedClassName} · `}학생 {selectedStudents.length}명 ·{' '}
-                {selectedWords.length}개 단어 선택됨
-                {!!alreadySentWords?.size && (
-                  <span className="block mt-0.5">
-                    이미 보낸 단어 {alreadySentWords.size}개는 목록에서 제외했어요
-                  </span>
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="pt-6 space-y-4">
+              {/* 1. 헤더 */}
+              <div className="flex items-baseline justify-between gap-3">
+                <div>
+                  <div className="text-base font-bold">보강할 단어</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {selectedClassName && `${selectedClassName} · `}학생 {selectedStudents.length}명 · {selectedWords.length}개 선택됨
+                  </p>
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground shrink-0">
+                  {availableWords.length}개 중
+                </span>
+              </div>
+
               <div className="space-y-2">
                 <Label>레벨</Label>
                 <div className="grid grid-cols-6 gap-2">
@@ -734,6 +734,7 @@ export default function VocabPracticeQuizCreate() {
                 </div>
               </div>
 
+              {/* 2. 컨트롤 줄 */}
               <div className="flex items-end gap-3 pt-2 border-t flex-wrap">
                 <div className="space-y-1.5">
                   <Label htmlFor="wordCount">문제 개수</Label>
@@ -743,10 +744,10 @@ export default function VocabPracticeQuizCreate() {
                     min={1}
                     value={wordCount}
                     onChange={(e) => setWordCount(Math.max(1, Number(e.target.value) || 1))}
-                    className="w-24"
+                    className="w-24 rounded-[9px]"
                   />
                 </div>
-                <Button type="button" variant="outline" className="gap-1.5" onClick={rollRandom}>
+                <Button type="button" variant="outline" className="gap-1.5 rounded-[9px]" onClick={rollRandom}>
                   <Shuffle className="h-4 w-4" />
                   다시 뽑기
                 </Button>
@@ -754,7 +755,7 @@ export default function VocabPracticeQuizCreate() {
                   <div className="space-y-1.5">
                     <Label>배치 필터</Label>
                     <Select value={batchFilter} onValueChange={setBatchFilter}>
-                      <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-[220px] rounded-[9px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">전체 배치</SelectItem>
                         {availableBatches.map((label) => (
@@ -767,12 +768,13 @@ export default function VocabPracticeQuizCreate() {
                 )}
               </div>
 
-              {!bankLoading && availableWords.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Checkbox checked={allVisibleSelected} onCheckedChange={toggleAllVisibleWords} />
-                  <Label className="cursor-pointer" onClick={toggleAllVisibleWords}>
-                    {batchFilter === 'all' ? '전체' : '이 배치'} 전체 선택/해제 ({availableWords.length}개)
-                  </Label>
+              {/* 3. 안내 스트립 */}
+              {!!alreadySentWords?.size && (
+                <div className="flex items-center gap-2 bg-[#FAF8F5] border border-[#EBE5DE] rounded-[10px] px-3.5 py-2.5">
+                  <BookOpen className="h-3.5 w-3.5 text-[#6B6460] shrink-0" />
+                  <span className="text-[11.5px] text-[#6B6460]">
+                    이 학생에게 이미 보낸 어휘 보강 단어는 목록에서 제외했어요 ({alreadySentWords.size}개)
+                  </span>
                 </div>
               )}
 
@@ -785,65 +787,58 @@ export default function VocabPracticeQuizCreate() {
                   이 레벨의 문장 은행에 단어가 없어요.
                 </p>
               ) : (
-                <div className="grid gap-2 max-h-96 overflow-y-auto">
-                  {orderedWords.map((word) => {
-                    const row = repByWord.get(word)!;
-                    return (
-                      <div
-                        key={word}
-                        className="flex items-start gap-3 p-2 rounded hover:bg-muted"
-                      >
-                        <Checkbox
-                          className="mt-1"
-                          checked={selectedWords.includes(word)}
-                          onCheckedChange={() => toggleWord(word)}
-                        />
-                        <div className="min-w-0">
-                          <div className="flex items-baseline gap-2">
-                            <span className="font-semibold text-sm">{word}</span>
-                            {row.meaning && (
-                              <span className="text-xs text-muted-foreground">{row.meaning}</span>
-                            )}
+                <div className="rounded-[13px] border overflow-hidden">
+                  {/* 4. 목록 헤더 — 전체 선택/해제 */}
+                  <div className="flex items-center gap-3 px-3 py-2 bg-muted/40 border-b">
+                    <Checkbox checked={allVisibleSelected} onCheckedChange={toggleAllVisibleWords} />
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      전체 선택 / 해제 ({batchFilter === 'all' ? '전체' : '이 배치'} {availableWords.length}개)
+                    </span>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto divide-y">
+                    {orderedWords.map((word) => {
+                      const row = repByWord.get(word)!;
+                      return (
+                        <div
+                          key={word}
+                          className="flex items-start gap-3 px-3 py-2.5 hover:bg-muted/40"
+                        >
+                          <Checkbox
+                            className="mt-1"
+                            checked={selectedWords.includes(word)}
+                            onCheckedChange={() => toggleWord(word)}
+                          />
+                          <div className="min-w-0">
+                            <div className="flex items-baseline gap-2">
+                              <span className="font-semibold text-sm">{word}</span>
+                              {row.meaning && (
+                                <span className="text-xs text-muted-foreground">{row.meaning}</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">{row.sentence}</p>
                           </div>
-                          <p className="text-xs text-muted-foreground truncate">{row.sentence}</p>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
-              <div className="flex items-end justify-between gap-3 flex-wrap pt-2 border-t">
-                <div className="flex items-end gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="perDay">하루 노출 개수</Label>
-                    <Input
-                      id="perDay"
-                      type="number"
-                      min={1}
-                      value={perDay}
-                      onChange={(e) => setPerDay(Math.max(1, Number(e.target.value) || 1))}
-                      className="w-24"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="gap-1.5"
-                    disabled={selectedWords.length === 0 || selectedStudents.length === 0 || seedReviewMutation.isPending}
-                    onClick={() => seedReviewMutation.mutate()}
-                  >
-                    {seedReviewMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                    복습 큐에 바로 추가(하루 {perDay}개씩)
-                  </Button>
-                </div>
+              {/* 5. 하단 */}
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {selectedWords.length}개 선택됨 · 전체 {availableWords.length}개 중
+                </span>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setStep(1)}>
+                  <Button
+                    variant="outline"
+                    className="rounded-[11px] border-[#E3DCD3] text-[#4A443F]"
+                    onClick={() => setStep(1)}
+                  >
                     이전
                   </Button>
-                  <Button onClick={goToStep3} disabled={selectedWords.length === 0}>
-                    다음 · 유형·생성으로
-                    <ChevronRight className="ml-2 h-4 w-4" />
+                  <Button className="rounded-[11px]" onClick={goToStep3} disabled={selectedWords.length === 0}>
+                    다음 · 유형·설정으로
                   </Button>
                 </div>
               </div>
@@ -857,7 +852,7 @@ export default function VocabPracticeQuizCreate() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings2 className="h-5 w-5" />
-                유형·생성
+                유형·설정
               </CardTitle>
               <CardDescription>단어 {selectedWords.length}개로 만들 퀴즈를 설정하세요.</CardDescription>
             </CardHeader>
@@ -903,11 +898,41 @@ export default function VocabPracticeQuizCreate() {
                 )}
               </div>
 
+              {/* 퀴즈로 만들지 않고 복습 큐에 바로 시딩 — 생성이 아니라 적재라 성격이 달라 여기로 옮김 */}
+              <div className="flex items-end gap-3 pt-3 border-t flex-wrap">
+                <div className="space-y-1.5">
+                  <Label htmlFor="perDay">하루 노출 개수</Label>
+                  <Input
+                    id="perDay"
+                    type="number"
+                    min={1}
+                    value={perDay}
+                    onChange={(e) => setPerDay(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-24"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="gap-1.5"
+                  disabled={selectedWords.length === 0 || selectedStudents.length === 0 || seedReviewMutation.isPending}
+                  onClick={() => seedReviewMutation.mutate()}
+                >
+                  {seedReviewMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  복습 큐에 바로 추가(하루 {perDay}개씩)
+                </Button>
+              </div>
+
               <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setStep(2)}>
+                <Button
+                  variant="outline"
+                  className="rounded-[11px] border-[#E3DCD3] text-[#4A443F]"
+                  onClick={() => setStep(2)}
+                >
                   이전
                 </Button>
                 <Button
+                  className="rounded-[11px]"
                   onClick={() => createQuizMutation.mutate()}
                   disabled={!canSave || createQuizMutation.isPending}
                 >

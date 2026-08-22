@@ -31,7 +31,6 @@ import {
   Loader2,
   FileX,
   Users,
-  BookOpen,
   ChevronRight,
   ChevronDown,
   Settings2,
@@ -164,7 +163,7 @@ const TRANSLATION_LANGUAGES = [
   { value: 'ru', label: '러시아어 (Русский)' },
 ];
 
-const STEPS = ['대상', '문제 선택', '설정·생성'];
+const STEPS = ['학생', '단어', '유형·설정'];
 
 // 퀴즈 유형(source) → 축약 라벨. 모르는 유형은 '기타'.
 const sourceLabel = (source: string) => STAGE_SHORT_LABELS[source as BaseStage] ?? '기타';
@@ -183,6 +182,32 @@ function renderSentence(raw: string, answer: string) {
       ))}
     </span>
   );
+}
+
+// 접힌 줄에 보여줄 대표 문장 한 줄 — 펼치지 않아도 고를 근거가 있어야 한다.
+// fill_blank면 문장 안 정답을 강조하고, 아니면 뜻을 대신 보여준다. 뒤에 학생 답변을 잇는다.
+function collapsedPreview(wa: WrongAnswerData, studentNameById: Map<string, string>) {
+  const first = wa.entries[0];
+  if (!first) return null;
+  const studentName = studentNameById.get(first.student_id) ?? '학생';
+  const userAnswer = first.user_answer || '(입력 없음)';
+  if (wa.sentence) {
+    return (
+      <>
+        {renderSentence(wa.sentence, wa.correct_answer)}
+        <span className="text-muted-foreground"> · {studentName} &ldquo;{userAnswer}&rdquo;</span>
+      </>
+    );
+  }
+  if (wa.meaning) {
+    return (
+      <>
+        뜻 &ldquo;{wa.meaning}&rdquo;
+        <span className="text-muted-foreground"> · {studentName} &ldquo;{userAnswer}&rdquo;</span>
+      </>
+    );
+  }
+  return null;
 }
 
 // 같은 유형+문장+정답끼리 묶고 그 아래에 학생별 답변을 모은다.
@@ -656,27 +681,29 @@ export default function WrongAnswerQuizCreate() {
         </div>
 
         {/* Step Indicator */}
-        <div className="flex items-center gap-2 mb-8">
+        <div className="flex items-center gap-2.5 mb-8">
           {STEPS.map((label, idx) => {
             const stepNumber = idx + 1;
-            const reached = step >= stepNumber;
             const done = step > stepNumber;
+            const current = step === stepNumber;
             return (
-              <div key={label} className="flex items-center gap-2">
-                {idx > 0 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                <div
-                  className={`flex items-center gap-2 ${
-                    reached ? 'text-primary' : 'text-muted-foreground'
-                  } ${step === stepNumber ? 'font-bold' : 'font-semibold'}`}
-                >
+              <div key={label} className="flex items-center gap-2.5">
+                {idx > 0 && <ChevronRight className="h-[13px] w-[13px] text-[#C4BDB6]" />}
+                <div className={`flex items-center gap-2 ${!done && !current ? 'opacity-45' : ''}`}>
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      reached ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[11.5px] font-bold shrink-0 ${
+                      done || current ? 'bg-primary text-white' : 'border-[1.5px] border-[#C4BDB6] text-[#8A837D]'
                     }`}
                   >
-                    {done ? <Check className="h-4 w-4" /> : stepNumber}
+                    {done ? <Check className="h-3.5 w-3.5" /> : stepNumber}
                   </div>
-                  <span className="hidden sm:inline">{label}</span>
+                  <span
+                    className={`hidden sm:inline text-[13px] ${
+                      done ? 'font-semibold text-primary' : current ? 'font-bold' : 'font-semibold text-[#6B6460]'
+                    }`}
+                  >
+                    {label}
+                  </span>
                 </div>
               </div>
             );
@@ -689,7 +716,7 @@ export default function WrongAnswerQuizCreate() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                대상
+                학생
               </CardTitle>
               <CardDescription>오답을 분석할 클래스와 학생을 고르세요.</CardDescription>
             </CardHeader>
@@ -769,29 +796,30 @@ export default function WrongAnswerQuizCreate() {
           </Card>
         )}
 
-        {/* Step 2: 문제 선택 */}
+        {/* Step 2: 단어 */}
         {step === 2 && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                문제 선택
-              </CardTitle>
-              <CardDescription>
-                {selectedClassName && `${selectedClassName} · `}학생 {selectedStudents.length}명 기준
-                · {selectedWrongAnswers.length}개 선택됨
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs text-muted-foreground">
-                  선택한 학생의 전체 오답 이력이에요
-                </p>
+            <CardContent className="pt-6 space-y-4">
+              {/* 1. 헤더 */}
+              <div className="flex items-baseline justify-between gap-3">
+                <div>
+                  <div className="text-base font-bold">복습할 단어</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {selectedClassName && `${selectedClassName} · `}학생 {selectedStudents.length}명 · {selectedWrongAnswers.length}개 선택됨
+                  </p>
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground shrink-0">
+                  {sortedWrongAnswers.length}개 중
+                </span>
+              </div>
+
+              {/* 2. 컨트롤 줄 */}
+              <div className="flex items-center gap-2">
                 <Select
                   value={sortBy}
                   onValueChange={(v) => setSortBy(v === 'recent' ? 'recent' : 'count')}
                 >
-                  <SelectTrigger className="w-[150px] h-9 text-xs">
+                  <SelectTrigger className="w-[150px] h-9 text-xs rounded-[9px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -810,20 +838,39 @@ export default function WrongAnswerQuizCreate() {
                   선택한 학생들의 오답 데이터가 없습니다.
                 </p>
               ) : (
-                <div className="grid gap-2 max-h-96 overflow-y-auto">
+                <div className="rounded-[13px] border overflow-hidden">
+                  {/* 4. 목록 헤더 — 전체 선택/해제 */}
+                  <div className="flex items-center gap-3 px-3 py-2 bg-muted/40 border-b">
+                    <Checkbox
+                      checked={
+                        sortedWrongAnswers.filter((w) => w.selectable).length > 0 &&
+                        sortedWrongAnswers.filter((w) => w.selectable).every((w) => selectedWrongAnswers.includes(w.word))
+                      }
+                      onCheckedChange={() => {
+                        const selectableWords = sortedWrongAnswers.filter((w) => w.selectable).map((w) => w.word);
+                        const allSelected = selectableWords.every((w) => selectedWrongAnswers.includes(w));
+                        setSelectedWrongAnswers(allSelected ? [] : selectableWords);
+                      }}
+                    />
+                    <span className="text-xs font-semibold text-muted-foreground">전체 선택 / 해제</span>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto divide-y">
                   {sortedWrongAnswers.map((wa) => {
                     const isExpanded = expanded.has(wa.word);
                     const mainSource = wa.entries[0]?.source ?? 'unknown';
                     const extraSourceCount = wa.sources.size - 1;
                     const blocks = isExpanded ? groupEntries(wa.entries) : [];
 
+                    const preview = !isExpanded ? collapsedPreview(wa, studentNameById) : null;
+
                     return (
-                      <div key={wa.word} className="rounded-lg border bg-card overflow-hidden">
-                        {/* 접힌 줄 — 문장 미리보기 없이 화살표만 */}
+                      <div key={wa.word} className="bg-card">
+                        {/* 접힌 줄 — 대표 문장 한 줄 + 학생 답변 */}
                         <div
-                          className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors"
+                          className="px-3 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors"
                           onClick={() => toggleExpand(wa.word)}
                         >
+                        <div className="flex items-center gap-3">
                           <Checkbox
                             checked={selectedWrongAnswers.includes(wa.word)}
                             disabled={!wa.selectable}
@@ -833,7 +880,11 @@ export default function WrongAnswerQuizCreate() {
                           <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold text-sm shrink-0 max-w-[40%] truncate">
                             {wa.word}
                           </span>
-                          <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-medium shrink-0">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${
+                              extraSourceCount > 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'
+                            }`}
+                          >
                             {sourceLabel(mainSource)}
                             {extraSourceCount > 0 && ` +${extraSourceCount}`}
                           </span>
@@ -860,6 +911,12 @@ export default function WrongAnswerQuizCreate() {
                               }`}
                             />
                           </button>
+                        </div>
+                        {preview && (
+                          <p className="text-xs text-[#6B6460] leading-relaxed break-keep mt-1.5 pl-8 truncate">
+                            {preview}
+                          </p>
+                        )}
                         </div>
 
                         {/* 펼침 — 문장(정답 강조) + 번역 + 학생별 답변 */}
@@ -918,32 +975,46 @@ export default function WrongAnswerQuizCreate() {
                       </div>
                     );
                   })}
+                  </div>
                 </div>
               )}
 
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setStep(1)}>
-                  이전
-                </Button>
-                <Button onClick={() => setStep(3)} disabled={selectedWrongAnswers.length === 0}>
-                  다음 · 설정으로
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
+              {/* 5. 하단 */}
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {selectedWrongAnswers.length}개 선택됨 · 전체 {sortedWrongAnswers.length}개 중
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="rounded-[11px] border-[#E3DCD3] text-[#4A443F]"
+                    onClick={() => setStep(1)}
+                  >
+                    이전
+                  </Button>
+                  <Button
+                    className="rounded-[11px]"
+                    onClick={() => setStep(3)}
+                    disabled={selectedWrongAnswers.length === 0}
+                  >
+                    다음 · 유형·설정으로
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Step 3: 설정·생성 */}
+        {/* Step 3: 유형·설정 */}
         {step === 3 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings2 className="h-5 w-5" />
-                설정·생성
+                유형·설정
               </CardTitle>
               <CardDescription>
-                문제 {selectedWrongAnswers.length}개로 만들 퀴즈를 설정하세요.
+                단어 {selectedWrongAnswers.length}개로 만들 퀴즈를 설정하세요.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
