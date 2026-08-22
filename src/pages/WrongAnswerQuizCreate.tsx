@@ -109,6 +109,9 @@ interface WrongAnswerData {
   meaning: string | null;
   // 문장 순서 맞추기 전용 그룹은 word가 단어가 아니라 문장 전체라 어휘 퀴즈로 만들 수 없다.
   selectable: boolean;
+  // 이 단어를 틀린 학생 전원이 wrong_answer_progress에서 이미 졸업(mastered_at)했는지.
+  // 한 명이라도 아직이면 false — 그 학생에게는 여전히 복습이 필요한 단어라서.
+  mastered: boolean;
 }
 
 // 펼침 상세 한 덩어리 — 같은 문장/유형에 대해 학생별 답변을 모아 보여준다.
@@ -380,6 +383,16 @@ export default function WrongAnswerQuizCreate() {
       if (error) throw error;
 
       const rows = (data ?? []) as RpcClassWrongAnswerRow[];
+
+      // get_class_wrong_answers는 mastered 여부를 모르므로(오답 이력만 본다),
+      // wrong_answer_progress를 따로 조회해 클라이언트에서 병합한다.
+      const { data: progressRows } = await supabase
+        .from('wrong_answer_progress')
+        .select('student_id, word')
+        .in('student_id', selectedStudents)
+        .not('mastered_at', 'is', null);
+      const masteredKeys = new Set((progressRows ?? []).map((r) => `${r.student_id}:${r.word}`));
+
       const map = new Map<string, WrongAnswerData>();
 
       rows.forEach((row) => {
@@ -404,6 +417,7 @@ export default function WrongAnswerQuizCreate() {
             latest_at: '',
             meaning: null,
             selectable: false,
+            mastered: false,
           };
           map.set(word, group);
         }
@@ -447,6 +461,8 @@ export default function WrongAnswerQuizCreate() {
       list.forEach((g) => {
         // 문장 순서 맞추기만 있는 그룹은 word가 문장 전체라 어휘 퀴즈 문항이 될 수 없다.
         g.selectable = !(g.sources.size === 1 && g.sources.has('word_magnet'));
+        // 이 단어를 틀린 학생 전원이 이미 졸업했으면 더 이상 복습이 필요 없다.
+        g.mastered = [...g.students].every((sid) => masteredKeys.has(`${sid}:${g.word}`));
       });
       return list;
     },
@@ -462,6 +478,14 @@ export default function WrongAnswerQuizCreate() {
     }
     return list;
   }, [wrongAnswers, sortBy]);
+
+  const masteredCount = useMemo(() => sortedWrongAnswers.filter((w) => w.mastered).length, [sortedWrongAnswers]);
+  // 두 번 연속 맞힌 익힌 단어는 기본으로 숨긴다 — "보기"를 누르면 다시 보인다.
+  const [showMastered, setShowMastered] = useState(false);
+  const visibleWrongAnswers = useMemo(
+    () => (showMastered ? sortedWrongAnswers : sortedWrongAnswers.filter((w) => !w.mastered)),
+    [sortedWrongAnswers, showMastered]
+  );
 
   const createQuizMutation = useMutation({
     mutationFn: async () => {
@@ -914,7 +938,7 @@ export default function WrongAnswerQuizCreate() {
                   </p>
                 </div>
                 <span className="text-xs font-semibold text-muted-foreground shrink-0">
-                  {sortedWrongAnswers.length}개 중
+                  {visibleWrongAnswers.length}개 중
                 </span>
               </div>
 
@@ -934,13 +958,32 @@ export default function WrongAnswerQuizCreate() {
                 </Select>
               </div>
 
+              {/* 3. 안내 스트립 — 익힌 단어 기본 숨김 */}
+              {masteredCount > 0 && (
+                <div className="flex items-center gap-2 bg-[#FAF8F5] border border-[#EBE5DE] rounded-[10px] px-3.5 py-2.5">
+                  <Check className="h-3.5 w-3.5 text-[#6B6460] shrink-0" />
+                  <span className="text-[11.5px] text-[#6B6460]">
+                    두 번 연속 맞힌 익힌 단어 {masteredCount}개는 숨겼습니다.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowMastered((v) => !v)}
+                    className="text-[11.5px] font-semibold text-primary ml-auto shrink-0"
+                  >
+                    {showMastered ? '숨기기' : '보기'}
+                  </button>
+                </div>
+              )}
+
               {wrongAnswersLoading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
-              ) : sortedWrongAnswers.length === 0 ? (
+              ) : visibleWrongAnswers.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  선택한 학생들의 오답 데이터가 없습니다.
+                  {sortedWrongAnswers.length === 0
+                    ? '선택한 학생들의 오답 데이터가 없습니다.'
+                    : '남은 오답이 없습니다 — 위에서 익힌 단어를 다시 볼 수 있어요.'}
                 </p>
               ) : (
                 <div className="rounded-[13px] border overflow-hidden">
@@ -948,11 +991,11 @@ export default function WrongAnswerQuizCreate() {
                   <div className="flex items-center gap-3 px-3 py-2 bg-muted/40 border-b">
                     <Checkbox
                       checked={
-                        sortedWrongAnswers.filter((w) => w.selectable).length > 0 &&
-                        sortedWrongAnswers.filter((w) => w.selectable).every((w) => selectedWrongAnswers.includes(w.word))
+                        visibleWrongAnswers.filter((w) => w.selectable).length > 0 &&
+                        visibleWrongAnswers.filter((w) => w.selectable).every((w) => selectedWrongAnswers.includes(w.word))
                       }
                       onCheckedChange={() => {
-                        const selectableWords = sortedWrongAnswers.filter((w) => w.selectable).map((w) => w.word);
+                        const selectableWords = visibleWrongAnswers.filter((w) => w.selectable).map((w) => w.word);
                         const allSelected = selectableWords.every((w) => selectedWrongAnswers.includes(w));
                         setSelectedWrongAnswers(allSelected ? [] : selectableWords);
                       }}
@@ -960,7 +1003,7 @@ export default function WrongAnswerQuizCreate() {
                     <span className="text-xs font-semibold text-muted-foreground">전체 선택 / 해제</span>
                   </div>
                   <div className="max-h-96 overflow-y-auto divide-y">
-                  {sortedWrongAnswers.map((wa) => {
+                  {visibleWrongAnswers.map((wa) => {
                     const isExpanded = expanded.has(wa.word);
                     const mainSource = wa.entries[0]?.source ?? 'unknown';
                     const extraSourceCount = wa.sources.size - 1;
@@ -1087,7 +1130,7 @@ export default function WrongAnswerQuizCreate() {
               {/* 5. 하단 */}
               <div className="flex items-center justify-between pt-1">
                 <span className="text-xs font-semibold text-muted-foreground">
-                  {selectedWrongAnswers.length}개 선택됨 · 전체 {sortedWrongAnswers.length}개 중
+                  {selectedWrongAnswers.length}개 선택됨 · 전체 {visibleWrongAnswers.length}개 중
                 </span>
                 <div className="flex gap-2">
                   <Button
