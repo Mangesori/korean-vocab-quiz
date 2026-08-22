@@ -97,6 +97,7 @@ interface Quiz {
 
 interface Result {
   id: string;
+  student_id: string | null;
   score: number;
   total_questions: number;
   answers: UserAnswer[];
@@ -208,6 +209,18 @@ export default function QuizResult() {
 
       setQuiz({ ...quizData, problems: problemsWithAudio } as unknown as Quiz);
       setResult(resultData as unknown as Result);
+
+      // 결과 제출 학생 본인이 아니라 선생님이 열람한 경우 — RLS가 이미 본인 또는
+      // 담당 선생님만 조회를 허용하므로, student_id가 나와 다르면 곧 선생님이다.
+      if (resultData.student_id && resultData.student_id !== user!.id) {
+        supabase
+          .from('quiz_results')
+          .update({ viewed_at: new Date().toISOString() })
+          .eq('id', resultData.id)
+          .then(({ error }) => {
+            if (error) console.error('Failed to mark result viewed:', error);
+          });
+      }
 
       // 짝 맞추기 데이터 로드
       if (quizData.matchup_enabled) {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -68,9 +68,11 @@ export default function QuizCreate() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [inputMode, setInputMode] = useState<InputMode>("words");
-  const [wordsText, setWordsText] = useState("");
+  // 대시보드 히어로(신규 가입 상태)에서 붙여넣은 단어를 이어받는다.
+  const [wordsText, setWordsText] = useState(() => (location.state as { initialWords?: string } | null)?.initialWords ?? "");
   const [promptText, setPromptText] = useState("");
   /** null = 자동(엣지 함수가 프롬프트 속 단어 개수에 맞춰 정함) */
   const [problemCount, setProblemCount] = useState<number | null>(null);

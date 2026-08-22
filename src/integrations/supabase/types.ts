@@ -633,6 +633,7 @@ export type Database = {
           total_questions: number
           type_answer_score: number | null
           type_answer_total: number | null
+          viewed_at: string | null
           word_magnet_score: number | null
           word_magnet_total: number | null
         }
@@ -657,6 +658,7 @@ export type Database = {
           total_questions: number
           type_answer_score?: number | null
           type_answer_total?: number | null
+          viewed_at?: string | null
           word_magnet_score?: number | null
           word_magnet_total?: number | null
         }
@@ -681,6 +683,7 @@ export type Database = {
           total_questions?: number
           type_answer_score?: number | null
           type_answer_total?: number | null
+          viewed_at?: string | null
           word_magnet_score?: number | null
           word_magnet_total?: number | null
         }

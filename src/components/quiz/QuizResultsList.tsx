@@ -403,6 +403,7 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
         isAnonymous={selectedResult?.is_anonymous}
         quizId={quizId}
         onDataChanged={refresh}
+        markViewedOnOpen
       />
     </div>
   );

@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { UserCircle, CheckCircle, XCircle, HelpCircle, Volume2, Lightbulb, Loader2, TextCursorInput, PenLine, Mic, Pencil, RefreshCw, Link2, Keyboard, Magnet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QuizReviewCard } from "@/components/quiz/QuizReviewCard";
@@ -60,6 +60,9 @@ interface QuizResultDialogProps {
   // 최신 데이터를 다시 불러오도록 알려주는 콜백. 실시간 구독이 있는 목록(QuizResultsList)은
   // 넘기지 않아도 무방하다.
   onDataChanged?: () => void;
+  // 선생님이 이 결과를 열면 quiz_results.viewed_at을 채운다(대시보드 "확인할 결과" 큐에서
+  // 빠지는 신호). 학생이 자기 결과를 보는 화면(MyQuizzes.tsx)에서는 넘기지 않는다.
+  markViewedOnOpen?: boolean;
 }
 
 
@@ -642,11 +645,24 @@ export function QuizResultDialog({
   isAnonymous = false,
   quizId,
   onDataChanged,
+  markViewedOnOpen = false,
 }: QuizResultDialogProps) {
   const { detail, isLoading: detailLoading } = useQuizResultDetail(
     isOpen && result ? result.id : null,
     isOpen ? quizId : null
   );
+
+  useEffect(() => {
+    if (!markViewedOnOpen || !isOpen || !result) return;
+    supabase
+      .from("quiz_results")
+      .update({ viewed_at: new Date().toISOString() })
+      .eq("id", result.id)
+      .then(({ error }) => {
+        if (error) console.error("Failed to mark result viewed:", error);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [markViewedOnOpen, isOpen, result?.id]);
 
   if (!result) return null;
 
