@@ -2078,6 +2078,25 @@ export default function QuizTake() {
       );
     }
 
+    // 라이브 세션 비회원 제출 완료 — 계정이 없어 결과 페이지로 navigate할 곳이 없다
+    // (handleSubmit의 로그인 경로는 결과 페이지로 이동하지만, 이 분기는 그 전에 return한다).
+    // 화면을 안 만들면 아래 로딩 스피너 폴백에 걸려 학생이 빈 화면에 계속 머무르게 된다.
+    if (currentStage === "completed") {
+      return (
+        <div className="container mx-auto px-4 py-16 flex justify-center">
+          <Card className="max-w-md w-full">
+            <CardContent className="pt-8 pb-8 flex flex-col items-center text-center gap-3">
+              <CheckCircle className="w-12 h-12 text-primary" />
+              <h2 className="text-xl font-bold text-foreground">제출 완료</h2>
+              <p className="text-sm text-muted-foreground">
+                수고하셨어요! 선생님 화면에 결과가 표시됩니다.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
     // 빈칸 스테이지가 아닌데 위 분기에 안 걸렸으면(해당 유형 데이터 로딩 중) 스피너.
     // 빈칸이 첫 스테이지가 아닐 수 있으므로(예: 짝 맞추기 먼저) 빈칸 스테이지로 잘못 폴백하지 않도록 방지.
     if (currentStage !== "fill_blank" && currentStage !== "fill_blank_result") {

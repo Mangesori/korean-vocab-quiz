@@ -256,6 +256,7 @@ export default function LiveSession() {
                   name={p.display_name}
                   isGuest={p.is_guest}
                   p={progress[p.id]}
+                  hasResult={!!results[p.id]}
                   selected={selected === p.id}
                   watchScreens={session.settings.watchScreens}
                   onClick={() => setSelected(p.id)}
@@ -334,6 +335,7 @@ function ParticipantCard({
   name,
   isGuest,
   p,
+  hasResult,
   selected,
   watchScreens,
   onClick,
@@ -341,6 +343,7 @@ function ParticipantCard({
   name: string;
   isGuest: boolean;
   p?: LiveProgress;
+  hasResult: boolean;
   selected: boolean;
   watchScreens: boolean;
   onClick: () => void;
@@ -366,7 +369,7 @@ function ParticipantCard({
       </div>
       <Dots p={p} />
       <div className="mt-2 h-6 flex items-center">
-        {p?.done ? (
+        {p?.done || hasResult ? (
           <span className="text-[11px] font-medium text-success">제출 완료</span>
         ) : watchScreens && activeText(p) ? (
           <span className="text-xs font-semibold text-foreground truncate">
