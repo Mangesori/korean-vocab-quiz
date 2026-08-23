@@ -144,6 +144,28 @@ export function isStageEnabled(stage: BaseStage, quiz: Record<string, unknown>):
   return Boolean(value);
 }
 
+// 스테이지 → quiz_results의 점수 컬럼. StudentDashboard/TeacherDashboard/Quizzes의
+// "완료" 판정이 화면마다 다르면 학생 쪽엔 진행 중인데 선생님 쪽엔 미제출로 보인다 —
+// 반드시 이 매핑을 거쳐서 판정할 것.
+export const STAGE_SCORE_KEY: Record<BaseStage, string> = {
+  matchup: "matchup_score",
+  type_answer: "type_answer_score",
+  fill_blank: "fill_blank_score",
+  word_magnet: "word_magnet_score",
+  sentence_making: "sentence_making_score",
+  recording: "recording_score",
+};
+
+export function stageScore(result: Record<string, unknown>, stage: BaseStage): number | null {
+  const value = result[STAGE_SCORE_KEY[stage]];
+  return typeof value === "number" ? value : null;
+}
+
+/** 결과 한 건 기준으로, 해당 퀴즈의 활성 스테이지가 전부 채점됐는지. */
+export function isResultComplete(quiz: Record<string, unknown>, result: Record<string, unknown>): boolean {
+  return STAGE_ORDER.every((stage) => !isStageEnabled(stage, quiz) || stageScore(result, stage) !== null);
+}
+
 export interface QuizDraft {
   title: string;
   words: string[];

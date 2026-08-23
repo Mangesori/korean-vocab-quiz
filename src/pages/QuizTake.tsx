@@ -63,6 +63,8 @@ interface Quiz {
   matchup_enabled?: boolean;
   type_answer_enabled?: boolean;
   word_magnet_enabled?: boolean;
+  // 오답 복습 퀴즈 채점 시 update_wa_progress를 함께 호출하기 위한 식별자.
+  kind?: string | null;
 }
 
 interface SentenceMakingProblemData {
@@ -133,6 +135,23 @@ function gradingErrorMessage(err: unknown): string {
     return "채점 실패 — 서버 설정이 최신이 아니에요. 선생님께 알려주세요.";
   if (/permission|denied|42501/i.test(raw)) return "채점 실패 — 권한이 없어요. 선생님께 알려주세요.";
   return raw ? `채점 실패 — ${raw}` : "채점에 실패했습니다.";
+}
+
+// kind='wrong_review' 퀴즈를 채점할 때 오답노트 진행도(wrong_answer_progress)에도
+// 반영한다 — 선생님이 낸 복습 퀴즈를 맞혀도 이게 없으면 어디서도 "익힌 단어"로
+// 졸업되지 않는다(연습 화면(WrongAnswerPractice)을 거칠 때만 호출되던 문제).
+// update_wa_progress는 auth.uid() 기준이라 익명 학생에게는 의미가 없다.
+async function updateWrongReviewProgress(
+  quiz: { kind?: string | null },
+  isAnonymous: boolean,
+  items: { word: string; correct: boolean }[]
+) {
+  if (quiz.kind !== "wrong_review" || isAnonymous || items.length === 0) return;
+  try {
+    await supabase.rpc("update_wa_progress", { _items: items });
+  } catch (e) {
+    console.error("Failed to update wrong review progress:", e);
+  }
 }
 
 // recording_answers insert 실패는 quiz_results.recording_score(집계 점수)와
@@ -1493,6 +1512,11 @@ export default function QuizTake() {
 
       // 선생님 화면에 정오답을 보여주기 위해 방송용으로 보관한다.
       setGradedCorrect(detailedAnswers.map((a) => a.isCorrect));
+      void updateWrongReviewProgress(
+        quiz,
+        isAnonymous,
+        detailedAnswers.map((a) => ({ word: a.word, correct: a.isCorrect }))
+      );
 
       // 인증된 사용자 + 추가 스테이지: 빈칸 결과 중간 저장
       if (!isAnonymous && user && (quiz.matchup_enabled || quiz.type_answer_enabled || quiz.word_magnet_enabled || quiz.sentence_making_enabled || quiz.recording_enabled)) {
@@ -1550,6 +1574,11 @@ export default function QuizTake() {
     const muTotal = matchupProblems.length;
     const muScore = matchupProblems.filter((p) => results[p.id]?.isCorrect).length;
     setSavedMatchupScore({ score: muScore, total: muTotal });
+    void updateWrongReviewProgress(
+      quiz,
+      isAnonymous,
+      matchupProblems.map((p) => ({ word: p.korean_text, correct: !!results[p.id]?.isCorrect }))
+    );
 
     const rid = await ensureResultId();
     if (!isAnonymous && user && rid) {
@@ -1617,6 +1646,11 @@ export default function QuizTake() {
     setTypeAnswerResults(graded);
     setGradedCorrect(graded.map((r) => r.isCorrect));
     setTypeAnswerSkippedIds(skippedSet);
+    void updateWrongReviewProgress(
+      quiz,
+      isAnonymous,
+      graded.map((r) => ({ word: r.correctAnswer, correct: r.isCorrect }))
+    );
     const taTotal = graded.length;
     const taScore = graded.filter((r) => r.isCorrect).length;
     setSavedTypeAnswerScore({ score: taScore, total: taTotal });

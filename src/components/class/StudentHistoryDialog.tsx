@@ -171,6 +171,7 @@ export function StudentHistoryDialog({
         studentName={studentName}
         quizId={selectedResult?.quiz_id || ""}
         onDataChanged={refetch}
+        markViewedOnOpen
       />
     </>
   );
