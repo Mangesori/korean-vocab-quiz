@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   Check,
-  ClipboardPaste,
   Keyboard,
   Library,
   Link2,
@@ -426,8 +425,7 @@ export default function QuizImport() {
     <AppLayout>
       <div className="container mx-auto px-4 py-10 max-w-2xl">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
-            <ClipboardPaste className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl font-bold text-foreground tracking-tight pl-2">
             붙여넣기로 퀴즈 만들기
           </h1>
           <p className="text-sm text-muted-foreground mt-2">

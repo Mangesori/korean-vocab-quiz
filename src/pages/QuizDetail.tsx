@@ -947,6 +947,9 @@ export default function QuizDetail() {
             onGenerateLink={generateShareLink}
             isGeneratingLink={isGeneratingLink}
             onCopyLink={copyToClipboard}
+            quizTitle={quiz.title}
+            quizDifficulty={quiz.difficulty}
+            quizWordCount={quiz.words.length}
           />
         </Dialog>
 

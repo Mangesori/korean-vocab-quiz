@@ -355,7 +355,8 @@ export default function QuizResult() {
   const hasWordMagnet = !!quiz.word_magnet_enabled && wmTotal > 0;
   const hasSentenceMaking = quiz.sentence_making_enabled && smTotal > 0;
   const hasRecording = quiz.recording_enabled && recTotal > 0;
-  const multipleTypes = [hasFillBlank, hasMatchup, hasTypeAnswer, hasWordMagnet, hasSentenceMaking, hasRecording].filter(Boolean).length > 1;
+  const activeStageCount = [hasFillBlank, hasMatchup, hasTypeAnswer, hasWordMagnet, hasSentenceMaking, hasRecording].filter(Boolean).length;
+  const multipleTypes = activeStageCount > 1;
 
   const matchupAnswerMap: Record<string, MatchupAnswerRow> = {};
   for (const a of matchupAnswers) matchupAnswerMap[a.problem_id] = a;
@@ -798,9 +799,10 @@ export default function QuizResult() {
           {/* 탭 기반 상세 리뷰 */}
           {multipleTypes ? (
             <Tabs defaultValue={hasMatchup ? "matchup" : hasTypeAnswer ? "type_answer" : hasFillBlank ? "fill_blank" : hasWordMagnet ? "word_magnet" : hasSentenceMaking ? "sentence_making" : "recording"} className="w-full mt-4">
-              <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-8 h-auto p-1.5 bg-slate-100/60 rounded-2xl gap-1">
+              <div className="flex justify-center mb-8">
+                <TabsList className="flex-wrap h-auto p-1.5 bg-slate-100/60 rounded-2xl gap-1">
                 {hasMatchup && (
-                  <TabsTrigger value="matchup" className="flex flex-col items-center py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
+                  <TabsTrigger value="matchup" className="w-40 flex flex-col items-center py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
                     <div className="flex items-center gap-1.5 mb-1.5 font-medium text-muted-foreground data-[state=active]:text-foreground">
                       <Link2 className="w-4 h-4" />
                       <span className="text-sm">짝 맞추기</span>
@@ -809,7 +811,7 @@ export default function QuizResult() {
                   </TabsTrigger>
                 )}
                 {hasTypeAnswer && (
-                  <TabsTrigger value="type_answer" className="flex flex-col items-center py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
+                  <TabsTrigger value="type_answer" className="w-40 flex flex-col items-center py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
                     <div className="flex items-center gap-1.5 mb-1.5 font-medium text-muted-foreground data-[state=active]:text-foreground">
                       <Keyboard className="w-4 h-4" />
                       <span className="text-sm">단어 받아쓰기</span>
@@ -818,7 +820,7 @@ export default function QuizResult() {
                   </TabsTrigger>
                 )}
                 {hasFillBlank && (
-                  <TabsTrigger value="fill_blank" className="flex flex-col items-center py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
+                  <TabsTrigger value="fill_blank" className="w-40 flex flex-col items-center py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
                     <div className="flex items-center gap-1.5 mb-1.5 font-medium text-muted-foreground data-[state=active]:text-foreground">
                       <FileText className="w-4 h-4" />
                       <span className="text-sm">빈칸 채우기</span>
@@ -827,7 +829,7 @@ export default function QuizResult() {
                   </TabsTrigger>
                 )}
                 {hasWordMagnet && (
-                  <TabsTrigger value="word_magnet" className="flex flex-col items-center py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
+                  <TabsTrigger value="word_magnet" className="w-40 flex flex-col items-center py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
                     <div className="flex items-center gap-1.5 mb-1.5 font-medium text-muted-foreground data-[state=active]:text-foreground">
                       <Magnet className="w-4 h-4" />
                       <span className="text-sm">문장 순서 맞추기</span>
@@ -836,7 +838,7 @@ export default function QuizResult() {
                   </TabsTrigger>
                 )}
                 {hasSentenceMaking && (
-                  <TabsTrigger value="sentence_making" className="flex flex-col items-center py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
+                  <TabsTrigger value="sentence_making" className="w-40 flex flex-col items-center py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
                     <div className="flex items-center gap-1.5 mb-1.5 font-medium text-muted-foreground data-[state=active]:text-foreground">
                       <Pencil className="w-4 h-4" />
                       <span className="text-sm">문장 만들기</span>
@@ -845,7 +847,7 @@ export default function QuizResult() {
                   </TabsTrigger>
                 )}
                 {hasRecording && (
-                  <TabsTrigger value="recording" className="flex flex-col items-center py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
+                  <TabsTrigger value="recording" className="w-40 flex flex-col items-center py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
                     <div className="flex items-center gap-1.5 mb-1.5 font-medium text-muted-foreground data-[state=active]:text-foreground">
                       <Mic className="w-4 h-4" />
                       <span className="text-sm">말하기 연습</span>
@@ -853,7 +855,8 @@ export default function QuizResult() {
                     <span className={`text-xl font-bold ${scoreColor(recPercentage)}`}>{recPercentage}%</span>
                   </TabsTrigger>
                 )}
-              </TabsList>
+                </TabsList>
+              </div>
 
               {/* 짝 맞추기 리뷰 */}
               {hasMatchup && (

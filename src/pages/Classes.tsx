@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Users, Loader2, Search } from 'lucide-react';
+import { Plus, Users, Loader2, Search, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { isResultComplete } from '@/types/quiz';
@@ -189,9 +189,10 @@ export default function Classes() {
       classes.forEach((c) => {
         const memberIds = membersByClass.get(c.id) ?? [];
         const classResults = memberIds.flatMap((sid) => resultsByStudent.get(sid) ?? []);
+        const validResults = classResults.filter((r) => r.total_questions > 0);
         const avgScore =
-          classResults.length > 0
-            ? Math.round(classResults.reduce((sum, r) => sum + (r.score / r.total_questions) * 100, 0) / classResults.length)
+          validResults.length > 0
+            ? Math.round(validResults.reduce((sum, r) => sum + (r.score / r.total_questions) * 100, 0) / validResults.length)
             : null;
         const lastActivity =
           classResults.length > 0
@@ -375,61 +376,63 @@ export default function Classes() {
               return (
                 <Link key={cls.id} to={`/class/${cls.id}`} className="block h-full">
                   <div className="bg-white border border-[#EBE5DE] rounded-[14px] px-5 py-[18px] h-full flex flex-col hover:border-primary/40 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-[#E8F1EB] grid place-items-center shrink-0 text-[11.5px] font-bold text-primary">
-                          {isSolo ? initials(stats!.memberNames[0]) : <Users className="w-4 h-4" strokeWidth={2} />}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-[34px] h-[34px] rounded-full bg-[#E8F1EB] grid place-items-center shrink-0 text-[11.5px] font-bold text-primary">
+                        {isSolo ? initials(stats!.memberNames[0]) : <Users className="w-[17px] h-[17px]" strokeWidth={2} />}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[15px] font-bold tracking-[-0.2px] truncate">
+                          {isSolo ? stats!.memberNames[0] : cls.name}
                         </div>
-                        <div className="min-w-0">
-                          <div className="text-[15px] font-bold tracking-[-0.2px] truncate">
-                            {isSolo ? stats!.memberNames[0] : cls.name}
-                          </div>
-                          <div className="text-[11.5px] text-[#8A837D] mt-0.5">
-                            {isSolo ? '1:1' : `학생 ${memberCount}명`}
-                          </div>
+                        <div className="text-[11.5px] text-[#8A837D] mt-0.5 truncate">
+                          {isSolo ? `1:1 · ${cls.name}` : `학생 ${memberCount}명`}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          copyInviteCode(cls.invite_code);
-                        }}
-                        title="초대 코드 복사"
-                        className="text-[11.5px] font-bold text-primary tracking-[0.04em] shrink-0"
-                      >
-                        {cls.invite_code}
-                      </button>
                     </div>
 
-                    <div className="flex gap-5 mt-4 pt-3.5 border-t border-[#F2EDE7]">
-                      <div>
-                        <div className="text-[10.5px] text-[#8A837D]">배정 퀴즈</div>
-                        <div className="text-[15px] font-bold mt-[3px]">{stats?.assignedQuizCount ?? 0}</div>
+                    <div className="flex flex-col gap-[9px] mt-4 pt-3.5 border-t border-[#F2EDE7]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] text-[#6B6460]">배정된 퀴즈</span>
+                        <span className="text-[13px] font-bold">{stats?.assignedQuizCount ?? 0}</span>
                       </div>
-                      <div>
-                        <div className="text-[10.5px] text-[#8A837D]">평균 점수</div>
-                        <div className="text-[15px] font-bold mt-[3px]">{stats?.avgScore ?? '—'}{stats?.avgScore != null && '%'}</div>
-                      </div>
+
                       {isSolo ? (
-                        <div>
-                          <div className="text-[10.5px] text-[#8A837D]">마지막 활동</div>
-                          <div className="text-[15px] font-bold mt-[3px]">
-                            {stats?.lastActivity ? relativeTime(stats.lastActivity) : '아직 없음'}
+                        stats?.lastActivity ? (
+                          <div className="flex items-center justify-between">
+                            <span className="text-[12px] text-[#6B6460]">마지막 활동</span>
+                            <span className="text-[13px] font-bold">{relativeTime(stats.lastActivity)}</span>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="text-[12px] text-[#8A837D]">아직 활동 없음</div>
+                        )
                       ) : (
-                        <div>
-                          <div className="text-[10.5px] text-[#8A837D]">미제출</div>
-                          <div
-                            className="text-[15px] font-bold mt-[3px]"
+                        <div className="flex items-center justify-between">
+                          <span className="text-[12px] text-[#6B6460]">미제출</span>
+                          <span
+                            className="text-[13px] font-bold"
                             style={{ color: (stats?.pendingCount ?? 0) > 0 ? '#B4552D' : undefined }}
                           >
                             {stats?.pendingCount ?? 0}명
-                          </div>
+                          </span>
                         </div>
                       )}
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] text-[#6B6460]">초대 코드</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            copyInviteCode(cls.invite_code);
+                          }}
+                          title="초대 코드 복사"
+                          className="flex items-center gap-1.5 text-[12.5px] font-bold text-primary tracking-[0.06em]"
+                        >
+                          {cls.invite_code}
+                          <Copy className="w-[13px] h-[13px]" />
+                        </button>
+                      </div>
                     </div>
 
                     <span className="block text-center mt-3.5 bg-primary text-white text-xs font-bold rounded-[9px] py-2.5">

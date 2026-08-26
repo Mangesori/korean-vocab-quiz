@@ -14,7 +14,7 @@ import {
   Loader2,
   Trash2,
   Send,
-  Users,
+  UserPlus,
   X,
   BarChart3,
 } from 'lucide-react';
@@ -458,9 +458,9 @@ export default function Quizzes() {
           </Card>
         ) : (
           <div className="mt-4 bg-white border border-[#EBE5DE] rounded-2xl overflow-hidden">
-            <div className="hidden md:grid grid-cols-[52px_1fr_150px_200px_130px_190px] gap-3.5 px-[22px] py-[13px] bg-[#FBF9F6] border-b border-[#EFE9E2] text-[11px] font-bold text-[#8A837D] tracking-[0.03em]">
+            <div className="hidden md:grid grid-cols-[52px_1fr_130px_190px_90px_116px_150px] gap-3.5 px-[22px] py-[13px] bg-[#FBF9F6] border-b border-[#EFE9E2] text-[11px] font-bold text-[#8A837D] tracking-[0.03em]">
               <span>레벨</span><span>제목</span><span>분량</span><span>배정</span><span>제출</span>
-              <span className="text-right">만든 날짜</span>
+              <span>만든 날짜</span><span />
             </div>
 
             {filteredRows.map(({ quiz, studentNames, assignedCount, submittedCount }) => {
@@ -476,7 +476,7 @@ export default function Quizzes() {
                 <div key={quiz.id}>
                   <Link
                     to={`/quiz/${quiz.id}`}
-                    className={`group relative grid grid-cols-2 md:grid-cols-[52px_1fr_150px_200px_130px_190px] gap-2 md:gap-3.5 px-[18px] md:px-[22px] py-3.5 md:py-[15px] border-b border-[#F4F0EA] md:items-center hover:bg-[#FBF9F6]/60 transition-colors ${unassigned ? 'bg-[#FDFCFA]' : ''}`}
+                    className={`group relative grid grid-cols-2 md:grid-cols-[52px_1fr_130px_190px_90px_116px_150px] gap-2 md:gap-3.5 px-[18px] md:px-[22px] py-3.5 md:py-[14px] border-b border-[#F4F0EA] md:items-center hover:bg-[#FBF9F6]/60 transition-colors ${unassigned ? 'bg-[#FDFCFA]' : ''}`}
                   >
                     <span
                       className={`hidden md:block text-[10px] font-bold rounded-[6px] py-1 text-center ${unassigned ? 'text-[#7C756F] bg-[#F1EDE7]' : 'text-primary bg-[#E8F1EB]'}`}
@@ -499,59 +499,83 @@ export default function Quizzes() {
                     >
                       {unassigned ? '—' : `${submittedCount} / ${assignedCount}`}
                     </span>
+                    <span className="hidden md:block text-[12.5px] text-[#8A837D] whitespace-nowrap">
+                      {new Date(quiz.created_at).toLocaleDateString('ko-KR')}
+                    </span>
 
-                    <div className="flex items-center justify-end gap-3">
-                      <div className="hidden md:group-hover:flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          title="공유"
-                          className="h-7 w-7 grid place-items-center rounded-md hover:bg-[#F2EEE8] text-[#6B6460]"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setSelectedQuizForShare(quiz);
-                            setSendDialogOpen(true);
-                            setSelectedClassId("");
-                          }}
-                        >
-                          <Send className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          title="결과"
-                          className="h-7 w-7 grid place-items-center rounded-md hover:bg-[#F2EEE8] text-[#6B6460]"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setSelectedResult(quiz);
-                          }}
-                        >
-                          <BarChart3 className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          title="배정"
-                          className="h-7 w-7 grid place-items-center rounded-md hover:bg-[#F2EEE8] text-[#6B6460]"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setExpandedQuizId((cur) => (cur === quiz.id ? null : quiz.id));
-                          }}
-                        >
-                          <Users className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          title="삭제"
-                          className="h-7 w-7 grid place-items-center rounded-md hover:bg-destructive/10 text-destructive"
-                          onClick={(e) => handleDeleteClick(e, quiz)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                      <span className={`text-[12.5px] text-right whitespace-nowrap ${unassigned ? 'text-[#8A837D]' : 'text-[#8A837D]'}`}>
-                        {new Date(quiz.created_at).toLocaleDateString('ko-KR')}
-                      </span>
+                    <div className="hidden md:flex items-center justify-end gap-3.5">
+                      {unassigned ? (
+                        <>
+                          <button
+                            type="button"
+                            className="text-[11px] font-bold text-white bg-primary rounded-[8px] px-[11px] py-1.5 whitespace-nowrap"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setExpandedQuizId((cur) => (cur === quiz.id ? null : quiz.id));
+                            }}
+                          >
+                            배정하기
+                          </button>
+                          <button
+                            type="button"
+                            title="삭제"
+                            className="opacity-30 group-hover:opacity-100 transition-opacity h-7 w-7 grid place-items-center rounded-md hover:bg-destructive/10 text-[#C1554A]"
+                            onClick={(e) => handleDeleteClick(e, quiz)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <div className="opacity-30 group-hover:opacity-100 transition-opacity flex items-center gap-3.5">
+                          <button
+                            type="button"
+                            title="공유"
+                            className="h-7 w-7 grid place-items-center rounded-md hover:bg-[#F2EEE8] text-[#4A443F]"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSelectedQuizForShare(quiz);
+                              setSendDialogOpen(true);
+                              setSelectedClassId("");
+                            }}
+                          >
+                            <Send className="h-3.5 w-3.5" strokeWidth={1.9} />
+                          </button>
+                          <button
+                            type="button"
+                            title="결과"
+                            className="h-7 w-7 grid place-items-center rounded-md hover:bg-[#F2EEE8] text-[#4A443F]"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSelectedResult(quiz);
+                            }}
+                          >
+                            <BarChart3 className="h-3.5 w-3.5" strokeWidth={1.9} />
+                          </button>
+                          <button
+                            type="button"
+                            title="배정"
+                            className="h-7 w-7 grid place-items-center rounded-md hover:bg-[#F2EEE8] text-[#4A443F]"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setExpandedQuizId((cur) => (cur === quiz.id ? null : quiz.id));
+                            }}
+                          >
+                            <UserPlus className="h-3.5 w-3.5" strokeWidth={1.9} />
+                          </button>
+                          <button
+                            type="button"
+                            title="삭제"
+                            className="h-7 w-7 grid place-items-center rounded-md hover:bg-destructive/10 text-[#C1554A]"
+                            onClick={(e) => handleDeleteClick(e, quiz)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* 모바일: 배정/삭제 진입점 (호버가 없는 화면이라 항상 노출) */}
@@ -656,6 +680,9 @@ export default function Quizzes() {
           onGenerateLink={generateShareLink}
           isGeneratingLink={isGeneratingLink}
           onCopyLink={copyToClipboard}
+          quizTitle={selectedQuizForShare?.title}
+          quizDifficulty={selectedQuizForShare?.difficulty}
+          quizWordCount={selectedQuizForShare?.words?.length}
         />
       </Dialog>
       <QuizResultsDialog

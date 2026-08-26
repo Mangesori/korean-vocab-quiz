@@ -29,6 +29,7 @@ import {
   Library,
   Settings,
   LogOut,
+  HelpCircle,
   GraduationCap,
   FileText,
   MessageSquare,
@@ -271,6 +272,14 @@ export function AppSidebar() {
             </div>
 
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className={SB_ITEM_CLASS}>
+                  <Link to="/help">
+                    <HelpCircle className="w-[15px] h-[15px] shrink-0" />
+                    <span>도움말</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild className={SB_ITEM_CLASS}>
                   <Link to="/profile/settings">

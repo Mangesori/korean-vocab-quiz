@@ -613,6 +613,10 @@ ${a1Vocab}
 
 [translation] answer가 들어간 완전한 문장을 번역. 핵심 의미만 대괄호 [].
   예: answer "가고 싶어요" → "I want to [go]."
+
+[meaning] 단어(기본형) "${words[0]}"의 핵심 사전적 뜻을 ${languageName}로 1~3 단어로 간결하게.
+  문장 전체 번역이 아니라 단어 하나의 뜻만. 대괄호 없이. ${languageName} 외 언어(한국어 설명 등) 절대 금지.
+  예: word "학생" → meaning "student" / word "마음에 들다" → meaning "to like"
 ${shortSection}
 [금지 패턴] 맥락 없는 감정 나열, 교과서식 인위적 문장, 부자연스러운 어휘 조합은 절대 금지.
 주어를 "그"/"그녀"로 쓰지 말고 생략하거나 구체적 명사(이름·직업·관계 등)를 쓰세요.
@@ -625,7 +629,8 @@ ${shortSection}
       "answer": "...",
       "sentence": "... ( ).",
       "hint": "...",
-      "translation": "... [core meaning] ..."${shortOutputFields}
+      "translation": "... [core meaning] ...",
+      "meaning": "${languageName}로 된 단어의 짧은 뜻"${shortOutputFields}
     }
   ]
 }`;
@@ -965,13 +970,18 @@ async function fixLowQualityProblems(
         console.log(
           `[quality-check] "${original.word}": ${before}어절→${after}어절, hint "${original.hint}"→"${fixed.hint}"`
         );
+        // meaning은 이번 재생성이 원래 안 걸린 항목(길이/문법만 걸린 경우)도 함께
+        // 새로 나온다 — generateSimplePrompt가 §6-2를 안 지키면 여기서 한국어로
+        // 샐 수 있으니, 병합 직전에 다시 한 번 검증한다(원본 meaning은 최초
+        // isKoreanMeaning 통과분이라 항상 안전한 폴백).
+        const fixedMeaning = fixed.meaning && !isKoreanMeaning(fixed.meaning) ? fixed.meaning : original.meaning;
         problems[idx] = {
           ...original,
           answer: fixed.answer,
           sentence: fixed.sentence,
           hint: fixed.hint || original.hint,
           translation: fixed.translation,
-          meaning: fixed.meaning || original.meaning,
+          meaning: fixedMeaning,
         };
       } catch (error) {
         console.error(`[quality-check] regeneration failed for "${original.word}":`, error);

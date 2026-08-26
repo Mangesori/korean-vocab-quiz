@@ -768,8 +768,7 @@ export default function AdminDashboard() {
     <AppLayout>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <PageHeading.icon className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold text-foreground pl-2">
             {PageHeading.title}
           </h1>
         </div>

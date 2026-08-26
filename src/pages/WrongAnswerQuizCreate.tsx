@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -32,7 +32,6 @@ import {
 } from '@/types/quiz';
 import {
   Loader2,
-  FileX,
   Users,
   ChevronRight,
   ChevronDown,
@@ -279,6 +278,7 @@ async function retryRegeneration(
 
 export default function WrongAnswerQuizCreate() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const { can } = usePermissions();
   const [selectedClassId, setSelectedClassId] = useState<string>('');
@@ -357,6 +357,19 @@ export default function WrongAnswerQuizCreate() {
     (students ?? []).forEach((s) => map.set(s.student_id, s.name));
     return map;
   }, [students]);
+
+  // 클래스 상세("이 학생에게")에서 넘어온 경우 클래스·학생을 자동으로 선택한다.
+  const preselect = location.state as { classId?: string; studentId?: string } | null;
+  useEffect(() => {
+    if (preselect?.classId) setSelectedClassId((prev) => prev || preselect.classId!);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselect?.classId]);
+  useEffect(() => {
+    if (preselect?.studentId && students?.some((s) => s.student_id === preselect.studentId)) {
+      setSelectedStudents((prev) => (prev.includes(preselect.studentId!) ? prev : [...prev, preselect.studentId!]));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselect?.studentId, students]);
 
   // 기본 제목 "학생명 오답 복습 · 8월 22일" — 여러 명이면 "학생명 외 N명".
   const defaultTitle = useMemo(() => {
@@ -803,8 +816,7 @@ export default function WrongAnswerQuizCreate() {
     <AppLayout>
       <div className="container max-w-4xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileX className="h-6 w-6" />
+          <h1 className="text-2xl font-bold pl-2">
             오답 기반 복습 퀴즈 만들기
           </h1>
         </div>

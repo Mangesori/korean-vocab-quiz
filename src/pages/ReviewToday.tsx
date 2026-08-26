@@ -14,7 +14,7 @@ import { useMemo } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlarmClock, ArrowRight, BookOpen, CalendarCheck, Loader2, Sparkles } from "lucide-react";
+import { AlarmClock, ArrowRight, BookOpen, Loader2, Sparkles } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -122,8 +122,7 @@ export default function ReviewToday() {
     <AppLayout>
       <div className="container mx-auto px-4 py-10 max-w-2xl">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
-            <CalendarCheck className="h-7 w-7 text-primary" />
+          <h1 className="text-2xl font-bold text-foreground tracking-tight pl-2">
             오늘의 복습
           </h1>
           <p className="text-sm text-muted-foreground mt-2">

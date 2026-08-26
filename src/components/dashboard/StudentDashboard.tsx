@@ -296,11 +296,12 @@ export default function StudentDashboard() {
         }
       });
 
+      const validResultsData = (resultsData ?? []).filter((r) => r.total_questions > 0);
       const avgScore =
-        resultsData && resultsData.length > 0
+        validResultsData.length > 0
           ? Math.round(
-              resultsData.reduce((acc, r) => acc + (r.score / r.total_questions) * 100, 0) /
-                resultsData.length
+              validResultsData.reduce((acc, r) => acc + (r.score / r.total_questions) * 100, 0) /
+                validResultsData.length
             )
           : 0;
 
@@ -311,11 +312,12 @@ export default function StudentDashboard() {
       const dayOfWeek = weekStart.getDay();
       weekStart.setDate(weekStart.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
       const weekResults = resultsData?.filter((r) => new Date(r.completed_at) >= weekStart) || [];
+      const validWeekResults = weekResults.filter((r) => r.total_questions > 0);
       const weekScore =
-        weekResults.length > 0
+        validWeekResults.length > 0
           ? Math.round(
-              weekResults.reduce((acc, r) => acc + (r.score / r.total_questions) * 100, 0) /
-                weekResults.length
+              validWeekResults.reduce((acc, r) => acc + (r.score / r.total_questions) * 100, 0) /
+                validWeekResults.length
             )
           : null;
 

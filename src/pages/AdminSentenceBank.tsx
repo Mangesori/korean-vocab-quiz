@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Library, Search, RefreshCw, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, RefreshCw, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { formatDateShort } from '@/lib/formatDate';
@@ -298,8 +298,7 @@ export default function AdminSentenceBank() {
     <AppLayout>
       <div className="container mx-auto px-4 py-8 space-y-6">
         <div className="mb-2">
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Library className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold text-foreground pl-2">
             문장 은행 관리
           </h1>
         </div>

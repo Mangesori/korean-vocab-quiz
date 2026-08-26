@@ -29,7 +29,6 @@ import {
 import {
   Loader2,
   Plus,
-  Megaphone,
   ArrowLeft,
   Pin,
   Trash2,
@@ -226,8 +225,7 @@ export default function ClassAnnouncements() {
 
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Megaphone className="h-6 w-6" />
+            <h1 className="text-2xl font-bold pl-2">
               공지사항
             </h1>
             <p className="text-muted-foreground mt-1">{classInfo?.name}</p>

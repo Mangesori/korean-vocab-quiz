@@ -170,8 +170,7 @@ export default function VocabularyList() {
       <div className="container max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <BookMarked className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-bold pl-2">
               나만의 단어장
             </h1>
             <p className="text-muted-foreground mt-1">
