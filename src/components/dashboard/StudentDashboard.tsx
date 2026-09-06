@@ -9,7 +9,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { PendingTeacherBanner } from '@/components/dashboard/PendingTeacherBanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AlarmClock, BookMarked, FileX, Home, Users } from 'lucide-react';
+import { AlarmClock, BookMarked, FileX, Home, Users, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { BaseStage, STAGE_ORDER, STAGE_LABELS, isStageEnabled } from '@/types/quiz';
@@ -175,7 +175,7 @@ export default function StudentDashboard() {
   const [isJoining, setIsJoining] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['studentDashboard', user?.id],
     queryFn: async () => {
       const { data: profileData } = await supabase
@@ -503,15 +503,25 @@ export default function StudentDashboard() {
   const displayName = profileName || user?.email?.split('@')[0] || '';
   const hasClasses = classes.length > 0;
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="bg-[#FAF8F5] px-[18px] sm:px-[30px] py-[26px] sm:py-8">
 
         <PendingTeacherBanner />
 
         {!hasClasses ? (
           /* ── 클래스 미가입 상태 (시안 7a·7d) ── */
-          <div className="lg:max-w-[940px]">
+          <div>
             <h1 className="text-[22px] font-bold tracking-[-0.4px] mb-6">
               안녕하세요, {displayName}님 👋
             </h1>

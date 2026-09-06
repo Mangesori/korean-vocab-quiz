@@ -26,6 +26,8 @@ import { quizInsertErrorMessage, readEdgeFunctionError } from "@/lib/supabaseErr
 import { STAGE_ORDER, STAGE_LABELS, type BaseStage } from "@/types/quiz";
 import type { Problem, SentenceMakingProblem, RecordingProblem, MatchupProblem, TypeAnswerProblem, WordMagnetProblem, QuizDraft } from "@/types/quiz";
 import { generateTtsAudio, type TtsProvider } from "@/utils/ttsService";
+import { FeedbackPromptCard } from "@/components/feedback/FeedbackPromptCard";
+import { CheckCircle2 } from "lucide-react";
 
 /** 미리보기에서 보던 단계. 새로고침·탭 복귀 후에도 같은 단계로 돌아오게 한다. */
 const PREVIEW_STAGE_KEY = "quizPreviewStage";
@@ -58,6 +60,9 @@ export default function QuizPreview() {
   const [regeneratingWordMagnetId, setRegeneratingWordMagnetId] = useState<string | null>(null);
   const [regeneratingRecId, setRegeneratingRecId] = useState<string | null>(null);
   const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
+  // 이번에 저장된 퀴즈가 이 선생님의 "첫 퀴즈"였을 때만 저장 완료 화면에 피드백 카드를 보여준다.
+  // null이면 평소대로 저장 즉시 이동, id가 들어오면 이 화면에서 멈춰 피드백을 유도한 뒤 계속하기로 이동.
+  const [firstQuizSavedId, setFirstQuizSavedId] = useState<string | null>(null);
 
   type PreviewStage = BaseStage;
   const [previewStage, setPreviewStage] = useState<PreviewStage>(STAGE_ORDER[0]);
@@ -1081,7 +1086,29 @@ export default function QuizPreview() {
 
       sessionStorage.removeItem("quizDraft");
       sessionStorage.removeItem(PREVIEW_STAGE_KEY);
-      navigate(`/quiz/${data.id}`);
+
+      // 이 퀴즈가 이 선생님의 첫 퀴즈였는지 확인 — 방금 저장한 것까지 포함해 정확히 1개일 때만.
+      // count만 세는 가벼운 조회라 저장 흐름을 지연시키지 않는다. 실패해도 저장 자체는
+      // 이미 끝났으므로 조용히 넘어가고 평소대로 이동한다.
+      let isFirstQuiz = false;
+      try {
+        const { count, error: countError } = await supabase
+          .from("quizzes")
+          .select("id", { count: "exact", head: true })
+          .eq("teacher_id", user.id);
+        if (!countError && count === 1) {
+          isFirstQuiz = true;
+        }
+      } catch (countCheckError) {
+        console.error("Failed to check first-quiz status:", countCheckError);
+      }
+
+      if (isFirstQuiz) {
+        // 저장 완료 화면에서 잠시 멈춰 피드백을 유도한 뒤, 선생님이 "계속하기"를 누르면 이동한다.
+        setFirstQuizSavedId(data.id);
+      } else {
+        navigate(`/quiz/${data.id}`);
+      }
     } catch (error) {
       console.error("Save error:", error);
       // quizzes INSERT는 한도 트리거(enforce_quiz_quota)에 막힐 수 있고, 그때 트리거가 던진
@@ -1091,6 +1118,28 @@ export default function QuizPreview() {
       setIsSaving(false);
     }
   };
+
+  // 첫 퀴즈를 막 저장했을 때: 목록/상세로 바로 넘기지 않고 여기서 잠깐 멈춰 피드백을 유도한다.
+  if (firstQuizSavedId) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center gap-6 px-4 py-8 text-center">
+          <CheckCircle2 className="h-12 w-12 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold text-foreground">퀴즈가 저장되었어요!</h1>
+            <p className="mt-1 text-sm text-muted-foreground">음성은 이어서 백그라운드로 생성돼요.</p>
+          </div>
+
+          <FeedbackPromptCard context="first_quiz_created" title="첫 퀴즈를 만드셨네요! 사용해보니 어떠셨나요?" />
+
+          <Button onClick={() => navigate(`/quiz/${firstQuizSavedId}`)} size="lg">
+            계속하기
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+      </AppLayout>
+    );
+  }
 
   const wordsPerSet = draft.wordsPerSet || 5;
   const problemSets: Problem[][] = [];
@@ -1173,7 +1222,7 @@ export default function QuizPreview() {
                       ? "bg-primary text-primary-foreground border-primary"
                       : index < currentStageIndex
                         ? "bg-success/15 text-success-foreground border-success/30"
-                        : "bg-white text-slate-500 border-slate-200"
+                        : "bg-white text-[#8A837D] border-border"
                   }`}
                 >
                   <span
@@ -1182,7 +1231,7 @@ export default function QuizPreview() {
                         ? "bg-white/20"
                         : index < currentStageIndex
                           ? "bg-success/20"
-                          : "bg-slate-100 text-slate-500"
+                          : "bg-[#F4F0EA] text-[#8A837D]"
                     }`}
                   >
                     {index + 1}

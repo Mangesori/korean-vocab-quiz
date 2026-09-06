@@ -15,7 +15,7 @@ export function renderSentenceWithDiff(
       {studentWords.map((word, idx) => {
         const isCorrect = modelWords.includes(word);
         return isCorrect
-          ? <span key={idx} className="mr-1.5 text-slate-700">{word}</span>
+          ? <span key={idx} className="mr-1.5 text-[#4A443F]">{word}</span>
           : <span key={idx} className="text-destructive font-bold mr-1.5 border-b-2 border-destructive/30 pb-0.5">{word}</span>;
       })}
     </>
@@ -30,7 +30,7 @@ export function renderModelAnswerWithDiff(modelAnswer: string, studentSentence: 
       {modelWords.map((word, idx) => {
         const isOriginal = studentWords.includes(word);
         return isOriginal
-          ? <span key={idx} className="mr-1.5 text-slate-700">{word}</span>
+          ? <span key={idx} className="mr-1.5 text-[#4A443F]">{word}</span>
           : <span key={idx} className="text-primary font-bold mr-1.5 border-b-2 border-primary/30 pb-0.5">{word}</span>;
       })}
     </>
@@ -118,14 +118,14 @@ export function renderSentenceWithFeedback(
 
   // 점수가 하나도 없으면: 합격이면 초록, 아니면 중립.
   if (!hasAnyScore) {
-    return <span className={isPassed ? "text-success font-bold" : "font-bold text-slate-700"}>{sentence}</span>;
+    return <span className={isPassed ? "text-success font-bold" : "font-bold text-[#4A443F]"}>{sentence}</span>;
   }
 
   return (
     <span className="font-bold">
       {renderWords(sentence, (wordIdx) => {
         const score = wordScores[wordIdx];
-        return score !== null && score !== undefined ? getAccuracyColorClass(score) : "text-slate-400";
+        return score !== null && score !== undefined ? getAccuracyColorClass(score) : "text-[#C4BDB6]";
       })}
     </span>
   );

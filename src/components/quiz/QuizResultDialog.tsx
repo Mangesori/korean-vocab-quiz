@@ -308,7 +308,7 @@ function SentenceMakingView({
     <div className="space-y-4">
       {failedCount > 0 && (
         <div className="flex items-center justify-between p-4 bg-warning/10 border border-warning/30 rounded-xl">
-          <p className="text-sm text-slate-700">
+          <p className="text-sm text-[#4A443F]">
             채점에 실패한 문제 {failedCount}건이 있습니다.
           </p>
           <Button size="sm" onClick={handleRegradeFailed} disabled={isRegrading}>
@@ -343,7 +343,7 @@ function SentenceMakingView({
                   <span className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${isSkipped ? "bg-muted-foreground" : isGood ? "bg-success" : "bg-primary"}`}>
                     {idx + 1}
                   </span>
-                  <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-slate-50 border-slate-200 text-slate-700">
+                  <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-background border-border text-[#4A443F]">
                     {problem.word}
                   </Badge>
                 </div>
@@ -355,7 +355,7 @@ function SentenceMakingView({
                     </>
                   ) : (
                     <>
-                      <span className="text-sm font-semibold text-slate-500">{attempt.total_score}점</span>
+                      <span className="text-sm font-semibold text-[#8A837D]">{attempt.total_score}점</span>
                       {attempt.is_passed ? (
                         <CheckCircle className="w-5 h-5 text-success" />
                       ) : (
@@ -367,7 +367,7 @@ function SentenceMakingView({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-xs h-7 px-2 text-slate-500"
+                      className="text-xs h-7 px-2 text-[#8A837D]"
                       onClick={() => startCardEdit(attempt.id, attempt.model_answer, attempt.ai_feedback || "", attempt.student_sentence)}
                     >
                       <Pencil className="w-3 h-3 mr-1" />
@@ -380,10 +380,10 @@ function SentenceMakingView({
               {editingCardId === attempt.id ? (
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
-                    <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-slate-100 text-slate-500">
+                    <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-[#F4F0EA] text-[#8A837D]">
                       학생 답변
                     </span>
-                    <h3 className="text-lg font-bold leading-relaxed text-slate-700">
+                    <h3 className="text-lg font-bold leading-relaxed text-[#4A443F]">
                       {attempt.student_sentence}
                     </h3>
                   </div>
@@ -398,11 +398,11 @@ function SentenceMakingView({
                       autoFocus
                     />
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                  <div className="bg-background rounded-xl p-3 border border-border">
                     <Textarea
                       value={editDraft.ai_feedback}
                       onChange={(e) => setEditDraft((d) => ({ ...d, ai_feedback: e.target.value }))}
-                      className="w-full text-sm min-h-[80px] bg-transparent border-0 shadow-none focus-visible:ring-0 resize-none p-0 text-slate-600"
+                      className="w-full text-sm min-h-[80px] bg-transparent border-0 shadow-none focus-visible:ring-0 resize-none p-0 text-muted-foreground"
                       placeholder="피드백 내용..."
                     />
                   </div>
@@ -437,7 +437,7 @@ function SentenceMakingView({
                 <>
                   <div className="mb-6 space-y-3">
                     <div className="flex items-start gap-3">
-                      <span className={`shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 ${isGood && !hasCorrections ? "bg-success/10 text-success" : "bg-slate-100 text-slate-500"}`}>
+                      <span className={`shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 ${isGood && !hasCorrections ? "bg-success/10 text-success" : "bg-[#F4F0EA] text-[#8A837D]"}`}>
                         학생 답변
                       </span>
                       <h3 className="text-lg font-bold leading-relaxed">
@@ -458,8 +458,8 @@ function SentenceMakingView({
                   </div>
 
                   {attempt.ai_feedback && (
-                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                      <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                    <div className="bg-background rounded-xl p-4 border border-border">
+                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                         {attempt.ai_feedback.replace(/Model Answer:\s*.*/i, "").trim()}
                       </p>
                     </div>
@@ -518,7 +518,7 @@ function RecordingView({
 
   const notCompletedMessage = scoreExistsButDetailMissing ? (
     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2 text-center">
-      <p className="text-sm font-medium text-slate-700">
+      <p className="text-sm font-medium text-[#4A443F]">
         점수({recordingScore}/{recordingTotal})는 저장되어 있지만, 문제별 상세 녹음 기록을 불러올 수 없습니다.
       </p>
       <p className="text-xs">저장 중 오류가 발생해 상세 기록이 유실되었을 수 있습니다. 학생에게 말하기 연습 재응시를 요청해주세요.</p>
@@ -553,14 +553,14 @@ function RecordingView({
                     {idx + 1}
                   </span>
                   {problem.label && (
-                    <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-slate-50 border-slate-200 text-slate-700">
+                    <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-background border-border text-[#4A443F]">
                       {problem.label}
                     </Badge>
                   )}
-                  <div className={`text-sm font-semibold px-3 py-1 rounded-full ${problem.mode === "listen" ? "text-orange-700 bg-orange-100" : "text-primary/80 bg-primary/10"}`}>
+                  <div className={`text-sm font-semibold px-3 py-1 rounded-full ${problem.mode === "listen" ? "text-[#B4552D] bg-[#FBEFE9]" : "text-primary/80 bg-primary/10"}`}>
                     {problem.mode === "listen" ? "듣고 말하기" : "보고 말하기"}
                   </div>
-                  <span className="text-sm font-semibold text-slate-500">{Math.round(best.overall_score)}점</span>
+                  <span className="text-sm font-semibold text-[#8A837D]">{Math.round(best.overall_score)}점</span>
                 </div>
                 {problem.translation && (
                   <Button
@@ -574,12 +574,12 @@ function RecordingView({
                 )}
               </div>
 
-              <h3 className="text-lg font-bold mb-3 text-slate-800 leading-relaxed pl-3">
+              <h3 className="text-lg font-bold mb-3 text-foreground leading-relaxed pl-3">
                 {problem.sentence}
               </h3>
 
               {showTrans[problem.id] && problem.translation && (
-                <p className="text-sm text-muted-foreground mb-4 bg-slate-50 p-3 rounded-lg">
+                <p className="text-sm text-muted-foreground mb-4 bg-background p-3 rounded-lg">
                   {unmaskTranslation(problem.translation)}
                 </p>
               )}
@@ -587,17 +587,17 @@ function RecordingView({
               <div className="flex flex-col gap-3 mb-4">
                 {problem.mode === "listen" && problem.sentence_audio_url && (
                   <div className="flex items-center gap-0 sm:gap-4">
-                    <p className="hidden sm:block text-sm font-semibold text-slate-500 w-24 shrink-0 text-right">원어민 음성</p>
+                    <p className="hidden sm:block text-sm font-semibold text-[#8A837D] w-24 shrink-0 text-right">원어민 음성</p>
                     <button
                       onClick={() => playAudio(problem.sentence_audio_url!, `original-${problem.id}`)}
-                      className="flex-1 flex items-center justify-center bg-cyan-50 text-cyan-600 hover:bg-cyan-100 rounded-2xl py-3 px-4 transition-colors"
+                      className="flex-1 flex items-center justify-center bg-[#E8F1EB] text-[#1E6B47] hover:bg-[#C8DED3] rounded-2xl py-3 px-4 transition-colors"
                     >
-                      <Volume2 className={`w-5 h-5 mr-3 sm:mr-4 ${playingId === `original-${problem.id}` ? "text-cyan-600 animate-pulse" : "text-cyan-500"}`} />
+                      <Volume2 className={`w-5 h-5 mr-3 sm:mr-4 ${playingId === `original-${problem.id}` ? "text-[#1E6B47] animate-pulse" : "text-[#1E6B47]"}`} />
                       <div className="flex gap-[3px] items-center h-5">
                         {[1, 2, 3, 5, 3, 2, 4, 6, 8, 6, 4, 5, 7, 5, 3, 4, 6, 4, 2, 3, 2, 1].map((h, i) => (
                           <div
                             key={i}
-                            className={`w-[3px] rounded-full ${playingId === `original-${problem.id}` ? "bg-cyan-500 animate-pulse" : "bg-cyan-200"}`}
+                            className={`w-[3px] rounded-full ${playingId === `original-${problem.id}` ? "bg-[#1E6B47] animate-pulse" : "bg-[#C8DED3]"}`}
                             style={{ height: `${h * 3}px` }}
                           />
                         ))}
@@ -607,17 +607,17 @@ function RecordingView({
                 )}
 
                 <div className="flex items-center gap-0 sm:gap-4">
-                  <p className="hidden sm:block text-sm font-semibold text-slate-500 w-24 shrink-0 text-right">학생 발음</p>
+                  <p className="hidden sm:block text-sm font-semibold text-[#8A837D] w-24 shrink-0 text-right">학생 발음</p>
                   <button
                     onClick={() => playAudio(best.recording_url, problem.id)}
-                    className="flex-1 flex items-center justify-center bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-2xl py-3 px-4 transition-colors"
+                    className="flex-1 flex items-center justify-center bg-[#FBEFE9] text-[#B4552D] hover:bg-[#EBD5C8] rounded-2xl py-3 px-4 transition-colors"
                   >
-                    <Volume2 className={`w-5 h-5 mr-3 sm:mr-4 ${playingId === problem.id ? "text-amber-600 animate-pulse" : "text-amber-500"}`} />
+                    <Volume2 className={`w-5 h-5 mr-3 sm:mr-4 ${playingId === problem.id ? "text-[#B4552D] animate-pulse" : "text-[#B4552D]"}`} />
                     <div className="flex gap-[3px] items-center h-5">
                       {[1, 2, 3, 5, 3, 2, 4, 6, 8, 6, 4, 5, 7, 5, 3, 4, 6, 4, 2, 3, 2, 1].map((h, i) => (
                         <div
                           key={i}
-                          className={`w-[3px] rounded-full ${playingId === problem.id ? "bg-amber-500 animate-pulse" : "bg-amber-200"}`}
+                          className={`w-[3px] rounded-full ${playingId === problem.id ? "bg-[#B4552D] animate-pulse" : "bg-[#EBD5C8]"}`}
                           style={{ height: `${h * 3}px` }}
                         />
                       ))}
@@ -626,7 +626,7 @@ function RecordingView({
                 </div>
               </div>
 
-              <div className="mt-4 border-t border-slate-100 pt-4 text-lg pl-3 space-y-3">
+              <div className="mt-4 border-t border-border pt-4 text-lg pl-3 space-y-3">
                 {renderSentenceWithFeedback(problem.sentence, best.word_level_feedback, best.is_passed)}
               </div>
             </CardContent>

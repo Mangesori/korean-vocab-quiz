@@ -120,7 +120,7 @@ export default function ReviewToday() {
 
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-10 max-w-2xl">
+      <div className="container mx-auto px-4 py-10 max-w-4xl">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground tracking-tight pl-2">
             오늘의 복습

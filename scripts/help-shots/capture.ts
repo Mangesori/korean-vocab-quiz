@@ -169,6 +169,10 @@ async function main() {
       const student1Auth = path.join(AUTH_DIR, "student1.json");
       await loginAndSaveState(browser, F.TEACHER.email, F.SEED_PASSWORD, teacherAuth);
       await loginAndSaveState(browser, F.STUDENT1.email, F.SEED_PASSWORD, student1Auth);
+      const rolelessAuth = path.join(AUTH_DIR, "roleless.json");
+      await loginAndSaveState(browser, F.ROLELESS_USER.email, F.SEED_PASSWORD, rolelessAuth);
+      const newStudentAuth = path.join(AUTH_DIR, "newstudent.json");
+      await loginAndSaveState(browser, F.NEW_STUDENT.email, F.SEED_PASSWORD, newStudentAuth);
 
       // 선언된 shot 슬롯 전부 수집
       const declared: { key: string; articleId: string; step: number }[] = [];
@@ -202,7 +206,15 @@ async function main() {
           continue;
         }
         const authFile =
-          recipe.role === "teacher" ? teacherAuth : recipe.role === "student1" ? student1Auth : undefined;
+          recipe.role === "teacher"
+            ? teacherAuth
+            : recipe.role === "student1"
+              ? student1Auth
+              : recipe.role === "roleless"
+                ? rolelessAuth
+                : recipe.role === "newstudent"
+                  ? newStudentAuth
+                  : undefined;
         try {
           const raw = await runRecipe(browser, recipe.role, authFile, recipe.run);
           const fileName = path.basename(shotPath(articleId as HelpArticleId, step));

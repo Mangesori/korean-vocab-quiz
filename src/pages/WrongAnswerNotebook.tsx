@@ -507,7 +507,7 @@ export default function WrongAnswerNotebook() {
 
   return (
     <AppLayout>
-      <div className="container max-w-4xl mx-auto px-4 py-8">
+      <div className="container max-w-6xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold pl-2">
             오답 노트

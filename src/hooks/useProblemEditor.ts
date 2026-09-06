@@ -17,6 +17,17 @@ export function useProblemEditor(
   const hasChanges = useMemo(() => {
     return JSON.stringify(initialProblems) !== JSON.stringify(editedProblems);
   }, [initialProblems, editedProblems]);
+
+  // 실제로 고쳐진(또는 새로 추가된) 문제 개수 — 저장 안내 바에 노출
+  const changedProblemCount = useMemo(() => {
+    const initialById = new Map(initialProblems.map((p) => [p.id, p]));
+    let count = 0;
+    for (const p of editedProblems) {
+      const orig = initialById.get(p.id);
+      if (!orig || JSON.stringify(orig) !== JSON.stringify(p)) count++;
+    }
+    return count;
+  }, [initialProblems, editedProblems]);
   
   // Update local state when initialProblems change (e.g. after fetch)
   // Only update if not currently editing
@@ -97,6 +108,7 @@ export function useProblemEditor(
     editedProblems,
     setEditedProblems,
     hasChanges,
+    changedProblemCount,
     isSaving,
     isEditing,
     setIsEditing,

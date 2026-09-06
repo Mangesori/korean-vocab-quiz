@@ -390,7 +390,7 @@ export default function ClassDetail() {
 
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="px-[18px] sm:px-[30px] py-[26px] sm:py-8">
         {/* Header — 한 줄로 접힌 메타 정보 */}
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
           <div className="min-w-0">

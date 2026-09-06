@@ -347,7 +347,7 @@ export default function QuizShareResult() {
                   }`}>
                     {idx + 1}
                   </span>
-                  <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-slate-50 border-slate-200 text-slate-700">
+                  <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-[#FAF8F5] border-border text-[#4A443F]">
                     {problem.word}
                   </Badge>
                 </div>
@@ -383,7 +383,7 @@ export default function QuizShareResult() {
                 <div className="mb-6 space-y-3">
                   <div className="flex items-start gap-3">
                     <span className={`shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 ${
-                      isPerfect ? "bg-success/10 text-success" : "bg-slate-100 text-slate-500"
+                      isPerfect ? "bg-success/10 text-success" : "bg-[#F4F0EA] text-muted-foreground"
                     }`}>
                       내 답변
                     </span>
@@ -410,8 +410,8 @@ export default function QuizShareResult() {
               )}
 
               {!isSkipped && lastAttempt?.feedback && (
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{lastAttempt.feedback.replace(/Model Answer:\s*.*/i, '').trim()}</p>
+                <div className="bg-[#FAF8F5] rounded-xl p-4 border border-[#F4F0EA]">
+                  <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{lastAttempt.feedback.replace(/Model Answer:\s*.*/i, '').trim()}</p>
                 </div>
               )}
             </CardContent>
@@ -442,7 +442,7 @@ export default function QuizShareResult() {
                   <span className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${isPassed ? "bg-success" : "bg-destructive"}`}>
                     {idx + 1}
                   </span>
-                  <div className={`text-sm font-semibold px-3 py-1 rounded-full ${problem.mode === "listen" ? "text-orange-700 bg-orange-100" : "text-primary/80 bg-primary/10"}`}>
+                  <div className={`text-sm font-semibold px-3 py-1 rounded-full ${problem.mode === "listen" ? "text-[#B4552D] bg-[#FBEFE9]" : "text-primary/80 bg-primary/10"}`}>
                     {problem.mode === "listen" ? "듣고 말하기" : "보고 말하기"}
                   </div>
                 </div>
@@ -458,12 +458,12 @@ export default function QuizShareResult() {
                 )}
               </div>
 
-              <h3 className="text-lg font-bold mb-4 text-slate-800 leading-relaxed pl-3">
+              <h3 className="text-lg font-bold mb-4 text-foreground leading-relaxed pl-3">
                 {problem.sentence}
               </h3>
 
               {showRecordingTrans[problem.id] && problem.translation && (
-                <p className="text-sm text-muted-foreground mb-6 bg-slate-50 p-3 rounded-lg">
+                <p className="text-sm text-muted-foreground mb-6 bg-[#FAF8F5] p-3 rounded-lg">
                   {problem.translation}
                 </p>
               )}
@@ -471,17 +471,17 @@ export default function QuizShareResult() {
               <div className={`flex flex-col gap-3 mb-4 ${problem.mode === "listen" ? "mt-6" : "mt-4"}`}>
                 {problem.mode === "listen" && problem.sentence_audio_url && (
                   <div className="flex items-center gap-0 sm:gap-4">
-                    <p className="hidden sm:block text-sm font-semibold text-slate-500 w-24 shrink-0 text-right">원어민 음성</p>
+                    <p className="hidden sm:block text-sm font-semibold text-muted-foreground w-24 shrink-0 text-right">원어민 음성</p>
                     <button
                       onClick={() => handlePlayAudio(problem.sentence_audio_url, problem.id)}
-                      className="flex-1 flex items-center justify-center bg-cyan-50 text-cyan-600 hover:bg-cyan-100 rounded-2xl py-3 px-4 transition-colors"
+                      className="flex-1 flex items-center justify-center bg-[#E8F1EB] text-[#1E6B47] hover:bg-[#DCEAE1] rounded-2xl py-3 px-4 transition-colors"
                     >
-                      <Volume2 className={`w-5 h-5 mr-3 sm:mr-4 ${playingAudio === problem.id ? "text-cyan-600 animate-pulse" : "text-cyan-500"}`} />
+                      <Volume2 className={`w-5 h-5 mr-3 sm:mr-4 ${playingAudio === problem.id ? "text-[#1E6B47] animate-pulse" : "text-[#1E6B47]"}`} />
                       <div className="flex gap-[3px] items-center h-5">
                         {[1, 2, 3, 5, 3, 2, 4, 6, 8, 6, 4, 5, 7, 5, 3, 4, 6, 4, 2, 3, 2, 1].map((h, i) => (
                           <div
                             key={`orig-${i}`}
-                            className={`w-[3px] rounded-full transition-all duration-300 ${playingAudio === problem.id ? "bg-cyan-500 animate-pulse" : "bg-cyan-200"}`}
+                            className={`w-[3px] rounded-full transition-all duration-300 ${playingAudio === problem.id ? "bg-[#1E6B47] animate-pulse" : "bg-[#C8DED3]"}`}
                             style={{ height: `${h * 3}px`, opacity: playingAudio === problem.id ? (h / 8) + 0.2 : 1 }}
                           />
                         ))}
@@ -491,26 +491,26 @@ export default function QuizShareResult() {
                 )}
 
                 <div className="flex items-center gap-0 sm:gap-4">
-                  <p className="hidden sm:block text-sm font-semibold text-slate-500 w-24 shrink-0 text-right">내 발음 (공유됨)</p>
+                  <p className="hidden sm:block text-sm font-semibold text-muted-foreground w-24 shrink-0 text-right">내 발음 (공유됨)</p>
                   <button
                     disabled
-                    className="flex-1 flex items-center justify-center bg-slate-50 border border-slate-100 rounded-2xl py-3 px-4 transition-colors opacity-50 cursor-not-allowed"
+                    className="flex-1 flex items-center justify-center bg-[#FAF8F5] border border-[#F4F0EA] rounded-2xl py-3 px-4 transition-colors opacity-50 cursor-not-allowed"
                   >
-                    <Volume2 className="w-5 h-5 mr-3 sm:mr-4 text-slate-400" />
-                    <div className="flex-1 text-center text-sm font-medium text-slate-400">
+                    <Volume2 className="w-5 h-5 mr-3 sm:mr-4 text-[#C4BDB6]" />
+                    <div className="flex-1 text-center text-sm font-medium text-[#C4BDB6]">
                       재생할 수 없음
                     </div>
                   </button>
                 </div>
               </div>
 
-              <div className="mt-6 border-t border-slate-100 pt-5 space-y-4 px-1 sm:px-3">
+              <div className="mt-6 border-t border-[#F4F0EA] pt-5 space-y-4 px-1 sm:px-3">
                 <div className="text-lg">
                   {renderSentenceWithFeedback(problem.sentence, wordFeedback, isPassed)}
                 </div>
 
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                  <p className="text-sm text-slate-600 leading-relaxed break-keep">{lastAttempt ? generateSpeakingFeedback(speakingFeedbackInput) : ""}</p>
+                <div className="bg-[#FAF8F5] rounded-xl p-4 border border-[#F4F0EA]">
+                  <p className="text-sm text-muted-foreground leading-relaxed break-keep">{lastAttempt ? generateSpeakingFeedback(speakingFeedbackInput) : ""}</p>
                 </div>
               </div>
             </CardContent>
@@ -526,7 +526,7 @@ export default function QuizShareResult() {
         <div className="container mx-auto px-4 py-8 max-w-5xl">
           {/* Result Header */}
           <div className="flex flex-col items-center justify-center py-6 mb-8 mt-2 animate-fade-in">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-500 mb-6">{result.quizTitle}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-muted-foreground mb-6">{result.quizTitle}</h1>
             <div className="relative inline-flex items-center justify-center mb-4">
               <p className="text-5xl sm:text-6xl font-extrabold text-primary drop-shadow-sm tracking-tight text-center">
                 {percentage}%
@@ -536,13 +536,13 @@ export default function QuizShareResult() {
               )}
             </div>
             
-            <div className="bg-white/80 backdrop-blur-sm px-6 py-2.5 rounded-full shadow-sm border border-slate-100 mt-2">
-              <p className="text-lg sm:text-xl font-bold text-slate-700 text-center">
+            <div className="bg-white/80 backdrop-blur-sm px-6 py-2.5 rounded-full shadow-sm border border-[#F4F0EA] mt-2">
+              <p className="text-lg sm:text-xl font-bold text-[#4A443F] text-center">
                 {totalQuestions}문제 중 {totalScore}문제를 맞혔어요!
               </p>
             </div>
-            
-            <p className="mt-4 text-base sm:text-lg font-bold text-slate-500">
+
+            <p className="mt-4 text-base sm:text-lg font-bold text-muted-foreground">
               {isGood ? '정말 잘했어요! 👏' : isMedium ? '좋아요! 조금만 더 힘내볼까요? 💪' : '다시 한번 도전해보세요! 📚'}
             </p>
           </div>
@@ -564,7 +564,7 @@ export default function QuizShareResult() {
           {/* 탭 기반 상세 리뷰 */}
           {multipleTypes ? (
             <Tabs defaultValue={hasMatchup ? "matchup" : hasTypeAnswer ? "type_answer" : hasFillBlank ? "fill_blank" : hasWordMagnet ? "word_magnet" : hasSentenceMaking ? "sentence_making" : "recording"} className="w-full mt-4">
-              <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-8 h-auto p-1.5 bg-slate-100/60 rounded-2xl gap-1">
+              <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-8 h-auto p-1.5 bg-[#F4F0EA]/60 rounded-2xl gap-1">
                 {hasMatchup && (
                   <TabsTrigger value="matchup" className="flex flex-col items-center py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
                     <div className="flex items-center gap-1.5 mb-1.5 font-medium text-muted-foreground data-[state=active]:text-foreground">

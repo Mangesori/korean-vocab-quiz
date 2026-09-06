@@ -1,16 +1,19 @@
 
 import { useState } from "react";
-import { format } from "date-fns";
-import { ko } from "date-fns/locale";
-import { FileText, Clock, Pencil, Trash2, Send, Copy, Radio } from "lucide-react";
+import { FileText, Clock, Pencil, Trash2, Send, Radio, MoreVertical, Users, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { Quiz } from "@/hooks/useQuizData";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ShareQuizDialogContent } from "./ShareQuizDialog";
 import { DuplicateQuizButton } from "./DuplicateQuizButton";
 import { formatDateShort } from '@/lib/formatDate';
+import { useQuizAssignedStudents } from "./QuizAssignedStudents";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface QuizHeaderProps {
   quiz: Quiz;
@@ -19,11 +22,38 @@ interface QuizHeaderProps {
   onOpenSendDialog: () => void;
   /** 라이브로 진행 가능한 유형이 하나라도 켜져 있을 때만 넘어온다 — 없으면 버튼 자체를 안 보여준다. */
   onOpenLiveDialog?: () => void;
+  /** "배정"/"단어" 인라인 트리거의 펼침 상태 — 두 개가 독립적으로 동시에 열릴 수 있다. */
+  assignedOpen: boolean;
+  wordsOpen: boolean;
+  onToggleAssigned: () => void;
+  onToggleWords: () => void;
 }
 
-export function QuizHeader({ quiz, onUpdateTitle, onDelete, onOpenSendDialog, onOpenLiveDialog }: QuizHeaderProps) {
+// 1단: 제목 + 메타 한 줄(배정·단어 인라인 트리거 포함) + 액션. 실물 버튼은 [퀴즈 보내기]뿐이고
+// 나머지(라이브·복제·삭제)는 ⋮ 드롭다운 안으로 들어간다 — 문제 편집까지 닿는 단수를 줄이기 위한
+// 16-3 헤더 압축. "배정"/"단어" 카드는 더 이상 자체 트리거를 갖지 않고, 여기 메타 줄의
+// 인라인 버튼이 QuizDetail의 펼침 상태를 토글한다.
+export function QuizHeader({
+  quiz,
+  onUpdateTitle,
+  onDelete,
+  onOpenSendDialog,
+  onOpenLiveDialog,
+  assignedOpen,
+  wordsOpen,
+  onToggleAssigned,
+  onToggleWords,
+}: QuizHeaderProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // 접힌 상태에서도 값이 바로 보여야 하므로(펼치지 않아도 답을 알 수 있게) 헤더가
+  // 독립적으로 배정 학생 쿼리를 구독한다 — QuizAssignedStudents 카드와 쿼리 키가 같아
+  // React Query 캐시를 그대로 재사용한다(중복 네트워크 요청 없음).
+  const { data: assignedStudents = [] } = useQuizAssignedStudents(quiz.id);
+  const assignedLabel =
+    assignedStudents.length === 1 ? assignedStudents[0].displayName : `${assignedStudents.length}명`;
 
   const handleTitleSave = async () => {
     if (!editedTitle.trim()) return;
@@ -32,8 +62,8 @@ export function QuizHeader({ quiz, onUpdateTitle, onDelete, onOpenSendDialog, on
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-      <div className="flex-1">
+    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+      <div className="flex-1 min-w-0">
         {isEditingTitle ? (
           <div className="flex items-center gap-2">
             <Input
@@ -50,8 +80,8 @@ export function QuizHeader({ quiz, onUpdateTitle, onDelete, onOpenSendDialog, on
             <Button size="sm" variant="outline" onClick={() => setIsEditingTitle(false)}>취소</Button>
           </div>
         ) : (
-          <div className="flex items-center gap-2 group">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{quiz.title}</h1>
+          <div className="flex items-start gap-2 group">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground break-words min-w-0">{quiz.title}</h1>
             <Button
               variant="ghost"
               size="sm"
@@ -64,38 +94,77 @@ export function QuizHeader({ quiz, onUpdateTitle, onDelete, onOpenSendDialog, on
             </Button>
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2">
+        {/* 메타 한 줄 — 배정·단어는 별도 가로줄이 아니라 이 줄 안에 인라인 트리거로 들어간다. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm text-muted-foreground">
           <LevelBadge level={quiz.difficulty} />
-          <span className="text-muted-foreground flex items-center gap-1 text-sm">
+          <span className="flex items-center gap-1">
             <FileText className="w-4 h-4" />
             {quiz.words.length}개 단어 · {Math.ceil(quiz.words.length / quiz.words_per_set)}세트
           </span>
           {quiz.timer_enabled && quiz.timer_seconds && (
-            <span className="text-muted-foreground flex items-center gap-1 text-sm">
+            <span className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
               {quiz.timer_seconds}초
             </span>
           )}
-          <span className="text-muted-foreground text-sm">
-            {formatDateShort(quiz.created_at)}
-          </span>
+          <span className="text-border">|</span>
+          <span>{formatDateShort(quiz.created_at)}</span>
+          <span className="text-border">|</span>
+          <button
+            type="button"
+            onClick={onToggleAssigned}
+            aria-expanded={assignedOpen}
+            className="inline-flex items-center gap-1.5 font-semibold text-primary"
+          >
+            <Users className="w-3.5 h-3.5" />
+            배정 {assignedLabel}
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${assignedOpen ? "rotate-180" : ""}`} />
+          </button>
+          <span className="text-border">|</span>
+          <button
+            type="button"
+            onClick={onToggleWords}
+            aria-expanded={wordsOpen}
+            className="inline-flex items-center gap-1.5 font-semibold text-primary"
+          >
+            단어 {quiz.words.length}개
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${wordsOpen ? "rotate-180" : ""}`} />
+          </button>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button className="flex-1 sm:flex-none" onClick={onOpenSendDialog}>
+      <div className="flex items-center gap-2 w-full sm:w-auto">
+        <Button
+          className="flex-1 sm:flex-none h-11 rounded-[11px] sm:h-10 sm:rounded-md"
+          onClick={onOpenSendDialog}
+        >
           <Send className="w-4 h-4 mr-2" /> <span className="whitespace-nowrap">퀴즈 보내기</span>
         </Button>
-        {onOpenLiveDialog && (
-          <Button variant="outline" className="flex-1 sm:flex-none gap-2" onClick={onOpenLiveDialog}>
-            <Radio className="w-4 h-4 text-destructive" />
-            <span className="whitespace-nowrap">라이브 세션 시작</span>
-          </Button>
-        )}
-        <DuplicateQuizButton quiz={quiz} variant="outline" size="default" showLabel={false} />
-        <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onDelete}>
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" className="h-11 w-11 sm:h-10 sm:w-10 shrink-0" aria-label="더보기">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {onOpenLiveDialog && (
+              <DropdownMenuItem onClick={onOpenLiveDialog} className="gap-2">
+                <Radio className="w-4 h-4 text-destructive" />
+                라이브 세션 시작
+              </DropdownMenuItem>
+            )}
+            <DuplicateQuizButton
+              quiz={quiz}
+              showLabel
+              asMenuItem
+              onTriggerClick={() => setMenuOpen(false)}
+            />
+            <DropdownMenuItem onClick={onDelete} className="gap-2 text-destructive focus:text-destructive">
+              <Trash2 className="w-4 h-4" />
+              삭제
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

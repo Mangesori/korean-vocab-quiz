@@ -181,7 +181,7 @@ export default function MyClass() {
 
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="px-[18px] sm:px-[30px] py-[26px] sm:py-8">
         <div className="bg-background sm:bg-[#FAF8F5] sm:rounded-2xl sm:p-7">
           {/* 헤더 */}
           <div className="flex items-start justify-between gap-5">

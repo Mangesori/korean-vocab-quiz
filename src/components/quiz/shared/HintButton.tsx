@@ -13,7 +13,7 @@ export function HintButton({ active, onToggle }: HintButtonProps) {
       variant="outline"
       size="sm"
       onClick={onToggle}
-      className="bg-white text-xs h-8 px-3 rounded-xl shadow-sm text-slate-600"
+      className="bg-white text-xs h-8 px-3 rounded-xl shadow-sm text-[#6B6460]"
     >
       <Lightbulb className={`w-3.5 h-3.5 mr-1.5 ${active ? "text-warning" : ""}`} />
       힌트

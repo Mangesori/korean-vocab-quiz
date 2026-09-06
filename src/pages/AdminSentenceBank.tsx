@@ -1,15 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -30,9 +27,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, RefreshCw, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, RefreshCw, ChevronLeft, ChevronRight, MoreHorizontal, Trash2 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { formatDateShort } from '@/lib/formatDate';
@@ -54,9 +57,11 @@ type SentenceBankRow = {
 };
 
 type CoverageRow = { level: string; total_words: number; words_with_2plus: number };
+type WordStatsRow = { word: string; level: string; sentence_count: number };
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
 const PAGE_SIZE = 50;
+type MissFilter = 'none' | 'translation' | 'meaning' | 'hint' | 'single';
 
 // 검색어 디바운스 — 300ms 안에 다시 입력하면 이전 타이머를 취소한다.
 function useDebouncedValue<T>(value: T, delay: number): T {
@@ -66,6 +71,66 @@ function useDebouncedValue<T>(value: T, delay: number): T {
     return () => clearTimeout(t);
   }, [value, delay]);
   return debounced;
+}
+
+/** 문장에서 정답 범위를 찾아 [앞, 정답, 뒤]로 나눈다. */
+function splitAnswer(sentence: string, answer: string) {
+  if (!answer) return { pre: sentence, ans: '', post: '' };
+  const i = sentence.indexOf(answer);
+  if (i === -1) {
+    if (import.meta.env.DEV) {
+      console.warn('[AdminSentenceBank] 정답이 문장에서 발견되지 않음:', { sentence, answer });
+    }
+    return { pre: sentence, ans: '', post: '' };
+  }
+  return {
+    pre: sentence.slice(0, i),
+    ans: answer,
+    post: sentence.slice(i + answer.length),
+  };
+}
+
+const Missing = () => <span className="font-semibold text-warning">—</span>;
+
+const SourceBadge = ({ source }: { source: string }) => (
+  <span
+    className={`rounded-md px-1.5 py-0.5 text-[10.5px] font-extrabold ${
+      source === 'import' ? 'bg-info/10 text-info' : 'bg-secondary text-muted-foreground'
+    }`}
+  >
+    {source === 'import' ? '일괄 등록' : '퀴즈'}
+  </span>
+);
+
+/** 일괄 등록 → 배치 라벨, 퀴즈 등 그 외 → 생성일로 폴백 (origin_quiz_id 컬럼이 없어 퀴즈 제목 표기는 생략). */
+const sourceLabel = (row: SentenceBankRow) =>
+  row.source === 'import' && row.batch_label ? row.batch_label : formatDateShort(row.created_at);
+
+function FilterChip({
+  active,
+  count,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  count: number;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${
+        active
+          ? 'border-primary/40 bg-primary/10 text-primary'
+          : 'border-border bg-card text-muted-foreground hover:bg-secondary/60'
+      }`}
+    >
+      {children}
+      <span className="tabular-nums">{count}</span>
+    </button>
+  );
 }
 
 export default function AdminSentenceBank() {
@@ -83,20 +148,24 @@ export default function AdminSentenceBank() {
   const [levelFilter, setLevelFilter] = useState<'all' | (typeof LEVELS)[number]>('all');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'import' | 'quiz'>('all');
   const [batchLabelFilter, setBatchLabelFilter] = useState<string>('all');
+  const [creatorFilter, setCreatorFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'created_desc' | 'word_asc'>('created_desc');
+  const [missFilter, setMissFilter] = useState<MissFilter>('none');
   const [page, setPage] = useState(0);
 
   // 필터가 바뀌면 첫 페이지로.
   useEffect(() => {
     setPage(0);
-  }, [search, levelFilter, sourceFilter, batchLabelFilter, batchFilterActive, sortBy]);
+  }, [search, levelFilter, sourceFilter, batchLabelFilter, creatorFilter, batchFilterActive, sortBy, missFilter]);
 
   // ── 일괄 선택 ──
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectAllMatchingActive, setSelectAllMatchingActive] = useState(false);
   // 페이지·필터·정렬이 바뀌면 화면에 안 보이는 행이 선택된 채로 남지 않게 초기화.
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [search, levelFilter, sourceFilter, batchLabelFilter, batchFilterActive, sortBy, page]);
+    setSelectAllMatchingActive(false);
+  }, [search, levelFilter, sourceFilter, batchLabelFilter, creatorFilter, batchFilterActive, sortBy, missFilter, page]);
 
   const enabled = !!user && can(PERMISSIONS.MANAGE_USERS);
 
@@ -116,6 +185,27 @@ export default function AdminSentenceBank() {
     enabled,
   });
 
+  // ── 작성자 목록 (필터 드롭다운용) ──
+  const { data: creatorOptions = [] } = useQuery({
+    queryKey: ['sentenceBankCreatorOptions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sentence_bank')
+        .select('created_by')
+        .not('created_by', 'is', null);
+      if (error) throw error;
+      const ids = [...new Set((data ?? []).map((r) => r.created_by as string))];
+      if (ids.length === 0) return [];
+      const { data: profiles, error: pErr } = await supabase
+        .from('profiles')
+        .select('user_id, name')
+        .in('user_id', ids);
+      if (pErr) throw pErr;
+      return (profiles ?? []).sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+    },
+    enabled,
+  });
+
   // ── 커버리지 위젯 ──
   const { data: coverage = [], isLoading: coverageLoading } = useQuery({
     queryKey: ['sentenceBankCoverage'],
@@ -127,6 +217,26 @@ export default function AdminSentenceBank() {
     enabled,
   });
 
+  // ── 단어별 문장 수 (문장 1개뿐 배지·필터용) ──
+  const { data: wordStats = [] } = useQuery({
+    queryKey: ['sentenceBankWordStats'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('sentence_bank_word_stats').select('word, level, sentence_count');
+      if (error) throw error;
+      return (data ?? []) as WordStatsRow[];
+    },
+    enabled,
+  });
+  const sentenceCountByKey = useMemo(() => {
+    const m = new Map<string, number>();
+    wordStats.forEach((w) => m.set(`${w.word}__${w.level}`, w.sentence_count));
+    return m;
+  }, [wordStats]);
+  const singleSentenceWordKeys = useMemo(
+    () => new Set(wordStats.filter((w) => w.sentence_count === 1).map((w) => `${w.word}__${w.level}`)),
+    [wordStats],
+  );
+
   // ── 목록 ──
   const {
     data: listResult,
@@ -134,7 +244,20 @@ export default function AdminSentenceBank() {
     isFetching: listFetching,
     refetch: refetchList,
   } = useQuery({
-    queryKey: ['sentenceBankList', levelFilter, sourceFilter, batchLabelFilter, search, page, batchFilterActive, batchWords, sortBy],
+    queryKey: [
+      'sentenceBankList',
+      levelFilter,
+      sourceFilter,
+      batchLabelFilter,
+      creatorFilter,
+      search,
+      page,
+      batchFilterActive,
+      batchWords,
+      sortBy,
+      missFilter,
+      creatorOptions,
+    ],
     queryFn: async () => {
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
@@ -151,13 +274,30 @@ export default function AdminSentenceBank() {
               .order('word', { ascending: true })
               .order('level', { ascending: true })
               .order('seq', { ascending: true });
-      query = query.range(from, to);
 
       if (batchFilterActive && batchWords && batchWords.length > 0) query = query.in('word', batchWords);
-      if (search.trim()) query = query.ilike('word', `%${search.trim()}%`);
+      if (search.trim()) {
+        // 검색은 "단어 또는 작성자"다. 작성자 이름은 sentence_bank에 없으므로, 전체 작성자
+        // 목록(creatorOptions)에서 이름이 일치하는 id를 먼저 찾아 word.ilike와 or로 묶는다.
+        const q = search.trim();
+        const matchingCreatorIds = creatorOptions
+          .filter((c) => (c.name ?? '').toLowerCase().includes(q.toLowerCase()))
+          .map((c) => c.user_id);
+        const orParts = [`word.ilike.%${q}%`];
+        if (matchingCreatorIds.length > 0) {
+          orParts.push(`created_by.in.(${matchingCreatorIds.join(',')})`);
+        }
+        query = query.or(orParts.join(','));
+      }
       if (levelFilter !== 'all') query = query.eq('level', levelFilter);
       if (sourceFilter !== 'all') query = query.eq('source', sourceFilter);
       if (batchLabelFilter !== 'all') query = query.eq('batch_label', batchLabelFilter);
+      if (creatorFilter !== 'all') query = query.eq('created_by', creatorFilter);
+
+      // 누락 필터(번역/뜻/힌트 없음, 문장 1개뿐)는 단어 수 집계(sentence_bank_word_stats)가
+      // 섞여 있어 서버 컬럼만으로 표현하기 어렵다. 페이지 단위 조회 후 클라이언트에서
+      // 한 번 더 걸러낸다 — 목록 규모가 크지 않은 관리자 화면이라 허용 가능한 트레이드오프.
+      query = query.range(from, to);
 
       const { data, error, count } = await query;
       if (error) throw error;
@@ -166,13 +306,65 @@ export default function AdminSentenceBank() {
     enabled,
   });
 
-  const rows = listResult?.rows ?? [];
+  const rawRows = listResult?.rows ?? [];
   const totalCount = listResult?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  // ── 작성자 이름 (현재 페이지에 등장하는 created_by만 조회) ──
+  const creatorIds = [...new Set(rawRows.map((r) => r.created_by).filter((id): id is string => !!id))].sort();
+  const { data: creatorProfiles = [] } = useQuery({
+    queryKey: ['sentenceBankCreators', creatorIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, name')
+        .in('user_id', creatorIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: enabled && creatorIds.length > 0,
+  });
+  const creatorNameById = new Map(creatorProfiles.map((p) => [p.user_id, p.name] as const));
+  const getCreatorName = (createdBy: string | null) =>
+    (createdBy && creatorNameById.get(createdBy)) || '—';
+
+  const missCounts = useMemo(() => {
+    let noTranslation = 0;
+    let noMeaning = 0;
+    let noHint = 0;
+    let single = 0;
+    rawRows.forEach((r) => {
+      if (!r.translation) noTranslation++;
+      if (!r.meaning) noMeaning++;
+      if (!r.hint) noHint++;
+      if (singleSentenceWordKeys.has(`${r.word}__${r.level}`)) single++;
+    });
+    return { noTranslation, noMeaning, noHint, single };
+  }, [rawRows, singleSentenceWordKeys]);
+
+  const rows = useMemo(() => {
+    return rawRows.filter((r) => {
+      switch (missFilter) {
+        case 'translation':
+          return !r.translation;
+        case 'meaning':
+          return !r.meaning;
+        case 'hint':
+          return !r.hint;
+        case 'single':
+          return singleSentenceWordKeys.has(`${r.word}__${r.level}`);
+        default:
+          return true;
+      }
+    });
+  }, [rawRows, missFilter, singleSentenceWordKeys]);
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['sentenceBankList'] });
     queryClient.invalidateQueries({ queryKey: ['sentenceBankCoverage'] });
+    queryClient.invalidateQueries({ queryKey: ['sentenceBankWordStats'] });
+    queryClient.invalidateQueries({ queryKey: ['sentenceBankBatchLabels'] });
+    queryClient.invalidateQueries({ queryKey: ['sentenceBankCreatorOptions'] });
   };
 
   // ── 인라인 수정 ──
@@ -254,6 +446,7 @@ export default function AdminSentenceBank() {
       invalidateAll();
       toast.success(`${selectedIds.size}개 문장을 삭제했어요`);
       setSelectedIds(new Set());
+      setSelectAllMatchingActive(false);
       setBulkDeleteOpen(false);
     } catch (e) {
       console.error('Error bulk deleting sentence bank rows:', e);
@@ -264,6 +457,7 @@ export default function AdminSentenceBank() {
   };
 
   const toggleSelectAllOnPage = (checked: boolean) => {
+    setSelectAllMatchingActive(false);
     setSelectedIds((prev) => {
       const next = new Set(prev);
       rows.forEach((r) => (checked ? next.add(r.id) : next.delete(r.id)));
@@ -272,6 +466,7 @@ export default function AdminSentenceBank() {
   };
 
   const toggleSelectRow = (id: string, checked: boolean) => {
+    setSelectAllMatchingActive(false);
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (checked) next.add(id);
@@ -280,7 +475,65 @@ export default function AdminSentenceBank() {
     });
   };
 
-  const allOnPageSelected = rows.length > 0 && rows.every((r) => selectedIds.has(r.id));
+  const selectedOnPage = rows.filter((r) => selectedIds.has(r.id)).length;
+  const allOnPageSelected = rows.length > 0 && selectedOnPage === rows.length;
+  const someOnPageSelected = selectedOnPage > 0 && !allOnPageSelected;
+
+  // "검색 결과 전체 선택" — 서버에서 현재 필터에 맞는 id를 모두 가져온다(누락 필터·이름
+  // 검색은 클라이언트 조건이라 페이지 단위로 순회하며 매칭 여부를 확인).
+  const [selectAllMatchingLoading, setSelectAllMatchingLoading] = useState(false);
+  const handleSelectAllMatching = async () => {
+    setSelectAllMatchingLoading(true);
+    try {
+      let query = supabase.from('sentence_bank').select('*');
+      if (batchFilterActive && batchWords && batchWords.length > 0) query = query.in('word', batchWords);
+      if (levelFilter !== 'all') query = query.eq('level', levelFilter);
+      if (sourceFilter !== 'all') query = query.eq('source', sourceFilter);
+      if (batchLabelFilter !== 'all') query = query.eq('batch_label', batchLabelFilter);
+      if (creatorFilter !== 'all') query = query.eq('created_by', creatorFilter);
+      if (search.trim()) {
+        const q = search.trim();
+        const matchingCreatorIds = creatorOptions
+          .filter((c) => (c.name ?? '').toLowerCase().includes(q.toLowerCase()))
+          .map((c) => c.user_id);
+        const orParts = [`word.ilike.%${q}%`];
+        if (matchingCreatorIds.length > 0) {
+          orParts.push(`created_by.in.(${matchingCreatorIds.join(',')})`);
+        }
+        query = query.or(orParts.join(','));
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      const all = (data ?? []) as SentenceBankRow[];
+      const matched = all.filter((r) => {
+        switch (missFilter) {
+          case 'translation':
+            return !r.translation;
+          case 'meaning':
+            return !r.meaning;
+          case 'hint':
+            return !r.hint;
+          case 'single':
+            return singleSentenceWordKeys.has(`${r.word}__${r.level}`);
+          default:
+            return true;
+        }
+      });
+      setSelectedIds(new Set(matched.map((r) => r.id)));
+      setSelectAllMatchingActive(true);
+    } catch (e) {
+      console.error('Error selecting all matching rows:', e);
+      toast.error('전체 선택에 실패했어요');
+    } finally {
+      setSelectAllMatchingLoading(false);
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setSelectAllMatchingActive(false);
+  };
 
   if (loading) {
     return (
@@ -296,11 +549,17 @@ export default function AdminSentenceBank() {
 
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-8 space-y-6">
-        <div className="mb-2">
-          <h1 className="text-2xl font-bold text-foreground pl-2">
-            문장 은행 관리
-          </h1>
+      <div className="px-[18px] sm:px-[30px] py-[26px] sm:py-8 space-y-6">
+        <div className="mb-2 flex items-baseline justify-between gap-3 flex-wrap">
+          <h1 className="text-2xl font-bold text-foreground pl-2">문장 은행 관리</h1>
+          <div className="text-xs tabular-nums text-muted-foreground pl-2">
+            문장 <b className="text-foreground">{totalCount}개</b>
+            {' · '}단어 <b className="text-foreground">{wordStats.length}개</b>
+            {' · '}문장 2개 이상 확보{' '}
+            <b className="text-foreground">
+              {coverage.reduce((sum, c) => sum + c.words_with_2plus, 0)}단어
+            </b>
+          </div>
         </div>
 
         {batchFilterActive && batchWords && batchWords.length > 0 && (
@@ -314,194 +573,308 @@ export default function AdminSentenceBank() {
           </div>
         )}
 
-        {/* 커버리지 위젯 */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+        {/* 커버리지 스트립 */}
+        <div className="flex divide-x divide-border overflow-x-auto rounded-xl border border-border bg-card">
           {LEVELS.map((level) => {
             const row = coverage.find((c) => c.level === level);
             const total = row?.total_words ?? 0;
-            const with2plus = row?.words_with_2plus ?? 0;
+            const ready = row?.words_with_2plus ?? 0;
             return (
-              <Card key={level}>
-                <CardContent className="p-[18px]">
-                  <div className="font-ui text-[11px] text-muted-foreground mb-[6px]">{level}</div>
-                  {coverageLoading ? (
-                    <LoadingSpinner size="sm" />
-                  ) : total === 0 ? (
-                    <div className="text-sm text-muted-foreground">데이터 없음</div>
-                  ) : (
-                    <>
-                      <div className="font-mono font-bold text-[20px] leading-none text-foreground">
-                        {with2plus}개
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1.5">문장 2개 이상 확보</div>
-                      <div className="text-[11px] text-muted-foreground/70 mt-0.5">(전체 {total}단어 중)</div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+              <div key={level} className="flex-1 min-w-[110px] px-[18px] py-4">
+                <div className="text-[11px] font-extrabold text-muted-foreground">{level}</div>
+                {coverageLoading ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <>
+                    <div className="mt-0.5 text-[19px] font-extrabold tabular-nums">
+                      {ready > 0 ? `${ready}단어` : '없음'}
+                    </div>
+                    <div
+                      className={`mt-0.5 text-[11.5px] tabular-nums ${
+                        total > 0 ? 'text-warning' : 'text-muted-foreground'
+                      }`}
+                    >
+                      {total > 0 ? `${total - ready}단어 부족` : '데이터 없음'}
+                    </div>
+                  </>
+                )}
+              </div>
             );
           })}
         </div>
 
-        {/* 목록 */}
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <CardTitle>문장 목록</CardTitle>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="단어 검색..."
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    className="pl-9 w-full sm:w-56"
-                  />
-                </div>
-                <Select value={levelFilter} onValueChange={(v) => setLevelFilter(v as typeof levelFilter)}>
-                  <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">전체 레벨</SelectItem>
-                    {LEVELS.map((l) => (
-                      <SelectItem key={l} value={l}>{l}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={sourceFilter} onValueChange={(v) => setSourceFilter(v as typeof sourceFilter)}>
-                  <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">전체 출처</SelectItem>
-                    <SelectItem value="import">import</SelectItem>
-                    <SelectItem value="quiz">quiz</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={batchLabelFilter} onValueChange={setBatchLabelFilter}>
-                  <SelectTrigger className="w-[160px]"><SelectValue placeholder="전체 배치" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">전체 배치</SelectItem>
-                    {batchLabels.map((label) => (
-                      <SelectItem key={label} value={label}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-                  <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="created_desc">최신순</SelectItem>
-                    <SelectItem value="word_asc">단어순</SelectItem>
-                  </SelectContent>
-                </Select>
-                {selectedIds.size > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => setBulkDeleteOpen(true)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1.5" />
-                    {selectedIds.size}개 삭제
-                  </Button>
-                )}
-                <Button variant="outline" size="icon" onClick={() => refetchList()} disabled={listFetching}>
-                  <RefreshCw className={`h-4 w-4 ${listFetching ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
+        {/* 필터 */}
+        <div className="space-y-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[200px] flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="단어 또는 작성자 검색"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-9 w-full"
+              />
             </div>
-          </CardHeader>
-          <CardContent>
-            {listLoading ? (
-              <div className="flex justify-center py-8"><LoadingSpinner /></div>
-            ) : rows.length === 0 ? (
-              <p className="text-center py-8 text-muted-foreground">
-                {search || levelFilter !== 'all' || sourceFilter !== 'all' ? '검색 결과가 없습니다' : '문장이 없습니다'}
-              </p>
-            ) : (
-              <>
-                <div className="overflow-x-auto rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[40px]">
-                          <Checkbox
-                            checked={allOnPageSelected}
-                            onCheckedChange={(checked) => toggleSelectAllOnPage(!!checked)}
-                            aria-label="이 페이지 전체 선택"
-                          />
-                        </TableHead>
-                        <TableHead className="w-[100px]">단어</TableHead>
-                        <TableHead className="w-[70px]">레벨</TableHead>
-                        <TableHead className="w-[35%]">문장</TableHead>
-                        <TableHead className="w-[120px]">정답</TableHead>
-                        <TableHead className="w-[30%]">번역</TableHead>
-                        <TableHead className="w-[60px] text-right">관리</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rows.map((row) => (
-                        <TableRow
-                          key={row.id}
-                          className="cursor-pointer"
-                          onClick={() => openEdit(row)}
-                        >
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              checked={selectedIds.has(row.id)}
-                              onCheckedChange={(checked) => toggleSelectRow(row.id, !!checked)}
-                              aria-label={`${row.word} 선택`}
-                            />
-                          </TableCell>
-                          <TableCell className="font-medium">{row.word}</TableCell>
-                          <TableCell>{row.level}</TableCell>
-                          <TableCell className="line-clamp-2 whitespace-normal break-words">{row.sentence}</TableCell>
-                          <TableCell className="max-w-[120px] truncate">{row.answer}</TableCell>
-                          <TableCell className="line-clamp-2 whitespace-normal break-words text-muted-foreground">{row.translation || '-'}</TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                              onClick={(e) => { e.stopPropagation(); setDeletingRow(row); }}
-                              aria-label="문장 삭제"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+            <Select value={creatorFilter} onValueChange={setCreatorFilter}>
+              <SelectTrigger className="w-[130px]"><SelectValue placeholder="작성자" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체 작성자</SelectItem>
+                {creatorOptions.map((c) => (
+                  <SelectItem key={c.user_id} value={c.user_id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={levelFilter} onValueChange={(v) => setLevelFilter(v as typeof levelFilter)}>
+              <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체 레벨</SelectItem>
+                {LEVELS.map((l) => (
+                  <SelectItem key={l} value={l}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sourceFilter} onValueChange={(v) => setSourceFilter(v as typeof sourceFilter)}>
+              <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체 출처</SelectItem>
+                <SelectItem value="import">일괄 등록</SelectItem>
+                <SelectItem value="quiz">퀴즈</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={batchLabelFilter} onValueChange={setBatchLabelFilter}>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder="전체 배치" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체 배치</SelectItem>
+                {batchLabels.map((label) => (
+                  <SelectItem key={label} value={label}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+              <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created_desc">최신순</SelectItem>
+                <SelectItem value="word_asc">단어순</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="icon" onClick={() => refetchList()} disabled={listFetching}>
+              <RefreshCw className={`h-4 w-4 ${listFetching ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
 
-                {/* 페이지네이션 */}
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    전체 {totalCount}건 · {page + 1} / {totalPages} 페이지
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setPage((p) => Math.max(0, p - 1))}
-                      disabled={page === 0}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                      disabled={page >= totalPages - 1}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </>
+          <div className="flex flex-wrap items-center gap-2">
+            <FilterChip
+              active={missFilter === 'translation'}
+              count={missCounts.noTranslation}
+              onClick={() => setMissFilter((m) => (m === 'translation' ? 'none' : 'translation'))}
+            >
+              번역 없음
+            </FilterChip>
+            <FilterChip
+              active={missFilter === 'meaning'}
+              count={missCounts.noMeaning}
+              onClick={() => setMissFilter((m) => (m === 'meaning' ? 'none' : 'meaning'))}
+            >
+              뜻 없음
+            </FilterChip>
+            <FilterChip
+              active={missFilter === 'hint'}
+              count={missCounts.noHint}
+              onClick={() => setMissFilter((m) => (m === 'hint' ? 'none' : 'hint'))}
+            >
+              힌트 없음
+            </FilterChip>
+            <FilterChip
+              active={missFilter === 'single'}
+              count={missCounts.single}
+              onClick={() => setMissFilter((m) => (m === 'single' ? 'none' : 'single'))}
+            >
+              문장 1개뿐인 단어
+            </FilterChip>
+          </div>
+        </div>
+
+        {/* 선택 바 (선택이 있을 때만) */}
+        {selectedIds.size > 0 && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/25 bg-card px-5 py-3">
+            <span className="text-[13px] font-semibold tabular-nums text-primary">
+              {selectAllMatchingActive
+                ? `검색 결과 ${selectedIds.size}개 전체 선택됨`
+                : `이 페이지에서 ${selectedIds.size}개 선택됨`}
+            </span>
+            {!selectAllMatchingActive && totalCount > rows.length && (
+              <button
+                className="text-xs font-semibold underline tabular-nums disabled:opacity-50"
+                onClick={handleSelectAllMatching}
+                disabled={selectAllMatchingLoading}
+              >
+                {selectAllMatchingLoading ? '불러오는 중…' : `검색 결과 ${totalCount}개 모두 선택`}
+              </button>
             )}
-          </CardContent>
-        </Card>
+            <div className="flex-1" />
+            <button className="text-xs font-semibold" onClick={clearSelection}>선택 해제</button>
+            <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
+              선택 삭제
+            </Button>
+          </div>
+        )}
+
+        {/* 목록 */}
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          {listLoading ? (
+            <div className="flex justify-center py-8"><LoadingSpinner /></div>
+          ) : rows.length === 0 ? (
+            <p className="text-center py-8 text-muted-foreground">
+              {search || levelFilter !== 'all' || sourceFilter !== 'all' || missFilter !== 'none'
+                ? '검색 결과가 없습니다'
+                : '문장이 없습니다'}
+            </p>
+          ) : (
+            <div>
+              {/* 헤더 = 전체 선택 줄 */}
+              <div className="grid grid-cols-[22px_176px_1fr_116px] items-center gap-[18px] border-b border-border bg-secondary/70 px-5 py-2.5">
+                <Checkbox
+                  className="rounded-md"
+                  checked={allOnPageSelected ? true : someOnPageSelected ? 'indeterminate' : false}
+                  onCheckedChange={(checked) => toggleSelectAllOnPage(!!checked)}
+                  aria-label="이 페이지 전체 선택"
+                />
+                <span className="text-[11.5px] font-extrabold">이 페이지 전체 선택</span>
+                <span className="text-[11.5px] tabular-nums text-muted-foreground">
+                  {rows.length}개 중 {selectedOnPage}개 선택됨
+                </span>
+                <span className="text-center text-[11px] font-extrabold tracking-wide text-muted-foreground">관리</span>
+              </div>
+
+              {rows.map((row) => {
+                const { pre, ans, post } = splitAnswer(row.sentence, row.answer);
+                const isSingle = singleSentenceWordKeys.has(`${row.word}__${row.level}`);
+                const selected = selectedIds.has(row.id);
+                return (
+                  <div
+                    key={row.id}
+                    className={`grid grid-cols-[22px_176px_1fr_116px] items-start gap-[18px] border-b border-border/50 px-5 py-4 last:border-b-0 ${
+                      selected ? 'bg-accent/40' : 'bg-card'
+                    } hover:bg-secondary/40`}
+                  >
+                    <Checkbox
+                      className="mt-2 rounded-md"
+                      checked={selected}
+                      onCheckedChange={(checked) => toggleSelectRow(row.id, !!checked)}
+                      aria-label={`${row.word} 선택`}
+                    />
+
+                    {/* 1열: 단어 · 레벨 · 뜻 · 출처 */}
+                    <div className="min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[14.5px] font-extrabold">{row.word}</span>
+                        <span className="text-[11px] font-extrabold text-muted-foreground">{row.level}</span>
+                      </div>
+                      <div className="mt-0.5 text-xs font-semibold">
+                        {row.meaning ? <span className="text-muted-foreground">{row.meaning}</span> : <Missing />}
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        <SourceBadge source={row.source} />
+                        {isSingle && (
+                          <span className="rounded-md bg-warning/10 px-1.5 py-0.5 text-[10.5px] font-extrabold text-warning">
+                            문장 1개뿐
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 2열: 문장 · 번역 · 힌트/작성자 */}
+                    <div className="min-w-0">
+                      <div className="text-sm leading-relaxed">
+                        {ans ? (
+                          <>
+                            {pre}
+                            <span className="font-extrabold text-primary">{ans}</span>
+                            {post}
+                          </>
+                        ) : (
+                          row.sentence
+                        )}
+                      </div>
+
+                      <div className="mt-1 text-xs font-semibold leading-snug">
+                        {row.translation ? (
+                          <span className="text-muted-foreground">{row.translation}</span>
+                        ) : (
+                          <Missing />
+                        )}
+                      </div>
+
+                      <div className="mt-1.5 flex flex-wrap items-baseline gap-2.5 text-xs">
+                        <span className="flex items-baseline gap-1.5">
+                          <span className="shrink-0 font-extrabold text-muted-foreground">힌트</span>
+                          {row.hint ? (
+                            <span className="font-semibold">{row.hint}</span>
+                          ) : (
+                            <span className="font-semibold text-muted-foreground">—</span>
+                          )}
+                        </span>
+                        <span className="text-border">|</span>
+                        <span className="text-[11.5px] text-muted-foreground">
+                          {getCreatorName(row.created_by)}
+                          <span className="mx-1.5 text-border">·</span>
+                          {sourceLabel(row)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 3열: 액션 */}
+                    <div className="flex items-center justify-center gap-2">
+                      <Button variant="outline" size="sm" className="h-8" onClick={() => openEdit(row)}>
+                        수정
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem className="text-destructive" onClick={() => setDeletingRow(row)}>
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            삭제
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 페이지네이션 */}
+        {rows.length > 0 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              전체 {totalCount}건 · {page + 1} / {totalPages} 페이지
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 수정 다이얼로그 */}
@@ -511,16 +884,14 @@ export default function AdminSentenceBank() {
             <DialogTitle>문장 수정</DialogTitle>
             <DialogDescription className="flex items-center gap-1.5 flex-wrap">
               <span>{editingRow?.word} · {editingRow?.level} · 순서 {editingRow?.seq}</span>
-              {editingRow && (
-                <Badge variant={editingRow.source === 'import' ? 'default' : 'secondary'} className="text-xs">
-                  {editingRow.source}
-                </Badge>
-              )}
+              {editingRow && <SourceBadge source={editingRow.source} />}
               {editingRow?.created_at && (
                 <span>· {formatDateShort(editingRow.created_at)} 생성</span>
               )}
               {editingRow?.batch_label && (
-                <Badge variant="outline" className="text-xs">{editingRow.batch_label}</Badge>
+                <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[10.5px] font-extrabold text-muted-foreground">
+                  {editingRow.batch_label}
+                </span>
               )}
             </DialogDescription>
           </DialogHeader>

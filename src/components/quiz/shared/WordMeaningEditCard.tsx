@@ -11,6 +11,8 @@ import { Loader2, Trash2, GripVertical } from "lucide-react";
  * 각 소비자가 자기 필드명을 word/meaning에 매핑한다.
  * - QuizPreview(draft): editable=true 고정, onChange→setDraft
  * - QuizDetail(Matchup·TypeAnswer·SentenceMaking ProblemList): editable=isEditing, onChange→setEditedProblems
+ * - onDelete는 값을 바꾸는 동작이므로 editable이 아닐 때는 콜백이 전달되어도 렌더하지 않는다
+ *   (읽기 전용에서 삭제가 눌리는 권한 버그 방지 — FillBlankEditCard와 동일한 패턴).
  */
 interface WordMeaningEditCardProps {
   index: number;
@@ -22,7 +24,7 @@ interface WordMeaningEditCardProps {
   meaningPlaceholder?: string;
   onChangeWord: (value: string) => void;
   onChangeMeaning: (value: string) => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   deleting?: boolean;
   dragHandleProps?: { attributes: any; listeners: any };
 }
@@ -41,9 +43,10 @@ export function WordMeaningEditCard({
   deleting = false,
   dragHandleProps,
 }: WordMeaningEditCardProps) {
+  const canDelete = editable && !!onDelete;
   return (
-    <Card className="bg-white border-slate-200 hover:shadow-md transition-shadow">
-      <CardHeader className="py-3 px-4 bg-muted/30 border-b border-slate-100">
+    <Card className="bg-white border-[#EBE5DE] hover:shadow-md transition-shadow">
+      <CardHeader className="py-3 px-4 bg-muted/30 border-b border-[#F4F0EA]">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
             {dragHandleProps && (
@@ -73,15 +76,17 @@ export function WordMeaningEditCard({
               </span>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onDelete}
-            disabled={deleting}
-            className="h-9 w-9 flex-shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          >
-            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-          </Button>
+          {canDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              disabled={deleting}
+              className="h-9 w-9 flex-shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="pt-4 pb-5">

@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, type CSSProperties, type ReactNode } from "react";
+import { useState, useEffect, useMemo, useCallback, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { Edit2, Save, Loader2, Plus, Eye } from "lucide-react";
 import { useParams } from "react-router-dom";
 import {
@@ -188,6 +189,34 @@ export function MatchupProblemList({
     }
   };
 
+  // 저장하기 고정 바에 쓸 변경 개수 — 추가/삭제/수정된 항목 수를 센다
+  const changedCount = useMemo(() => {
+    if (JSON.stringify(editedProblems) === JSON.stringify(problems)) return 0;
+    const originalMap = new Map(problems.map((p) => [p.id, p]));
+    let count = 0;
+    for (const p of editedProblems) {
+      if (p.id.startsWith("temp-")) {
+        count++;
+        continue;
+      }
+      const orig = originalMap.get(p.id);
+      if (
+        !orig ||
+        orig.korean_text !== p.korean_text ||
+        orig.meaning_text !== p.meaning_text ||
+        orig.sort_order !== p.sort_order
+      ) {
+        count++;
+      }
+    }
+    const editedIds = new Set(editedProblems.map((p) => p.id));
+    for (const p of problems) {
+      if (!editedIds.has(p.id)) count++;
+    }
+    return count;
+  }, [editedProblems, problems]);
+  const hasChanges = changedCount > 0;
+
   const toggleRow = onToggleStudentPreview && (
     <div className="flex items-center gap-2 shrink-0">
       <span className="text-sm text-muted-foreground flex items-center gap-1">
@@ -219,38 +248,44 @@ export function MatchupProblemList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 pb-24">
       {/* 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start sm:gap-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">문제 목록</h2>
+        <div className="w-full sm:w-auto">
+          <div className="flex items-center justify-between sm:justify-start sm:gap-4">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">문제 목록</h2>
+              {isEditing && (
+                <span
+                  className="px-2 py-0.5 rounded-lg text-[11.5px] font-bold"
+                  style={{ color: "#1E6B47", backgroundColor: "#E8F1EB", border: "1px solid #C8DED3" }}
+                >
+                  편집 중
+                </span>
+              )}
+            </div>
+
+            {/* 학생 화면 스위치 - 데스크톱은 제목과 한 줄. */}
+            {toggleRow && <div className="hidden sm:flex">{toggleRow}</div>}
           </div>
-          {toggleRow}
+
+
+          {/* 모바일에서는 스위치를 제목 줄에 붙이지 않고 별도 행으로 */}
+          {toggleRow && <div className="flex sm:hidden mt-2">{toggleRow}</div>}
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button
             variant={isEditing ? "secondary" : "outline"}
             size="sm"
-            onClick={() => {
-              if (!isEditing) onToggleStudentPreview?.(false);
-              setIsEditing(!isEditing);
-            }}
-            className="w-full sm:w-auto"
+            onClick={() => setIsEditing(!isEditing)}
+            className={cn(
+              "flex-1 sm:flex-none h-11 rounded-[11px] sm:h-9 sm:rounded-md",
+              isEditing && "border border-[#E3DCD3]",
+            )}
           >
             <Edit2 className="w-4 h-4 mr-2" />
             <span>{isEditing ? "수정 취소" : "수정하기"}</span>
-          </Button>
-          <Button
-            onClick={onSaveAll}
-            disabled={isSaving || !isEditing}
-            size="sm"
-            className="w-full sm:w-auto"
-            variant="default"
-          >
-            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-            <span>저장하기</span>
           </Button>
         </div>
       </div>
@@ -295,33 +330,58 @@ export function MatchupProblemList({
                   editable={isEditing}
                   onChangeWord={(v) => handleUpdateProblem(problem.id, "korean_text", v)}
                   onChangeMeaning={(v) => handleUpdateProblem(problem.id, "meaning_text", v)}
-                  onDelete={() => handleDelete(problem.id)}
+                  // 읽기 전용에서는 값을 바꾸는 핸들러 자체를 카드에 넘기지 않는다 (권한 버그 방지)
+                  onDelete={undefined}
                   deleting={deletingId === problem.id}
                 />
               ))}
             </div>
           )}
 
-          <div className="flex justify-center mt-4">
-            <Button
-              variant="ghost"
-              className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
-              onClick={handleAddProblem}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              단어 추가하기
-            </Button>
-          </div>
-
           {isEditing && (
-            <div className="mt-4 flex justify-center">
-              <Button onClick={onSaveAll} disabled={isSaving} size="lg">
-                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                저장하기
+            <div className="flex justify-center mt-4">
+              <Button
+                variant="ghost"
+                className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
+                onClick={handleAddProblem}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                단어 추가하기
               </Button>
             </div>
           )}
         </>
+      )}
+
+      {/* 저장하기 고정 바 - 화면 안에 이 한 곳에만 둔다 */}
+      {isEditing && (
+        <div className="fixed bottom-4 left-4 right-4 z-40 flex justify-center pointer-events-none">
+          <div
+            className="w-full max-w-3xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-[13px] pointer-events-auto"
+            style={{
+              backgroundColor: "#fff",
+              border: "1px solid #E3DCD3",
+              borderRadius: 13,
+              boxShadow: "0 -2px 12px rgba(0,0,0,.04)",
+            }}
+          >
+            <span className="text-sm text-muted-foreground">
+              <span className="font-bold" style={{ color: "#B4552D" }}>
+                {changedCount}개
+              </span>{" "}
+              문제를 고쳤습니다 · 저장하지 않으면 사라집니다
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
+                수정 취소
+              </Button>
+              <Button onClick={onSaveAll} disabled={isSaving || !hasChanges} size="sm">
+                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                저장하기
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

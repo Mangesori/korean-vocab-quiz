@@ -84,7 +84,7 @@ export function SpeakingResultStage({
       {/* 상단 요약 추가 */}
       <div className="flex flex-col items-center justify-center py-6 mb-8 mt-2">
         <p className="text-5xl sm:text-6xl font-extrabold text-primary drop-shadow-sm">{avgScore}점</p>
-        <p className="text-lg font-medium text-slate-600 mt-3">
+        <p className="text-lg font-medium text-[#6B6460] mt-3">
           {problems.length}문장 중 <span className="text-primary font-bold">{passedCount}</span>문장을 통과했어요!
         </p>
       </div>
@@ -107,8 +107,8 @@ export function SpeakingResultStage({
                       {idx + 1}
                     </span>
                     <div className={`text-sm font-semibold px-3 py-1 rounded-full ${
-                      problem.mode === "listen" 
-                        ? "text-orange-700 bg-orange-100" 
+                      problem.mode === "listen"
+                        ? "text-[#B4552D] bg-[#FBEFE9]"
                         : "text-primary/80 bg-primary/10"
                     }`}>
                       {problem.mode === "listen" ? "듣고 말하기" : "보고 말하기"}
@@ -127,12 +127,12 @@ export function SpeakingResultStage({
                   )}
                 </div>
                 
-                <h3 className="text-lg font-bold mb-4 text-slate-800 leading-relaxed pl-3">
+                <h3 className="text-lg font-bold mb-4 text-[#1A1714] leading-relaxed pl-3">
                   {problem.sentence}
                 </h3>
                 
                 {showRecordingTrans[problem.id] && problem.translation && (
-                  <p className="text-sm text-muted-foreground mb-6 bg-slate-50 p-3 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-6 bg-[#FAF8F5] p-3 rounded-lg">
                     {unmaskTranslation(problem.translation)}
                   </p>
                 )}
@@ -140,19 +140,19 @@ export function SpeakingResultStage({
                 <div className={`flex flex-col gap-3 mb-4 ${problem.mode === "listen" ? "mt-6" : "mt-4"}`}>
                   {problem.mode === "listen" && problem.sentenceAudioUrl && (
                     <div className="flex items-center gap-0 sm:gap-4">
-                      <p className="hidden sm:block text-sm font-semibold text-slate-500 w-24 shrink-0 text-right">원어민 음성</p>
-                      <button 
+                      <p className="hidden sm:block text-sm font-semibold text-[#8A837D] w-24 shrink-0 text-right">원어민 음성</p>
+                      <button
                         onClick={() => playOriginalAudio(problem.sentenceAudioUrl, problem.id)}
-                        className="flex-1 flex items-center justify-center bg-cyan-50 text-cyan-600 hover:bg-cyan-100 rounded-2xl py-3 px-4 transition-colors"
+                        className="flex-1 flex items-center justify-center bg-[#E8F1EB] text-[#1E6B47] hover:bg-[#C8DED3] rounded-2xl py-3 px-4 transition-colors"
                       >
-                        <Volume2 className={`w-5 h-5 mr-3 sm:mr-4 ${playingId === `original-${problem.id}` ? "text-cyan-600 animate-pulse" : "text-cyan-500"}`} />
+                        <Volume2 className={`w-5 h-5 mr-3 sm:mr-4 ${playingId === `original-${problem.id}` ? "text-[#1E6B47] animate-pulse" : "text-[#1E6B47]"}`} />
                         <div className="flex gap-[3px] items-center h-5">
                           {[1, 2, 3, 5, 3, 2, 4, 6, 8, 6, 4, 5, 7, 5, 3, 4, 6, 4, 2, 3, 2, 1].map((h, i) => (
-                            <div 
-                              key={`orig-${i}`} 
+                            <div
+                              key={`orig-${i}`}
                               className={`w-[3px] rounded-full transition-all duration-300 ${
-                                playingId === `original-${problem.id}` ? "bg-cyan-500 animate-pulse" : "bg-cyan-200"
-                              }`} 
+                                playingId === `original-${problem.id}` ? "bg-[#1E6B47] animate-pulse" : "bg-[#C8DED3]"
+                              }`}
                               style={{ height: `${h * 3}px`, opacity: playingId === `original-${problem.id}` ? (h / 8) + 0.2 : 1 }} 
                             />
                           ))}
@@ -162,19 +162,19 @@ export function SpeakingResultStage({
                   )}
 
                   <div className="flex items-center gap-0 sm:gap-4">
-                    <p className="hidden sm:block text-sm font-semibold text-slate-500 w-24 shrink-0 text-right">내 발음</p>
-                    <button 
+                    <p className="hidden sm:block text-sm font-semibold text-[#8A837D] w-24 shrink-0 text-right">내 발음</p>
+                    <button
                       onClick={() => playAudio(best.recordingUrl, problem.id)}
-                      className="flex-1 flex items-center justify-center bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-2xl py-3 px-4 transition-colors"
+                      className="flex-1 flex items-center justify-center bg-[#FBEFE9] text-[#B4552D] hover:bg-[#EBD5C8] rounded-2xl py-3 px-4 transition-colors"
                     >
-                      <Volume2 className={`w-5 h-5 mr-3 sm:mr-4 ${playingId === problem.id ? "text-amber-600 animate-pulse" : "text-amber-500"}`} />
+                      <Volume2 className={`w-5 h-5 mr-3 sm:mr-4 ${playingId === problem.id ? "text-[#B4552D] animate-pulse" : "text-[#B4552D]"}`} />
                       <div className="flex gap-[3px] items-center h-5">
                         {[1, 2, 3, 5, 3, 2, 4, 6, 8, 6, 4, 5, 7, 5, 3, 4, 6, 4, 2, 3, 2, 1].map((h, i) => (
-                          <div 
-                            key={`read-${i}`} 
+                          <div
+                            key={`read-${i}`}
                             className={`w-[3px] rounded-full transition-all duration-300 ${
-                              playingId === problem.id ? "bg-amber-500 animate-pulse" : "bg-amber-200"
-                            }`} 
+                              playingId === problem.id ? "bg-[#B4552D] animate-pulse" : "bg-[#EBD5C8]"
+                            }`}
                             style={{ height: `${h * 3}px`, opacity: playingId === problem.id ? (h / 8) + 0.2 : 1 }} 
                           />
                         ))}
@@ -183,13 +183,13 @@ export function SpeakingResultStage({
                   </div>
                 </div>
 
-                <div className="mt-6 border-t border-slate-100 pt-5 space-y-4 sm:px-3">
+                <div className="mt-6 border-t border-[#F4F0EA] pt-5 space-y-4 sm:px-3">
                   <div className="text-lg pl-3">
                     {renderSentenceWithFeedback(problem.sentence, best.wordLevelFeedback, best.isPassed)}
                   </div>
 
-                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                    <p className="text-sm text-slate-600 leading-relaxed break-keep">{generateSpeakingFeedback(best)}</p>
+                  <div className="bg-[#FAF8F5] rounded-xl p-4 border border-[#F4F0EA]">
+                    <p className="text-sm text-[#6B6460] leading-relaxed break-keep">{generateSpeakingFeedback(best)}</p>
                   </div>
                 </div>
               </CardContent>

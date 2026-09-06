@@ -303,7 +303,7 @@ export function SentenceMakingStage({
       className={`inline-block text-sm rounded px-1 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
         isCurrentSkipped
           ? "text-foreground font-semibold"
-          : "text-muted-foreground font-medium hover:text-foreground hover:scale-110"
+          : "text-foreground/65 font-medium hover:text-foreground hover:scale-110"
       }`}
     >
       {isCurrentSkipped ? "모르겠어요 (선택됨)" : "모르겠어요"}
@@ -320,8 +320,8 @@ export function SentenceMakingStage({
         />
 
         {/* 제시 단어 — 회색 박스는 "이 문제의 재료"만 */}
-        <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col items-center justify-center min-h-[180px] sm:min-h-[200px]">
-          <Badge variant="outline" className="text-lg sm:text-xl lg:text-2xl px-6 py-2 sm:py-3 font-bold bg-white shadow-sm border-slate-200 rounded-2xl text-slate-800">
+        <div className="p-5 sm:p-10 bg-[#FAF8F5] border-none rounded-2xl flex flex-col items-center justify-center min-h-[180px] sm:min-h-[200px]">
+          <Badge variant="outline" className="text-lg sm:text-xl lg:text-2xl px-6 py-2 sm:py-3 font-bold bg-white shadow-sm border-[#EBE5DE] rounded-2xl text-[#1A1714]">
             {currentProblem.word}
           </Badge>
 
@@ -346,7 +346,7 @@ export function SentenceMakingStage({
                 }
               }}
               placeholder={`"${currentProblem.word}"을(를) 사용하여 문장을 만드세요.`}
-              className="min-h-[100px] text-md rounded-xl bg-slate-50"
+              className="min-h-[100px] text-md rounded-xl bg-[#FAF8F5]"
             />
           </div>
 
@@ -358,7 +358,7 @@ export function SentenceMakingStage({
                 <Button
                   variant="outline"
                   onClick={onBack}
-                  className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                  className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-[#EBE5DE] text-[#6B6460] text-xs sm:text-sm font-semibold hover:bg-white hover:text-[#1A1714] shadow-sm"
                 >
                   <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> <span className="hidden sm:inline">{backLabel ?? "이전"}</span>
             <span className="sm:hidden">이전</span>
@@ -368,7 +368,7 @@ export function SentenceMakingStage({
                   variant="outline"
                   onClick={handlePrev}
                   disabled={currentIndex === 0}
-                  className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                  className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-[#EBE5DE] text-[#6B6460] text-xs sm:text-sm font-semibold hover:bg-white hover:text-[#1A1714] shadow-sm"
                 >
                   <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> 이전
                 </Button>

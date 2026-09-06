@@ -167,7 +167,7 @@ export default function VocabularyList() {
 
   return (
     <AppLayout>
-      <div className="container max-w-4xl mx-auto px-4 py-8">
+      <div className="container max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold pl-2">

@@ -52,7 +52,9 @@
       "Bash(git -C \"C:\\\\Users\\\\vapor\\\\Clone\\\\Korean Vocab Quiz\" diff supabase/functions/elevenlabs-tts/index.ts)",
       "Bash(git -C \"C:\\\\Users\\\\vapor\\\\Clone\\\\Korean Vocab Quiz\" diff .claude/settings.local.json)",
       "Bash(git -C \"C:\\\\Users\\\\vapor\\\\Clone\\\\Korean Vocab Quiz\" checkout -- supabase/functions/elevenlabs-tts/index.ts)",
-      "mcp__supabase__execute_sql"
+      "mcp__supabase__execute_sql",
+      "Bash(python -c \"print\\(open\\(r'C:\\\\Users\\\\vapor\\\\.claude\\\\projects\\\\C--Users-vapor-Clone-Korean-Vocab-Quiz\\\\3113c0c5-60fb-4e6e-aefe-b60822fe1055\\\\tool-results\\\\mcp-supabase-execute_sql-1786752423191.txt'\\).read\\(\\)[:200]\\)\")",
+      "WebFetch(domain:docs.claude.com)"
     ]
   },
   "enableAllProjectMcpServers": true,

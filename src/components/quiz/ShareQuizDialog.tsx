@@ -107,7 +107,7 @@ export function ShareQuizDialogContent({
                 </span>
               </div>
 
-              <div className="rounded-[12px] max-h-[280px] overflow-y-auto" style={{ border: "1px solid #EFE9E2" }}>
+              <div className="rounded-[12px] h-[280px] overflow-y-auto" style={{ border: "1px solid #EFE9E2" }}>
                 {filteredClasses.length === 0 ? (
                   <div className="px-[14px] py-4 text-center text-sm text-muted-foreground">
                     검색 결과가 없습니다

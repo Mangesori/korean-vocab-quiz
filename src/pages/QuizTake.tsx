@@ -1904,7 +1904,7 @@ export default function QuizTake() {
           </div>
           <div className="flex flex-col items-center justify-center py-6 mb-6">
             <p className="text-5xl sm:text-6xl font-extrabold text-primary drop-shadow-sm">{score}점</p>
-            <p className="text-lg font-medium text-slate-600 mt-3">
+            <p className="text-lg font-medium text-muted-foreground mt-3">
               {totalCount}문제 중 <span className="text-primary font-bold">{correctCount}</span>문제를 맞혔어요!
             </p>
           </div>
@@ -2223,7 +2223,7 @@ export default function QuizTake() {
                   handleSubmit()의 기존 미완료 가드를 그대로 타므로 굳이 멈출 필요가 없다). */}
               <div className="shrink-0">
                 {quiz.timer_enabled && timeLeft !== null && isSetBasedStage && (
-                  <div className={`flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold border ${timeLeft < 30 ? "bg-destructive/10 text-destructive border-transparent" : "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                  <div className={`flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold border ${timeLeft < 30 ? "bg-destructive/10 text-destructive border-transparent" : "bg-[#F4F0EA] text-muted-foreground border-border"}`}>
                     <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span className="font-mono">{formatTime(timeLeft)}</span>
                   </div>
@@ -2238,7 +2238,7 @@ export default function QuizTake() {
                   value={stageProgress.total > 0 ? (stageProgress.current / stageProgress.total) * 100 : 0} 
                   className="flex-1 h-2.5" 
                 />
-                <span className="shrink-0 px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold shadow-sm border border-slate-200">
+                <span className="shrink-0 px-3 py-1 bg-[#F4F0EA] text-[#4A443F] rounded-lg text-sm font-bold shadow-sm border border-border">
                   {stageProgress.label}
                 </span>
               </div>

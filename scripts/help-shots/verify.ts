@@ -1,4 +1,4 @@
-// 도움말 콘텐츠 데이터 상호 참조 검증. 23개 문서 사이의 related/category/popular
+// 도움말 콘텐츠 데이터 상호 참조 검증. 24개 문서 사이의 related/category/popular
 // 링크는 눈으로 맞춰볼 수 없는 규모라 스크립트로 강제한다.
 //
 // 실행: npx tsx scripts/help-shots/verify.ts
@@ -101,12 +101,12 @@ for (const id of ARTICLE_ORDER) {
   }
 }
 
-// 8. 최종 문서 개수 — 선생님 13 + 학생 10 = 23
+// 8. 최종 문서 개수 — 선생님 14 + 학생 10 = 24
 const teacherCount = ARTICLE_ORDER.filter((id) => ARTICLES[id].role === "teacher").length;
 const studentCount = ARTICLE_ORDER.filter((id) => ARTICLES[id].role === "student").length;
-if (teacherCount !== 13) errors.push(`[count] 선생님 문서 ${teacherCount}개 (13개여야 함)`);
+if (teacherCount !== 14) errors.push(`[count] 선생님 문서 ${teacherCount}개 (14개여야 함)`);
 if (studentCount !== 10) errors.push(`[count] 학생 문서 ${studentCount}개 (10개여야 함)`);
-if (ARTICLE_ORDER.length !== 23) errors.push(`[count] 전체 문서 ${ARTICLE_ORDER.length}개 (23개여야 함)`);
+if (ARTICLE_ORDER.length !== 24) errors.push(`[count] 전체 문서 ${ARTICLE_ORDER.length}개 (24개여야 함)`);
 
 if (errors.length > 0) {
   console.error(`도움말 콘텐츠 검증 실패 (${errors.length}건):\n`);

@@ -112,6 +112,26 @@ export const STAGE_SHORT_LABELS: Record<BaseStage, string> = {
   recording: "말하기",
 };
 
+// 유형별 점 색 — 반드시 이 정적 맵만 쓴다. `bg-type-${stage}` 같은 동적 클래스는
+// Tailwind JIT가 소스 문자열을 스캔하는 방식이라 빌드에서 제거된다.
+export const STAGE_DOT: Record<BaseStage, string> = {
+  matchup: "bg-type-matchup",
+  type_answer: "bg-type-type-answer",
+  fill_blank: "bg-type-fill-blank",
+  word_magnet: "bg-type-word-magnet",
+  sentence_making: "bg-type-sentence-making",
+  recording: "bg-type-recording",
+};
+
+export const STAGE_TEXT: Record<BaseStage, string> = {
+  matchup: "text-type-matchup",
+  type_answer: "text-type-type-answer",
+  fill_blank: "text-type-fill-blank",
+  word_magnet: "text-type-word-magnet",
+  sentence_making: "text-type-sentence-making",
+  recording: "text-type-recording",
+};
+
 // 오답 집계 RPC가 반환하는 유형만 좁힌 타입.
 // 문장 만들기·말하기 연습은 AI 채점(부분 점수)이라 오답 집계 대상이 아니다.
 export type WrongAnswerSource = Extract<

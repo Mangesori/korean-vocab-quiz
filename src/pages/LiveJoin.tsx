@@ -109,7 +109,7 @@ export default function LiveJoin() {
                   }}
                   className={cn(
                     "w-12 h-14 rounded-[10px] border text-center text-2xl font-bold tabular-nums",
-                    "bg-slate-50 text-foreground outline-none transition-all duration-150",
+                    "bg-[#FAF8F5] text-foreground outline-none transition-all duration-150",
                     "focus:ring-2 focus:ring-primary focus:ring-offset-2",
                     error ? "border-destructive" : "border-border"
                   )}
@@ -151,7 +151,7 @@ export default function LiveJoin() {
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && name.trim() && submitName()}
               placeholder="이름"
-              className="h-12 text-center text-lg bg-slate-50 mb-3"
+              className="h-12 text-center text-lg bg-[#FAF8F5] mb-3"
               autoFocus
             />
 

@@ -66,7 +66,7 @@ export function FillBlankResultStage({
           <Button
             variant="outline"
             onClick={onBack}
-            className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            className="h-12 px-6 rounded-xl bg-white/50 border-[#EBE5DE] text-[#6B6460] font-semibold hover:bg-white hover:text-[#1A1714] shadow-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-2" /> <span className="hidden sm:inline">{backLabel ?? "이전"}</span>
             <span className="sm:hidden">이전</span>

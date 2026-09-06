@@ -69,7 +69,7 @@ function CodeStep({ onNext }: { onNext: () => void }) {
             }}
             className={cn(
               "w-12 h-14 rounded-[10px] border text-center text-2xl font-bold tabular-nums",
-              "bg-slate-50 text-foreground outline-none transition-all duration-150",
+              "bg-[#FAF8F5] text-foreground outline-none transition-all duration-150",
               "focus:ring-2 focus:ring-primary focus:ring-offset-2",
               error ? "border-destructive" : "border-border"
             )}
@@ -118,7 +118,7 @@ function NameStep({ onNext }: { onNext: (name: string) => void }) {
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && name.trim() && onNext(name.trim())}
         placeholder="이름"
-        className="h-12 text-center text-lg bg-slate-50 mb-4"
+        className="h-12 text-center text-lg bg-[#FAF8F5] mb-4"
         autoFocus
       />
 
@@ -266,7 +266,7 @@ function QuizStep({ onDone }: { onDone: () => void }) {
                   value={answers[i] ?? ""}
                   onChange={(e) => setAnswers({ ...answers, [i]: e.target.value })}
                   placeholder="정답을 입력하세요"
-                  className="h-10 text-center text-[15px] bg-slate-50"
+                  className="h-10 text-center text-[15px] bg-[#FAF8F5]"
                 />
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="flex-1 h-8 text-xs">

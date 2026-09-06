@@ -16,8 +16,8 @@ export function WordMagnetTile({
     <div
       className={`select-none rounded-xl px-3 py-2 text-base shadow-sm border whitespace-nowrap ${
         isParticle
-          ? "bg-slate-100 text-slate-500 border-slate-200"
-          : "bg-white text-foreground border-slate-200"
+          ? "bg-[#F4F0EA] text-[#8A837D] border-[#EBE5DE]"
+          : "bg-white text-foreground border-[#EBE5DE]"
       } ${faded ? "opacity-50" : ""}`}
     >
       {content}

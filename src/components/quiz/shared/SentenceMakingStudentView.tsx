@@ -40,8 +40,8 @@ export function SentenceMakingStudentView({ problems }: { problems: SentenceMaki
         />
 
         {/* 제시 단어 — 회색 박스는 "이 문제의 재료"만 */}
-        <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col items-center justify-center min-h-[180px] sm:min-h-[200px]">
-          <Badge variant="outline" className="text-lg sm:text-xl lg:text-2xl px-6 py-2 sm:py-3 font-bold bg-white shadow-sm border-slate-200 rounded-2xl text-slate-800">
+        <div className="p-5 sm:p-10 bg-[#FAF8F5] border-none rounded-2xl flex flex-col items-center justify-center min-h-[180px] sm:min-h-[200px]">
+          <Badge variant="outline" className="text-lg sm:text-xl lg:text-2xl px-6 py-2 sm:py-3 font-bold bg-white shadow-sm border-[#EBE5DE] rounded-2xl text-[#1A1714]">
             {problem.word}
           </Badge>
           <p className={`text-sm sm:text-base text-muted-foreground mt-4 sm:mt-6 text-center transition-opacity duration-200 ${showHint && problem.word_meaning ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
@@ -52,7 +52,7 @@ export function SentenceMakingStudentView({ problems }: { problems: SentenceMaki
           <Textarea
             disabled
             placeholder={`"${problem.word}"을(를) 사용하여 문장을 만드세요.`}
-            className="min-h-[100px] text-md rounded-xl bg-slate-50 opacity-60"
+            className="min-h-[100px] text-md rounded-xl bg-[#FAF8F5] opacity-60"
           />
         </div>
         <div className="flex justify-between items-center mt-6">
@@ -60,7 +60,7 @@ export function SentenceMakingStudentView({ problems }: { problems: SentenceMaki
             variant="outline"
             onClick={() => { setPreviewIndex((prev) => Math.max(0, prev - 1)); setShowHint(false); }}
             disabled={previewIndex === 0}
-            className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-[#EBE5DE] text-[#6B6460] text-xs sm:text-sm font-semibold hover:bg-white hover:text-[#1A1714] shadow-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-2" /> 이전
           </Button>

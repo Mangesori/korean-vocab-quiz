@@ -1,10 +1,16 @@
-import { Volume2, RefreshCw, Loader2, Trash2, Eye, EyeOff, GripVertical } from "lucide-react";
+import { Volume2, RefreshCw, Loader2, Trash2, Eye, EyeOff, GripVertical, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { unmaskTranslation } from "@/utils/maskTranslation";
 
 /**
@@ -34,7 +40,7 @@ interface RecordingEditCardProps {
   regeneratingAudio?: boolean;
   onRegenerateProblem?: () => void;
   regeneratingProblem?: boolean;
-  onDelete: () => void;
+  onDelete?: () => void;
   deleting?: boolean;
   dragHandleProps?: { attributes: any; listeners: any };
 }
@@ -63,7 +69,7 @@ export function RecordingEditCard({
 }: RecordingEditCardProps) {
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <CardHeader className="py-3 px-4 bg-muted/30 border-b border-slate-100">
+      <CardHeader className="py-3 px-4 bg-muted/30 border-b border-[#F4F0EA]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             {dragHandleProps && (
@@ -140,22 +146,6 @@ export function RecordingEditCard({
                 <Volume2 className="w-4 h-4" />
               </Button>
             )}
-            {onRegenerateAudio && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={onRegenerateAudio}
-                disabled={regeneratingAudio || deleting}
-                className="bg-accent hover:bg-accent/90 text-accent-foreground"
-              >
-                {regeneratingAudio ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-1" />
-                )}
-                <span className="hidden sm:inline">음성 재생성</span>
-              </Button>
-            )}
             {onRegenerateProblem && (
               <Button
                 variant="default"
@@ -173,15 +163,47 @@ export function RecordingEditCard({
                 <span className="sm:hidden">재생성</span>
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onDelete}
-              disabled={deleting || regeneratingAudio}
-              className="h-9 w-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            </Button>
+
+            {/* 음성 재생성 · 삭제 — 자주 쓰지 않으면서 되돌릴 수 없는 동작이라 ⋮ 안으로 */}
+            {(onRegenerateAudio || onDelete) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                    aria-label="문제 카드 더보기"
+                  >
+                    {regeneratingAudio || deleting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <MoreVertical className="w-4 h-4" />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {onRegenerateAudio && (
+                    <DropdownMenuItem
+                      onClick={onRegenerateAudio}
+                      disabled={regeneratingAudio || deleting}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      음성 재생성
+                    </DropdownMenuItem>
+                  )}
+                  {onDelete && (
+                    <DropdownMenuItem
+                      onClick={onDelete}
+                      disabled={deleting || regeneratingAudio}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      삭제
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </CardHeader>

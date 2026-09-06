@@ -304,12 +304,12 @@ function MirrorPanel({ student, p }: { student: Student; p: Progress }) {
                       className={cn(
                         "h-10 rounded-[10px] border flex items-center justify-center px-3 text-[15px] transition-all duration-200",
                         active
-                          ? "bg-slate-50 border-border ring-2 ring-primary ring-offset-2"
+                          ? "bg-[#FAF8F5] border-border ring-2 ring-primary ring-offset-2"
                           : answered
                           ? ok
                             ? "bg-success/5 border-success/30 font-semibold text-success"
                             : "bg-destructive/5 border-destructive/30 font-semibold text-destructive"
-                          : "bg-slate-50 border-border text-muted-foreground"
+                          : "bg-[#FAF8F5] border-border text-muted-foreground"
                       )}
                     >
                       {answered ? (
@@ -442,7 +442,7 @@ function TeacherPanel({
                     value={answers[i] ?? ""}
                     onChange={(e) => setAnswers({ ...answers, [i]: e.target.value })}
                     placeholder="직접 입력해서 시범을 보일 수 있어요"
-                    className="h-10 text-center text-[15px] bg-slate-50"
+                    className="h-10 text-center text-[15px] bg-[#FAF8F5]"
                   />
                   {showAnswers && (
                     <p className="text-xs text-muted-foreground">

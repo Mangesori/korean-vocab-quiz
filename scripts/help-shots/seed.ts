@@ -118,8 +118,10 @@ function rowIdOf(map: Map<string, string>, problemId: string, table: string): st
 }
 
 async function resetAuthUsers() {
-  console.log("[--reset] teacher/student1/student2 계정 삭제 중 (cascade로 대부분 데이터 함께 삭제)...");
-  for (const id of [F.TEACHER.id, F.STUDENT1.id, F.STUDENT2.id]) {
+  console.log(
+    "[--reset] teacher/student1/student2/otherTeacher/roleless/newStudent 계정 삭제 중 (cascade로 대부분 데이터 함께 삭제)...",
+  );
+  for (const id of [F.TEACHER.id, F.STUDENT1.id, F.STUDENT2.id, F.OTHER_TEACHER.id, F.ROLELESS_USER.id, F.NEW_STUDENT.id]) {
     const { error } = await supabase.auth.admin.deleteUser(id);
     if (error && !/not.*found/i.test(error.message ?? "")) {
       console.warn(`  - ${id} 삭제 중 경고(무시): ${error.message}`);
@@ -165,6 +167,11 @@ async function main() {
   await upsertAuthUser(F.TEACHER, "teacher");
   await upsertAuthUser(F.STUDENT1, "student");
   await upsertAuthUser(F.STUDENT2, "student");
+  // 박선생(OTHER_TEACHER) — t-library 캡처에서 로그인하지 않는다. teacher@help.local이
+  // /quizzes/shared에서 "남이 공개한 퀴즈"로 보게 할 소유자 계정으로만 쓰인다.
+  await upsertAuthUser(F.OTHER_TEACHER, "teacher");
+  await upsertAuthUser(F.ROLELESS_USER, "student");
+  await upsertAuthUser(F.NEW_STUDENT, "student");
 
   // 2. 프로필 — role은 여기서 확정된다(트리거로 자동 생성되는 게 아니라
   // src/hooks/useAuth.tsx의 AuthCallback 플로우가 수동으로 만드는 것과 동일한 패턴).
@@ -175,6 +182,8 @@ async function main() {
       { user_id: F.TEACHER.id, name: F.TEACHER.name, role: "teacher" },
       { user_id: F.STUDENT1.id, name: F.STUDENT1.name, role: "student" },
       { user_id: F.STUDENT2.id, name: F.STUDENT2.name, role: "student" },
+      { user_id: F.OTHER_TEACHER.id, name: F.OTHER_TEACHER.name, role: "teacher" },
+      { user_id: F.NEW_STUDENT.id, name: F.NEW_STUDENT.name, role: "student" },
     ],
     "user_id",
   );
@@ -296,6 +305,81 @@ async function main() {
   await upsert(
     "recording_problems",
     F.RECORDING_PROBLEMS.map((p) => ({ quiz_id: F.QUIZ_A_ID, ...p })),
+    "quiz_id,problem_id",
+  );
+
+  // 5b. 퀴즈 LIB — 박선생(OTHER_TEACHER) 소유의 공개 퀴즈 (t-library 캡처용).
+  // is_public: true + teacher_id가 teacher@help.local과 달라야 /quizzes/shared
+  // 쿼리(SharedQuizzes.tsx의 `is_public=true, teacher_id != 내 id`)에 걸린다.
+  console.log("\n[5b] 퀴즈 LIB (박선생의 공개 퀴즈)");
+  await upsert(
+    "quizzes",
+    [
+      {
+        id: F.QUIZ_LIB_ID,
+        teacher_id: F.OTHER_TEACHER.id,
+        title: F.QUIZ_LIB_TITLE,
+        words: F.QUIZ_LIB_WORDS,
+        words_per_set: F.QUIZ_LIB_WORDS.length,
+        timer_enabled: false,
+        problems: F.QUIZ_LIB_FILL_BLANK_PROBLEMS,
+        fill_blank_enabled: true,
+        matchup_enabled: true,
+        type_answer_enabled: true,
+        word_magnet_enabled: true,
+        sentence_making_enabled: true,
+        recording_enabled: true,
+        is_public: true,
+      },
+    ],
+    "id",
+  );
+  await upsert(
+    "quiz_problems",
+    F.QUIZ_LIB_FILL_BLANK_PROBLEMS.map((p) => ({
+      quiz_id: F.QUIZ_LIB_ID,
+      problem_id: p.id,
+      word: p.word,
+      sentence: p.sentence,
+      hint: p.hint,
+      translation: p.translation,
+      sentence_audio_url: p.sentence_audio_url,
+    })),
+    "quiz_id,problem_id",
+  );
+  await upsert(
+    "quiz_answers",
+    F.QUIZ_LIB_FILL_BLANK_PROBLEMS.map((p) => ({
+      quiz_id: F.QUIZ_LIB_ID,
+      problem_id: p.id,
+      word: p.word,
+      correct_answer: p.answer,
+    })),
+    "quiz_id,problem_id",
+  );
+  await upsert(
+    "matchup_problems",
+    F.QUIZ_LIB_MATCHUP_PROBLEMS.map((p) => ({ quiz_id: F.QUIZ_LIB_ID, ...p })),
+    "quiz_id,problem_id",
+  );
+  await upsert(
+    "type_answer_problems",
+    F.QUIZ_LIB_TYPE_ANSWER_PROBLEMS.map((p) => ({ quiz_id: F.QUIZ_LIB_ID, ...p })),
+    "quiz_id,problem_id",
+  );
+  await upsert(
+    "word_magnet_problems",
+    F.QUIZ_LIB_WORD_MAGNET_PROBLEMS.map((p) => ({ quiz_id: F.QUIZ_LIB_ID, ...p })),
+    "quiz_id,problem_id",
+  );
+  await upsert(
+    "sentence_making_problems",
+    F.QUIZ_LIB_SENTENCE_MAKING_PROBLEMS.map((p) => ({ quiz_id: F.QUIZ_LIB_ID, ...p })),
+    "quiz_id,problem_id",
+  );
+  await upsert(
+    "recording_problems",
+    F.QUIZ_LIB_RECORDING_PROBLEMS.map((p) => ({ quiz_id: F.QUIZ_LIB_ID, ...p })),
     "quiz_id,problem_id",
   );
 
@@ -684,6 +768,10 @@ async function main() {
   console.log(`  quiz A id : ${F.QUIZ_A_ID}`);
   console.log(`  quiz B id : ${F.QUIZ_B_ID}`);
   console.log(`  quiz C id : ${F.QUIZ_C_ID}`);
+  console.log(`  otherTeacher : ${F.OTHER_TEACHER.email} (로그인 안 함, 공개 퀴즈 소유자 전용)`);
+  console.log(`  roleless : ${F.ROLELESS_USER.email} (프로필 없음, t-signup:2 역할 선택 화면 캡처 전용)`);
+  console.log(`  newStudent : ${F.NEW_STUDENT.email} (클래스 없음, s-join:2·3 빈 대시보드 캡처 전용)`);
+  console.log(`  quiz LIB id (otherTeacher 소유, is_public) : ${F.QUIZ_LIB_ID}`);
   console.log(`  share token (quiz A) : ${F.QUIZ_SHARE.shareToken}`);
   console.log(`  quiz A result id (student1) : ${F.RESULT_ID}`);
 }

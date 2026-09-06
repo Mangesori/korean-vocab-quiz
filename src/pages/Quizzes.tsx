@@ -17,6 +17,7 @@ import {
   UserPlus,
   X,
   BarChart3,
+  Globe,
 } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
@@ -51,6 +52,7 @@ interface Quiz {
   word_magnet_enabled: boolean | null;
   sentence_making_enabled: boolean;
   recording_enabled: boolean;
+  is_public: boolean;
 }
 
 interface AssignmentRaw {
@@ -122,7 +124,7 @@ export default function Quizzes() {
       const { data } = await supabase
         .from('quizzes')
         .select(
-          'id, title, words, words_per_set, difficulty, created_at, fill_blank_enabled, matchup_enabled, type_answer_enabled, word_magnet_enabled, sentence_making_enabled, recording_enabled'
+          'id, title, words, words_per_set, difficulty, created_at, fill_blank_enabled, matchup_enabled, type_answer_enabled, word_magnet_enabled, sentence_making_enabled, recording_enabled, is_public'
         )
         .eq('teacher_id', user?.id)
         .order('created_at', { ascending: false });
@@ -327,6 +329,29 @@ export default function Quizzes() {
     }
   };
 
+  const handleTogglePublic = async (e: React.MouseEvent, quiz: Quiz) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const nextValue = !quiz.is_public;
+
+    // 낙관적 업데이트 — 실패하면 롤백
+    queryClient.setQueryData(['quizzes', user?.id], (prev: Quiz[] | undefined) =>
+      prev?.map((q) => (q.id === quiz.id ? { ...q, is_public: nextValue } : q)) ?? []
+    );
+
+    try {
+      const { error } = await supabase.from('quizzes').update({ is_public: nextValue }).eq('id', quiz.id);
+      if (error) throw error;
+      toast.success(nextValue ? '퀴즈를 공개했어요. 다른 선생님이 둘러보고 복사할 수 있어요' : '퀴즈를 비공개로 전환했어요');
+    } catch (error) {
+      console.error('Error toggling public:', error);
+      queryClient.setQueryData(['quizzes', user?.id], (prev: Quiz[] | undefined) =>
+        prev?.map((q) => (q.id === quiz.id ? { ...q, is_public: quiz.is_public } : q)) ?? []
+      );
+      toast.error('공개 설정 변경에 실패했습니다');
+    }
+  };
+
   const handleUnassignClick = (assignmentId: string, studentName: string) => {
     setAssignmentToUnassign({ id: assignmentId, studentName });
   };
@@ -368,7 +393,7 @@ export default function Quizzes() {
     <AppLayout>
       <div className="bg-[#FAF8F5] px-[18px] sm:px-[30px] py-[26px] sm:py-[30px]">
         <div className="flex items-center justify-between">
-          <div className="text-[21px] font-bold tracking-[-0.4px]">내 퀴즈</div>
+          <div className="text-[21px] font-bold tracking-[-0.4px] pl-2">내 퀴즈</div>
           <Link
             to="/quiz/create"
             className="bg-primary text-white text-[13px] font-bold rounded-[11px] px-5 py-[11px] whitespace-nowrap"
@@ -508,6 +533,18 @@ export default function Quizzes() {
                         <>
                           <button
                             type="button"
+                            title={quiz.is_public ? '공개됨 · 클릭하면 비공개로' : '공개하기'}
+                            className={`h-7 w-7 grid place-items-center rounded-md transition-opacity ${
+                              quiz.is_public
+                                ? 'text-primary bg-[#E8F1EB]'
+                                : 'opacity-30 group-hover:opacity-100 hover:bg-[#F2EEE8] text-[#4A443F]'
+                            }`}
+                            onClick={(e) => handleTogglePublic(e, quiz)}
+                          >
+                            <Globe className="h-3.5 w-3.5" strokeWidth={1.9} />
+                          </button>
+                          <button
+                            type="button"
                             className="text-[11px] font-bold text-white bg-primary rounded-[8px] px-[11px] py-1.5 whitespace-nowrap"
                             onClick={(e) => {
                               e.preventDefault();
@@ -527,7 +564,20 @@ export default function Quizzes() {
                           </button>
                         </>
                       ) : (
-                        <div className="opacity-30 group-hover:opacity-100 transition-opacity flex items-center gap-3.5">
+                        <div className="flex items-center gap-3.5">
+                          <button
+                            type="button"
+                            title={quiz.is_public ? '공개됨 · 클릭하면 비공개로' : '공개하기'}
+                            className={`h-7 w-7 grid place-items-center rounded-md transition-opacity ${
+                              quiz.is_public
+                                ? 'text-primary bg-[#E8F1EB]'
+                                : 'opacity-30 group-hover:opacity-100 hover:bg-[#F2EEE8] text-[#4A443F]'
+                            }`}
+                            onClick={(e) => handleTogglePublic(e, quiz)}
+                          >
+                            <Globe className="h-3.5 w-3.5" strokeWidth={1.9} />
+                          </button>
+                          <div className="opacity-30 group-hover:opacity-100 transition-opacity flex items-center gap-3.5">
                           <button
                             type="button"
                             title="공유"
@@ -574,12 +624,24 @@ export default function Quizzes() {
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
+                          </div>
                         </div>
                       )}
                     </div>
 
                     {/* 모바일: 배정/삭제 진입점 (호버가 없는 화면이라 항상 노출) */}
-                    <div className="col-span-2 flex md:hidden items-center gap-2 mt-1">
+                    <div className="col-span-2 flex md:hidden items-center gap-2 mt-1 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={(e) => handleTogglePublic(e, quiz)}
+                        className={`text-xs font-semibold rounded-md px-2.5 py-1 border ${
+                          quiz.is_public
+                            ? 'text-primary bg-[#E8F1EB] border-[#CFE4D8]'
+                            : 'text-[#6B6460] border-[#E3DCD3]'
+                        }`}
+                      >
+                        {quiz.is_public ? '공개됨' : '공개하기'}
+                      </button>
                       <button
                         type="button"
                         onClick={(e) => {

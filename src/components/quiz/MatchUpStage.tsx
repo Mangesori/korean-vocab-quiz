@@ -179,7 +179,7 @@ export function MatchUpStage({ problems, wordsPerSet = 5, timeUpToken, onProgres
       case "left":
         return `${base} border-primary/25 bg-primary/5 hover:border-primary/50`;
       case "right":
-        return `${base} border-slate-200 bg-slate-50/80 hover:border-primary/40`;
+        return `${base} border-[#EBE5DE] bg-[#FAF8F5]/80 hover:border-primary/40`;
     }
   };
 
@@ -234,7 +234,7 @@ export function MatchUpStage({ problems, wordsPerSet = 5, timeUpToken, onProgres
               variant="outline"
               onClick={onBack}
               disabled={!onBack}
-              className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+              className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-[#EBE5DE] text-[#6B6460] text-xs sm:text-sm font-semibold hover:bg-white hover:text-[#1A1714] shadow-sm"
             >
               <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> <span className="hidden sm:inline">{backLabel ?? "이전"}</span>
             <span className="sm:hidden">이전</span>
@@ -243,7 +243,7 @@ export function MatchUpStage({ problems, wordsPerSet = 5, timeUpToken, onProgres
             <Button
               variant="outline"
               onClick={handlePrevSet}
-              className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+              className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-[#EBE5DE] text-[#6B6460] text-xs sm:text-sm font-semibold hover:bg-white hover:text-[#1A1714] shadow-sm"
             >
               <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> 이전 세트
             </Button>

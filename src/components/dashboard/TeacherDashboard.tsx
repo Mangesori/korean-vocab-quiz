@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { isResultComplete } from "@/types/quiz";
 import { QuizResultDialog } from "@/components/quiz/QuizResultDialog";
@@ -149,7 +149,7 @@ export default function TeacherDashboard() {
   const [bulkWithdrawOpen, setBulkWithdrawOpen] = useState(false);
   const [isBulkWithdrawing, setIsBulkWithdrawing] = useState(false);
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["teacherDashboard", user?.id],
     queryFn: async () => {
       const teacherId = user!.id;
@@ -745,17 +745,27 @@ export default function TeacherDashboard() {
     </div>
   );
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="bg-[#FAF8F5] px-[18px] sm:px-[30px] py-[26px] sm:py-8">
         <div className="flex items-baseline justify-between">
-          <div className="text-[21px] font-bold tracking-[-0.4px]">안녕하세요, {displayName} 선생님</div>
+          <div className="text-[21px] font-bold tracking-[-0.4px] pl-2">안녕하세요, {displayName} 선생님</div>
           <div className="text-xs text-[#8A837D]">{todayLabel}</div>
         </div>
 
         {noQuizzesNoClasses ? (
           /* ── 2b: 퀴즈 0 · 클래스 0 (신규 가입) ── */
-          <div className="mt-[18px] max-w-[940px] flex flex-col gap-3">
+          <div className="mt-[18px] flex flex-col gap-3">
             <div className="bg-primary rounded-2xl sm:rounded-[18px] px-6 py-6 sm:px-[30px] sm:py-7 text-white">
               <div className="text-[19px] sm:text-[22px] font-bold tracking-[-0.4px]">첫 퀴즈를 만들어 보세요</div>
               <p className="text-[12.5px] sm:text-[13px] text-white/[.78] mt-1.5 leading-[1.55] sm:max-w-[560px]">

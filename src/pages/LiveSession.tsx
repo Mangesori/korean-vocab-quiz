@@ -497,10 +497,10 @@ function StudentPanel({
                           : p.correct[i] === false
                           ? "bg-destructive/5 border-destructive/30 text-destructive font-semibold"
                           : active
-                          ? "bg-slate-50 border-border ring-2 ring-primary ring-offset-2 text-foreground font-medium"
+                          ? "bg-[#FAF8F5] border-border ring-2 ring-primary ring-offset-2 text-foreground font-medium"
                           : filled
-                          ? "bg-slate-50 border-border text-foreground"
-                          : "bg-slate-50 border-border text-muted-foreground"
+                          ? "bg-[#FAF8F5] border-border text-foreground"
+                          : "bg-[#FAF8F5] border-border text-muted-foreground"
                       )}
                     >
                       {!prompt && (

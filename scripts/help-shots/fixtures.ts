@@ -31,6 +31,35 @@ export const STUDENT2 = {
   name: "이서연",
 };
 
+// 퀴즈 라이브러리(t-library) 캡처용 "남"의 선생님 계정. 로그인해서 쓰지는 않고,
+// 이 선생님이 공개한 퀴즈(QUIZ_LIB)가 /quizzes/shared에서 teacher@help.local
+// 눈에 "다른 선생님이 만든 공개 퀴즈"로 보이게 하는 용도다.
+export const OTHER_TEACHER = {
+  id: "00000000-0000-0000-0000-000000000004",
+  email: "otherteacher@help.local",
+  name: "박선생",
+};
+
+// t-signup:2("역할 선택") 캡처 전용 — auth.users는 있지만 profiles 행이 없는 계정.
+// AuthCallback.tsx는 로그인 세션은 있는데 profiles.role 조회가 비어 있으면
+// "역할을 선택해주세요" 화면을 보여준다(신규 구글 가입자와 같은 상태). seed.ts는
+// 이 계정에 대해서만 프로필 upsert를 건너뛴다 — 절대 프로필을 만들면 안 된다.
+export const ROLELESS_USER = {
+  id: "00000000-0000-0000-0000-000000000005",
+  email: "roleless@help.local",
+  name: "",
+};
+
+// s-join:2/3("빈 대시보드 확인"/"코드 입력") 캡처 전용 — 프로필은 있지만(role: student)
+// 어느 클래스에도 속하지 않은 계정. student1/student2는 둘 다 이미 CLASS_A 멤버라
+// StudentDashboard.tsx의 `!hasClasses` 빈 상태 배너("클래스에 가입해 주세요")를 볼 수
+// 없어서, 이 배너를 결정적으로 재현하려면 별도 계정이 필요하다.
+export const NEW_STUDENT = {
+  id: "00000000-0000-0000-0000-000000000006",
+  email: "newstudent@help.local",
+  name: "박준서",
+};
+
 // ── 클래스 / 공지 ───────────────────────────────────────────────────────
 export const CLASS_A = {
   id: "00000000-0000-0000-0000-0000000000a1",
@@ -272,6 +301,150 @@ export const RECORDING_PROBLEMS = [
   source_type: "teacher_input" as const,
   sort_order: i,
   sentence_audio_url: `${AUDIO_BASE}/recording-${i}.mp3`,
+}));
+
+// ── 퀴즈 LIB: 박선생(OTHER_TEACHER) 소유 공개 퀴즈 (t-library 캡처용) ─────────
+// /quizzes/shared(SharedQuizzes.tsx)는 `is_public = true`이면서 로그인한 선생님
+// 본인 소유가 아닌(`teacher_id != 내 id`) 퀴즈만 보여준다. QUIZ_A~H는 전부
+// teacher@help.local 소유라 이 화면에서 항상 목록이 비므로, 박선생 소유의
+// 공개 퀴즈를 하나 따로 둔다. 카드를 펼치면 미리보기가 되는 용도라 유형별
+// 문제는 2~3개씩만 있으면 충분하다 — QUIZ_A처럼 전체 세트를 채우지 않는다.
+export const QUIZ_LIB_ID = "00000000-0000-0000-0000-0000000000b9";
+export const QUIZ_LIB_TITLE = "고급 어휘 종합 퀴즈";
+
+// QUIZ_A와 겹치지 않는 단어. 스크린샷에서 두 퀴즈가 한눈에 구분돼야 한다.
+export const QUIZ_LIB_WORDS = ["회의", "발표", "협력", "마감일"];
+
+const MEANING_LIB: Record<string, string> = {
+  회의: "meeting",
+  발표: "presentation",
+  협력: "cooperation",
+  마감일: "deadline",
+};
+
+const AUDIO_BASE_LIB = "https://example.com/dummy-audio/quiz-lib";
+
+// 빈칸 채우기 — quizzes.problems JSON에도 그대로 들어가 라이브러리 카드의
+// "문장 보기" 미리보기(LibraryRowDetail)에 쓰인다.
+export const QUIZ_LIB_FILL_BLANK_PROBLEMS = [
+  {
+    id: "lfb0",
+    word: "회의",
+    sentence: "내일 오전에 () 가 있어요.",
+    hint: "가/이",
+    answer: "회의가",
+    translation: "There is a meeting tomorrow morning.",
+  },
+  {
+    id: "lfb1",
+    word: "발표",
+    sentence: "다음 주에 () 를 준비해야 해요.",
+    hint: "를/을",
+    answer: "발표를",
+    translation: "I need to prepare a presentation next week.",
+  },
+  {
+    id: "lfb2",
+    word: "협력",
+    sentence: "두 팀은 서로 () 해요.",
+    hint: "하다",
+    answer: "협력",
+    translation: "The two teams cooperate with each other.",
+  },
+].map((p, i) => ({
+  ...p,
+  sentence_audio_url: `${AUDIO_BASE_LIB}/fill-blank-${i}.mp3`,
+}));
+
+// 짝맞추기 / 받아쓰기 — QUIZ_LIB_WORDS 4개 전부 사용
+export const QUIZ_LIB_MATCHUP_PROBLEMS = QUIZ_LIB_WORDS.map((word, i) => ({
+  problem_id: `lm${i}`,
+  korean_text: word,
+  meaning_text: MEANING_LIB[word],
+  sort_order: i,
+}));
+
+export const QUIZ_LIB_TYPE_ANSWER_PROBLEMS = QUIZ_LIB_WORDS.map((word, i) => ({
+  problem_id: `lt${i}`,
+  prompt: `다음 뜻에 해당하는 한국어 단어를 입력하세요: ${MEANING_LIB[word]}`,
+  answer: word,
+  sort_order: i,
+}));
+
+// 문장 순서 맞추기
+export const QUIZ_LIB_WORD_MAGNET_PROBLEMS = [
+  {
+    problem_id: "lwm0",
+    base_text: "저는 회의에 참석해요",
+    translation: "I attend the meeting.",
+    items: [
+      { content: "저는", isParticle: false },
+      { content: "회의", isParticle: false },
+      { content: "에", isParticle: true },
+      { content: "참석해요", isParticle: false },
+    ],
+  },
+  {
+    problem_id: "lwm1",
+    base_text: "발표를 준비해요",
+    translation: "I prepare a presentation.",
+    items: [
+      { content: "발표", isParticle: false },
+      { content: "를", isParticle: true },
+      { content: "준비해요", isParticle: false },
+    ],
+  },
+  {
+    problem_id: "lwm2",
+    base_text: "협력이 중요해요",
+    translation: "Cooperation is important.",
+    items: [
+      { content: "협력", isParticle: false },
+      { content: "이", isParticle: true },
+      { content: "중요해요", isParticle: false },
+    ],
+  },
+].map((p, i) => ({ ...p, sort_order: i }));
+
+// 문장 만들기
+export const QUIZ_LIB_SENTENCE_MAKING_PROBLEMS = [
+  { problem_id: "lsm0", word: "회의", model_answer: "저는 내일 회의에 참석해요." },
+  { problem_id: "lsm1", word: "발표", model_answer: "저는 다음 주에 발표를 해요." },
+  { problem_id: "lsm2", word: "협력", model_answer: "우리는 서로 협력해요." },
+].map((p, i) => ({
+  ...p,
+  word_meaning: MEANING_LIB[p.word],
+  sort_order: i,
+}));
+
+// 말하기(녹음)
+export const QUIZ_LIB_RECORDING_PROBLEMS = [
+  {
+    problem_id: "lr0",
+    label: "회의",
+    sentence: "내일 오전에 회의가 있어요.",
+    translation: "There is a meeting tomorrow morning.",
+    mode: "read" as const,
+  },
+  {
+    problem_id: "lr1",
+    label: "발표",
+    sentence: "다음 주에 발표를 준비해요.",
+    translation: "I prepare a presentation next week.",
+    mode: "listen" as const,
+  },
+  {
+    problem_id: "lr2",
+    label: "협력",
+    sentence: "두 팀은 서로 협력해요.",
+    translation: "The two teams cooperate with each other.",
+    mode: "read" as const,
+  },
+].map((p, i) => ({
+  ...p,
+  source_type: "teacher_input" as const,
+  sort_order: i,
+  sentence_audio_url: `${AUDIO_BASE_LIB}/recording-${i}.mp3`,
 }));
 
 // ── 퀴즈 B: 빈칸 채우기만 켠 단순 퀴즈 (편집 화면 캡처용) ───────────────────

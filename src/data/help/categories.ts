@@ -23,7 +23,7 @@ export const CATEGORY_GROUPS: Record<HelpRole, HelpCategory[]> = {
       role: "teacher",
       label: "퀴즈 만들기",
       icon: PenSquare,
-      articleIds: ["t-words", "t-prompt", "t-types", "t-edit"],
+      articleIds: ["t-words", "t-prompt", "t-library", "t-types", "t-edit"],
     },
     {
       key: "t_class",
