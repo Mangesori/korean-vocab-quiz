@@ -204,7 +204,7 @@ export function FillBlankStage({
   return (
     <div className="w-full">
       {/* Main Card */}
-      <Card className="border shadow-sm rounded-2xl overflow-hidden mb-8 bg-white max-w-5xl mx-auto mt-4">
+      <Card className="border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl overflow-hidden mb-8 bg-transparent sm:bg-white max-w-5xl mx-auto mt-4">
         <CardContent className="p-0">
           {/* 안내 — 흰 면 = 읽는 것(안내), 회색 박스 = 푸는 재료(보기).
               예시는 안내문구 끝("입력하세요") 바로 옆 정보 아이콘의 Popover로 옮겼다
@@ -451,7 +451,7 @@ export function FillBlankStage({
           variant="outline"
           onClick={handlePrevSet}
           disabled={currentSetIndex === 0}
-          className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-border text-muted-foreground text-xs sm:text-sm font-semibold hover:bg-white hover:text-foreground shadow-sm"
+          className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-[#FAF8F5] sm:bg-white/50 border-border text-muted-foreground text-xs sm:text-sm font-semibold hover:bg-white hover:text-foreground shadow-none sm:shadow-sm"
         >
           <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> 이전 세트
         </Button>

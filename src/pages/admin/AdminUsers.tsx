@@ -288,7 +288,7 @@ export default function AdminUsers() {
                 <TableHead className="h-10 text-[11px] font-extrabold tracking-wide text-muted-foreground">이메일</TableHead>
                 <TableHead className="h-10 text-[11px] font-extrabold tracking-wide text-muted-foreground">현재 역할</TableHead>
                 <TableHead className="h-10 text-[11px] font-extrabold tracking-wide text-muted-foreground">가입일</TableHead>
-                <TableHead className="h-10 text-center text-[11px] font-extrabold tracking-wide text-muted-foreground">관리</TableHead>
+                <TableHead className="h-10 text-[11px] font-extrabold tracking-wide text-muted-foreground">관리</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -305,8 +305,8 @@ export default function AdminUsers() {
                     <TableCell className="py-0 tabular-nums text-muted-foreground">
                       {formatDateShort(u.created_at)}
                     </TableCell>
-                    <TableCell className="py-0 text-right">
-                      <div className="flex items-center justify-center gap-2">
+                    <TableCell className="py-0">
+                      <div className="flex items-center gap-2">
                         <UserRoleSelect
                           userId={u.user_id}
                           role={u.role}

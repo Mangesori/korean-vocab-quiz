@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LevelBadge } from '@/components/ui/level-badge';
-import { Compass, Search, Loader2, Copy, Check, ChevronDown, Plus, X } from 'lucide-react';
+import { Compass, Search, Loader2, Copy, ArrowRight, ChevronDown, Plus, X } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/lib/rbac/roles';
 import { toast } from 'sonner';
@@ -163,11 +163,11 @@ interface LibraryRowProps {
   expanded: boolean;
   onToggle: () => void;
   isCopying: boolean;
-  isCopied: boolean;
+  copiedQuizId?: string;
   onCopy: () => void;
 }
 
-function LibraryRow({ quiz, expanded, onToggle, isCopying, isCopied, onCopy }: LibraryRowProps) {
+function LibraryRow({ quiz, expanded, onToggle, isCopying, copiedQuizId, onCopy }: LibraryRowProps) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="grid grid-cols-1 items-center gap-3 px-5 py-4 hover:bg-secondary/40 sm:grid-cols-[1fr_auto] sm:gap-5 sm:px-6 sm:py-5">
@@ -199,16 +199,23 @@ function LibraryRow({ quiz, expanded, onToggle, isCopying, isCopied, onCopy }: L
             문장 보기
             <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
           </Button>
-          <Button type="button" disabled={isCopying || isCopied} onClick={onCopy}>
-            {isCopying ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : isCopied ? (
-              <Check className="h-4 w-4" strokeWidth={2} />
-            ) : (
-              <Copy className="h-4 w-4" strokeWidth={1.9} />
-            )}
-            {isCopied ? '복사됨' : '내 퀴즈로 복사'}
-          </Button>
+          {copiedQuizId ? (
+            <Button type="button" variant="outline" asChild>
+              <Link to={`/quiz/${copiedQuizId}`}>
+                내 퀴즈에서 열기
+                <ArrowRight className="h-4 w-4" strokeWidth={1.9} />
+              </Link>
+            </Button>
+          ) : (
+            <Button type="button" disabled={isCopying} onClick={onCopy}>
+              {isCopying ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Copy className="h-4 w-4" strokeWidth={1.9} />
+              )}
+              내 퀴즈로 복사
+            </Button>
+          )}
         </div>
       </div>
 
@@ -221,11 +228,12 @@ export default function SharedQuizzes() {
   const { user, loading } = useAuth();
   const { can } = usePermissions();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState<string>('all');
   const [selectedStages, setSelectedStages] = useState<Set<BaseStage>>(new Set());
   const [sortBy, setSortBy] = useState<SortOption>('recent');
-  const [copiedIds, setCopiedIds] = useState<Set<string>>(new Set());
+  const [copiedQuizIds, setCopiedQuizIds] = useState<Map<string, string>>(new Map());
   const [copyingId, setCopyingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -337,13 +345,18 @@ export default function SharedQuizzes() {
       // 자식 표(matchup_problems 등)의 RLS 정책이 "퀴즈 소유 선생님만 SELECT"라서
       // 클라이언트에서 직접 복사하면 항상 빈 배열이 돌아온다(빈칸 채우기 외 나머지
       // 유형이 0문제로 복사되는 버그). SECURITY DEFINER RPC로 서버에서 한 번에 복사한다.
-      // copy_shared_quiz는 아직 생성된 Database 타입에 없다.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: copyError } = await (supabase.rpc as any)('copy_shared_quiz', { _quiz_id: quiz.id });
+      const { data: newQuizId, error: copyError } = await supabase.rpc('copy_shared_quiz', {
+        _quiz_id: quiz.id,
+      });
       if (copyError) throw copyError;
 
-      toast.success(`"${quiz.title}"을(를) 내 퀴즈로 복사했어요`);
-      setCopiedIds((prev) => new Set(prev).add(quiz.id));
+      toast.success(`"${quiz.title}"을(를) 내 퀴즈로 복사했어요`, {
+        action: {
+          label: '열기',
+          onClick: () => navigate(`/quiz/${newQuizId}`),
+        },
+      });
+      setCopiedQuizIds((prev) => new Map(prev).set(quiz.id, newQuizId as string));
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
       queryClient.invalidateQueries({ queryKey: ['sharedQuizzes'] });
     } catch (error) {
@@ -503,7 +516,7 @@ export default function SharedQuizzes() {
                 expanded={expanded.has(quiz.id)}
                 onToggle={() => toggleExpanded(quiz.id)}
                 isCopying={copyingId === quiz.id}
-                isCopied={copiedIds.has(quiz.id)}
+                copiedQuizId={copiedQuizIds.get(quiz.id)}
                 onCopy={() => handleCopy(quiz)}
               />
             ))}

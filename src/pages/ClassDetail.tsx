@@ -517,7 +517,7 @@ export default function ClassDetail() {
                         key={assignment.id}
                         className="grid grid-cols-[52px_1fr_100px_80px_90px_28px] sm:grid-cols-[52px_1fr_120px_100px_116px_28px] gap-3.5 px-4 py-3 border-b border-[#F4F0EA] items-center hover:bg-muted/30 transition-colors"
                       >
-                        <LevelBadge level={quiz?.difficulty || 'A1'} />
+                        <LevelBadge level={quiz?.difficulty || 'A1'} className="self-center" />
                         <Link to={`/quiz/${assignment.quiz_id}`} className="min-w-0 block">
                           <p className="text-[13.5px] font-semibold text-foreground truncate">
                             {quiz?.title || '삭제된 퀴즈'}

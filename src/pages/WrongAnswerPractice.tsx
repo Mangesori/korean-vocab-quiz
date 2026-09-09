@@ -730,7 +730,7 @@ export default function WrongAnswerPractice() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white sm:bg-background">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b shadow-sm">
         <div className="container mx-auto px-4 py-3">
@@ -784,7 +784,7 @@ export default function WrongAnswerPractice() {
 
             {stageProgress.total > 0 && (
               <div className="flex items-center justify-between gap-4 w-full px-1">
-                <Progress value={(stageProgress.current / stageProgress.total) * 100} className="flex-1 h-2.5" />
+                <Progress value={(stageProgress.current / stageProgress.total) * 100} className="flex-1 h-2.5 bg-[#F4F0EA]" />
                 <span className="shrink-0 px-3 py-1 bg-[#F4F0EA] text-[#4A443F] rounded-lg text-sm font-bold shadow-sm border border-border">
                   {stageProgress.label}
                 </span>

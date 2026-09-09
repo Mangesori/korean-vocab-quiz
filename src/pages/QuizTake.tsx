@@ -2162,7 +2162,7 @@ export default function QuizTake() {
   const currentGlobalIndex = getCurrentGlobalStageIndex();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white sm:bg-background">
       {/* 퀴즈 공통 Header & Global Stepper */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b shadow-sm">
         <div className="container mx-auto px-4 py-3">
@@ -2234,9 +2234,9 @@ export default function QuizTake() {
             {/* 두 번째 줄: 진행 상황 정보(프로그레스 바) */}
             {stageProgress.total > 0 && !currentStage.includes("_result") && currentStage !== "completed" && (
               <div className="flex items-center justify-between gap-4 w-full px-1">
-                <Progress 
-                  value={stageProgress.total > 0 ? (stageProgress.current / stageProgress.total) * 100 : 0} 
-                  className="flex-1 h-2.5" 
+                <Progress
+                  value={stageProgress.total > 0 ? (stageProgress.current / stageProgress.total) * 100 : 0}
+                  className="flex-1 h-2.5 bg-[#F4F0EA]"
                 />
                 <span className="shrink-0 px-3 py-1 bg-[#F4F0EA] text-[#4A443F] rounded-lg text-sm font-bold shadow-sm border border-border">
                   {stageProgress.label}

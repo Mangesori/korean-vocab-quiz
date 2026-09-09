@@ -9,18 +9,27 @@
  * 문항은 get_due_review_items가 골라 준다. 같은 단어라도 복습 차례마다 다른
  * 문장이 오고(원본 → 은행1 → 은행2 → 원본 ...), 레벨은 올라가지 않는다.
  * 실제 풀이는 기존 연습 화면(/wrong-answers/practice)을 그대로 쓴다.
+ *
+ * 2026-09 개편(handoff-landing-srs/05_student_srs.md, 5a):
+ *   시작 버튼을 스크롤 목록보다 먼저 보이게 하고, 목록은 접어서 한 줄로 줄였다.
+ *   "어제 실적 · 연속 일수"와 주간 막대는 문서에서 요청했지만, wrong_answer_progress에는
+ *   단어별 stage/due_at/last_practiced_at만 있고 날짜별 완료 이력(로그)이 없어
+ *   계산할 수 없다 — last_practiced_at은 단어마다 최신 시각 하나만 덮어쓰는 값이라
+ *   "그날 실제로 몇 개를 끝냈는지"·"며칠 연속 했는지"를 복원할 수 없다.
+ *   그래서 문서가 명시한 축소안대로 부제를 정적 문구로 대체하고 주간 막대는 생략했다.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlarmClock, ArrowRight, BookOpen, Loader2, Sparkles } from "lucide-react";
+import { AlarmClock, ArrowRight, BookOpen, ChevronDown, Loader2, Sparkles } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { MASTER_STAGE, STAGE_INTERVAL_DAYS } from "@/lib/korean/reviewSchedule";
+import { SRS_STAGE_LABELS } from "@/lib/korean/srsStageLabels";
 
 /** 하루에 내보내는 최대 개수. 밀려도 이만큼씩만 나눠서 처리하게 한다. */
 const DAILY_LIMIT = 20;
@@ -46,6 +55,7 @@ interface DueItem {
 export default function ReviewToday() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [listOpen, setListOpen] = useState(false);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["due-review-items", user?.id],
@@ -77,6 +87,7 @@ export default function ReviewToday() {
     () => items.filter((i) => i.sentence && i.answer),
     [items]
   );
+  const noSentenceCount = items.length - playable.length;
 
   const overdueCount = useMemo(
     () => items.filter((i) => i.overdue_days > 0).length,
@@ -125,9 +136,11 @@ export default function ReviewToday() {
           <h1 className="text-2xl font-bold text-foreground tracking-tight pl-2">
             오늘의 복습
           </h1>
-          <p className="text-sm text-muted-foreground mt-2">
-            {STAGE_INTERVAL_DAYS.join("일 · ")}일 간격으로 다시 물어봐요. {MASTER_STAGE}번 맞히면 마스터예요.
-          </p>
+          {items.length > 0 && (
+            <p className="text-sm text-muted-foreground mt-2 pl-2">
+              {items.length}개 준비됐어요 · {playable.length}개를 풀 수 있어요
+            </p>
+          )}
         </div>
 
         {isLoading ? (
@@ -160,6 +173,12 @@ export default function ReviewToday() {
               </p>
             )}
 
+            {/* 스크롤 목록보다 시작 버튼을 먼저 — 매일 오는 화면에서 목록을 지나칠 필요가 없게 */}
+            <Button size="lg" className="w-full gap-2 mt-5" onClick={startPractice} disabled={playable.length === 0}>
+              복습 시작하기 ({playable.length}개)
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+
             {backlog > 0 && (
               <div className="mt-4 rounded-xl border border-warning/30 bg-warning/5 p-3 flex gap-2">
                 <AlarmClock className="w-4 h-4 text-warning shrink-0 mt-0.5" />
@@ -171,45 +190,57 @@ export default function ReviewToday() {
               </div>
             )}
 
-            <div className="mt-5 space-y-1.5 max-h-72 overflow-y-auto">
-              {items.map((i) => (
-                <div
-                  key={i.word}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/40"
-                >
-                  <span className="font-medium text-foreground">{i.word}</span>
-                  {i.meaning && (
-                    <span className="text-xs text-muted-foreground truncate">{i.meaning}</span>
-                  )}
-                  <span className="ml-auto flex items-center gap-2 shrink-0">
-                    {!i.sentence && (
-                      <span className="text-[11px] text-muted-foreground">문장 없음</span>
+            <Collapsible open={listOpen} onOpenChange={setListOpen} className="mt-5 pt-5 border-t border-border/60">
+              <CollapsibleTrigger className="flex w-full items-center justify-between text-sm text-left group">
+                <span className="font-medium text-foreground">오늘 나올 단어 보기</span>
+                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {items.length}개
+                  {noSentenceCount > 0 && ` · ${noSentenceCount}개는 문장이 없어 빠져요`}
+                  <ChevronDown
+                    className={`w-4 h-4 shrink-0 transition-transform ${listOpen ? "rotate-180" : ""}`}
+                  />
+                </span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-3 space-y-1.5 max-h-72 overflow-y-auto">
+                {items.map((i) => (
+                  <div
+                    key={i.word}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/40"
+                  >
+                    <span className="font-medium text-foreground">{i.word}</span>
+                    {i.meaning && (
+                      <span className="text-xs text-muted-foreground truncate">{i.meaning}</span>
                     )}
-                    {i.overdue_days > 0 && (
-                      <span className="text-[11px] text-warning font-medium tabular-nums">
-                        {i.overdue_days}일 지남
+                    <span className="ml-auto flex items-center gap-2 shrink-0">
+                      {!i.sentence && (
+                        <span className="text-[11px] text-muted-foreground">문장 없음</span>
+                      )}
+                      {i.overdue_days > 0 && (
+                        <span className="text-[11px] text-warning font-medium tabular-nums">
+                          {i.overdue_days}일 지남
+                        </span>
+                      )}
+                      <span className="text-[11px] text-muted-foreground tabular-nums">
+                        {SRS_STAGE_LABELS[i.stage] ?? `${i.stage}단계`}
                       </span>
-                    )}
-                    <span className="text-[11px] text-muted-foreground tabular-nums">
-                      {i.stage}/{MASTER_STAGE}단계
                     </span>
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {playable.length < items.length && (
-              <p className="text-xs text-muted-foreground mt-3">
-                {items.length - playable.length}개는 쓸 문장이 없어 이번엔 빠져요.
-              </p>
-            )}
-
-            <Button size="lg" className="w-full gap-2 mt-6" onClick={startPractice} disabled={playable.length === 0}>
-              복습 시작하기 ({playable.length}개)
-              <ArrowRight className="w-4 h-4" />
-            </Button>
+                  </div>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         )}
+
+        <div className="mt-5 text-center">
+          <Link
+            to="/vocabulary"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <BookOpen className="w-4 h-4" />
+            나만의 단어장에서 전체 단어 보기
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
       </div>
     </AppLayout>
   );

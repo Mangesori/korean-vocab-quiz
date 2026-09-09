@@ -350,10 +350,12 @@ export default function AdminReport() {
               <CardTitle className="text-base">CEFR 레벨 분포</CardTitle>
               <CardDescription>퀴즈 {filteredQuizzes.length}개 기준</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {/* 레벨 색은 LevelBadge(.level-a1~.level-c2)가 단일 소스. 값 내림차순 정렬, 0값은 막대 없이 "없음"만. */}
+            <CardContent className="grid grid-cols-[auto_1fr_78px] items-center gap-x-3 gap-y-3">
+              {/* 레벨 색은 LevelBadge(.level-a1~.level-c2)가 단일 소스. 값 내림차순 정렬, 0값은 막대 없이 "없음"만.
+                  행마다 grid를 따로 두면 배지 폭(auto)이 행별로 달라져 막대 길이가 들쭉날쭉해지므로,
+                  전체를 하나의 grid로 묶고 각 행은 display:contents로 열 트랙만 공유한다. */}
               {cefrRows.map(({ level, count }) => (
-                <div key={level} className="grid grid-cols-[104px_1fr_78px] items-center gap-3">
+                <div key={level} className="contents">
                   <LevelBadge
                     level={level}
                     className={level === '미지정' ? 'bg-muted text-muted-foreground' : undefined}

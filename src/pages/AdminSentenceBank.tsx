@@ -743,7 +743,7 @@ export default function AdminSentenceBank() {
                 <span className="text-[11.5px] tabular-nums text-muted-foreground">
                   {rows.length}개 중 {selectedOnPage}개 선택됨
                 </span>
-                <span className="text-center text-[11px] font-extrabold tracking-wide text-muted-foreground">관리</span>
+                <span className="text-[11px] font-extrabold tracking-wide text-muted-foreground">관리</span>
               </div>
 
               {rows.map((row) => {
@@ -824,7 +824,7 @@ export default function AdminSentenceBank() {
                     </div>
 
                     {/* 3열: 액션 */}
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" className="h-8" onClick={() => openEdit(row)}>
                         수정
                       </Button>

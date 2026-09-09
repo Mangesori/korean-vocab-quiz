@@ -442,7 +442,7 @@ export default function AdminTeachers() {
                   <TableHead className="h-10 text-[11px] font-extrabold tracking-wide text-muted-foreground">이메일</TableHead>
                   <TableHead className="h-10 text-[11px] font-extrabold tracking-wide text-muted-foreground">마지막 활동</TableHead>
                   <TableHead className="h-10 text-[11px] font-extrabold tracking-wide text-muted-foreground">운영 현황</TableHead>
-                  <TableHead className="h-10 text-center text-[11px] font-extrabold tracking-wide text-muted-foreground">관리</TableHead>
+                  <TableHead className="h-10 text-[11px] font-extrabold tracking-wide text-muted-foreground">관리</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -475,7 +475,7 @@ export default function AdminTeachers() {
                     </TableCell>
 
                     <TableCell className="py-0">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
