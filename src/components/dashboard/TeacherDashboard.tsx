@@ -572,13 +572,13 @@ export default function TeacherDashboard() {
       {pendingExpanded && (
         <>
           <div
-            className="mt-3.5 flex items-center justify-between gap-3 rounded-[10px] px-[13px] py-[10px]"
+            className="mt-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 rounded-[10px] px-[13px] py-[10px]"
             style={{ background: "#FAF8F5", border: "1px solid #EBE5DE" }}
           >
             <div className="text-xs text-[#6B6460] leading-[1.5]">
               배정한 지 오래된 순입니다. {staleThreshold}일 넘게 방치된 배정이 {staleCount}건 있습니다 — 회수하거나 재알림하세요.
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <Select value={String(staleThreshold)} onValueChange={(v) => setStaleThreshold(Number(v))}>
                 <SelectTrigger className="h-8 w-[100px] text-xs shrink-0">
                   <SelectValue placeholder="방치 기간" />
