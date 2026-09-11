@@ -371,11 +371,11 @@ export function MatchupProblemList({
               </span>{" "}
               문제를 고쳤습니다 · 저장하지 않으면 사라집니다
             </span>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
+            <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none" onClick={() => setIsEditing(false)}>
                 수정 취소
               </Button>
-              <Button onClick={onSaveAll} disabled={isSaving || !hasChanges} size="sm">
+              <Button onClick={onSaveAll} disabled={isSaving || !hasChanges} size="sm" className="flex-1 sm:flex-none">
                 {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 저장하기
               </Button>
