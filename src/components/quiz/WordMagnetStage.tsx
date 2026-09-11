@@ -110,7 +110,7 @@ function SortableAnswerTile({ tile, marginClass, onTap }: { tile: Tile; marginCl
 // 단어 은행에서 사용된 타일 자리에 남는 회색 빈칸(레이아웃 고정)
 function TilePlaceholder({ content }: { content: string }) {
   return (
-    <div className="rounded-xl px-3 py-2 text-base sm:text-lg border border-slate-200 bg-slate-100 whitespace-nowrap" aria-hidden>
+    <div className="rounded-xl px-3 py-2 text-base sm:text-lg border border-[#EBE5DE] bg-[#F4F0EA] whitespace-nowrap" aria-hidden>
       <span className="invisible">{content}</span>
     </div>
   );
@@ -317,7 +317,7 @@ export function WordMagnetStage({ problems, onAnswerPeek, onProgressUpdate, onCo
       className={`inline-block text-sm rounded px-1 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
         isCurrentSkipped
           ? "text-foreground font-semibold"
-          : "text-muted-foreground font-medium hover:text-foreground hover:scale-110"
+          : "text-foreground/65 font-medium hover:text-foreground hover:scale-110"
       }`}
     >
       {isCurrentSkipped ? "모르겠어요 (선택됨)" : "모르겠어요"}
@@ -330,7 +330,7 @@ export function WordMagnetStage({ problems, onAnswerPeek, onProgressUpdate, onCo
         <QuizStageHeader instruction="단어를 끌거나 탭해서 문장을 완성하세요" />
 
         {/* 프롬프트(번역) — 회색 박스는 "읽을 재료"만 */}
-        <div className="p-5 sm:p-6 bg-slate-50 rounded-2xl text-center">
+        <div className="p-5 sm:p-6 bg-[#FAF8F5] rounded-2xl text-center">
           <p className="text-lg sm:text-xl font-semibold text-foreground break-keep">{unmaskTranslation(currentProblem.translation)}</p>
         </div>
 
@@ -396,7 +396,7 @@ export function WordMagnetStage({ problems, onAnswerPeek, onProgressUpdate, onCo
               <Button
                 variant="outline"
                 onClick={onBack}
-                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-[#FAF8F5] sm:bg-white/50 border-[#EBE5DE] text-[#6B6460] text-xs sm:text-sm font-semibold hover:bg-white hover:text-[#1A1714] shadow-none sm:shadow-sm"
               >
                 <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> <span className="hidden sm:inline">{backLabel ?? "이전"}</span>
             <span className="sm:hidden">이전</span>
@@ -406,7 +406,7 @@ export function WordMagnetStage({ problems, onAnswerPeek, onProgressUpdate, onCo
                 variant="outline"
                 onClick={goPrev}
                 disabled={currentIndex === 0}
-                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-[#FAF8F5] sm:bg-white/50 border-[#EBE5DE] text-[#6B6460] text-xs sm:text-sm font-semibold hover:bg-white hover:text-[#1A1714] shadow-none sm:shadow-sm"
               >
                 <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> 이전
               </Button>

@@ -1,12 +1,19 @@
-import { useState, useEffect, useCallback, type CSSProperties, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useMemo, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Edit2, Save, Loader2, Plus, Eye, Info, RefreshCw } from "lucide-react";
+import { Edit2, Save, Loader2, Plus, Eye, Info, RefreshCw, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useParams } from "react-router-dom";
 import {
   DndContext,
   closestCenter,
   PointerSensor,
+  TouchSensor,
   KeyboardSensor,
   useSensor,
   useSensors,
@@ -92,6 +99,26 @@ export function WordMagnetProblemList({
       setEditedProblems(problems);
     }
   }, [problems, isEditing]);
+
+  // 실제로 고쳐진(또는 새로 추가된) 문제 개수 — 저장 안내 바에 노출
+  const changedCount = useMemo(() => {
+    const originalById = new Map(problems.map((p) => [p.id, p]));
+    let count = 0;
+    for (const p of editedProblems) {
+      const orig = originalById.get(p.id);
+      if (!orig || JSON.stringify(orig) !== JSON.stringify(p)) count++;
+    }
+    return count;
+  }, [problems, editedProblems]);
+  const hasChanges = useMemo(
+    () => JSON.stringify(editedProblems) !== JSON.stringify(problems),
+    [editedProblems, problems]
+  );
+
+  const handleCancelEdit = () => {
+    setEditedProblems(problems);
+    setIsEditing(false);
+  };
 
   const handleUpdateProblem = (id: string, field: keyof WordMagnetProblem, value: string) => {
     setEditedProblems((prev) =>
@@ -270,6 +297,8 @@ export function WordMagnetProblemList({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    // 모바일 터치는 짧은 탭으로 오작동하지 않도록 길게 누르기(250ms)로 드래그를 시작한다.
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor)
   );
 
@@ -367,6 +396,27 @@ export function WordMagnetProblemList({
     </div>
   );
 
+  // 전체 문제 재생성 — 자주 쓰지 않으므로 ⋮ 메뉴 안으로
+  const overflowMenu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="icon" className="h-11 w-11 sm:h-9 sm:w-9 shrink-0" aria-label="더보기">
+          <MoreVertical className="w-4 h-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem onClick={handleRegenerateAllProblems} disabled={isRegeneratingAll}>
+          {isRegeneratingAll ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4 mr-2" />
+          )}
+          전체 문제 재생성
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   if (problems.length === 0 && editedProblems.length === 0) {
     return (
       <div className="space-y-4">
@@ -391,53 +441,55 @@ export function WordMagnetProblemList({
   const displayProblems = studentPreview ? problems : editedProblems;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-24">
       {/* 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start sm:gap-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">문제 목록</h2>
+        <div className="w-full sm:w-auto">
+          <div className="flex items-center justify-between sm:justify-start sm:gap-4">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">문제 목록</h2>
+              {isEditing && (
+                <span
+                  className="px-2 py-0.5 rounded-lg text-[11.5px] font-bold"
+                  style={{ color: "#1E6B47", backgroundColor: "#E8F1EB", border: "1px solid #C8DED3" }}
+                >
+                  편집 중
+                </span>
+              )}
+            </div>
+            {toggleRow}
           </div>
-          {toggleRow}
+
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRegenerateAllProblems}
-            disabled={isRegeneratingAll}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
-          >
-            {isRegeneratingAll ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
-            )}
-            <span>전체 문제 재생성</span>
-          </Button>
-          <Button
-            variant={isEditing ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => {
-              if (!isEditing) onToggleStudentPreview?.(false);
-              setIsEditing(!isEditing);
-            }}
-            className="w-full sm:w-auto"
-          >
-            <Edit2 className="w-4 h-4 mr-2" />
-            <span>{isEditing ? "수정 취소" : "수정하기"}</span>
-          </Button>
-          <Button
-            onClick={onSaveAll}
-            disabled={isSaving || !isEditing}
-            size="sm"
-            className="w-full sm:w-auto"
-            variant="default"
-          >
-            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-            <span>저장하기</span>
-          </Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {isEditing ? (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleCancelEdit}
+                className="flex-1 sm:flex-none h-11 rounded-[11px] sm:h-9 sm:rounded-md border border-[#E3DCD3]"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                <span>수정 취소</span>
+              </Button>
+              {overflowMenu}
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+                className="flex-1 sm:flex-none h-11 rounded-[11px] sm:h-9 sm:rounded-md"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                <span>수정하기</span>
+              </Button>
+              {overflowMenu}
+            </>
+          )}
         </div>
       </div>
 
@@ -447,9 +499,12 @@ export function WordMagnetProblemList({
       ) : !studentPreview && (
         <div className="space-y-4">
           {isEditing && (
-            <div className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary/80">
+            <div
+              className="flex items-start gap-2 rounded-xl px-4 py-3 text-[12px]"
+              style={{ backgroundColor: "#F4F9F6", border: "1px solid #C8DED3", color: "#2C6B4C" }}
+            >
               <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span>단어 타일은 'AI 재분절'로 다시 나누거나 직접 편집할 수 있어요. 조사·어미는 노란색 타일입니다.</span>
+              <span>단어 타일은 'AI 재분절'로 다시 나누거나 직접 편집할 수 있어요. 조사·어미는 회색 타일입니다.</span>
             </div>
           )}
 
@@ -498,36 +553,61 @@ export function WordMagnetProblemList({
                   onChangeBaseText={(v) => handleUpdateProblem(problem.id, "base_text", v)}
                   onChangeTranslation={(v) => handleUpdateProblem(problem.id, "translation", v)}
                   onChangeItems={(items) => handleUpdateItems(problem.id, items)}
-                  onResegment={() => handleResegment(problem.id)}
+                  // 읽기 전용에서는 값을 바꾸는 핸들러 자체를 카드에 넘기지 않는다 (권한 버그 방지)
+                  onResegment={undefined}
                   resegmenting={resegmentingId === problem.id}
-                  onRegenerateProblem={() => handleRegenerateProblem(problem.id)}
+                  onRegenerateProblem={undefined}
                   regeneratingProblem={regeneratingId === problem.id}
-                  onDelete={() => handleDelete(problem.id)}
+                  onDelete={undefined}
                   deleting={deletingId === problem.id}
                 />
               ))}
             </div>
           )}
 
-          <div className="flex justify-center mt-4">
-            <Button
-              variant="ghost"
-              className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
-              onClick={handleAddProblem}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              문장 추가하기
-            </Button>
-          </div>
-
           {isEditing && (
-            <div className="mt-4 flex justify-center">
-              <Button onClick={onSaveAll} disabled={isSaving} size="lg">
+            <div className="flex justify-center mt-4">
+              <Button
+                variant="ghost"
+                className="rounded-full px-6 text-muted-foreground bg-muted/50 hover:bg-muted hover:text-muted-foreground transition-colors"
+                onClick={handleAddProblem}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                문장 추가하기
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 저장하기 고정 바 — 화면 안에 이 한 곳에만 둔다 */}
+      {isEditing && (
+        <div className="fixed bottom-4 left-4 right-4 z-40 flex justify-center pointer-events-none">
+          <div
+            className="w-full max-w-3xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-[13px] pointer-events-auto"
+            style={{
+              backgroundColor: "#fff",
+              border: "1px solid #E3DCD3",
+              borderRadius: 13,
+              boxShadow: "0 -2px 12px rgba(0,0,0,.04)",
+            }}
+          >
+            <span className="text-sm text-muted-foreground">
+              <span className="font-bold" style={{ color: "#B4552D" }}>
+                {changedCount}개
+              </span>{" "}
+              문제를 고쳤습니다 · 저장하지 않으면 사라집니다
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button variant="outline" size="sm" onClick={handleCancelEdit}>
+                수정 취소
+              </Button>
+              <Button onClick={onSaveAll} disabled={isSaving || !hasChanges} size="sm">
                 {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 저장하기
               </Button>
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>

@@ -93,7 +93,7 @@ export function TypeAnswerStage({ problems, onAnswerPeek, onProgressUpdate, onCo
       className={`inline-block text-sm rounded px-1 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
         isSkipped
           ? "text-foreground font-semibold"
-          : "text-muted-foreground font-medium hover:text-foreground hover:scale-110"
+          : "text-foreground/65 font-medium hover:text-foreground hover:scale-110"
       }`}
     >
       {isSkipped ? "모르겠어요 (선택됨)" : "모르겠어요"}
@@ -108,7 +108,7 @@ export function TypeAnswerStage({ problems, onAnswerPeek, onProgressUpdate, onCo
         </p>
 
         {/* 프롬프트(뜻) */}
-        <div className="p-6 sm:p-8 bg-slate-50 rounded-2xl text-center min-h-[110px] flex items-center justify-center">
+        <div className="p-6 sm:p-8 bg-[#FAF8F5] rounded-2xl text-center min-h-[110px] flex items-center justify-center">
           <p className="text-xl sm:text-2xl font-bold text-foreground break-keep">{problem.prompt}</p>
         </div>
 
@@ -130,7 +130,7 @@ export function TypeAnswerStage({ problems, onAnswerPeek, onProgressUpdate, onCo
           }}
           onKeyDown={(e) => { if (e.key === "Enter") goNext(); }}
           placeholder="정답 입력"
-          className="h-14 text-center text-xl font-semibold rounded-xl bg-slate-50 placeholder:text-base placeholder:font-normal placeholder:text-muted-foreground/60"
+          className="h-14 text-center text-xl font-semibold rounded-xl bg-[#FAF8F5] placeholder:text-base placeholder:font-normal placeholder:text-muted-foreground/60"
         />
 
         <div className="grid grid-cols-3 items-center pt-2 gap-2">
@@ -139,7 +139,7 @@ export function TypeAnswerStage({ problems, onAnswerPeek, onProgressUpdate, onCo
               <Button
                 variant="outline"
                 onClick={onBack}
-                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-[#FAF8F5] sm:bg-white/50 border-[#EBE5DE] text-[#6B6460] text-xs sm:text-sm font-semibold hover:bg-white hover:text-[#1A1714] shadow-none sm:shadow-sm"
               >
                 <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> <span className="hidden sm:inline">{backLabel ?? "이전"}</span>
             <span className="sm:hidden">이전</span>
@@ -149,7 +149,7 @@ export function TypeAnswerStage({ problems, onAnswerPeek, onProgressUpdate, onCo
                 variant="outline"
                 onClick={goPrev}
                 disabled={currentIndex === 0}
-                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-[#FAF8F5] sm:bg-white/50 border-[#EBE5DE] text-[#6B6460] text-xs sm:text-sm font-semibold hover:bg-white hover:text-[#1A1714] shadow-none sm:shadow-sm"
               >
                 <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> 이전
               </Button>

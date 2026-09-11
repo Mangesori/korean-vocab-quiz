@@ -28,7 +28,7 @@ export function WordMagnetResultCard({ result: r, index, answerLabel = "내 답�
             >
               {index + 1}
             </span>
-            <span className="text-base font-semibold text-slate-600 bg-slate-50 border border-slate-200 px-3 py-1 rounded-md break-keep">
+            <span className="text-base font-semibold text-[#6B6460] bg-[#FAF8F5] border border-[#EBE5DE] px-3 py-1 rounded-md break-keep">
               {unmaskTranslation(r.translation)}
             </span>
           </div>

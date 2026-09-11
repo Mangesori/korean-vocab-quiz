@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -60,6 +60,13 @@ export type Database = {
             foreignKeyName: "announcements_teacher_id_fkey"
             columns: ["teacher_id"]
             isOneToOne: false
+            referencedRelation: "admin_teacher_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "announcements_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -96,6 +103,13 @@ export type Database = {
             foreignKeyName: "class_members_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "admin_teacher_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "class_members_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -103,6 +117,7 @@ export type Database = {
       }
       classes: {
         Row: {
+          archived_at: string | null
           created_at: string
           description: string | null
           id: string
@@ -112,6 +127,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -121,6 +137,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -130,6 +147,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "classes_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "admin_teacher_stats"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "classes_teacher_id_fkey"
             columns: ["teacher_id"]
@@ -147,6 +171,7 @@ export type Database = {
           id: string
           message: string
           rating: number | null
+          read_at: string | null
           user_id: string | null
         }
         Insert: {
@@ -156,6 +181,7 @@ export type Database = {
           id?: string
           message: string
           rating?: number | null
+          read_at?: string | null
           user_id?: string | null
         }
         Update: {
@@ -165,6 +191,7 @@ export type Database = {
           id?: string
           message?: string
           rating?: number | null
+          read_at?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -402,6 +429,13 @@ export type Database = {
             foreignKeyName: "notifications_from_user_id_fkey"
             columns: ["from_user_id"]
             isOneToOne: false
+            referencedRelation: "admin_teacher_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "notifications_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -411,6 +445,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "quizzes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_teacher_stats"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "notifications_user_id_fkey"
@@ -706,6 +747,13 @@ export type Database = {
             foreignKeyName: "quiz_results_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "admin_teacher_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "quiz_results_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -753,6 +801,13 @@ export type Database = {
             foreignKeyName: "quiz_shares_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "admin_teacher_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "quiz_shares_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -768,10 +823,12 @@ export type Database = {
       quizzes: {
         Row: {
           api_provider: string | null
+          copied_from_quiz_id: string | null
           created_at: string
           difficulty: Database["public"]["Enums"]["difficulty_level"]
           fill_blank_enabled: boolean
           id: string
+          is_public: boolean
           kind: string | null
           matchup_enabled: boolean
           problems: Json
@@ -791,10 +848,12 @@ export type Database = {
         }
         Insert: {
           api_provider?: string | null
+          copied_from_quiz_id?: string | null
           created_at?: string
           difficulty?: Database["public"]["Enums"]["difficulty_level"]
           fill_blank_enabled?: boolean
           id?: string
+          is_public?: boolean
           kind?: string | null
           matchup_enabled?: boolean
           problems?: Json
@@ -814,10 +873,12 @@ export type Database = {
         }
         Update: {
           api_provider?: string | null
+          copied_from_quiz_id?: string | null
           created_at?: string
           difficulty?: Database["public"]["Enums"]["difficulty_level"]
           fill_blank_enabled?: boolean
           id?: string
+          is_public?: boolean
           kind?: string | null
           matchup_enabled?: boolean
           problems?: Json
@@ -836,6 +897,20 @@ export type Database = {
           words_per_set?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "quizzes_copied_from_quiz_id_fkey"
+            columns: ["copied_from_quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quizzes_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "admin_teacher_stats"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "quizzes_teacher_id_fkey"
             columns: ["teacher_id"]
@@ -1314,6 +1389,13 @@ export type Database = {
             foreignKeyName: "vocabulary_lists_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "admin_teacher_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "vocabulary_lists_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -1472,6 +1554,13 @@ export type Database = {
             foreignKeyName: "wrong_answer_notebook_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "admin_teacher_stats"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "wrong_answer_notebook_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
@@ -1512,13 +1601,66 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_teacher_stats: {
+        Row: {
+          class_count: number | null
+          created_at: string | null
+          last_active_at: string | null
+          name: string | null
+          quiz_count: number | null
+          student_count: number | null
+          user_id: string | null
+        }
+        Insert: {
+          class_count?: never
+          created_at?: string | null
+          last_active_at?: never
+          name?: string | null
+          quiz_count?: never
+          student_count?: never
+          user_id?: string | null
+        }
+        Update: {
+          class_count?: never
+          created_at?: string | null
+          last_active_at?: never
+          name?: string | null
+          quiz_count?: never
+          student_count?: never
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      quiz_copy_counts: {
+        Row: {
+          copy_count: number | null
+          quiz_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quizzes_copied_from_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sentence_bank_word_stats: {
+        Row: {
+          level: string | null
+          sentence_count: number | null
+          word: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _apply_srs_word_result: {
         Args: { _correct: boolean; _uid: string; _word: string }
         Returns: boolean
       }
+      copy_shared_quiz: { Args: { _quiz_id: string }; Returns: string }
       ensure_quiz_result: { Args: { _quiz_id: string }; Returns: Json }
       finalize_quiz_result: { Args: { _result_id: string }; Returns: undefined }
       find_live_session_by_code: {
@@ -1533,6 +1675,7 @@ export type Database = {
       }
       generate_invite_code: { Args: never; Returns: string }
       generate_live_join_code: { Args: never; Returns: string }
+      get_admin_signals: { Args: never; Returns: Json }
       get_class_by_invite_code: {
         Args: { _invite_code: string }
         Returns: {
@@ -1718,6 +1861,7 @@ export type Database = {
         }
       }
       korean_subject_postfix: { Args: { name: string }; Returns: string }
+      live_session_is_open: { Args: { p_session_id: string }; Returns: boolean }
       notify_class_teacher_on_join: {
         Args: { _class_id: string }
         Returns: undefined
@@ -1845,12 +1989,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1874,11 +2018,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1899,11 +2043,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1924,11 +2068,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1941,11 +2085,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

@@ -49,7 +49,7 @@ export function RecordingStudentView({ problems }: { problems: RecordingStudentI
         />
 
         {/* 문장 표시 — 회색 박스는 "읽을/들을 재료"만 */}
-        <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col min-h-[180px] sm:min-h-[210px]">
+        <div className="p-5 sm:p-10 bg-[#FAF8F5] border-none rounded-2xl flex flex-col min-h-[180px] sm:min-h-[210px]">
           <div className="flex-1 flex flex-col items-center justify-center w-full">
             {problem.mode === "read" ? (
               <>
@@ -100,7 +100,7 @@ export function RecordingStudentView({ problems }: { problems: RecordingStudentI
             variant="outline"
             onClick={() => { setPreviewIndex((prev) => Math.max(0, prev - 1)); setShowHint(false); }}
             disabled={previewIndex === 0}
-            className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-[#EBE5DE] text-[#6B6460] font-semibold hover:bg-white hover:text-[#1A1714] shadow-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-2" /> 이전
           </Button>

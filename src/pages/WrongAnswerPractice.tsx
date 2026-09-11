@@ -563,7 +563,7 @@ export default function WrongAnswerPractice() {
               return (
                 <Card
                   key={item.id}
-                  className={`border-l-4 ${result.isCorrect ? 'border-l-green-500' : 'border-l-red-500'}`}
+                  className={`border-l-4 ${result.isCorrect ? 'border-l-[#1E6B47]' : 'border-l-[#C1554A]'}`}
                 >
                   <CardContent className="pt-4">
                     <div className="flex items-start gap-3">
@@ -571,9 +571,9 @@ export default function WrongAnswerPractice() {
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           {result.isCorrect ? (
-                            <CheckCircle className="h-5 w-5 text-green-500" />
+                            <CheckCircle className="h-5 w-5 text-[#1E6B47]" />
                           ) : (
-                            <XCircle className="h-5 w-5 text-red-500" />
+                            <XCircle className="h-5 w-5 text-[#C1554A]" />
                           )}
                           <span className="font-medium">{item.word}</span>
                           <Badge variant="outline" className="text-xs">
@@ -585,12 +585,12 @@ export default function WrongAnswerPractice() {
                         )}
                         <p className="text-sm">
                           <span className="text-muted-foreground mr-1">정답:</span>
-                          <span className="font-bold text-green-600">
+                          <span className="font-bold text-[#1E6B47]">
                             {result.format === 'matchup' ? item.meaning ?? item.answer : item.answer}
                           </span>
                         </p>
                         {!result.isCorrect && (
-                          <p className="text-sm text-red-500">
+                          <p className="text-sm text-[#C1554A]">
                             내 답: {result.userAnswerDisplay || '(입력 없음)'}
                           </p>
                         )}
@@ -730,7 +730,7 @@ export default function WrongAnswerPractice() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white sm:bg-background">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b shadow-sm">
         <div className="container mx-auto px-4 py-3">
@@ -777,15 +777,15 @@ export default function WrongAnswerPractice() {
                 </div>
               )}
 
-              <span className="shrink-0 px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold shadow-sm border border-slate-200">
+              <span className="shrink-0 px-3 py-1 bg-[#F4F0EA] text-[#4A443F] rounded-lg text-sm font-bold shadow-sm border border-border">
                 {roundIndex + 1}/{roundOrder.length}
               </span>
             </div>
 
             {stageProgress.total > 0 && (
               <div className="flex items-center justify-between gap-4 w-full px-1">
-                <Progress value={(stageProgress.current / stageProgress.total) * 100} className="flex-1 h-2.5" />
-                <span className="shrink-0 px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold shadow-sm border border-slate-200">
+                <Progress value={(stageProgress.current / stageProgress.total) * 100} className="flex-1 h-2.5 bg-[#F4F0EA]" />
+                <span className="shrink-0 px-3 py-1 bg-[#F4F0EA] text-[#4A443F] rounded-lg text-sm font-bold shadow-sm border border-border">
                   {stageProgress.label}
                 </span>
               </div>

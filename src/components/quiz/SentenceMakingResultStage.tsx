@@ -52,7 +52,7 @@ export function SentenceMakingResultStage({
       {/* 상단 요약 라벨/카드 */}
       <div className="flex flex-col items-center justify-center py-6 mb-8">
         <p className="text-5xl sm:text-6xl font-extrabold text-primary drop-shadow-sm">{avgScore}점</p>
-        <p className="text-lg font-medium text-slate-600 mt-3">
+        <p className="text-lg font-medium text-[#6B6460] mt-3">
           {problems.length}문제 중 <span className="text-primary font-bold">{passedCount}</span>문제를 맞혔어요!
         </p>
       </div>
@@ -78,7 +78,7 @@ export function SentenceMakingResultStage({
                     >
                       {idx + 1}
                     </span>
-                    <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-slate-50 border-slate-200 text-slate-700">
+                    <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-[#FAF8F5] border-[#EBE5DE] text-[#4A443F]">
                       {problem.word}
                     </Badge>
                   </div>
@@ -94,7 +94,7 @@ export function SentenceMakingResultStage({
                 <div className="mb-6 space-y-3">
                   <div className="flex items-start gap-3">
                     <span className={`shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 ${
-                       isGood ? "bg-success/10 text-success" : "bg-slate-100 text-slate-500"
+                       isGood ? "bg-success/10 text-success" : "bg-[#F4F0EA] text-[#8A837D]"
                     }`}>
                       내 답변
                     </span>
@@ -117,8 +117,8 @@ export function SentenceMakingResultStage({
                   )}
                 </div>
 
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                <div className="bg-[#FAF8F5] rounded-xl p-4 border border-[#F4F0EA]">
+                  <p className="text-sm text-[#6B6460] leading-relaxed whitespace-pre-wrap">
                     {attempt.feedback?.replace(/Model Answer:\s*.*/i, '')?.trim()}
                   </p>
                 </div>
@@ -135,7 +135,7 @@ export function SentenceMakingResultStage({
           <Button
             variant="outline"
             onClick={onBack}
-            className="h-12 px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            className="h-12 px-6 rounded-xl bg-[#FAF8F5] sm:bg-white/50 border-[#EBE5DE] text-[#6B6460] font-semibold hover:bg-white hover:text-[#1A1714] shadow-none sm:shadow-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">{backLabel ?? "이전"}</span>

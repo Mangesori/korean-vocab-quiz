@@ -42,7 +42,7 @@ export function MatchUpStudentView({ problems }: { problems: MatchUpStudentItem[
             {shuffledMeanings.map((m, i) => (
               <div
                 key={i}
-                className="w-full flex items-center justify-center rounded-2xl border-2 border-slate-200 bg-slate-50/80 px-3 py-3 sm:px-4 sm:py-4 min-h-[3rem] sm:min-h-[4rem] text-center text-sm sm:text-base text-foreground break-keep"
+                className="w-full flex items-center justify-center rounded-2xl border-2 border-[#EBE5DE] bg-[#FAF8F5]/80 px-3 py-3 sm:px-4 sm:py-4 min-h-[3rem] sm:min-h-[4rem] text-center text-sm sm:text-base text-foreground break-keep"
               >
                 {m}
               </div>

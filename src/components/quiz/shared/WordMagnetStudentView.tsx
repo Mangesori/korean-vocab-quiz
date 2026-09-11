@@ -53,7 +53,7 @@ export function WordMagnetStudentView({ problems }: { problems: WordMagnetStuden
         <QuizStageHeader instruction="단어를 끌거나 탭해서 문장을 완성하세요" />
 
         {/* 프롬프트(번역) */}
-        <div className="p-5 sm:p-6 bg-slate-50 rounded-2xl text-center">
+        <div className="p-5 sm:p-6 bg-[#FAF8F5] rounded-2xl text-center">
           <p className="text-lg sm:text-xl font-semibold text-foreground break-keep">{unmaskTranslation(problem.translation)}</p>
         </div>
 
@@ -72,7 +72,7 @@ export function WordMagnetStudentView({ problems }: { problems: WordMagnetStuden
             variant="outline"
             onClick={() => setPreviewIndex((prev) => Math.max(0, prev - 1))}
             disabled={previewIndex === 0}
-            className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            className="h-12 px-6 rounded-xl bg-white/50 border-[#EBE5DE] text-[#6B6460] font-semibold hover:bg-white hover:text-[#1A1714] shadow-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-2" /> 이전
           </Button>

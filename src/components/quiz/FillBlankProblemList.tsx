@@ -1,7 +1,15 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { Eye, EyeOff, RefreshCw, Loader2, Save, Edit2, Plus, Info } from "lucide-react";
+import { Eye, RefreshCw, Loader2, Save, Edit2, Plus, Info, MoreVertical, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   DndContext,
   closestCenter,
@@ -55,6 +63,7 @@ interface FillBlankProblemListProps {
   isRegeneratingProblems: boolean;
   isSaving: boolean;
   hasChanges: boolean;
+  changedCount?: number;
   wordsPerSet?: number;
   onDeleteProblem?: (problem: Problem) => void;
   deletingProblemId?: string | null;
@@ -85,6 +94,7 @@ export function FillBlankProblemList({
   isRegeneratingProblems,
   isSaving,
   hasChanges,
+  changedCount = 0,
   wordsPerSet = 5,
   onDeleteProblem,
   deletingProblemId,
@@ -118,15 +128,76 @@ export function FillBlankProblemList({
     useSensor(KeyboardSensor)
   );
 
+  // 전체 음성 재생성 · 전체 문제 재생성 · 음성 엔진 선택 — 자주 쓰지 않으므로 ⋮ 메뉴 안으로
+  const overflowMenu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="icon" className="h-11 w-11 sm:h-9 sm:w-9 shrink-0" aria-label="더보기">
+          <MoreVertical className="w-4 h-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem onClick={onRegenerateAllAudio} disabled={isGeneratingAudio}>
+          {isGeneratingAudio ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4 mr-2" />
+          )}
+          전체 음성 재생성
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onRegenerateAllProblems} disabled={isRegeneratingProblems}>
+          {isRegeneratingProblems ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4 mr-2" />
+          )}
+          전체 문제 재생성
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+          음성 엔진
+        </DropdownMenuLabel>
+        <DropdownMenuItem onClick={() => onTtsProviderChange?.("azure")}>
+          {ttsProvider === "azure" && <Check className="w-4 h-4 mr-2" />}
+          <span className={ttsProvider === "azure" ? "" : "ml-6"}>Azure Speech (무료)</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onTtsProviderChange?.("elevenlabs")}>
+          {ttsProvider === "elevenlabs" && <Check className="w-4 h-4 mr-2" />}
+          <span className={ttsProvider === "elevenlabs" ? "" : "ml-6"}>ElevenLabs</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div className="flex items-center justify-between w-full sm:w-auto sm:justify-start sm:gap-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">문제 목록</h2>
+        <div className="w-full sm:w-auto">
+          <div className="flex items-center justify-between sm:justify-start sm:gap-4">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">문제 목록</h2>
+              {isEditing && (
+                <span
+                  className="px-2 py-0.5 rounded-lg text-[11.5px] font-bold"
+                  style={{ color: "#1E6B47", backgroundColor: "#E8F1EB", border: "1px solid #C8DED3" }}
+                >
+                  편집 중
+                </span>
+              )}
+            </div>
+
+            {/* 학생 화면 스위치 - 편집 중에도 미리보기 가능. 데스크톱은 제목과 한 줄. */}
+            <div className="hidden sm:flex items-center gap-2 shrink-0">
+              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                <Eye className="w-4 h-4" /> 학생 화면
+              </span>
+              <Switch checked={!!studentPreview} onCheckedChange={onToggleStudentPreview} />
+            </div>
           </div>
-          
-          <div className="flex items-center gap-2 shrink-0">
+
+
+          {/* 모바일에서는 스위치를 제목 줄에 붙이지 않고 별도 행으로 — 375px에서 제목이 밀리는 것 방지 */}
+          <div className="flex sm:hidden items-center gap-2 mt-2">
             <span className="text-sm text-muted-foreground flex items-center gap-1">
               <Eye className="w-4 h-4" /> 학생 화면
             </span>
@@ -134,85 +205,42 @@ export function FillBlankProblemList({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 w-full sm:flex sm:w-auto sm:items-center sm:gap-3">
-          <select
-            className="text-sm border rounded-md px-2 py-1.5 bg-background text-foreground shrink-0"
-            value={ttsProvider}
-            onChange={(e) => onTtsProviderChange?.(e.target.value as TtsProvider)}
-            title="음성 생성 엔진 선택"
-          >
-            <option value="azure">Azure Speech (무료)</option>
-            <option value="elevenlabs">ElevenLabs</option>
-          </select>
-
-          <Button
-            variant="default"
-            size="sm"
-            onClick={onRegenerateAllAudio}
-            disabled={isGeneratingAudio}
-            className="bg-accent hover:bg-accent/90 text-accent-foreground w-full sm:w-auto"
-          >
-            {isGeneratingAudio ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                <span className="whitespace-nowrap">음성 생성 중...</span>
-                <span className="sm:hidden -ml-1">...</span>
-              </>
-            ) : (
-              <>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                <span className="whitespace-nowrap">전체 음성 재생성</span>
-              </>
-            )}
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRegenerateAllProblems}
-            disabled={isRegeneratingProblems}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
-          >
-             {isRegeneratingProblems ? (
-               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-             ) : (
-               <RefreshCw className="w-4 h-4 mr-2" />
-             )}
-             <span className="whitespace-nowrap">전체 문제 재생성</span>
-          </Button>
-
-          <Button
-            variant={isEditing ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => {
-              if (isEditing) {
-                onCancelEdit();
-              } else {
-                onToggleStudentPreview(false);
-                setIsEditing(true);
-              }
-            }}
-            className="w-full sm:w-auto"
-          >
-            <Edit2 className="w-4 h-4 mr-2" />
-            <span>{isEditing ? "수정 취소" : "수정하기"}</span>
-          </Button>
-
-          <Button
-            onClick={onSaveChanges}
-            disabled={isSaving || !isEditing}
-            size="sm"
-            className="w-full sm:w-auto"
-            variant="default"
-          >
-            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-            <span>저장하기</span>
-          </Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {isEditing ? (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onCancelEdit}
+                className="flex-1 sm:flex-none h-11 rounded-[11px] sm:h-9 sm:rounded-md border border-[#E3DCD3]"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                <span>수정 취소</span>
+              </Button>
+              {overflowMenu}
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+                className="flex-1 sm:flex-none h-11 rounded-[11px] sm:h-9 sm:rounded-md"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                <span>수정하기</span>
+              </Button>
+              {overflowMenu}
+            </>
+          )}
         </div>
       </div>
 
       {isEditing && (
-        <div className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary/80 mb-6">
+        <div
+          className="flex items-start gap-2 rounded-xl px-4 py-3 text-[12px] mb-6"
+          style={{ backgroundColor: "#F4F9F6", border: "1px solid #C8DED3", color: "#2C6B4C" }}
+        >
           <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>출제 문장에서 정답이 들어갈 자리에 괄호 ( )를 넣어주세요. 학생 화면에는 정답 칸에 입력한 단어가 그 자리에 채워져서 보입니다.</span>
         </div>
@@ -291,10 +319,11 @@ export function FillBlankProblemList({
                         onUpdateProblem={onUpdateProblem}
                         audioUrl={audioUrls[problem.id]}
                         onPlayAudio={onPlayAudio}
-                        onRegenerateAudio={() => onRegenerateSingleAudio(problem)}
-                        onRegenerateProblem={() => onRegenerateProblem(problem)}
+                        // 읽기 전용에서는 값을 바꾸는 핸들러 자체를 카드에 넘기지 않는다 (권한 버그 수정)
+                        onRegenerateAudio={isEditing ? () => onRegenerateSingleAudio(problem) : undefined}
+                        onRegenerateProblem={isEditing ? () => onRegenerateProblem(problem) : undefined}
                         regeneratingId={regeneratingProblemId}
-                        onDeleteProblem={onDeleteProblem ? () => onDeleteProblem(problem) : undefined}
+                        onDeleteProblem={isEditing && onDeleteProblem ? () => onDeleteProblem(problem) : undefined}
                         isDeletingProblem={deletingProblemId === problem.id}
                       />
                     );
@@ -306,7 +335,7 @@ export function FillBlankProblemList({
         </div>
       )}
 
-      {onAddProblem && (
+      {isEditing && onAddProblem && (
         <div className="flex justify-center mt-4">
           <Button
             variant="ghost"
@@ -319,12 +348,34 @@ export function FillBlankProblemList({
         </div>
       )}
 
+      {/* 저장하기 고정 바 — 화면 안에 이 한 곳에만 둔다 */}
       {isEditing && (
-        <div className="mt-8 flex justify-center">
-          <Button onClick={onSaveChanges} disabled={isSaving || !isEditing} size="lg">
-            {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-            저장하기
-          </Button>
+        <div className="fixed bottom-4 left-4 right-4 z-40 flex justify-center pointer-events-none">
+          <div
+            className="w-full max-w-3xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-[13px] pointer-events-auto"
+            style={{
+              backgroundColor: "#fff",
+              border: "1px solid #E3DCD3",
+              borderRadius: 13,
+              boxShadow: "0 -2px 12px rgba(0,0,0,.04)",
+            }}
+          >
+            <span className="text-sm text-muted-foreground">
+              <span className="font-bold" style={{ color: "#B4552D" }}>
+                {changedCount}개
+              </span>{" "}
+              문제를 고쳤습니다 · 저장하지 않으면 사라집니다
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button variant="outline" size="sm" onClick={onCancelEdit}>
+                수정 취소
+              </Button>
+              <Button onClick={onSaveChanges} disabled={isSaving || !hasChanges} size="sm">
+                {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                저장하기
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

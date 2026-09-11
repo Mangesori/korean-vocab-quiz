@@ -80,7 +80,7 @@ export function QuizReviewCard({
             <span className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white ${isCorrect ? "bg-success" : "bg-destructive"}`}>
               {problemNumber}
             </span>
-            <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-slate-50 border-slate-200 text-slate-700">
+            <Badge variant="outline" className="font-semibold text-base px-3 py-1 bg-background border-border text-[#4A443F]">
               {problem.word || problem.answer}
             </Badge>
           </div>
@@ -134,7 +134,7 @@ export function QuizReviewCard({
 
           {/* Translation Display */}
           {showTranslation && (
-            <p className="text-sm text-muted-foreground bg-slate-50 p-3 rounded-lg animate-in slide-in-from-top-1 fade-in duration-200">
+            <p className="text-sm text-muted-foreground bg-background p-3 rounded-lg animate-in slide-in-from-top-1 fade-in duration-200">
               {unmaskTranslation(problem.translation)}
             </p>
           )}

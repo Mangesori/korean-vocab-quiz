@@ -9,7 +9,11 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
-import AdminDashboard from "./pages/AdminDashboard";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminTeachers from "./pages/admin/AdminTeachers";
+import AdminReport from "./pages/admin/AdminReport";
+import AdminFeedback from "./pages/admin/AdminFeedback";
 import AdminSentenceBank from "./pages/AdminSentenceBank";
 import QuizCreate from "./pages/QuizCreate";
 import QuizImport from "./pages/QuizImport";
@@ -20,6 +24,7 @@ import QuizDetail from "./pages/QuizDetail";
 import QuizTake from "./pages/QuizTake";
 import QuizResult from "./pages/QuizResult";
 import Quizzes from "./pages/Quizzes";
+import SharedQuizzes from "./pages/SharedQuizzes";
 import Classes from "./pages/Classes";
 import MyClass from "./pages/MyClass";
 import ClassDetail from "./pages/ClassDetail";
@@ -82,6 +87,26 @@ const App = () => (
                 <AdminDashboard />
               </ProtectedRoute>
             } />
+            <Route path="/admin/users" element={
+              <ProtectedRoute permission={PERMISSIONS.MANAGE_USERS} redirectTo="/dashboard">
+                <AdminUsers />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/teachers" element={
+              <ProtectedRoute permission={PERMISSIONS.MANAGE_USERS} redirectTo="/dashboard">
+                <AdminTeachers />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/report" element={
+              <ProtectedRoute permission={PERMISSIONS.MANAGE_USERS} redirectTo="/dashboard">
+                <AdminReport />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/feedback" element={
+              <ProtectedRoute permission={PERMISSIONS.MANAGE_USERS} redirectTo="/dashboard">
+                <AdminFeedback />
+              </ProtectedRoute>
+            } />
             <Route path="/admin/sentence-bank" element={
               <ProtectedRoute permission={PERMISSIONS.MANAGE_USERS} redirectTo="/dashboard">
                 <AdminSentenceBank />
@@ -105,6 +130,11 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/quizzes" element={<Quizzes />} />
+            <Route path="/quizzes/shared" element={
+              <ProtectedRoute permission={PERMISSIONS.CREATE_QUIZ} redirectTo="/dashboard">
+                <SharedQuizzes />
+              </ProtectedRoute>
+            } />
             <Route path="/quiz/:id" element={
               <ProtectedRoute permission={PERMISSIONS.VIEW_QUIZ} redirectTo="/auth">
                 <QuizDetail />

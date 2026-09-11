@@ -12,7 +12,7 @@
  * 넣으면 반 전체에 노출되는 버그를 재현한다).
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -49,7 +49,6 @@ import {
   Magnet,
   PenLine,
   Mic,
-  BookMarked,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -102,6 +101,7 @@ function shuffle<T>(list: T[]): T[] {
 
 export default function VocabPracticeQuizCreate() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const { can } = usePermissions();
 
@@ -179,6 +179,19 @@ export default function VocabPracticeQuizCreate() {
     (students ?? []).forEach((s) => map.set(s.student_id, s.name));
     return map;
   }, [students]);
+
+  // 클래스 상세("이 학생에게")에서 넘어온 경우 클래스·학생을 자동으로 선택한다.
+  const preselect = location.state as { classId?: string; studentId?: string } | null;
+  useEffect(() => {
+    if (preselect?.classId) setSelectedClassId((prev) => prev || preselect.classId!);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselect?.classId]);
+  useEffect(() => {
+    if (preselect?.studentId && students?.some((s) => s.student_id === preselect.studentId)) {
+      setSelectedStudents((prev) => (prev.includes(preselect.studentId!) ? prev : [...prev, preselect.studentId!]));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselect?.studentId, students]);
 
   // 문장 은행 — 고른 레벨의 모든 행. 같은 단어가 여러 문장(행)으로 중복될 수 있다.
   const { data: bankRows, isLoading: bankLoading } = useQuery({
@@ -577,8 +590,7 @@ export default function VocabPracticeQuizCreate() {
     <AppLayout>
       <div className="container max-w-4xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <BookMarked className="h-6 w-6" />
+          <h1 className="text-2xl font-bold pl-2">
             어휘 보강 퀴즈 만들기
           </h1>
           <p className="text-sm text-muted-foreground mt-1">

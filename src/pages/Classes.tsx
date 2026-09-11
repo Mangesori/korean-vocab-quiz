@@ -11,9 +11,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Users, Loader2, Search } from 'lucide-react';
+import { Plus, Users, Loader2, Search, Copy, Archive, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { isResultComplete } from '@/types/quiz';
 
 interface ClassRow {
@@ -21,7 +38,11 @@ interface ClassRow {
   name: string;
   invite_code: string;
   created_at: string;
+  archived_at: string | null;
 }
+
+type SortMode = 'recent' | 'created';
+const SORT_STORAGE_KEY = 'classes-sort-mode';
 
 interface ResultRow {
   quiz_id: string;
@@ -66,6 +87,17 @@ export default function Classes() {
   const [isCreating, setIsCreating] = useState(false);
   const [newClass, setNewClass] = useState({ name: '', description: '' });
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortMode, setSortMode] = useState<SortMode>(() => {
+    if (typeof window === 'undefined') return 'recent';
+    const stored = window.localStorage.getItem(SORT_STORAGE_KEY);
+    return stored === 'created' ? 'created' : 'recent';
+  });
+  const [viewingArchive, setViewingArchive] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<ClassRow | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ClassRow | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (location.state?.openCreateDialog) {
@@ -74,12 +106,16 @@ export default function Classes() {
     }
   }, [location]);
 
+  useEffect(() => {
+    window.localStorage.setItem(SORT_STORAGE_KEY, sortMode);
+  }, [sortMode]);
+
   const { data: classes = [], isLoading } = useQuery({
     queryKey: ['classes', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('classes')
-        .select('id, name, invite_code, created_at')
+        .select('id, name, invite_code, created_at, archived_at')
         .eq('teacher_id', user?.id)
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -87,6 +123,15 @@ export default function Classes() {
     },
     enabled: !!user && can(PERMISSIONS.CREATE_CLASS),
   });
+
+  const activeClasses = useMemo(() => classes.filter((c) => !c.archived_at), [classes]);
+  const archivedClasses = useMemo(() => classes.filter((c) => !!c.archived_at), [classes]);
+
+  useEffect(() => {
+    if (viewingArchive && classes.length > 0 && archivedClasses.length === 0) {
+      setViewingArchive(false);
+    }
+  }, [viewingArchive, classes, archivedClasses]);
 
   const classIds = useMemo(() => classes.map((c) => c.id), [classes]);
 
@@ -189,9 +234,10 @@ export default function Classes() {
       classes.forEach((c) => {
         const memberIds = membersByClass.get(c.id) ?? [];
         const classResults = memberIds.flatMap((sid) => resultsByStudent.get(sid) ?? []);
+        const validResults = classResults.filter((r) => r.total_questions > 0);
         const avgScore =
-          classResults.length > 0
-            ? Math.round(classResults.reduce((sum, r) => sum + (r.score / r.total_questions) * 100, 0) / classResults.length)
+          validResults.length > 0
+            ? Math.round(validResults.reduce((sum, r) => sum + (r.score / r.total_questions) * 100, 0) / validResults.length)
             : null;
         const lastActivity =
           classResults.length > 0
@@ -230,7 +276,7 @@ export default function Classes() {
           teacher_id: user?.id,
           invite_code: codeData,
         })
-        .select('id, name, invite_code, created_at')
+        .select('id, name, invite_code, created_at, archived_at')
         .single();
 
       if (error) throw error;
@@ -255,6 +301,92 @@ export default function Classes() {
     toast.success('초대 코드가 복사되었습니다');
   };
 
+  const setClassArchivedAt = (classId: string, archivedAt: string | null) => {
+    queryClient.setQueryData(['classes', user?.id], (prev: ClassRow[] | undefined) =>
+      (prev ?? []).map((c) => (c.id === classId ? { ...c, archived_at: archivedAt } : c))
+    );
+  };
+
+  const archiveClass = async (classId: string) => {
+    const { error } = await supabase.from('classes').update({ archived_at: new Date().toISOString() }).eq('id', classId);
+    if (error) {
+      console.error('Archive error:', error);
+      toast.error('클래스 보관에 실패했습니다');
+      return;
+    }
+    setClassArchivedAt(classId, new Date().toISOString());
+  };
+
+  const unarchiveClass = async (classId: string) => {
+    const { error } = await supabase.from('classes').update({ archived_at: null }).eq('id', classId);
+    if (error) {
+      console.error('Unarchive error:', error);
+      toast.error('보관 해제에 실패했습니다');
+      return;
+    }
+    setClassArchivedAt(classId, null);
+  };
+
+  const handleArchiveClass = async (cls: ClassRow) => {
+    await archiveClass(cls.id);
+    toast.success('클래스를 보관했습니다', {
+      action: {
+        label: '되돌리기',
+        onClick: () => {
+          void unarchiveClass(cls.id);
+        },
+      },
+    });
+  };
+
+  const handleUnarchiveClass = async (cls: ClassRow) => {
+    await unarchiveClass(cls.id);
+    toast.success('보관을 해제했습니다');
+  };
+
+  const openRenameDialog = (cls: ClassRow) => {
+    setRenameTarget(cls);
+    setRenameValue(cls.name);
+  };
+
+  const handleRenameClass = async () => {
+    if (!renameTarget || !renameValue.trim()) return;
+    setIsRenaming(true);
+    try {
+      const { error } = await supabase.from('classes').update({ name: renameValue.trim() }).eq('id', renameTarget.id);
+      if (error) throw error;
+      queryClient.setQueryData(['classes', user?.id], (prev: ClassRow[] | undefined) =>
+        (prev ?? []).map((c) => (c.id === renameTarget.id ? { ...c, name: renameValue.trim() } : c))
+      );
+      toast.success('클래스 이름을 수정했습니다');
+      setRenameTarget(null);
+    } catch (error) {
+      console.error('Rename error:', error);
+      toast.error('이름 수정에 실패했습니다');
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const handleDeleteClass = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from('classes').delete().eq('id', deleteTarget.id);
+      if (error) throw error;
+      queryClient.setQueryData(['classes', user?.id], (prev: ClassRow[] | undefined) =>
+        (prev ?? []).filter((c) => c.id !== deleteTarget.id)
+      );
+      toast.success('클래스를 삭제했습니다');
+      setDeleteTarget(null);
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('클래스 삭제에 실패했습니다');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -277,7 +409,9 @@ export default function Classes() {
     );
   }
 
-  const filteredClasses = classes.filter((cls) => {
+  const baseClasses = viewingArchive ? archivedClasses : activeClasses;
+
+  const searchedClasses = baseClasses.filter((cls) => {
     const searchLower = searchQuery.toLowerCase();
     const memberNames = statsByClass?.get(cls.id)?.memberNames ?? [];
     return (
@@ -286,11 +420,25 @@ export default function Classes() {
     );
   });
 
+  const filteredClasses = [...searchedClasses].sort((a, b) => {
+    if (sortMode === 'created') {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+    const aActivity = statsByClass?.get(a.id)?.lastActivity ?? null;
+    const bActivity = statsByClass?.get(b.id)?.lastActivity ?? null;
+    if (aActivity && bActivity) {
+      return new Date(bActivity).getTime() - new Date(aActivity).getTime();
+    }
+    if (aActivity) return -1;
+    if (bActivity) return 1;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
   return (
     <AppLayout>
       <div className="bg-[#FAF8F5] px-[18px] sm:px-[30px] py-[26px] sm:py-[30px]">
         <div className="flex items-center justify-between">
-          <div className="text-[21px] font-bold tracking-[-0.4px]">내 클래스</div>
+          <div className="text-[21px] font-bold tracking-[-0.4px] pl-2">내 클래스</div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <button className="bg-primary text-white text-[13px] font-bold rounded-[11px] px-5 py-[11px] whitespace-nowrap">
@@ -338,14 +486,62 @@ export default function Classes() {
           </Dialog>
         </div>
 
-        <div className="relative mt-[18px]">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A29B94]" />
-          <Input
-            placeholder="클래스 이름 또는 학생 이름으로 검색..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-white border-[#E3DCD3] rounded-[11px] text-[13px] h-auto py-[11px]"
-          />
+        <div className="flex items-center gap-2.5 mt-[18px] flex-wrap">
+          <div className="relative flex-1 min-w-[280px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A29B94]" />
+            <Input
+              placeholder="클래스 이름 또는 학생 이름으로 검색..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-white border-[#E3DCD3] rounded-[11px] text-[13px] h-auto py-[11px]"
+            />
+          </div>
+
+          <div className="flex items-center bg-white border border-[#E3DCD3] rounded-[11px] p-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setSortMode('recent')}
+              className={`text-xs rounded-[8px] px-[13px] py-[7px] transition-colors ${
+                sortMode === 'recent' ? 'bg-primary text-white font-bold' : 'text-[#6B6460] font-semibold'
+              }`}
+            >
+              최근 활동순
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode('created')}
+              className={`text-xs rounded-[8px] px-[13px] py-[7px] transition-colors ${
+                sortMode === 'created' ? 'bg-primary text-white font-bold' : 'text-[#6B6460] font-semibold'
+              }`}
+            >
+              만든 순서
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between mt-3.5">
+          <span className="text-xs text-[#8A837D]">
+            {viewingArchive ? `보관함 ${archivedClasses.length}개` : `클래스 ${activeClasses.length}개`}
+          </span>
+          {!viewingArchive && archivedClasses.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setViewingArchive(true)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-[#4A443F]"
+            >
+              <Archive className="w-3.5 h-3.5" />
+              보관함 <span className="text-[#1A1714] font-bold">{archivedClasses.length}</span>
+            </button>
+          )}
+          {viewingArchive && (
+            <button
+              type="button"
+              onClick={() => setViewingArchive(false)}
+              className="text-xs font-semibold text-primary"
+            >
+              ← 내 클래스로
+            </button>
+          )}
         </div>
 
         {filteredClasses.length === 0 ? (
@@ -371,70 +567,159 @@ export default function Classes() {
               const stats = statsByClass?.get(cls.id);
               const memberCount = stats?.memberNames.length ?? 0;
               const isSolo = memberCount === 1;
+              const isStale =
+                !!stats?.lastActivity && Date.now() - new Date(stats.lastActivity).getTime() > 30 * 24 * 3_600_000;
+              const isArchived = !!cls.archived_at;
 
               return (
                 <Link key={cls.id} to={`/class/${cls.id}`} className="block h-full">
-                  <div className="bg-white border border-[#EBE5DE] rounded-[14px] px-5 py-[18px] h-full flex flex-col hover:border-primary/40 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-[#E8F1EB] grid place-items-center shrink-0 text-[11.5px] font-bold text-primary">
-                          {isSolo ? initials(stats!.memberNames[0]) : <Users className="w-4 h-4" strokeWidth={2} />}
+                  <div
+                    className={`relative bg-white border border-[#EBE5DE] rounded-[14px] px-5 py-[18px] h-full flex flex-col hover:border-primary/40 transition-colors ${
+                      isArchived ? 'grayscale opacity-70' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className="w-[34px] h-[34px] rounded-full grid place-items-center shrink-0 text-[11.5px] font-bold"
+                        style={{
+                          backgroundColor: isStale ? '#F3F0EA' : '#E8F1EB',
+                          color: isStale ? '#8A837D' : undefined,
+                        }}
+                      >
+                        <span className={isStale ? '' : 'text-primary'}>
+                          {isSolo ? initials(stats!.memberNames[0]) : <Users className="w-[17px] h-[17px]" strokeWidth={2} />}
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div
+                          className="text-[15px] font-bold tracking-[-0.2px] truncate"
+                          style={{ color: isStale ? '#4A443F' : undefined }}
+                        >
+                          {isSolo ? stats!.memberNames[0] : cls.name}
                         </div>
-                        <div className="min-w-0">
-                          <div className="text-[15px] font-bold tracking-[-0.2px] truncate">
-                            {isSolo ? stats!.memberNames[0] : cls.name}
-                          </div>
-                          <div className="text-[11.5px] text-[#8A837D] mt-0.5">
-                            {isSolo ? '1:1' : `학생 ${memberCount}명`}
-                          </div>
+                        <div className="text-[11.5px] text-[#8A837D] mt-0.5 truncate">
+                          {isSolo ? `1:1 · ${cls.name}` : `학생 ${memberCount}명`}
                         </div>
                       </div>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            className="shrink-0 mt-0.5 p-0.5"
+                            aria-label="클래스 메뉴"
+                          >
+                            <MoreVertical className="w-4 h-4" style={{ stroke: '#4A443F', strokeWidth: 2.2 }} />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="w-[150px]"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                        >
+                          <DropdownMenuItem
+                            className="text-[12.5px] font-semibold"
+                            onClick={() => openRenameDialog(cls)}
+                          >
+                            <Pencil className="w-3.5 h-3.5 mr-2" /> 이름 수정
+                          </DropdownMenuItem>
+                          {isArchived ? (
+                            <DropdownMenuItem
+                              className="text-[12.5px] font-semibold"
+                              onClick={() => handleUnarchiveClass(cls)}
+                            >
+                              <Archive className="w-3.5 h-3.5 mr-2" /> 보관 해제
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              className="text-[12.5px] font-semibold"
+                              onClick={() => handleArchiveClass(cls)}
+                            >
+                              <Archive className="w-3.5 h-3.5 mr-2" /> 보관하기
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-[12.5px] font-semibold text-[#C1554A] focus:text-[#C1554A]"
+                            onClick={() => setDeleteTarget(cls)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-2" /> 삭제
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    <div className="flex flex-col gap-[9px] mt-4 pt-3.5 border-t border-[#F2EDE7]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] text-[#6B6460]">배정된 퀴즈</span>
+                        <span className="text-[13px] font-bold">{stats?.assignedQuizCount ?? 0}</span>
+                      </div>
+
+                      {isSolo ? (
+                        stats?.lastActivity ? (
+                          <div className="flex items-center justify-between">
+                            <span className="text-[12px] text-[#6B6460]">마지막 활동</span>
+                            <span className="text-[13px] font-bold" style={{ color: isStale ? '#8A837D' : undefined }}>
+                              {relativeTime(stats.lastActivity)}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="text-[12px] text-[#8A837D]">아직 활동 없음</div>
+                        )
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <span className="text-[12px] text-[#6B6460]">미제출</span>
+                          <span
+                            className="text-[13px] font-bold"
+                            style={{ color: (stats?.pendingCount ?? 0) > 0 ? '#B4552D' : undefined }}
+                          >
+                            {stats?.pendingCount ?? 0}명
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] text-[#6B6460]">초대 코드</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            copyInviteCode(cls.invite_code);
+                          }}
+                          title="초대 코드 복사"
+                          className="flex items-center gap-1.5 text-[12.5px] font-bold text-primary tracking-[0.06em]"
+                        >
+                          {cls.invite_code}
+                          <Copy className="w-[13px] h-[13px]" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {isArchived ? (
                       <button
                         type="button"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          copyInviteCode(cls.invite_code);
+                          handleUnarchiveClass(cls);
                         }}
-                        title="초대 코드 복사"
-                        className="text-[11.5px] font-bold text-primary tracking-[0.04em] shrink-0"
+                        className="block text-center mt-3.5 bg-primary text-white text-xs font-bold rounded-[9px] py-2.5 w-full"
                       >
-                        {cls.invite_code}
+                        보관 해제
                       </button>
-                    </div>
-
-                    <div className="flex gap-5 mt-4 pt-3.5 border-t border-[#F2EDE7]">
-                      <div>
-                        <div className="text-[10.5px] text-[#8A837D]">배정 퀴즈</div>
-                        <div className="text-[15px] font-bold mt-[3px]">{stats?.assignedQuizCount ?? 0}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10.5px] text-[#8A837D]">평균 점수</div>
-                        <div className="text-[15px] font-bold mt-[3px]">{stats?.avgScore ?? '—'}{stats?.avgScore != null && '%'}</div>
-                      </div>
-                      {isSolo ? (
-                        <div>
-                          <div className="text-[10.5px] text-[#8A837D]">마지막 활동</div>
-                          <div className="text-[15px] font-bold mt-[3px]">
-                            {stats?.lastActivity ? relativeTime(stats.lastActivity) : '아직 없음'}
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <div className="text-[10.5px] text-[#8A837D]">미제출</div>
-                          <div
-                            className="text-[15px] font-bold mt-[3px]"
-                            style={{ color: (stats?.pendingCount ?? 0) > 0 ? '#B4552D' : undefined }}
-                          >
-                            {stats?.pendingCount ?? 0}명
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <span className="block text-center mt-3.5 bg-primary text-white text-xs font-bold rounded-[9px] py-2.5">
-                      클래스 열기
-                    </span>
+                    ) : (
+                      <span className="block text-center mt-3.5 bg-primary text-white text-xs font-bold rounded-[9px] py-2.5">
+                        클래스 열기
+                      </span>
+                    )}
                   </div>
                 </Link>
               );
@@ -442,6 +727,54 @@ export default function Classes() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!renameTarget} onOpenChange={(open) => !open && setRenameTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>이름 수정</DialogTitle>
+            <DialogDescription>클래스 이름을 입력하세요</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="renameClassName">클래스 이름 *</Label>
+              <Input
+                id="renameClassName"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+              />
+            </div>
+            <Button className="w-full" onClick={handleRenameClass} disabled={isRenaming || !renameValue.trim()}>
+              {isRenaming && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              저장
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>클래스 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              '{deleteTarget?.name}' 클래스를 삭제하면 되돌릴 수 없습니다. 정말 삭제하시겠습니까?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteClass();
+              }}
+              disabled={isDeleting}
+              className="bg-[#C1554A] hover:bg-[#C1554A]/90"
+            >
+              {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

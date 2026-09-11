@@ -189,9 +189,9 @@ export function QuizResultsList({ quizId, fillBlankEnabled, sentenceMakingEnable
 
   const getScoreBadge = (score: number, total: number) => {
     const percentage = (score / total) * 100;
-    if (percentage >= 90) return <Badge className="bg-green-500 hover:bg-green-600">{score}/{total}</Badge>;
-    if (percentage >= 70) return <Badge className="bg-yellow-500 hover:bg-yellow-600">{score}/{total}</Badge>;
-    return <Badge className="bg-red-500 hover:bg-red-600">{score}/{total}</Badge>;
+    if (percentage >= 90) return <Badge className="bg-success hover:bg-success/90">{score}/{total}</Badge>;
+    if (percentage >= 70) return <Badge className="bg-[#B4552D] hover:bg-[#9c4826]">{score}/{total}</Badge>;
+    return <Badge className="bg-[#C1554A] hover:bg-[#a84640]">{score}/{total}</Badge>;
   };
 
   const isMultiStage = sentenceMakingEnabled || recordingEnabled || matchupEnabled || typeAnswerEnabled || wordMagnetEnabled;

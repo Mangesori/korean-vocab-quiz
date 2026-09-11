@@ -356,7 +356,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
         />
 
         {/* 문장 표시 — 회색 박스는 "읽을/들을 재료"만 */}
-        <div className="p-5 sm:p-10 bg-slate-50 border-none rounded-2xl flex flex-col min-h-[180px] sm:min-h-[210px]">
+        <div className="p-5 sm:p-10 bg-[#FAF8F5] border-none rounded-2xl flex flex-col min-h-[180px] sm:min-h-[210px]">
             <div className="flex-1 flex flex-col items-center justify-center w-full">
               {currentProblem.mode === "read" ? (
                 <>
@@ -372,7 +372,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
                         playAudio(currentProblem.sentenceAudioUrl, 1)
                       }
                       disabled={playingSpeed !== null || !currentProblem.sentenceAudioUrl}
-                      className="flex items-center justify-center rounded-xl px-3 sm:px-5 h-9 sm:h-11 bg-white hover:bg-slate-50 transition-colors shadow-sm text-xs sm:text-sm"
+                      className="flex items-center justify-center rounded-xl px-3 sm:px-5 h-9 sm:h-11 bg-white hover:bg-[#FAF8F5] transition-colors shadow-sm text-xs sm:text-sm"
                     >
                       {playingSpeed === 1 ? (
                         <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 animate-spin" />
@@ -389,7 +389,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
                         playAudio(currentProblem.sentenceAudioUrl, 0.7)
                       }
                       disabled={playingSpeed !== null || !currentProblem.sentenceAudioUrl}
-                      className="flex items-center justify-center rounded-xl px-3 sm:px-5 h-9 sm:h-11 bg-white hover:bg-slate-50 transition-colors shadow-sm text-xs sm:text-sm"
+                      className="flex items-center justify-center rounded-xl px-3 sm:px-5 h-9 sm:h-11 bg-white hover:bg-[#FAF8F5] transition-colors shadow-sm text-xs sm:text-sm"
                     >
                       {playingSpeed === 0.7 ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -485,7 +485,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
                 variant="outline"
                 onClick={handleRetry}
                 disabled={currentAttempts.length >= 3}
-                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-slate-200 text-slate-600 text-xs sm:text-sm font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+                className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-[#FAF8F5] sm:bg-white/50 border-[#EBE5DE] text-[#6B6460] text-xs sm:text-sm font-semibold hover:bg-white hover:text-[#1A1714] shadow-none sm:shadow-sm"
               >
                 <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                 다시 시도하기
@@ -514,7 +514,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
           <Button
             variant="outline"
             onClick={onBack}
-            className="h-12 px-4 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm text-sm"
+            className="h-12 px-4 rounded-xl bg-[#FAF8F5] sm:bg-white/50 border-[#EBE5DE] text-[#6B6460] font-semibold hover:bg-white hover:text-[#1A1714] shadow-none sm:shadow-sm text-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-1.5" />
             <span className="hidden sm:inline">{backLabel ?? "이전"}</span>

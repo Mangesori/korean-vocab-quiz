@@ -75,7 +75,7 @@ export default function MyQuizzes() {
 
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <h1 className="text-[22px] font-bold tracking-[-0.4px]">전체 퀴즈</h1>

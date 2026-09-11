@@ -204,7 +204,7 @@ export function FillBlankStage({
   return (
     <div className="w-full">
       {/* Main Card */}
-      <Card className="border shadow-sm rounded-2xl overflow-hidden mb-8 bg-white max-w-5xl mx-auto mt-4">
+      <Card className="border-0 sm:border shadow-none sm:shadow-sm rounded-none sm:rounded-2xl overflow-hidden mb-8 bg-transparent sm:bg-white max-w-5xl mx-auto mt-4">
         <CardContent className="p-0">
           {/* 안내 — 흰 면 = 읽는 것(안내), 회색 박스 = 푸는 재료(보기).
               예시는 안내문구 끝("입력하세요") 바로 옆 정보 아이콘의 Popover로 옮겼다
@@ -241,27 +241,27 @@ export function FillBlankStage({
             <PopoverContent side="bottom" className="w-auto max-w-[90vw] sm:max-w-lg flex flex-wrap items-center justify-center gap-2 p-3">
               {/* 예시는 칩 2개로 감싼다 — 결합되는 문법 요소만 text-primary로 칠해
                   "무엇이 결합되는지"를 색으로 말한다. 기본은 한 줄, 폭이 부족하면 줄바꿈 */}
-              <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-[#EBE5DE] bg-[#FAF8F5] px-3 py-2 text-xs sm:text-sm text-muted-foreground">
                 미술관
-                <span className="text-slate-400">+</span>
+                <span className="text-[#C4BDB6]">+</span>
                 <span className="font-bold text-primary">에</span>
-                <span className="mx-0.5 text-slate-400">→</span>
+                <span className="mx-0.5 text-[#C4BDB6]">→</span>
                 <span className="font-bold text-foreground">미술관<span className="text-primary">에</span></span>
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-[#EBE5DE] bg-[#FAF8F5] px-3 py-2 text-xs sm:text-sm text-muted-foreground">
                 가다
-                <span className="text-slate-400">+</span>
+                <span className="text-[#C4BDB6]">+</span>
                 <span className="font-bold text-primary">-고 있다</span>
-                <span className="text-slate-400">+</span>
+                <span className="text-[#C4BDB6]">+</span>
                 <span className="font-bold text-primary">아/어요</span>
-                <span className="mx-0.5 text-slate-400">→</span>
+                <span className="mx-0.5 text-[#C4BDB6]">→</span>
                 <span className="font-bold text-foreground">가<span className="text-primary">고 있어요</span></span>
               </span>
             </PopoverContent>
           </Popover>
 
           {/* Word Bank — 회색 박스는 "이 문제의 재료"만. 칩은 흰색이라 배경 위에서 떠 보인다 */}
-          <div className="mx-4 sm:mx-8 mb-2 rounded-2xl bg-slate-50 px-5 py-4 sm:py-5 flex flex-col items-center">
+          <div className="mx-4 sm:mx-8 mb-2 rounded-2xl bg-[#FAF8F5] px-5 py-4 sm:py-5 flex flex-col items-center">
             <p className="mb-1.5 text-xs font-bold tracking-wide text-muted-foreground">보기</p>
             <div className="flex flex-wrap justify-center gap-2 sm:gap-3 w-full max-w-3xl">
               {shuffledWordBank.map((word, idx) => {
@@ -313,7 +313,7 @@ export function FillBlankStage({
                           <Input
                             value={userAnswers[problem.id] || ""}
                             onChange={(e) => onAnswerChange(problem.id, e.target.value)}
-                            className={`h-11 flex-1 min-w-0 text-center text-sm border-border bg-slate-50 focus-visible:ring-0 focus-visible:ring-offset-0 ${problem.hint ? "rounded-l-xl rounded-r-none border-r-0" : "rounded-xl"}`}
+                            className={`h-11 flex-1 min-w-0 text-center text-sm border-border bg-[#FAF8F5] focus-visible:ring-0 focus-visible:ring-offset-0 ${problem.hint ? "rounded-l-xl rounded-r-none border-r-0" : "rounded-xl"}`}
                             placeholder="정답 입력"
                             autoComplete="off"
                           />
@@ -383,7 +383,7 @@ export function FillBlankStage({
                             <Input
                               value={userAnswers[problem.id] || ""}
                               onChange={(e) => onAnswerChange(problem.id, e.target.value)}
-                              className={`w-48 h-10 text-center text-base border-border bg-slate-50 focus-visible:ring-0 focus-visible:ring-offset-0 ${problem.hint ? "rounded-l-xl rounded-r-none border-r-0" : "rounded-xl"}`}
+                              className={`w-48 h-10 text-center text-base border-border bg-[#FAF8F5] focus-visible:ring-0 focus-visible:ring-offset-0 ${problem.hint ? "rounded-l-xl rounded-r-none border-r-0" : "rounded-xl"}`}
                               placeholder="정답 입력"
                               autoComplete="off"
                             />
@@ -451,7 +451,7 @@ export function FillBlankStage({
           variant="outline"
           onClick={handlePrevSet}
           disabled={currentSetIndex === 0}
-          className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-white/50 backdrop-blur-sm border-border text-muted-foreground text-xs sm:text-sm font-semibold hover:bg-white hover:text-foreground shadow-sm"
+          className="h-9 sm:h-12 px-4 sm:px-6 rounded-xl bg-[#FAF8F5] sm:bg-white/50 border-border text-muted-foreground text-xs sm:text-sm font-semibold hover:bg-white hover:text-foreground shadow-none sm:shadow-sm"
         >
           <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> 이전 세트
         </Button>

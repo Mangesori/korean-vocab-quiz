@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const TABS = [
@@ -17,18 +17,11 @@ type TabId = typeof TABS[number]["id"];
 const ROTATE_MS = 5500;
 
 // ─── Pane: 퀴즈 만들기 ───────────────────────────────────────────────────────
-const CEFR_LEVELS = [
-  { l: "A1", bg: "#DCFCE7", text: "#15803D", border: "#15803D" },
-  { l: "A2", bg: "#CFFAFE", text: "#0E7490", border: "#0E7490" },
-  { l: "B1", bg: "#DBEAFE", text: "#1D4ED8", border: "#1D4ED8" },
-  { l: "B2", bg: "#EDE9FE", text: "#6D28D9", border: "#6D28D9" },
-  { l: "C1", bg: "#FCE7F3", text: "#9D174D", border: "#9D174D" },
-  { l: "C2", bg: "#FEF9C3", text: "#854D0E", border: "#854D0E" },
-];
+const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
 function StepBadge({ n }: { n: number }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: "50%", background: "#1E6B47", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{n}</span>
+    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: "50%", background: "#1F6B48", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{n}</span>
   );
 }
 
@@ -71,7 +64,7 @@ function PaneCreate({ isActive, isMobile = false }: { isActive: boolean; isMobil
 
   return (
     <div style={{ padding: `${14 * S}px ${18 * S}px ${16 * S}px`, display: "flex", flexDirection: "column", gap: 14 * S, height: "100%" }}>
-      <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16 * S, color: "#1A1714" }}>퀴즈 만들기</div>
+      <div style={{ fontSize: 16 * S, color: "#1A1714" }}>퀴즈 만들기</div>
 
       {/* ① 단어 입력 */}
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -79,13 +72,29 @@ function PaneCreate({ isActive, isMobile = false }: { isActive: boolean; isMobil
           <StepBadge n={1} />
           <span style={{ fontSize: 12 * S, fontWeight: 600, color: "#1A1714" }}>단어 입력</span>
         </div>
-        <div style={{ border: "1.5px solid #1E6B47", background: "#FCFBF9", borderRadius: 8, padding: `${8 * S}px ${11 * S}px`, boxShadow: "0 0 0 3px #E8F5EE", fontSize: 12 * S, color: "#1A1714", lineHeight: 1.6, minHeight: 36 * S }}>
+        <div style={{ border: "1.5px solid #E5DFDA", background: "#FAF8F5", borderRadius: 8, padding: `${8 * S}px ${11 * S}px`, fontSize: 12 * S, color: "#1A1714", lineHeight: 1.6, minHeight: 36 * S }}>
           {typed}
-          <span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} />
+          <span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1F6B48", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} />
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", paddingLeft: 1 }}>
-          <span style={{ fontSize: 10 * S, color: "#6B6460" }}>입력된 단어: <strong style={{ color: "#1A1714" }}>{wordCount}</strong>개</span>
-          <span style={{ fontSize: 9.5 * S, fontFamily: "'Geist Mono', monospace", color: "#9E9894" }}>쉼표(,) 또는 줄바꿈으로 구분</span>
+          <span style={{ fontSize: 10 * S, color: "#6B6460" }}>입력된 단어: <strong style={{ color: "#1A1714", fontVariantNumeric: "tabular-nums" }}>{wordCount}</strong>개</span>
+          <span style={{ fontSize: 9.5 * S, color: "#9E9894" }}>쉼표(,) 또는 줄바꿈으로 구분</span>
+        </div>
+
+        {/* 단어입력 / 프롬프트입력 토글 */}
+        <div style={{ display: "flex", gap: 3, marginTop: 6, background: "#F7F3ED", borderRadius: 9, padding: 3, width: "fit-content" }}>
+          <div style={{ padding: `${4 * S}px ${10 * S}px`, borderRadius: 7, fontSize: 10 * S, fontWeight: 600, background: "#fff", color: "#1A1714", boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }}>단어 입력</div>
+          <div style={{ padding: `${4 * S}px ${10 * S}px`, borderRadius: 7, fontSize: 10 * S, fontWeight: 600, color: "#6B635E" }}>프롬프트 입력</div>
+        </div>
+      </div>
+
+      {/* 다른 방식으로 만들기 */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `${7 * S}px ${10 * S}px`, borderRadius: 9, border: "1px solid #E5DFDA", background: "#fff" }}>
+        <span style={{ fontSize: 10.5 * S, fontWeight: 600, color: "#6B635E" }}>다른 방식으로 만들기</span>
+        <div style={{ display: "flex", gap: 6 }}>
+          <span style={{ fontSize: 9.5 * S, fontWeight: 600, color: "#1F6B48" }}>오답 복습</span>
+          <span style={{ fontSize: 9.5 * S, color: "#E5DFDA" }}>|</span>
+          <span style={{ fontSize: 9.5 * S, fontWeight: 600, color: "#1F6B48" }}>어휘 보강</span>
         </div>
       </div>
 
@@ -96,18 +105,18 @@ function PaneCreate({ isActive, isMobile = false }: { isActive: boolean; isMobil
           <span style={{ fontSize: 12 * S, fontWeight: 600, color: "#1A1714" }}>난이도</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 4 }}>
-          {CEFR_LEVELS.map((c) => (
-            <div key={c.l} style={{
-              padding: "5px 0", borderRadius: 9999, fontSize: 10.5 * S, fontWeight: 700,
-              textAlign: "center",
-              border: c.l === cefrSelected ? `2px solid ${c.border}` : "2px solid transparent",
-              background: c.bg, color: c.text,
-              opacity: c.l === cefrSelected ? 1 : 0.45,
-              boxShadow: c.l === cefrSelected ? `0 0 0 2px ${c.border}` : "none",
-              transition: "opacity 180ms ease, border 180ms ease, box-shadow 180ms ease",
-              animation: c.l === "B1" && cefrSelected === "B1" ? "cefr-pop 300ms ease" : "none",
-            }}>{c.l}</div>
-          ))}
+          {CEFR_LEVELS.map((l) => {
+            const on = l === cefrSelected;
+            return (
+              <div key={l} style={{
+                padding: "5px 0", borderRadius: 9999, fontSize: 10.5 * S, fontWeight: 700,
+                textAlign: "center",
+                background: on ? "#DCF0E4" : "#F7F3ED", color: on ? "#1F6B48" : "#6B635E",
+                transition: "background 180ms ease, color 180ms ease",
+                animation: l === "B1" && on ? "cefr-pop 300ms ease" : "none",
+              }}>{l}</div>
+            );
+          })}
         </div>
       </div>
 
@@ -117,7 +126,8 @@ function PaneCreate({ isActive, isMobile = false }: { isActive: boolean; isMobil
           <StepBadge n={3} />
           <span style={{ fontSize: 12 * S, fontWeight: 600, color: "#1A1714" }}>퀴즈 유형</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 4 }}>
+        {/* 실물: 유형 카드 2열 → 모바일 1열 세로 */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 4 }}>
           {[
             { id: "matchup", icon: "link", label: "짝 맞추기", subOff: "단어 매칭" },
             { id: "typeAnswer", icon: "keyboard", label: "단어 받아쓰기", subOff: "뜻 보고 단어 쓰기" },
@@ -130,33 +140,76 @@ function PaneCreate({ isActive, isMobile = false }: { isActive: boolean; isMobil
             return (
             <div key={q.id} style={{
               padding: `${6 * S}px ${10 * S}px`, borderRadius: 10,
-              border: `1.5px solid ${on ? "#1E6B47" : "#E2DDD8"}`,
-              background: on ? "#E8F5EE" : "#fff",
+              border: `1.5px solid ${on ? "#1F6B48" : "#E5DFDA"}`,
+              background: on ? "#DCF0E4" : "#fff",
               transition: "border 200ms ease, background 200ms ease",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
-                {q.icon === "link" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7a5 5 0 0 1 0-10h2" /><path d="M15 7h2a5 5 0 1 1 0 10h-2" /><line x1="8" y1="12" x2="16" y2="12" /></svg>}
-                {q.icon === "keyboard" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="6" y1="9" x2="6" y2="9.01" /><line x1="10" y1="9" x2="10" y2="9.01" /><line x1="14" y1="9" x2="14" y2="9.01" /><line x1="18" y1="9" x2="18" y2="9.01" /><line x1="7" y1="15" x2="17" y2="15" /></svg>}
-                {q.icon === "type" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></svg>}
-                {q.icon === "magnet" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15 3 12l6-6a6 6 0 0 1 8.49 8.49L12 20l-3-3 5-5a2 2 0 1 0-2.83-2.83L6 14" /><path d="m5 8 3 3" /><path d="m11 14 3 3" /></svg>}
-                {q.icon === "pen" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" /></svg>}
-                {q.icon === "mic" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1E6B47" : "#9E9894"} strokeWidth="2" strokeLinecap="round"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5 12c0 3.866 3.134 7 7 7s7-3.134 7-7" /><line x1="12" y1="19" x2="12" y2="22" /></svg>}
+                {q.icon === "link" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1F6B48" : "#9E9894"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7a5 5 0 0 1 0-10h2" /><path d="M15 7h2a5 5 0 1 1 0 10h-2" /><line x1="8" y1="12" x2="16" y2="12" /></svg>}
+                {q.icon === "keyboard" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1F6B48" : "#9E9894"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="6" y1="9" x2="6" y2="9.01" /><line x1="10" y1="9" x2="10" y2="9.01" /><line x1="14" y1="9" x2="14" y2="9.01" /><line x1="18" y1="9" x2="18" y2="9.01" /><line x1="7" y1="15" x2="17" y2="15" /></svg>}
+                {q.icon === "type" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1F6B48" : "#9E9894"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></svg>}
+                {q.icon === "magnet" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1F6B48" : "#9E9894"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15 3 12l6-6a6 6 0 0 1 8.49 8.49L12 20l-3-3 5-5a2 2 0 1 0-2.83-2.83L6 14" /><path d="m5 8 3 3" /><path d="m11 14 3 3" /></svg>}
+                {q.icon === "pen" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1F6B48" : "#9E9894"} strokeWidth="2" strokeLinecap="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" /></svg>}
+                {q.icon === "mic" && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={on ? "#1F6B48" : "#9E9894"} strokeWidth="2" strokeLinecap="round"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5 12c0 3.866 3.134 7 7 7s7-3.134 7-7" /><line x1="12" y1="19" x2="12" y2="22" /></svg>}
                 <span style={{ fontSize: 10.5 * S, fontWeight: 700, color: on ? "#1A1714" : "#6B6460", transition: "color 200ms ease" }}>{q.label}</span>
               </div>
-              <div style={{ fontSize: 9.5 * S, color: on ? "#1E6B47" : "#9E9894", transition: "color 200ms ease" }}>{on ? "선택됨" : q.subOff}</div>
+              <div style={{ fontSize: 9.5 * S, color: on ? "#1F6B48" : "#9E9894", transition: "color 200ms ease" }}>{on ? "선택됨" : q.subOff}</div>
             </div>
             );
           })}
         </div>
       </div>
 
-      {/* CTA */}
-      <div style={{ background: "#1E6B47", color: "#fff", padding: `${10 * S}px ${14 * S}px`, borderRadius: 9, fontSize: 12.5 * S, fontWeight: 600, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, marginTop: "auto" }}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.8 5.8 1.9-5.8 1.9L12 18.4l-1.9-5.8L4.3 10.7l5.8-1.9z" /><path d="M5 3l.9 2.6L8.4 6.5 5.9 7.4 5 10l-.9-2.6L1.6 6.5 4.1 5.6z" /><path d="M19 12l.9 2.6 2.5.9-2.5.9L19 19l-.9-2.6-2.5-.9 2.5-.9z" /></svg>
-        AI로 퀴즈 생성
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: 10 * S, opacity: 0.7, padding: "2px 5px", background: "rgba(255,255,255,0.18)", borderRadius: 4 }}>⌘ ↵</span>
+      {/* 3단계 — 접힌 아코디언 행 */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: `${8 * S}px ${10 * S}px`, borderRadius: 9, border: "1px solid #E5DFDA", background: "#fff" }}>
+        <span style={{ fontSize: 10.5 * S, fontWeight: 600, color: "#6B635E" }}>세트당 단어 수 · 번역 언어 · 제한 시간</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9E9894" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
       </div>
 
+      {/* CTA */}
+      <div style={{ background: "#1F6B48", color: "#fff", padding: `${10 * S}px ${14 * S}px`, borderRadius: 9, fontSize: 12.5 * S, fontWeight: 600, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, marginTop: "auto" }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.8 5.8 1.9-5.8 1.9L12 18.4l-1.9-5.8L4.3 10.7l5.8-1.9z" /><path d="M5 3l.9 2.6L8.4 6.5 5.9 7.4 5 10l-.9-2.6L1.6 6.5 4.1 5.6z" /><path d="M19 12l.9 2.6 2.5.9-2.5.9L19 19l-.9-2.6-2.5-.9 2.5-.9z" /></svg>
+        AI로 퀴즈 생성
+        <span style={{ fontSize: 10 * S, opacity: 0.7, padding: "2px 5px", background: "rgba(255,255,255,0.18)", borderRadius: 4 }}>Ctrl ↵</span>
+      </div>
+
+    </div>
+  );
+}
+
+/** 실물 하단 3열 내비게이션: [이전][모르겠어요][다음] — 모바일에서 "이전" 라벨은 아이콘만 남는다.
+ * 실물 버튼 크기(h-9 sm:h-12 px-4 sm:px-6 text-xs sm:text-sm)를 배율 곱셈 대신 그대로 하드코딩한다. */
+function navBtnBase(isMobile: boolean): React.CSSProperties {
+  return {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    height: isMobile ? 36 : 48,
+    padding: `0 ${isMobile ? 16 : 24}px`,
+    borderRadius: 9,
+    fontSize: isMobile ? 12 : 14,
+    fontWeight: 600,
+  };
+}
+
+function PrevButton({ isMobile }: { isMobile: boolean }) {
+  return (
+    <div style={{ ...navBtnBase(isMobile), gap: 6, background: "#fff", border: "1px solid #E5DFDA", color: "#6B6460" }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>
+      {!isMobile && <span>이전</span>}
+    </div>
+  );
+}
+
+function FooterNav({ isMobile, showSkip = false, nextLabel, nextActive = true }: { isMobile: boolean; showSkip?: boolean; nextLabel: string; nextActive?: boolean }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", marginTop: "auto", gap: 6 }}>
+      <div style={{ justifySelf: "start" }}><PrevButton isMobile={isMobile} /></div>
+      <div style={{ justifySelf: "center" }}>
+        {showSkip && <span style={{ fontSize: isMobile ? 12 : 14, fontWeight: 600, color: "#9E9894" }}>모르겠어요</span>}
+      </div>
+      <div style={{
+        ...navBtnBase(isMobile),
+        background: nextActive ? "#1F6B48" : "rgba(31,107,72,0.5)", color: "#fff", transition: "all 200ms ease",
+      }}>{nextLabel} →</div>
     </div>
   );
 }
@@ -204,45 +257,62 @@ function PaneMatchup({ isActive, isMobile = false }: { isActive: boolean; isMobi
     return () => { cancelled = true; tids.forEach(clearTimeout); };
   }, [isActive]);
 
+  // 실물 크기: px-3 py-3 sm:px-4 sm:py-4, min-h-[3rem] sm:min-h-[4rem].
+  // 단어(좌) text-sm sm:text-lg font-bold / 뜻(우) text-sm sm:text-base — sm: 변형이라
+  // 배율(S) 곱셈이 아니라 모바일·데스크탑 값을 그대로 조건부로 쓴다.
   const tileStyle = (state: "matched" | "selected" | "idle", isLeft: boolean): React.CSSProperties => {
     const base: React.CSSProperties = {
-      width: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-      borderRadius: 14, padding: `${11 * S}px ${10 * S}px`, textAlign: "center",
-      transition: "all 200ms ease", fontWeight: 700, fontSize: 12 * S,
+      width: "100%", minHeight: isMobile ? 48 : 64,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      borderRadius: 14, padding: isMobile ? "12px 12px" : "16px 16px", textAlign: "center",
+      transition: "all 200ms ease", fontWeight: 700,
+      fontSize: isMobile ? 14 : isLeft ? 18 : 16,
     };
     if (state === "matched") return { ...base, border: "2px solid #2D7D52", background: "rgba(45,125,82,0.1)", color: "#1A1714" };
-    if (state === "selected") return { ...base, border: "2px solid #1E6B47", background: "rgba(30,107,71,0.1)", boxShadow: "0 0 0 3px rgba(30,107,71,0.15)", color: "#1A1714" };
+    if (state === "selected") return { ...base, border: "2px solid #1F6B48", background: "rgba(30,107,71,0.1)", boxShadow: "0 0 0 3px rgba(30,107,71,0.15)", color: "#1A1714" };
     return isLeft
       ? { ...base, border: "2px solid rgba(30,107,71,0.2)", background: "rgba(30,107,71,0.04)", color: "#1A1714" }
-      : { ...base, border: "2px solid #E2E8F0", background: "#F8FAFC", color: "#1E293B", fontWeight: 500 };
+      : { ...base, border: "2px solid #E2E8F0", background: "#FAF8F5", color: "#1E293B", fontWeight: 500 };
   };
 
   return (
     <div style={{ padding: `${18 * S}px ${20 * S}px ${22 * S}px`, display: "flex", flexDirection: "column", gap: 14 * S, height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16 * S, color: "#1A1714" }}>짝 맞추기</div>
-        <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11 * S, color: "#6B6460" }}>{matched.size} / {MU_PAIRS.length}</div>
+        <div style={{ fontSize: 16 * S, color: "#1A1714" }}>짝 맞추기</div>
+        <div style={{ fontSize: 11 * S, color: "#6B6460", fontVariantNumeric: "tabular-nums" }}>{matched.size} / {MU_PAIRS.length}</div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 * S, flex: 1 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {MU_LEFT_ORDER.map((i) => (
-            <div key={i} style={tileStyle(matched.has(i) ? "matched" : selLeft === i ? "selected" : "idle", true)}>{MU_PAIRS[i].k}</div>
-          ))}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {MU_RIGHT_ORDER.map((i) => (
-            <div key={i} style={tileStyle(matched.has(i) ? "matched" : selRight === i ? "selected" : "idle", false)}>{MU_PAIRS[i].m}</div>
-          ))}
+      {/* 안내문 — 실물은 배지·힌트 없는 단순 중앙 정렬 텍스트 */}
+      <p style={{ textAlign: "center", fontSize: isMobile ? 14 : 16 * S, fontWeight: 700, color: "#1A1714", margin: 0 }}>
+        단어와 뜻을 짝지어 보세요
+      </p>
+
+      {/* 실물 카드 폭 max-w-3xl : 나머지 6개 탭의 max-w-5xl = 768:1024 = 3:4.
+          데스크탑 641px 프레임 안에서 이 비율감을 내기 위해 75% 폭으로 좁힌다.
+          모바일은 화면 자체가 두 max-w 값보다 훨씬 좁아 실물에서도 시각 차이가 없다. */}
+      <div style={{ width: isMobile ? "100%" : "75%", marginLeft: "auto", marginRight: "auto", display: "flex", flexDirection: "column", flex: 1 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: isMobile ? 12 : 24, flex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {MU_LEFT_ORDER.map((i) => (
+              <div key={i} style={tileStyle(matched.has(i) ? "matched" : selLeft === i ? "selected" : "idle", true)}>{MU_PAIRS[i].k}</div>
+            ))}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {MU_RIGHT_ORDER.map((i) => (
+              <div key={i} style={tileStyle(matched.has(i) ? "matched" : selRight === i ? "selected" : "idle", false)}>{MU_PAIRS[i].m}</div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
-        <div style={{ padding: `${8 * S}px ${14 * S}px`, borderRadius: 9, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#6B6460" }}>← 이전</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", marginTop: "auto", gap: 6 }}>
+        <div style={{ justifySelf: "start" }}><PrevButton isMobile={isMobile} /></div>
+        <div />
         <div style={{
-          padding: `${8 * S}px ${16 * S}px`, borderRadius: 9, fontSize: 12 * S, fontWeight: 600,
-          background: matched.size === MU_PAIRS.length ? "#1E6B47" : "#E2DDD8",
-          color: matched.size === MU_PAIRS.length ? "#fff" : "#9E9894",
+          ...navBtnBase(isMobile),
+          justifySelf: "end",
+          background: matched.size === MU_PAIRS.length ? "#1F6B48" : "rgba(31,107,72,0.5)",
+          color: "#fff",
           transition: "all 200ms ease",
         }}>결과 확인 →</div>
       </div>
@@ -279,31 +349,35 @@ function PaneTypeAnswer({ isActive, isMobile = false }: { isActive: boolean; isM
   return (
     <div style={{ padding: `${18 * S}px ${22 * S}px ${22 * S}px`, display: "flex", flexDirection: "column", gap: 16 * S, height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16 * S, color: "#1A1714" }}>단어 받아쓰기</div>
-        <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11 * S, color: "#6B6460" }}>3 / 15</div>
+        <div style={{ fontSize: 16 * S, color: "#1A1714" }}>단어 받아쓰기</div>
+        <div style={{ fontSize: 11 * S, color: "#6B6460", fontVariantNumeric: "tabular-nums" }}>3 / 15</div>
       </div>
 
-      <div style={{ padding: `${22 * S}px ${20 * S}px`, background: "#F8FAFC", borderRadius: 14, minHeight: 90 * S, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ fontSize: 17 * S, fontWeight: 700, color: "#1A1714", textAlign: "center", margin: 0 }}>{PROMPT}</p>
+      {/* 안내문 — 실물은 배지·힌트 없는 단순 중앙 정렬 텍스트 */}
+      <p style={{ textAlign: "center", fontSize: isMobile ? 14 : 16 * S, fontWeight: 700, color: "#1A1714", margin: 0 }}>
+        뜻을 보고 알맞은 한국어 단어를 입력하세요
+      </p>
+
+      {/* 실물 패널: p-6 sm:p-8, 뜻 text-xl sm:text-2xl — 모바일 값은 배율 없이 고정 */}
+      <div style={{ padding: isMobile ? "24px 24px" : `${22 * S}px ${20 * S}px`, background: "#FAF8F5", borderRadius: 14, minHeight: 90 * S, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ fontSize: isMobile ? 20 : 17 * S, fontWeight: 700, color: "#1A1714", textAlign: "center", margin: 0 }}>{PROMPT}</p>
       </div>
 
+      {/* 실물 입력칸: h-14 text-xl — sm: 변형이 없어 모바일·데스크탑 모두 고정 56px/20px */}
       <div style={{
-        height: 46 * S, borderRadius: 12, background: "#F8FAFC",
-        border: typed ? "1.5px solid #1E6B47" : "1.5px solid #E2E8F0",
+        height: 56, borderRadius: 12, background: "#FAF8F5",
+        border: typed ? "1.5px solid #1F6B48" : "1.5px solid #E2E8F0",
         boxShadow: typed ? "0 0 0 3px rgba(30,107,71,0.12)" : "none",
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 15 * S, fontWeight: 700, color: done ? "#1E6B47" : "#1A1714",
+        fontSize: 20, fontWeight: 700, color: done ? "#1F6B48" : "#1A1714",
         transition: "all 200ms ease",
       }}>
         {typed
-          ? <>{typed}<span style={{ display: "inline-block", width: 1.5, height: 14, background: "#1E6B47", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} /></>
-          : <span style={{ fontSize: 12 * S, fontWeight: 400, color: "#94A3B8" }}>정답 입력</span>}
+          ? <>{typed}<span style={{ display: "inline-block", width: 1.5, height: 14, background: "#1F6B48", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} /></>
+          : <span style={{ fontSize: 16, fontWeight: 400, color: "#94A3B8" }}>정답 입력</span>}
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
-        <div style={{ padding: `${8 * S}px ${14 * S}px`, borderRadius: 9, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#6B6460" }}>← 이전</div>
-        <div style={{ padding: `${8 * S}px ${16 * S}px`, borderRadius: 9, background: "#1E6B47", color: "#fff", fontSize: 12 * S, fontWeight: 600 }}>다음 문제 →</div>
-      </div>
+      <FooterNav isMobile={isMobile} showSkip nextLabel="다음 문제" />
     </div>
   );
 }
@@ -321,7 +395,7 @@ function MockHintPill({ S, height }: { S: number; height: number }) {
       display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
       height, padding: `0 ${9 * S}px`,
       borderRadius: `0 ${9 * S}px ${9 * S}px 0`,
-      background: "#E8F5EE", color: "#1E6B47",
+      background: "#DCF0E4", color: "#1F6B48",
       borderTop: "1px solid rgba(30,107,71,0.3)", borderRight: "1px solid rgba(30,107,71,0.3)",
       borderBottom: "1px solid rgba(30,107,71,0.3)", borderLeft: "none",
       fontSize: 9.5 * S, fontWeight: 600, whiteSpace: "nowrap",
@@ -334,15 +408,15 @@ function MockExampleChip({ S, parts, result }: { S: number; parts: string[]; res
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 3 * S,
-      borderRadius: 9, border: "1px solid #E2E8F0", background: "#F8FAFC",
+      borderRadius: 9, border: "1px solid #E2E8F0", background: "#FAF8F5",
       padding: `${4 * S}px ${8 * S}px`, fontSize: 9 * S, color: "#6B6460", whiteSpace: "nowrap",
     }}>
       {parts.map((part, i) => (
         // index 0=단어, 홀수="+", 짝수(>0)=결합되는 문법 요소 → 문법 요소만 강조
-        <span key={i} style={i > 0 && i % 2 === 0 ? { fontWeight: 700, color: "#1E6B47" } : part === "+" ? { color: "#CBD5E1" } : undefined}>{part}</span>
+        <span key={i} style={i > 0 && i % 2 === 0 ? { fontWeight: 700, color: "#1F6B48" } : part === "+" ? { color: "#CBD5E1" } : undefined}>{part}</span>
       ))}
       <span style={{ margin: `0 ${2 * S}px`, color: "#CBD5E1" }}>→</span>
-      <span style={{ fontWeight: 700, color: "#1A1714" }}>{result[0]}<span style={{ color: "#1E6B47" }}>{result[1]}</span></span>
+      <span style={{ fontWeight: 700, color: "#1A1714" }}>{result[0]}<span style={{ color: "#1F6B48" }}>{result[1]}</span></span>
     </span>
   );
 }
@@ -353,8 +427,8 @@ function MockHintBubble({ S, hint }: { S: number; hint: string }) {
     <span style={{
       position: "absolute", bottom: `calc(100% + ${3 * S}px)`, left: "50%", transform: "translateX(-50%)",
       padding: `${3 * S}px ${7 * S}px`, borderRadius: 6,
-      background: "#fff", border: "1px solid #E2DDD8", boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-      fontSize: 9.5 * S, fontWeight: 600, color: "#1E6B47", whiteSpace: "nowrap", pointerEvents: "none",
+      background: "#fff", border: "1px solid #E5DFDA", boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+      fontSize: 9.5 * S, fontWeight: 600, color: "#1F6B48", whiteSpace: "nowrap", pointerEvents: "none",
     }}>{hint}</span>
   );
 }
@@ -426,7 +500,7 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
               <MockExampleChip S={1} parts={["가다", "+", "-고 있다", "+", "아/어요"]} result={["가", "고 있어요"]} />
             </div>
           </div>
-          <div style={{ margin: "4px 12px 8px", borderRadius: 14, background: "#F8FAFC", padding: "10px 14px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ margin: "4px 12px 8px", borderRadius: 14, background: "#FAF8F5", padding: "10px 14px", display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div style={{ fontSize: 9.5, fontWeight: 700, color: "#64748B", textAlign: "center", marginBottom: 6, letterSpacing: "0.05em" }}>보기</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
               {bankWords.map((p, i) => (
@@ -454,7 +528,7 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
               <MockExampleChip S={S} parts={["가다", "+", "-고 있다", "+", "아/어요"]} result={["가", "고 있어요"]} />
             </div>
           </div>
-          <div style={{ margin: `${5 * S}px ${18 * S}px ${8 * S}px`, borderRadius: 16, background: "#F8FAFC", padding: `${9 * S}px ${16 * S}px` , display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{ margin: `${5 * S}px ${18 * S}px ${8 * S}px`, borderRadius: 16, background: "#FAF8F5", padding: `${9 * S}px ${16 * S}px` , display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div style={{ fontSize: 10 * S, fontWeight: 700, color: "#64748B", textAlign: "center", marginBottom: 7, letterSpacing: "0.05em" }}>보기</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7, justifyContent: "center" }}>
               {bankWords.map((p, i) => (
@@ -487,7 +561,7 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
             marginBottom: idx < PROBLEMS.length - 1 ? 12 : 0,
           }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 5, marginBottom: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#1E6B47", minWidth: 16, flexShrink: 0 }}>{p.n}.</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#1F6B48", minWidth: 16, flexShrink: 0 }}>{p.n}.</span>
               {/* 문장 줄에는 문법 힌트를 두지 않는다 — 입력칸 오른쪽 `문법` 버튼으로 이동 */}
               <p style={{ fontSize: 12, color: "#1E293B", lineHeight: 1.65, margin: 0 }}>
                 {p.sentBefore}{" "}
@@ -506,13 +580,13 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
                 background: "#F3F4F6",
                 fontSize: 12.5,
                 fontWeight: p.qs === "done" || p.qs === "typing" ? 600 : 400,
-                color: p.qs === "done" ? "#1E6B47" : p.qs === "typing" ? "#1A1714" : "#94A3B8",
+                color: p.qs === "done" ? "#1F6B48" : p.qs === "typing" ? "#1A1714" : "#94A3B8",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "border 200ms ease",
               }}>
                 {p.qs === "done" ? p.answer
                   : p.qs === "typing" ? (
-                    <>{p.answer}<span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} /></>
+                    <>{p.answer}<span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1F6B48", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} /></>
                   ) : "정답 입력"
                 }
               </div>
@@ -540,7 +614,7 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
           }}>
             {/* 문장 + 인라인 입력 박스. 번호는 바깥 행의 형제가 아니라 이 그룹 안 첫 항목 */}
             <div style={{ flex: 1, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4, lineHeight: 1.6 }}>
-              <span style={{ fontSize: 11 * S, fontWeight: 700, color: "#1E6B47", minWidth: 18, flexShrink: 0 }}>
+              <span style={{ fontSize: 11 * S, fontWeight: 700, color: "#1F6B48", minWidth: 18, flexShrink: 0 }}>
                 {p.n}.
               </span>
               {p.sentBefore && (
@@ -552,21 +626,21 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
                 <span style={{
                   display: "inline-flex", alignItems: "center", justifyContent: "center",
                   minWidth: 132 * S, height: 28 * S, padding: `0 ${10 * S}px`,
-                  border: isGlow(p.qs) ? "1.5px solid #1E6B47"
+                  border: isGlow(p.qs) ? "1.5px solid #1F6B48"
                         : p.qs === "done" ? "1.5px solid #B6DFC8"
                         : "1.5px solid #E2E8F0",
                   borderRadius: p.hint ? "9px 0 0 9px" : 9,
                   borderRight: p.hint ? "none" : undefined,
                   background: p.qs === "done" ? "#F0FAF4" : "#F8F9FA",
-                  boxShadow: isGlow(p.qs) ? "0 0 0 3px #E8F5EE" : "none",
+                  boxShadow: isGlow(p.qs) ? "0 0 0 3px #DCF0E4" : "none",
                   fontSize: 12 * S,
                   fontWeight: p.qs === "done" || p.qs === "typing" ? 600 : 400,
-                  color: p.qs === "done" ? "#1E6B47" : p.qs === "typing" ? "#1A1714" : "#94A3B8",
+                  color: p.qs === "done" ? "#1F6B48" : p.qs === "typing" ? "#1A1714" : "#94A3B8",
                   transition: "border 200ms ease, background 200ms ease, box-shadow 200ms ease",
                 }}>
                   {p.qs === "done" ? p.answer
                     : p.qs === "typing" ? (
-                      <>{p.answer}<span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} /></>
+                      <>{p.answer}<span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1F6B48", verticalAlign: "middle", marginLeft: 2, animation: "blink 1.1s infinite" }} /></>
                     ) : <span style={{ fontSize: 12 * S, color: "#94A3B8" }}>정답 입력</span>}
                 </span>
                 {/* `hint`가 빈 문항(3번)은 버튼 자체를 렌더하지 않는다.
@@ -602,16 +676,16 @@ function PaneBlank({ isActive, isMobile = false }: { isActive: boolean; isMobile
       <div style={{ padding: `${10 * S}px ${16 * S}px ${14 * S}px`, flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         {isMobile ? (
           <>
-            <div style={{ padding: `${7 * S}px ${12 * S}px`, borderRadius: 9, background: "#fff", border: "1px solid #E2E8F0", fontSize: 11.5 * S, fontWeight: 600, color: "#64748B" }}>‹ 이전 세트</div>
-            <div style={{ padding: `${7 * S}px ${14 * S}px`, borderRadius: 9, background: "#1E6B47", color: "#fff", fontSize: 11.5 * S, fontWeight: 600 }}>다음 세트 ›</div>
+            <div style={{ ...navBtnBase(true), background: "#fff", border: "1px solid #E2E8F0", color: "#64748B" }}>‹ 이전 세트</div>
+            <div style={{ ...navBtnBase(true), background: "#1F6B48", color: "#fff" }}>다음 세트 ›</div>
           </>
         ) : (
           <>
-            <div style={{ padding: `${11 * S}px ${18 * S}px`, borderRadius: 11, background: "rgba(255,255,255,0.6)", border: "1px solid #E2E8F0", fontSize: 12 * S, fontWeight: 600, color: "#64748B", display: "flex", alignItems: "center", gap: 5 }}>
+            <div style={{ ...navBtnBase(false), gap: 5, background: "rgba(255,255,255,0.6)", border: "1px solid #E2E8F0", color: "#64748B" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>
               이전 세트
             </div>
-            <div style={{ padding: `${11 * S}px ${20 * S}px`, borderRadius: 11, background: "#1E6B47", color: "#fff", fontSize: 12 * S, fontWeight: 600, display: "flex", alignItems: "center", gap: 5, boxShadow: "0 4px 12px rgba(30,107,71,0.25)" }}>
+            <div style={{ ...navBtnBase(false), gap: 5, background: "#1F6B48", color: "#fff", boxShadow: "0 4px 12px rgba(30,107,71,0.25)" }}>
               다음 세트
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>
             </div>
@@ -634,17 +708,19 @@ const WM_TILES: { content: string; isParticle: boolean }[] = [
 ];
 const WM_BANK_ORDER = [4, 1, 6, 0, 5, 3, 2];
 
-function WMTile({ content, isParticle, S, hidden, marginLeft }: { content: string; isParticle: boolean; S: number; hidden?: boolean; marginLeft?: number }) {
+/** 실물 WordMagnetTile — rounded-xl px-3 py-2 text-base shadow-sm, sm: 변형이 없어
+ * 모바일·데스크탑 모두 고정 크기다(배율 곱셈 금지). 조사 타일에도 그림자가 있다. */
+function WMTile({ content, isParticle, hidden, marginLeft }: { content: string; isParticle: boolean; hidden?: boolean; marginLeft?: number }) {
   return (
     <div style={{
       display: "inline-flex", alignItems: "center", justifyContent: "center",
-      borderRadius: 10, padding: `${6 * S}px ${11 * S}px`, fontSize: 12.5 * S, fontWeight: 600,
+      borderRadius: 12, padding: "8px 12px", fontSize: 16, fontWeight: 600,
       whiteSpace: "nowrap",
       marginLeft: marginLeft ?? 0,
-      background: hidden || isParticle ? "#F1F5F9" : "#fff",
-      color: hidden ? "transparent" : isParticle ? "#64748B" : "#1A1714",
-      border: "1px solid #E2E8F0",
-      boxShadow: !hidden && !isParticle ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+      background: hidden ? "#F1F5F9" : isParticle ? "#F4F0EA" : "#fff",
+      color: hidden ? "transparent" : isParticle ? "#8A837D" : "#1A1714",
+      border: hidden ? "1px solid #E2E8F0" : "1px solid #EBE5DE",
+      boxShadow: !hidden ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
       transition: "opacity 200ms ease",
     }}>{content}</div>
   );
@@ -675,19 +751,25 @@ function PaneWordMagnet({ isActive, isMobile = false }: { isActive: boolean; isM
   return (
     <div style={{ padding: `${18 * S}px ${20 * S}px ${20 * S}px`, display: "flex", flexDirection: "column", gap: 12 * S, height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16 * S, color: "#1A1714" }}>문장 순서 맞추기</div>
-        <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11 * S, color: "#6B6460" }}>5 / 10</div>
+        <div style={{ fontSize: 16 * S, color: "#1A1714" }}>문장 순서 맞추기</div>
+        <div style={{ fontSize: 11 * S, color: "#6B6460", fontVariantNumeric: "tabular-nums" }}>5 / 10</div>
       </div>
 
-      <div style={{ padding: `${14 * S}px ${16 * S}px`, background: "#F8FAFC", borderRadius: 12, textAlign: "center" }}>
-        <p style={{ fontSize: 12.5 * S, fontWeight: 600, color: "#1A1714", margin: 0 }}>It takes 10 minutes from home to school.</p>
+      {/* 안내문 — 실물은 QuizStageHeader(배지·힌트 없음)로 단순 중앙 정렬과 동일하다 */}
+      <p style={{ textAlign: "center", fontSize: isMobile ? 14 : 16 * S, fontWeight: 700, color: "#1A1714", margin: 0 }}>
+        단어를 끌거나 탭해서 문장을 완성하세요
+      </p>
+
+      <div style={{ padding: `${14 * S}px ${16 * S}px`, background: "#FAF8F5", borderRadius: 12, textAlign: "center" }}>
+        {/* 실물 프롬프트: text-lg — sm: 변형 없이 모바일·데스크탑 동일 고정값 */}
+        <p style={{ fontSize: 18, fontWeight: 600, color: "#1A1714", margin: 0 }}>It takes 10 minutes from home to school.</p>
       </div>
 
       {/* 답 영역 — 실제 WordMagnetStage처럼 하나의 연속된 밑줄(ruled-line) 영역에 타일이
           자연스럽게 줄바꿈되는 구조(고정 2단으로 나누지 않음) */}
       <div style={{
         minHeight: 100 * S,
-        backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${49 * S}px, #E2DDD8 ${49 * S}px, #E2DDD8 ${50 * S}px)`,
+        backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${49 * S}px, #E5DFDA ${49 * S}px, #E5DFDA ${50 * S}px)`,
         display: "flex", flexWrap: "wrap", alignContent: "flex-start", alignItems: "flex-end", rowGap: 12, padding: `2px 2px ${5 * S}px`,
       }}>
         {WM_TILES.slice(0, placedCount).map((t, i) => (
@@ -695,25 +777,28 @@ function PaneWordMagnet({ isActive, isMobile = false }: { isActive: boolean; isM
             key={i}
             content={t.content}
             isParticle={t.isParticle}
-            S={S}
-            marginLeft={i > 0 ? (t.isParticle ? 4 * S : 12 * S) : 0}
+            // 실물 답 영역 간격: 조사 앞 ml-1(4px), 단어 앞 ml-3(12px) — 고정값, 배율 없음
+            marginLeft={i > 0 ? (t.isParticle ? 4 : 12) : 0}
           />
         ))}
       </div>
 
-      {/* 단어 은행 */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: `${8 * S}px`, marginTop: 6 }}>
+      {/* 단어 은행 — 실물 gap-2.5(10px)·mt-10(40px)은 sm: 변형이 없어 모든 폭에서 고정값이다.
+          배율(S)을 곱하지 않는다. */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 40 }}>
         {WM_BANK_ORDER.map((idx) => (
-          <WMTile key={idx} content={WM_TILES[idx].content} isParticle={WM_TILES[idx].isParticle} S={S} hidden={idx < placedCount} />
+          <WMTile key={idx} content={WM_TILES[idx].content} isParticle={WM_TILES[idx].isParticle} hidden={idx < placedCount} />
         ))}
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
-        <div style={{ padding: `${8 * S}px ${14 * S}px`, borderRadius: 9, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#6B6460" }}>← 이전</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", marginTop: "auto", gap: 6 }}>
+        <div style={{ justifySelf: "start" }}><PrevButton isMobile={isMobile} /></div>
+        <div style={{ justifySelf: "center" }}><span style={{ fontSize: isMobile ? 12 : 14, fontWeight: 600, color: "#9E9894" }}>모르겠어요</span></div>
         <div style={{
-          padding: `${8 * S}px ${16 * S}px`, borderRadius: 9, fontSize: 12 * S, fontWeight: 600,
-          background: placedCount === WM_TILES.length ? "#1E6B47" : "#E2DDD8",
-          color: placedCount === WM_TILES.length ? "#fff" : "#9E9894",
+          ...navBtnBase(isMobile),
+          justifySelf: "end",
+          background: placedCount === WM_TILES.length ? "#1F6B48" : "rgba(31,107,72,0.5)",
+          color: "#fff",
           transition: "all 200ms ease",
         }}>다음 문제 →</div>
       </div>
@@ -753,35 +838,44 @@ function PaneSentence({ isActive, isMobile = false }: { isActive: boolean; isMob
   return (
     <div style={{ padding: `${18 * S}px ${22 * S}px ${22 * S}px`, display: "flex", flexDirection: "column", gap: 14 * S, height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16 * S, color: "#1A1714" }}>문장 만들기</div>
-        <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11 * S, color: "#6B6460" }}>7 / 20</div>
+        <div style={{ fontSize: 16 * S, color: "#1A1714" }}>문장 만들기</div>
+        <div style={{ fontSize: 11 * S, color: "#6B6460", fontVariantNumeric: "tabular-nums" }}>7 / 20</div>
       </div>
 
-      <div style={{ background: "#F8FAFC", borderRadius: 14, padding: `${14 * S}px ${20 * S}px ${20 * S}px`, display: "flex", flexDirection: "column", minHeight: 158 * S }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+      {/* 안내문 줄 — 실물 QuizStageHeader와 동일하게 좌·우 flex-1로 균등 분배해
+          배지 없이도 안내문이 정확히 가운데, 힌트 버튼은 오른쪽 끝에 온다 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ flex: 1 }} />
+        <p style={{ textAlign: "center", fontSize: isMobile ? 14 : 16 * S, fontWeight: 700, color: "#1A1714", margin: 0, whiteSpace: "nowrap" }}>
+          이 단어를 사용하여 문장을 만드세요
+        </p>
+        <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: `${6 * S}px ${11 * S}px`, borderRadius: 11, background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.06)", fontSize: 11 * S, fontWeight: 600, color: "#6B6460" }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" /></svg>
             힌트
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{ fontSize: 12 * S, color: "#6B6460", fontWeight: 500, marginBottom: 12 }}>이 단어를 사용하여 문장을 만드세요</div>
-          <div style={{ display: "inline-flex", alignItems: "center", padding: `${8 * S}px ${22 * S}px`, background: "#fff", border: "1px solid #E2DDD8", borderRadius: 14, fontSize: 17 * S, fontWeight: 700, color: "#1A1714" }}>걸리다</div>
-          <div style={{ fontSize: 12 * S, color: "#6B6460", marginTop: 12, fontFamily: "'Geist', system-ui" }}>take time</div>
-        </div>
       </div>
 
-      <div style={{ padding: `${12 * S}px ${14 * S}px`, minHeight: 80 * S, border: "1.5px solid #1E6B47", borderRadius: 10, background: "#fff", boxShadow: "0 0 0 4px #E8F5EE", fontSize: 13 * S, color: "#1A1714", lineHeight: 1.65 }}>
+      {/* 실물 패널: p-5 sm:p-10, min-h-[180px] sm:min-h-[200px], 배지 text-lg sm:text-xl lg:text-2xl */}
+      <div style={{
+        background: "#FAF8F5", borderRadius: 14,
+        padding: isMobile ? "20px" : `${14 * S}px ${20 * S}px ${20 * S}px`,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        minHeight: isMobile ? 180 : 158 * S,
+      }}>
+        <div style={{ display: "inline-flex", alignItems: "center", padding: `${8 * S}px ${22 * S}px`, background: "#fff", border: "1px solid #E5DFDA", borderRadius: 14, fontSize: isMobile ? 18 : 17 * S, fontWeight: 700, color: "#1A1714" }}>걸리다</div>
+        <div style={{ fontSize: 12 * S, color: "#6B6460", marginTop: 12 }}>take time</div>
+      </div>
+
+      <div style={{ padding: `${12 * S}px ${14 * S}px`, minHeight: 80 * S, border: "1.5px solid #1F6B48", borderRadius: 10, background: "#fff", boxShadow: "0 0 0 4px #DCF0E4", fontSize: 13 * S, color: "#1A1714", lineHeight: 1.65 }}>
         {beforeH}
-        {inH && <strong style={{ color: "#1E6B47" }}>{inH}</strong>}
+        {inH && <strong style={{ color: "#1F6B48" }}>{inH}</strong>}
         {afterH}
-        <span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1E6B47", verticalAlign: "middle", marginLeft: 1, animation: "blink 1.1s infinite" }} />
+        <span style={{ display: "inline-block", width: 1.5, height: 13, background: "#1F6B48", verticalAlign: "middle", marginLeft: 1, animation: "blink 1.1s infinite" }} />
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
-        <div style={{ padding: `${8 * S}px ${14 * S}px`, borderRadius: 9, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#6B6460" }}>← 이전</div>
-        <div style={{ padding: `${8 * S}px ${16 * S}px`, borderRadius: 9, background: "#1E6B47", color: "#fff", fontSize: 12 * S, fontWeight: 600 }}>다음 문제 →</div>
-      </div>
+      <FooterNav isMobile={isMobile} showSkip nextLabel="다음 문제" />
     </div>
   );
 }
@@ -800,31 +894,55 @@ function PaneSpeak({ isActive, isMobile = false }: { isActive: boolean; isMobile
   return (
     <div style={{ padding: `${18 * S}px ${22 * S}px ${22 * S}px`, display: "flex", flexDirection: "column", gap: 14 * S, height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16 * S, color: "#1A1714" }}>듣고 말하기</div>
-        <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: 11 * S, color: "#6B6460" }}>4 / 12</div>
+        <div style={{ fontSize: 16 * S, color: "#1A1714" }}>듣고 말하기</div>
+        <div style={{ fontSize: 11 * S, color: "#6B6460", fontVariantNumeric: "tabular-nums" }}>4 / 12</div>
       </div>
 
-      {/* 상단 콘텐츠 영역 */}
-      <div style={{ background: "#F8FAFC", borderRadius: 14, padding: `${14 * S}px ${20 * S}px ${20 * S}px`, display: "flex", flexDirection: "column", minHeight: 185 * S }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
-          <span style={{ fontSize: 11 * S, fontWeight: 600, color: "#8B5CF6", background: "rgba(139,92,246,0.10)", padding: `4px ${11 * S}px`, borderRadius: 9999 }}>듣고 말하기</span>
+      {/* 안내문 줄 — 실물 QuizStageHeader(배지 좌 / 안내문 중앙 / 힌트 우, flex-1 균등 분배) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ flex: 1, display: "flex", justifyContent: "flex-start" }}>
+          <span style={{ fontSize: 11 * S, fontWeight: 600, color: "#8B5CF6", background: "rgba(139,92,246,0.10)", padding: `4px ${11 * S}px`, borderRadius: 9999, whiteSpace: "nowrap" }}>듣고 말하기</span>
+        </div>
+        <p style={{ textAlign: "center", fontSize: isMobile ? 13 : 14 * S, fontWeight: 700, color: "#1A1714", margin: 0, whiteSpace: "nowrap" }}>
+          음성을 듣고 따라 녹음하세요
+        </p>
+        <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: `${6 * S}px ${11 * S}px`, borderRadius: 11, background: "#fff", boxShadow: "0 1px 2px rgba(0,0,0,0.06)", fontSize: 10.5 * S, fontWeight: 600, color: "#6B6460" }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18h6" /><path d="M10 22h4" /><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" /></svg>
             힌트
           </span>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, paddingTop: 8, paddingBottom: 4 }}>
-          <p style={{ fontSize: 13 * S, color: "#6B6460", fontWeight: 500, textAlign: "center" }}>음성을 듣고 따라 녹음하세요</p>
-          <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <button style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: `${7 * S}px ${14 * S}px`, borderRadius: 10, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
-              보통 속도로 듣기
-            </button>
-            <button style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: `${7 * S}px ${14 * S}px`, borderRadius: 10, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#475569", cursor: "pointer", whiteSpace: "nowrap" }}>
-              <span style={{ fontSize: 15, lineHeight: 1 }}>🐢</span>
-              천천히 듣기
-            </button>
-          </div>
+      </div>
+
+      {/* 상단 콘텐츠 영역 — 실물: p-5 sm:p-10, min-h-[180px] sm:min-h-[210px].
+          듣기 버튼: h-9 px-3 text-xs — 모바일은 두 버튼이 좁아서 세로로 쌓인다 */}
+      <div style={{
+        background: "#FAF8F5", borderRadius: 14,
+        padding: isMobile ? "20px" : `${14 * S}px ${20 * S}px ${20 * S}px`,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        minHeight: isMobile ? 180 : 185 * S,
+      }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", justifyContent: "center", gap: 8, width: isMobile ? "100%" : undefined }}>
+          <button style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            height: isMobile ? 36 : 44, padding: `0 ${isMobile ? 12 : 20}px`,
+            borderRadius: 10, background: "#fff", border: "1px solid #E5DFDA",
+            fontSize: isMobile ? 12 : 14, fontWeight: 600, color: "#475569", cursor: "pointer", whiteSpace: "nowrap",
+            width: isMobile ? "100%" : undefined,
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
+            보통 속도로 듣기
+          </button>
+          <button style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            height: isMobile ? 36 : 44, padding: `0 ${isMobile ? 12 : 20}px`,
+            borderRadius: 10, background: "#fff", border: "1px solid #E5DFDA",
+            fontSize: isMobile ? 12 : 14, fontWeight: 600, color: "#475569", cursor: "pointer", whiteSpace: "nowrap",
+            width: isMobile ? "100%" : undefined,
+          }}>
+            <span style={{ fontSize: 15, lineHeight: 1 }}>🐢</span>
+            천천히 듣기
+          </button>
         </div>
       </div>
 
@@ -833,7 +951,7 @@ function PaneSpeak({ isActive, isMobile = false }: { isActive: boolean; isMobile
         <button style={{
             width: 64 * S, height: 64 * S, borderRadius: "50%", border: "none", cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
-            background: recording ? "#DC2626" : "#1E6B47",
+            background: recording ? "#DC2626" : "#1F6B48",
             boxShadow: recording
               ? "0 4px 16px rgba(220,38,38,0.4), 0 0 0 0px rgba(220,38,38,0.2)"
               : "0 4px 16px rgba(30,107,71,0.28)",
@@ -843,14 +961,14 @@ function PaneSpeak({ isActive, isMobile = false }: { isActive: boolean; isMobile
         >
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5 12c0 3.866 3.134 7 7 7s7-3.134 7-7" /><line x1="12" y1="19" x2="12" y2="22" /></svg>
         </button>
-        <span style={{ fontSize: 11 * S, color: recording ? "#DC2626" : "#9E9894", fontFamily: "'Geist', system-ui", transition: "color 200ms ease" }}>
+        <span style={{ fontSize: 11 * S, color: recording ? "#DC2626" : "#9E9894", transition: "color 200ms ease" }}>
           {recording ? "녹음 중" : "마이크 버튼을 눌러 녹음을 시작하세요"}
         </span>
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
-        <div style={{ padding: `${8 * S}px ${14 * S}px`, borderRadius: 10, background: "#fff", border: "1px solid #E2DDD8", fontSize: 12 * S, fontWeight: 600, color: "#6B6460" }}>↺ 다시 시도하기</div>
-        <div style={{ padding: `${8 * S}px ${16 * S}px`, borderRadius: 10, background: "#1E6B47", color: "#fff", fontSize: 12 * S, fontWeight: 600 }}>다음 문제 ›</div>
+        <div style={{ ...navBtnBase(isMobile), background: "#fff", border: "1px solid #E5DFDA", color: "#6B6460" }}>↺ 다시 시도하기</div>
+        <div style={{ ...navBtnBase(isMobile), background: "#1F6B48", color: "#fff" }}>다음 문제 ›</div>
       </div>
     </div>
   );
@@ -901,11 +1019,11 @@ const SENTENCE_RESULTS = [
 ];
 
 const SPEAK_RESULTS = [
-  { n: 1, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "오늘 일찍 잘 거예요.", wrongWords: [] as string[], feedback: "Excellent pronunciation! You sound very natural and clear." },
+  { n: 1, type: "보고 말하기", typeColor: "#1F6B48", typeBg: "rgba(30,107,71,0.1)", sentence: "오늘 일찍 잘 거예요.", wrongWords: [] as string[], feedback: "Excellent pronunciation! You sound very natural and clear." },
   { n: 2, type: "듣고 말하기", typeColor: "#C2410C", typeBg: "rgba(255,237,213,0.8)", sentence: "매일 조금씩 연습해요.", wrongWords: ["연습해요"] as string[], feedback: "Pay closer attention to the pronunciation of '연습해요'. Listen to the native speaker and try again!" },
-  { n: 3, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "혼자 공부하는 게 좋아요.", wrongWords: [] as string[], feedback: "Good job! Keep practicing to make it even more natural." },
+  { n: 3, type: "보고 말하기", typeColor: "#1F6B48", typeBg: "rgba(30,107,71,0.1)", sentence: "혼자 공부하는 게 좋아요.", wrongWords: [] as string[], feedback: "Good job! Keep practicing to make it even more natural." },
   { n: 4, type: "듣고 말하기", typeColor: "#C2410C", typeBg: "rgba(255,237,213,0.8)", sentence: "여기서 가까워요.", wrongWords: [] as string[], feedback: "Excellent pronunciation! You sound very natural and clear." },
-  { n: 5, type: "보고 말하기", typeColor: "#1E6B47", typeBg: "rgba(30,107,71,0.1)", sentence: "거기까지 얼마나 걸려요?", wrongWords: ["걸려요"] as string[], feedback: "Pay closer attention to the pronunciation of '걸려요'. Listen to the native speaker and try again!" },
+  { n: 5, type: "보고 말하기", typeColor: "#1F6B48", typeBg: "rgba(30,107,71,0.1)", sentence: "거기까지 얼마나 걸려요?", wrongWords: ["걸려요"] as string[], feedback: "Pay closer attention to the pronunciation of '걸려요'. Listen to the native speaker and try again!" },
 ];
 
 function pctLabel(correct: number, total: number) {
@@ -956,9 +1074,9 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
     <div style={{ padding: `${14 * S}px ${18 * S}px ${18 * S}px`, display: "flex", flexDirection: "column", gap: 10 * S, height: "100%", overflowY: "auto" }}>
       {/* 점수 헤더 */}
       <div style={{ textAlign: "center", paddingTop: 2 }}>
-        <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: 11 * S, color: "#9E9894", marginBottom: 4 }}>일상 어휘 퀴즈</div>
-        <div style={{ fontSize: 44 * S, fontWeight: 900, color: "#1E6B47", lineHeight: 1, letterSpacing: "-0.02em" }}>{pctLabel(TOTAL_CORRECT, TOTAL_PROBLEMS)}</div>
-        <div style={{ display: "inline-block", marginTop: 7, padding: `4px ${14 * S}px`, borderRadius: 9999, background: "rgba(255,255,255,0.9)", border: "1px solid #E2DDD8", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", fontSize: 11 * S, fontWeight: 700, color: "#1A1714" }}>
+        <div style={{ fontSize: 11 * S, color: "#9E9894", marginBottom: 4 }}>일상 어휘 퀴즈</div>
+        <div style={{ fontSize: 44 * S, fontWeight: 900, color: "#1F6B48", lineHeight: 1, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{pctLabel(TOTAL_CORRECT, TOTAL_PROBLEMS)}</div>
+        <div style={{ display: "inline-block", marginTop: 7, padding: `4px ${14 * S}px`, borderRadius: 9999, background: "rgba(255,255,255,0.9)", border: "1px solid #E5DFDA", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", fontSize: 11 * S, fontWeight: 700, color: "#1A1714" }}>
           {TOTAL_PROBLEMS}문제 중 {TOTAL_CORRECT}문제를 맞혔어요!
         </div>
         <div style={{ fontSize: 10.5 * S, color: "#9E9894", marginTop: 5 }}>잘했어요! 조금만 더 연습해볼까요? 💪</div>
@@ -976,7 +1094,7 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
           }}>
             <ResultTabIcon icon={t.icon} color={tab === t.id ? t.color : "#9E9894"} />
             <div style={{ fontSize: 8.5 * S, fontWeight: 500, color: tab === t.id ? "#1A1714" : "#6B6460", lineHeight: 1.2 }}>{t.label}</div>
-            <div style={{ fontSize: 13 * S, fontWeight: 700, color: t.color, fontFamily: "'Geist Mono', monospace", lineHeight: 1 }}>{t.pct}</div>
+            <div style={{ fontSize: 13 * S, fontWeight: 700, color: t.color, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{t.pct}</div>
           </button>
         ))}
       </div>
@@ -988,7 +1106,7 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", fontSize: 9 * S, fontWeight: 700, color: "#fff", background: c.ok ? "#2D7D52" : "#C13B2E", flexShrink: 0 }}>{c.n}</span>
-                <span style={{ padding: `2px ${8 * S}px`, borderRadius: 9999, background: "#F8FAFC", border: "1px solid #E2E8F0", fontSize: 10.5 * S, fontWeight: 600, color: "#334155" }}>{c.word}</span>
+                <span style={{ padding: `2px ${8 * S}px`, borderRadius: 9999, background: "#FAF8F5", border: "1px solid #E2E8F0", fontSize: 10.5 * S, fontWeight: 600, color: "#334155" }}>{c.word}</span>
               </div>
               {c.ok
                 ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D7D52" strokeWidth="2.5" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
@@ -997,7 +1115,7 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
             </div>
             {c.ok ? (
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1E6B47", width: 46, textAlign: "center", flexShrink: 0 }}>정답</span>
+                <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1F6B48", width: 46, textAlign: "center", flexShrink: 0 }}>정답</span>
                 <span style={{ fontSize: 11.5 * S, fontWeight: 700, color: "#1E293B" }}>{c.mine}</span>
               </div>
             ) : (
@@ -1008,8 +1126,8 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
                 </div>
                 {c.correct && (
                   <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1E6B47", width: 46, textAlign: "center", flexShrink: 0 }}>정답</span>
-                    <span style={{ fontSize: 11.5 * S, fontWeight: 700, color: "#1E6B47" }}>{c.correct}</span>
+                    <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1F6B48", width: 46, textAlign: "center", flexShrink: 0 }}>정답</span>
+                    <span style={{ fontSize: 11.5 * S, fontWeight: 700, color: "#1F6B48" }}>{c.correct}</span>
                   </div>
                 )}
               </div>
@@ -1022,7 +1140,7 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", fontSize: 9 * S, fontWeight: 700, color: "#fff", background: c.ok ? "#2D7D52" : "#C13B2E", flexShrink: 0 }}>{c.n}</span>
-                <span style={{ padding: `2px ${8 * S}px`, borderRadius: 9999, background: "#F8FAFC", border: "1px solid #E2E8F0", fontSize: 10.5 * S, fontWeight: 600, color: "#334155" }}>{c.prompt}</span>
+                <span style={{ padding: `2px ${8 * S}px`, borderRadius: 9999, background: "#FAF8F5", border: "1px solid #E2E8F0", fontSize: 10.5 * S, fontWeight: 600, color: "#334155" }}>{c.prompt}</span>
               </div>
               {c.ok
                 ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D7D52" strokeWidth="2.5" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
@@ -1031,7 +1149,7 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
             </div>
             {c.ok ? (
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1E6B47", width: 46, textAlign: "center", flexShrink: 0 }}>정답</span>
+                <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1F6B48", width: 46, textAlign: "center", flexShrink: 0 }}>정답</span>
                 <span style={{ fontSize: 11.5 * S, fontWeight: 700, color: "#1E293B" }}>{c.mine}</span>
               </div>
             ) : (
@@ -1042,8 +1160,8 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
                 </div>
                 {c.correct && (
                   <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1E6B47", width: 46, textAlign: "center", flexShrink: 0 }}>정답</span>
-                    <span style={{ fontSize: 11.5 * S, fontWeight: 700, color: "#1E6B47" }}>{c.correct}</span>
+                    <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1F6B48", width: 46, textAlign: "center", flexShrink: 0 }}>정답</span>
+                    <span style={{ fontSize: 11.5 * S, fontWeight: 700, color: "#1F6B48" }}>{c.correct}</span>
                   </div>
                 )}
               </div>
@@ -1057,7 +1175,7 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", fontSize: 9 * S, fontWeight: 700, color: "#fff", background: c.ok ? "#2D7D52" : "#C13B2E", flexShrink: 0 }}>{c.n}</span>
-                <span style={{ padding: `2px ${8 * S}px`, borderRadius: 9999, background: "#F8FAFC", border: "1px solid #E2E8F0", fontSize: 10.5 * S, fontWeight: 600, color: "#334155" }}>{c.word}</span>
+                <span style={{ padding: `2px ${8 * S}px`, borderRadius: 9999, background: "#FAF8F5", border: "1px solid #E2E8F0", fontSize: 10.5 * S, fontWeight: 600, color: "#334155" }}>{c.word}</span>
               </div>
               <div style={{ display: "flex", gap: 4 }}>
                 <SmallBtn label="듣기" />
@@ -1085,7 +1203,7 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
                 <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", fontSize: 9 * S, fontWeight: 700, color: "#fff", background: c.ok ? "#2D7D52" : "#C13B2E", flexShrink: 0, marginTop: 1 }}>{c.n}</span>
-                <span style={{ fontSize: 10 * S, color: "#334155", fontWeight: 600, lineHeight: 1.4, padding: `2px ${8 * S}px`, borderRadius: 10, background: "#F8FAFC", border: "1px solid #E2E8F0" }}>{c.translation}</span>
+                <span style={{ fontSize: 10 * S, color: "#334155", fontWeight: 600, lineHeight: 1.4, padding: `2px ${8 * S}px`, borderRadius: 10, background: "#FAF8F5", border: "1px solid #E2E8F0" }}>{c.translation}</span>
               </div>
               <div style={{ flexShrink: 0 }}>
                 {c.ok
@@ -1096,7 +1214,7 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
             </div>
             {c.ok ? (
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1E6B47", width: 46, textAlign: "center", flexShrink: 0 }}>정답</span>
+                <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1F6B48", width: 46, textAlign: "center", flexShrink: 0 }}>정답</span>
                 <span style={{ fontSize: 12 * S, fontWeight: 600, color: "#1E293B" }}>{c.mine}</span>
               </div>
             ) : (
@@ -1107,8 +1225,8 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
                 </div>
                 {c.correct && (
                   <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1E6B47", width: 46, textAlign: "center", flexShrink: 0 }}>정답</span>
-                    <span style={{ fontSize: 12 * S, fontWeight: 600, color: "#1E6B47" }}>{c.correct}</span>
+                    <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1F6B48", width: 46, textAlign: "center", flexShrink: 0 }}>정답</span>
+                    <span style={{ fontSize: 12 * S, fontWeight: 600, color: "#1F6B48" }}>{c.correct}</span>
                   </div>
                 )}
               </div>
@@ -1121,8 +1239,8 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
             {/* 헤더 */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", fontSize: 9 * S, fontWeight: 700, color: "#fff", background: c.ok ? "#2D7D52" : "#1E6B47", flexShrink: 0 }}>{c.n}</span>
-                <span style={{ padding: `2px ${8 * S}px`, borderRadius: 9999, background: "#F8FAFC", border: "1px solid #E2E8F0", fontSize: 10.5 * S, fontWeight: 600, color: "#334155" }}>{c.word}</span>
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", fontSize: 9 * S, fontWeight: 700, color: "#fff", background: c.ok ? "#2D7D52" : "#1F6B48", flexShrink: 0 }}>{c.n}</span>
+                <span style={{ padding: `2px ${8 * S}px`, borderRadius: 9999, background: "#FAF8F5", border: "1px solid #E2E8F0", fontSize: 10.5 * S, fontWeight: 600, color: "#334155" }}>{c.word}</span>
               </div>
               {c.ok
                 ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D7D52" strokeWidth="2.5" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
@@ -1141,13 +1259,13 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
             {/* 추천 문장 */}
             {c.recommend && (
               <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 6 }}>
-                <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1E6B47", width: 46, textAlign: "center", flexShrink: 0, marginTop: 1 }}>추천 문장</span>
-                <div style={{ fontSize: 11.5 * S, fontWeight: 600, lineHeight: 1.55, color: "#1E6B47" }}>{c.recommend}</div>
+                <span style={{ fontSize: 9.5 * S, fontWeight: 700, padding: "4px 0", borderRadius: 10, background: "rgba(30,107,71,0.1)", color: "#1F6B48", width: 46, textAlign: "center", flexShrink: 0, marginTop: 1 }}>추천 문장</span>
+                <div style={{ fontSize: 11.5 * S, fontWeight: 600, lineHeight: 1.55, color: "#1F6B48" }}>{c.recommend}</div>
               </div>
             )}
             {/* 피드백 */}
             {c.feedback && (
-              <div style={{ padding: `${10 * S}px ${12 * S}px`, borderRadius: 12, background: "#F8FAFC", border: "1px solid #F1F5F9", fontSize: 10.5 * S, color: "#64748B", lineHeight: 1.6 }}>{c.feedback}</div>
+              <div style={{ padding: `${10 * S}px ${12 * S}px`, borderRadius: 12, background: "#FAF8F5", border: "1px solid #F1F5F9", fontSize: 10.5 * S, color: "#64748B", lineHeight: 1.6 }}>{c.feedback}</div>
             )}
           </div>
         ))}
@@ -1197,7 +1315,7 @@ function PaneResult({ isMobile = false }: { isMobile?: boolean }) {
               })}
             </div>
             {/* 피드백 박스 */}
-            <div style={{ padding: `${10 * S}px ${12 * S}px`, borderRadius: 12, background: "#F8FAFC", border: "1px solid #F1F5F9", fontSize: 10.5 * S, color: "#64748B", lineHeight: 1.6 }}>{c.feedback}</div>
+            <div style={{ padding: `${10 * S}px ${12 * S}px`, borderRadius: 12, background: "#FAF8F5", border: "1px solid #F1F5F9", fontSize: 10.5 * S, color: "#64748B", lineHeight: 1.6 }}>{c.feedback}</div>
           </div>
         ))}
       </div>
@@ -1210,6 +1328,9 @@ export function HeroProductMock() {
   const S = isMobile ? 1 : 1.3;
   const [active, setActive] = useState<TabId>("create");
   const [paused, setPaused] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const resumeTid = useRef<ReturnType<typeof setTimeout>>();
+
   useEffect(() => {
     if (paused) return;
     const t = setTimeout(() => {
@@ -1219,19 +1340,41 @@ export function HeroProductMock() {
     return () => clearTimeout(t);
   }, [active, paused]);
 
+  // 모바일: 탭이 바뀌면 안쪽 스크롤 위치를 0으로 되돌린다 (05·04 참조)
+  useEffect(() => {
+    if (isMobile && scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [active, isMobile]);
+
+  // 모바일: 만지는 동안 자동 순환을 멈추고, 일정 시간 무동작 후 재개한다
+  const handleTouchStart = () => {
+    if (!isMobile) return;
+    setPaused(true);
+    if (resumeTid.current) clearTimeout(resumeTid.current);
+  };
+  const scheduleResume = () => {
+    if (!isMobile) return;
+    if (resumeTid.current) clearTimeout(resumeTid.current);
+    resumeTid.current = setTimeout(() => setPaused(false), 2500);
+  };
+  useEffect(() => () => { if (resumeTid.current) clearTimeout(resumeTid.current); }, []);
+
   const activeTab = TABS.find((t) => t.id === active)!;
 
   return (
     <div
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      style={{ position: "relative" }}
+      onMouseEnter={() => !isMobile && setPaused(true)}
+      onMouseLeave={() => !isMobile && setPaused(false)}
+      onPointerDown={handleTouchStart}
+      onPointerUp={scheduleResume}
+      onPointerLeave={scheduleResume}
+      style={{ position: "relative", maxWidth: isMobile ? 358 : 643, marginLeft: isMobile ? "auto" : undefined, marginRight: isMobile ? "auto" : undefined }}
     >
       <style>{`
         @keyframes blink { 0%, 50% { opacity: 1 } 51%, 100% { opacity: 0 } }
         @keyframes hero-progress { from { width: 0% } to { width: 100% } }
         @keyframes pulse-red { 0%, 100% { box-shadow: 0 4px 16px rgba(220,38,38,0.4), 0 0 0 0px rgba(220,38,38,0.25) } 50% { box-shadow: 0 4px 16px rgba(220,38,38,0.4), 0 0 0 10px rgba(220,38,38,0.0) } }
         @keyframes cefr-pop { 0% { transform: scale(1) } 30% { transform: scale(0.82) } 65% { transform: scale(1.12) } 100% { transform: scale(1) } }
+        @keyframes hero-fade-in { from { opacity: 0 } to { opacity: 1 } }
       `}</style>
 
       {/* Tab bar above window */}
@@ -1239,7 +1382,7 @@ export function HeroProductMock() {
         <div
           style={{
             display: "flex", gap: 4, padding: 4, borderRadius: 10,
-            background: "rgba(232,245,238,0.5)", border: "1px solid #E2DDD8",
+            background: "rgba(232,245,238,0.5)", border: "1px solid #E5DFDA",
             overflowX: "auto",
             scrollSnapType: "x proximity",
             WebkitOverflowScrolling: "touch",
@@ -1255,7 +1398,7 @@ export function HeroProductMock() {
               }}
               style={{
               flex: "0 0 auto",
-              minWidth: Math.round(76 * S),
+              minWidth: 76,
               scrollSnapAlign: "start",
               padding: `${8 * S}px 6px`, borderRadius: 7, border: "none",
               background: t.id === active ? "#fff" : "transparent",
@@ -1265,7 +1408,7 @@ export function HeroProductMock() {
               whiteSpace: "nowrap",
             }}>
               <div style={{ fontSize: 12 * S, fontWeight: 600, color: t.id === active ? "#1A1714" : "#6B6460", marginBottom: 1, letterSpacing: "-0.01em" }}>{t.label}</div>
-              <div style={{ fontSize: 9 * S, fontFamily: "'Geist', system-ui", fontWeight: 600, color: t.id === active ? "#1E6B47" : "#9E9894", letterSpacing: "0.04em", textTransform: "uppercase" }}>{t.role}</div>
+              <div style={{ fontSize: 9 * S, fontWeight: 600, color: t.id === active ? "#1F6B48" : "#9E9894", letterSpacing: "0.04em", textTransform: "uppercase" }}>{t.role}</div>
             </button>
           ))}
         </div>
@@ -1277,43 +1420,78 @@ export function HeroProductMock() {
         }} />
       </div>
 
-      {/* Window frame */}
-      <div style={{ background: "#fff", border: "1px solid #E2DDD8", borderRadius: 16, boxShadow: "0 24px 48px -16px rgba(30,107,71,0.18), 0 1px 3px rgba(0,0,0,0.05)", overflow: "hidden", fontFamily: "'Pretendard Variable', Pretendard, system-ui, sans-serif", position: "relative" }}>
+      {/* Window frame — 데스크탑: 앱 창 크롬(신호등+제목줄) / 모바일: 얇은 테두리 + 제목줄만 */}
+      <div style={{
+        background: "#fff",
+        border: "1px solid #E5DFDA",
+        borderRadius: isMobile ? 10 : 16,
+        boxShadow: isMobile ? "none" : "0 24px 48px -16px rgba(30,107,71,0.18), 0 1px 3px rgba(0,0,0,0.05)",
+        overflow: "hidden", fontFamily: "'Pretendard Variable', Pretendard, system-ui, sans-serif", position: "relative",
+      }}>
         {/* Window chrome */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: `${11 * S}px ${16 * S}px`, borderBottom: "1px solid #E2DDD8", background: "#FAFAF8" }}>
-          <div style={{ display: "flex", gap: 5 }}>
-            {["#E2DDD8", "#E2DDD8", "#E2DDD8"].map((c, i) => (
-              <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />
-            ))}
-          </div>
-          <div style={{ flex: 1, textAlign: "center", fontSize: 11 * S, color: "#9E9894", fontFamily: "'Geist', system-ui" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, height: isMobile ? 38 : undefined, padding: isMobile ? "0 14px" : `${11 * S}px ${16 * S}px`, borderBottom: "1px solid #E5DFDA", background: "#FAFAF8" }}>
+          {!isMobile && (
+            <div style={{ display: "flex", gap: 5 }}>
+              {["#E5DFDA", "#E5DFDA", "#E5DFDA"].map((c, i) => (
+                <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />
+              ))}
+            </div>
+          )}
+          <div style={{ flex: 1, textAlign: "center", fontSize: 11 * S, color: "#9E9894" }}>
             {activeTab.subtitle}
           </div>
         </div>
 
-        {/* Pane body */}
-        <div style={{ height: 440 * S, position: "relative", background: "#fff" }}>
-          {TABS.map((t) => (
-            <div key={t.id} style={{ position: "absolute", inset: 0, opacity: t.id === active ? 1 : 0, transition: "opacity 280ms ease", pointerEvents: t.id === active ? "auto" : "none" }}>
-              {t.id === "create" && <PaneCreate isActive={active === "create"} isMobile={isMobile} />}
-              {t.id === "matchup" && <PaneMatchup isActive={active === "matchup"} isMobile={isMobile} />}
-              {t.id === "typeAnswer" && <PaneTypeAnswer isActive={active === "typeAnswer"} isMobile={isMobile} />}
-              {t.id === "blank" && <PaneBlank isActive={active === "blank"} isMobile={isMobile} />}
-              {t.id === "wordMagnet" && <PaneWordMagnet isActive={active === "wordMagnet"} isMobile={isMobile} />}
-              {t.id === "sentence" && <PaneSentence isActive={active === "sentence"} isMobile={isMobile} />}
-              {t.id === "speak" && <PaneSpeak isActive={active === "speak"} isMobile={isMobile} />}
-              {t.id === "result" && <PaneResult isMobile={isMobile} />}
-            </div>
-          ))}
-        </div>
+        {/* Pane body — 모바일은 8개 탭이 공유하는 522px 고정 스크롤 영역(들쭉날쭉한 높이 방지),
+            데스크탑은 탭마다 본문 높이가 다르다("본문: 탭에 따라" — 03 문서) */}
+        {isMobile ? (
+          <div
+            ref={scrollRef}
+            style={{
+              height: 522,
+              position: "relative", background: "#fff",
+              overflowY: "auto",
+              overscrollBehavior: "contain",
+            }}
+          >
+            {TABS.map((t) => (
+              <div key={t.id} style={{ position: "absolute", inset: 0, opacity: t.id === active ? 1 : 0, transition: "opacity 280ms ease", pointerEvents: t.id === active ? "auto" : "none" }}>
+                {t.id === "create" && <PaneCreate isActive={active === "create"} isMobile={isMobile} />}
+                {t.id === "matchup" && <PaneMatchup isActive={active === "matchup"} isMobile={isMobile} />}
+                {t.id === "typeAnswer" && <PaneTypeAnswer isActive={active === "typeAnswer"} isMobile={isMobile} />}
+                {t.id === "blank" && <PaneBlank isActive={active === "blank"} isMobile={isMobile} />}
+                {t.id === "wordMagnet" && <PaneWordMagnet isActive={active === "wordMagnet"} isMobile={isMobile} />}
+                {t.id === "sentence" && <PaneSentence isActive={active === "sentence"} isMobile={isMobile} />}
+                {t.id === "speak" && <PaneSpeak isActive={active === "speak"} isMobile={isMobile} />}
+                {t.id === "result" && <PaneResult isMobile={isMobile} />}
+              </div>
+            ))}
+            <div style={{
+              position: "absolute", left: 0, right: 0, bottom: 0, height: 34,
+              background: "linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.92))",
+              pointerEvents: "none",
+            }} />
+          </div>
+        ) : (
+          <div key={active} style={{ position: "relative", background: "#fff", minHeight: 440 * S, animation: "hero-fade-in 280ms ease" }}>
+            {active === "create" && <PaneCreate isActive isMobile={false} />}
+            {active === "matchup" && <PaneMatchup isActive isMobile={false} />}
+            {active === "typeAnswer" && <PaneTypeAnswer isActive isMobile={false} />}
+            {active === "blank" && <PaneBlank isActive isMobile={false} />}
+            {active === "wordMagnet" && <PaneWordMagnet isActive isMobile={false} />}
+            {active === "sentence" && <PaneSentence isActive isMobile={false} />}
+            {active === "speak" && <PaneSpeak isActive isMobile={false} />}
+            {active === "result" && <PaneResult isMobile={false} />}
+          </div>
+        )}
 
         {/* Progress bar */}
-        <div style={{ height: 2, background: "#E2DDD8", position: "relative" }}>
+        <div style={{ height: 2, background: "#F1EDE7", position: "relative" }}>
           <div
             key={active + (paused ? "-p" : "")}
             style={{
               position: "absolute", left: 0, top: 0, bottom: 0,
-              background: "#1E6B47",
+              background: "rgba(31,107,72,0.42)",
               animation: paused ? "none" : `hero-progress ${ROTATE_MS}ms linear forwards`,
             }}
           />

@@ -19,7 +19,7 @@
 import type { ElementHandle, Locator, Page } from "playwright";
 import * as F from "./fixtures";
 
-export type Role = "teacher" | "student1" | "anon";
+export type Role = "teacher" | "student1" | "roleless" | "newstudent" | "anon";
 
 export interface Recipe {
   role: Role;
@@ -298,6 +298,20 @@ export const RECIPES: Record<string, Recipe> = {
       await settle(page);
     },
   },
+  "t-signup:2": {
+    role: "roleless",
+    run: async (page) => {
+      // 프로필이 없는 계정으로 로그인 세션만 있는 상태에서 콜백 화면에 들어가면
+      // AuthCallback.tsx가 자동으로 "역할을 선택해주세요" 카드를 보여준다.
+      // "선생님"/"학생" 버튼은 절대 누르지 않는다 — 누르면 실제로 profiles 행이
+      // 생겨버려서(handleRoleSelection) 이 계정이 다음 실행부터 더 이상 역할 선택
+      // 화면에 도달하지 못하게 된다(seed.ts가 이 계정에는 프로필을 안 만들어서
+      // 매번 재현 가능한 것인데, 한 번 실수로 만들어지면 --reset 전까지 깨진다).
+      await page.goto("/auth/callback");
+      await page.waitForSelector("text=역할을 선택해주세요", { timeout: 10000 });
+      await new Promise((r) => setTimeout(r, 200));
+    },
+  },
 
   // ── t-firstquiz ─────────────────────────────────────────────────────
   "t-firstquiz:1": {
@@ -307,7 +321,9 @@ export const RECIPES: Record<string, Recipe> = {
       await settle(page);
       // 스크롤을 따로 하지 않는다 — 페이지 최상단(퀴즈 제목 + 단어 입력칸)이 그대로
       // 보여야 한다. applyHighlight는 테두리가 사진 밖으로 나갈 때만 스크롤한다.
-      await applyHighlight(page, "입력 방식");
+      // "입력 방식"이라는 문구는 더 이상 없다 — 1단계 제목이 "퀴즈 제목과 단어"로
+      // 바뀌었다(QuizCreate.tsx).
+      await applyHighlight(page, "퀴즈 제목과 단어");
     },
   },
   "t-firstquiz:2": {
@@ -323,7 +339,10 @@ export const RECIPES: Record<string, Recipe> = {
     run: async (page) => {
       await page.goto("/quiz/create");
       await settle(page);
-      await scrollTo(page, "퀴즈 유형");
+      // "퀴즈 유형"이라는 문구는 없다 — 2단계 제목이 "난이도와 유형"으로 바뀌었고
+      // (t-firstquiz:2가 이미 "난이도"로 그 제목 근처를 짚는다), 유형 카드 자체를
+      // 보여주려면 카드 그리드 쪽으로 더 내려야 한다. 유형 카드 라벨로 직접 지목한다.
+      await scrollTo(page, "짝 맞추기");
     },
   },
   "t-firstquiz:4": {
@@ -342,6 +361,10 @@ export const RECIPES: Record<string, Recipe> = {
     run: async (page) => {
       await page.goto("/quiz/create");
       await settle(page);
+      // "단어 입력" 탭이 기본값이라 첫 번째(보이는) textarea가 단어 입력창이다.
+      // placeholder 텍스트는 실제 DOM 텍스트가 아니라 getByText로 못 잡으므로
+      // locator로 직접 지목한다.
+      await highlightLocator(page, page.locator("textarea").first(), "단어 입력");
     },
   },
   "t-words:2": {
@@ -349,7 +372,20 @@ export const RECIPES: Record<string, Recipe> = {
     run: async (page) => {
       await page.goto("/quiz/create");
       await settle(page);
-      await scrollTo(page, "세트당 단어 수");
+      // "세트당 단어 수"는 기본 접힘 상태인 "추가 설정" 아코디언 안에 있다.
+      // 펼치지 않으면 텍스트 자체가 DOM에 없어 강조도, 화면도 빈 아코디언 헤더만 찍힌다.
+      await page.getByRole("button", { name: /추가 설정/ }).click();
+      await page.waitForTimeout(200);
+      // "세트당 단어 수"가 아코디언 헤더의 괄호 설명("추가 설정 (세트당 단어 수 ·...)")
+      // 안에도 나오고 실제 슬라이더 라벨에도 나온다. 헤더가 DOM에서 먼저 오므로
+      // scrollTo가 쓰는 getByText(...).first()는 헤더를 집어서, 펼쳐놔도 정작
+      // 슬라이더가 아니라 헤더에 테두리가 둘리는 문제가 있었다. .last()로 실제
+      // 슬라이더 라벨을 지목한다.
+      const main = page.locator("header + main");
+      const label = main.getByText("세트당 단어 수", { exact: false }).last();
+      await label.evaluate((el) => el.scrollIntoView({ block: "center", inline: "nearest" }));
+      await page.waitForTimeout(150);
+      await highlightLocator(page, label, "세트당 단어 수");
     },
   },
   "t-words:3": {
@@ -357,7 +393,15 @@ export const RECIPES: Record<string, Recipe> = {
     run: async (page) => {
       await page.goto("/quiz/create");
       await settle(page);
-      await scrollTo(page, "번역 언어");
+      // "번역 언어"도 같은 "추가 설정" 아코디언 안에 있다 — 펼친 뒤 지목한다.
+      await page.getByRole("button", { name: /추가 설정/ }).click();
+      await page.waitForTimeout(200);
+      // t-words:2와 같은 이유로 .last()를 쓴다 — 헤더 괄호 설명에도 "번역 언어"가 있다.
+      const main = page.locator("header + main");
+      const label = main.getByText("번역 언어", { exact: false }).last();
+      await label.evaluate((el) => el.scrollIntoView({ block: "center", inline: "nearest" }));
+      await page.waitForTimeout(150);
+      await highlightLocator(page, label, "번역 언어");
     },
   },
 
@@ -369,6 +413,7 @@ export const RECIPES: Record<string, Recipe> = {
       await settle(page);
       await page.getByRole("tab", { name: "프롬프트 입력" }).click();
       await page.waitForTimeout(200);
+      await applyHighlight(page, "프롬프트 입력");
     },
   },
   "t-prompt:2": {
@@ -378,7 +423,17 @@ export const RECIPES: Record<string, Recipe> = {
       await settle(page);
       await page.getByRole("tab", { name: "프롬프트 입력" }).click();
       await page.waitForTimeout(200);
-      await scrollTo(page, "문제 수");
+      // scrollTo/applyHighlight는 closest()로 가장 가까운 조상을 찾는데, 이 페이지는
+      // 각 단계가 <section> 태그로 감싸여 있고 HIGHLIGHT_SECTION_SELECTOR가 section도
+      // 잡는다. 그래서 "문제 수"에서 위로 올라가면 1단계 섹션 전체(퀴즈 제목 입력칸과
+      // 프롬프트 텍스트에어리어까지 포함)가 통째로 강조돼버린다. "문제 수" 버튼 줄만
+      // 정확히 감싼 div를 직접 지목한다.
+      const row = page
+        .getByText("문제 수", { exact: true })
+        .locator('xpath=ancestor::div[contains(@class,"mt-3")][1]');
+      await row.evaluate((el) => el.scrollIntoView({ block: "center", inline: "nearest" }));
+      await page.waitForTimeout(150);
+      await highlightLocator(page, row, "문제 수");
     },
   },
   "t-prompt:3": {
@@ -389,6 +444,49 @@ export const RECIPES: Record<string, Recipe> = {
       await page.getByRole("tab", { name: "프롬프트 입력" }).click();
       await page.waitForTimeout(200);
       await scrollTo(page, "AI로 퀴즈 생성");
+    },
+  },
+
+  // ── t-library — 퀴즈 라이브러리(/quizzes/shared)에서 복사하기 ────────────
+  // 로그인한 teacher@help.local 눈에는 박선생(OTHER_TEACHER) 소유의 공개 퀴즈
+  // (QUIZ_LIB)만 보인다 — SharedQuizzes.tsx가 `is_public=true AND teacher_id != 내 id`로
+  // 조회하기 때문(250번 줄 근처). "내 퀴즈로 복사" 버튼은 절대 누르지 않는다 — 누르면
+  // copy_shared_quiz RPC가 실제로 실행돼 quizzes에 사본이 생기고, --reset 없이 다시
+  // 캡처를 돌릴 때마다 목록에 계속 쌓인다.
+  "t-library:1": {
+    role: "teacher",
+    run: async (page) => {
+      await gotoStable(page, "/quizzes/shared");
+      await settle(page);
+      // 이 단계 본문은 "레벨·유형으로 검색하고 필터링할 수 있어요"다 — 안내 문구
+      // 자체가 아니라 실제 검색창+필터 줄을 강조해야 그 내용과 맞는다. Input의
+      // placeholder는 getByText로 못 잡으니 검색창을 지목해 감싸는 줄까지 올라간다.
+      const toolbar = page
+        .getByPlaceholder("퀴즈 제목으로 검색…")
+        .locator('xpath=ancestor::div[contains(@class,"flex-wrap")][1]');
+      await highlightLocator(page, toolbar, "검색·필터");
+    },
+  },
+  "t-library:2": {
+    role: "teacher",
+    run: async (page) => {
+      await gotoStable(page, "/quizzes/shared");
+      await settle(page);
+      const row = await libraryRow(page);
+      await row.getByRole("button", { name: "문장 보기" }).click({ timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(300);
+    },
+  },
+  "t-library:3": {
+    role: "teacher",
+    run: async (page) => {
+      await gotoStable(page, "/quizzes/shared");
+      await settle(page);
+      const row = await libraryRow(page);
+      await row.getByRole("button", { name: "문장 보기" }).click({ timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(300);
+      // ⚠ "내 퀴즈로 복사"는 절대 클릭하지 않는다 — 강조만 건다.
+      await highlightLocator(page, row.getByRole("button", { name: "내 퀴즈로 복사" }), "내 퀴즈로 복사");
     },
   },
 
@@ -435,7 +533,18 @@ export const RECIPES: Record<string, Recipe> = {
     run: async (page) => {
       await page.goto(`/class/${F.CLASS_A.id}`);
       await settle(page);
-      await scrollTo(page, "학생 목록");
+      // "학생 2명"이 페이지에 두 번 나온다 — 위쪽 메타 줄(퀴즈 8개 · 학생 2명 · ...)과
+      // 오른쪽 학생 목록 카드 제목(h3). scrollTo가 쓰는 getByText(...).first()는 문서
+      // 순서상 앞선 위쪽 메타 줄을 집어버려서, 이 단계의 주제인 오른쪽 학생 목록 카드에는
+      // 강조가 안 걸리는 문제가 있었다. h3로 좁히고 카드 전체(rounded-2xl)까지 올라가
+      // 정확히 오른쪽 목록을 지목한다.
+      const rail = page
+        .locator("header + main")
+        .locator("h3", { hasText: "학생 2명" })
+        .locator('xpath=ancestor::div[contains(@class,"rounded-2xl")][1]');
+      await rail.first().evaluate((el) => el.scrollIntoView({ block: "center", inline: "nearest" }));
+      await page.waitForTimeout(150);
+      await highlightLocator(page, rail, "학생 목록");
     },
   },
 
@@ -444,27 +553,26 @@ export const RECIPES: Record<string, Recipe> = {
     role: "teacher",
     run: async (page) => {
       await gotoStable(page, `/class/${F.CLASS_A.id}`);
-      // 지표 카드 3개(전체 퀴즈·학생 수·최근 배정일)를 화면 맨 위에 붙이면
-      // 그 아래로 배정된 퀴즈 목록까지 한 화면에 들어온다. 위쪽의 클래스 이름·
-      // 초대 코드 줄은 t-invite:1이 이미 다루는 영역이라 잘려도 무방하다.
-      await scrollToStart(page, page.locator("header + main div.grid-cols-3"), 16);
-      await applyHighlight(page, "결과 확인");
+      // 예전엔 지표 카드 3개 + '결과 확인' 버튼이 있었지만, 리디자인 후 상단은
+      // "퀴즈 N개 | 학생 N명 | 최근 배정 날짜" 한 줄로 압축됐고, 결과는 퀴즈
+      // 제목을 눌러 상세 화면의 '퀴즈 결과' 탭에서 본다(ClassDetail.tsx).
+      // 배정된 퀴즈 표가 함께 보이도록 페이지 맨 위에 붙인다.
+      await scrollToStart(page, page.locator("header + main h1"), 16);
     },
   },
   "t-classstatus:2": {
     role: "teacher",
     run: async (page) => {
       await gotoStable(page, `/class/${F.CLASS_A.id}`);
-      // 학생 행의 아이콘 버튼에는 접근성 이름이 없다. 그런데 같은 행의 두 번째
-      // 버튼은 UserMinus(학생을 클래스에서 제외)라 잘못 누르면 시드가 깨진다.
-      // 그래서 순서에 기대지 않고 시계 아이콘(lucide-clock)을 직접 지목한다.
-      // 행 스코프도 함께 걸어 다른 카드의 시계 아이콘(배정일 표시)을 피한다.
+      // 학생 행의 "학생 기록 보기" 버튼(ChevronRight)이 StudentHistoryDialog를 연다.
+      // 같은 행에 UserMinus(학생을 클래스에서 제외) 버튼도 있어 잘못 누르면 시드가
+      // 깨지므로, 이제는 접근성 이름이 붙어 있는 aria-label로 정확히 지목한다.
       const row = page
         .locator("header + main")
         .getByText(F.STUDENT1.name, { exact: true })
         .first()
-        .locator('xpath=ancestor::div[contains(@class,"justify-between")][1]');
-      await row.locator("button:has(svg.lucide-clock)").first().click({ timeout: 5000 });
+        .locator('xpath=ancestor::div[contains(@class,"group")][1]');
+      await row.getByRole("button", { name: "학생 기록 보기" }).click({ timeout: 5000 });
       await page.waitForSelector('[role="dialog"]');
       await settle(page);
       // 강조는 넣지 않는다 — 모달(유형별 점수 표) 전체가 설명 대상이다.
@@ -624,23 +732,49 @@ export const RECIPES: Record<string, Recipe> = {
       await settle(page);
     },
   },
+  // t-signup:2와 완전히 같은 화면이다 — 역할 선택 화면은 선생님/학생 구분 없이
+  // 동일하다(ROLELESS_USER는 아직 역할을 고르지 않은 상태라는 게 핵심). 같은
+  // 계정·같은 진입 경로를 재사용하되 문서가 달라 파일명은 따로 저장된다.
+  "s-signup:2": {
+    role: "roleless",
+    run: async (page) => {
+      await page.goto("/auth/callback");
+      await page.waitForSelector("text=역할을 선택해주세요", { timeout: 10000 });
+      await new Promise((r) => setTimeout(r, 200));
+    },
+  },
 
   // ── s-join ──────────────────────────────────────────────────────────
   "s-join:2": {
-    role: "student1",
+    role: "newstudent",
     run: async (page) => {
-      await page.goto("/dashboard");
-      await settle(page);
-      await page.getByText("초대 코드로 가입").click().catch(() => {});
-      await page.waitForTimeout(300);
+      // 클래스가 하나도 없는 학생이 처음 보는 빈 상태 — 배너 안에 초대 코드 입력창이
+      // 바로 있다(팝업이 아니다). NEW_STUDENT는 어느 클래스에도 속하지 않아 이 화면이
+      // 결정적으로 나온다.
+      await gotoStable(page, "/dashboard");
+      await applyHighlight(page, "클래스에 가입해 주세요");
     },
   },
   "s-join:3": {
+    role: "newstudent",
+    run: async (page) => {
+      // 같은 배너에 실제로 코드를 입력한 상태만 보여준다 — "가입" 버튼은 절대 누르지
+      // 않는다(누르면 이 계정이 실제로 클래스에 들어가버려서 다음 실행부터 !hasClasses가
+      // false가 되어 이 배너 자체가 다시는 안 뜬다. --reset 전까지 이 슬롯이 깨진다).
+      await gotoStable(page, "/dashboard");
+      await page.getByPlaceholder("ABC123").fill(F.CLASS_A.inviteCode);
+      await page.waitForTimeout(150);
+      await applyHighlight(page, "클래스에 가입해 주세요");
+    },
+  },
+  "s-join:4": {
     role: "student1",
     run: async (page) => {
       await page.goto("/dashboard");
       await settle(page);
-      await scrollTo(page, "풀어야 할 퀴즈");
+      // "풀어야 할 퀴즈"라는 문구는 없다 — 히어로 카드(진행 중 퀴즈 1개) 아래
+      // 나머지는 "다음 퀴즈 N개" 목록으로 표시된다(StudentDashboard.tsx).
+      await scrollTo(page, "다음 퀴즈");
     },
   },
 
@@ -884,6 +1018,17 @@ async function openTypeEditor(page: Page, tabName: RegExp) {
   // 화면 절반을 먹는 바람에 정작 설명 대상인 편집 입력칸이 사진 아래로 잘려 나갔다.
   // 서브탭 바 자체는 남겨야 어떤 유형을 편집 중인지 사진만 보고 알 수 있다.
   await scrollToStart(page, tab, 16);
+}
+
+/** 퀴즈 라이브러리(/quizzes/shared)에서 QUIZ_LIB 카드 하나를 특정한다.
+ *  제목 텍스트에서 가장 가까운 rounded-xl 카드 컨테이너로 올라간다
+ *  (SharedQuizzes.tsx의 LibraryRow 최상위 div가 그 클래스를 가진 유일한 조상이다). */
+async function libraryRow(page: Page): Promise<Locator> {
+  return page
+    .locator("header + main")
+    .getByText(F.QUIZ_LIB_TITLE, { exact: false })
+    .first()
+    .locator('xpath=ancestor::div[contains(@class,"rounded-xl")][1]');
 }
 
 /** 학생 계정으로 퀴즈 풀이 화면을 연다. 강조는 하지 않는다 —

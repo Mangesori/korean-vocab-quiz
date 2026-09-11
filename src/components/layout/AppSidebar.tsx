@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS, SUPER_ADMIN_EMAIL } from "@/lib/rbac/roles";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdminQueue } from "@/hooks/useAdminQueue";
+import { FeedbackDialog } from "@/components/feedback/FeedbackDialog";
 
 import {
   Sidebar,
@@ -29,19 +32,22 @@ import {
   Library,
   Settings,
   LogOut,
+  HelpCircle,
   GraduationCap,
   FileText,
   MessageSquare,
+  MessageSquarePlus,
   ClipboardPaste,
   CalendarCheck,
   ListChecks,
+  Compass,
 } from "lucide-react";
 
 interface NavItem {
   path: string;
   icon: React.ElementType;
   label: string;
-  exactSearch?: string;
+  exactPath?: boolean;
   badgeCount?: number;
 }
 
@@ -54,10 +60,9 @@ const SB_SECTION_CLASS =
 function NavLink({ item }: { item: NavItem }) {
   const location = useLocation();
   const { setOpenMobile } = useSidebar();
-  const isActive =
-    item.exactSearch !== undefined
-      ? location.pathname === item.path && location.search === item.exactSearch
-      : location.pathname === item.path || location.pathname.startsWith(item.path + "/");
+  const isActive = item.exactPath
+    ? location.pathname === item.path
+    : location.pathname === item.path || location.pathname.startsWith(item.path + "/");
   const Icon = item.icon;
 
   return (
@@ -68,7 +73,7 @@ function NavLink({ item }: { item: NavItem }) {
         className={SB_ITEM_CLASS}
         onClick={() => setOpenMobile(false)}
       >
-        <Link to={item.path + (item.exactSearch ?? "")}>
+        <Link to={item.path}>
           <Icon className="w-[15px] h-[15px] shrink-0" />
           <span>{item.label}</span>
           {item.badgeCount !== undefined && item.badgeCount > 0 && (
@@ -86,18 +91,13 @@ export function AppSidebar() {
   const { user, role, signOut } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
-  const { data: pendingCount = 0 } = useQuery({
-    queryKey: ['pendingTeacherCount'],
-    enabled: role === 'admin',
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('teacher_applications')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-      return count ?? 0;
-    },
-  });
+  // 선생님 관리·피드백 배지 — /admin/teachers 페이지와 같은 쿼리 키(['admin','queue'])를
+  // 공유해서 승인/거절·읽음 처리 후 사이드바와 페이지가 동시에 갱신되게 한다.
+  const { data: adminQueue } = useAdminQueue();
+  const pendingCount = adminQueue?.pendingApplications.length ?? 0;
+  const unreadFeedbackCount = adminQueue?.unreadFeedbackCount ?? 0;
 
   // 오늘 복습할 단어 수. 사이드바 배지로 쓴다 — 학생이 들어오지 않으면
   // 간격 반복 자체가 돌지 않으므로 눈에 띄는 신호가 필요하다.
@@ -150,17 +150,23 @@ export function AppSidebar() {
 
   const teacherItems: NavItem[] = [
     { path: "/dashboard", icon: Home, label: "대시보드" },
-    { path: "/quizzes", icon: BookOpen, label: "내 퀴즈" },
+    { path: "/quizzes", icon: BookOpen, label: "내 퀴즈", exactPath: true },
     { path: "/quiz/create", icon: PenSquare, label: "퀴즈 만들기" },
     { path: "/classes", icon: Users, label: "내 클래스" },
   ];
 
+  // "내 것 관리"(위 teacherItems)와 성격이 달라(남의 퀴즈를 구경) 별도 섹션으로 뺀다.
+  // 항목이 하나뿐이라 섹션 라벨은 안 붙이고 구분선만 — 나중에 커뮤니티 관련 항목이
+  // 늘어나면 그때 "커뮤니티" 같은 라벨을 붙여도 된다.
+  const libraryItem: NavItem = { path: "/quizzes/shared", icon: Compass, label: "퀴즈 라이브러리" };
+
   const adminItems: NavItem[] = [
-    { path: "/admin", icon: Shield,        label: "관리자 대시보드", exactSearch: "" },
-    { path: "/admin", icon: GraduationCap, label: "선생님 관리",     exactSearch: "?tab=teachers", badgeCount: pendingCount },
-    { path: "/admin", icon: FileText,      label: "시스템 리포트",   exactSearch: "?tab=report" },
-    { path: "/admin", icon: MessageSquare, label: "피드백",         exactSearch: "?tab=feedback" },
-    { path: "/admin/sentence-bank", icon: Library, label: "문장 은행 관리" },
+    { path: "/admin",               icon: Shield,        label: "관리자 대시보드", exactPath: true },
+    { path: "/admin/users",         icon: Users,         label: "사용자 관리" },
+    { path: "/admin/teachers",      icon: GraduationCap, label: "선생님 관리", badgeCount: pendingCount },
+    { path: "/admin/sentence-bank", icon: Library,       label: "문장 은행 관리" },
+    { path: "/admin/report",        icon: FileText,      label: "시스템 리포트" },
+    { path: "/admin/feedback",      icon: MessageSquare, label: "피드백", badgeCount: unreadFeedbackCount },
     // 최고 관리자 전용 — 일반 admin 계정에는 안 보인다.
     ...(user?.email === SUPER_ADMIN_EMAIL
       ? [{ path: "/quiz/import", icon: ClipboardPaste, label: "붙여넣기로 퀴즈 만들기" }]
@@ -169,7 +175,7 @@ export function AppSidebar() {
 
   const adminTeacherItems: NavItem[] = [
     { path: "/dashboard", icon: Home, label: "선생님 대시보드" },
-    { path: "/quizzes", icon: BookOpen, label: "내 퀴즈" },
+    { path: "/quizzes", icon: BookOpen, label: "내 퀴즈", exactPath: true },
     { path: "/quiz/create", icon: PenSquare, label: "퀴즈 만들기" },
     { path: "/classes", icon: Users, label: "내 클래스" },
   ];
@@ -195,6 +201,7 @@ export function AppSidebar() {
   const isTeacherOrAdmin = role === "teacher" || role === "admin";
 
   return (
+    <>
     <Sidebar className="border-r border-border">
       <SidebarHeader className="px-4 py-4">
         <Link to="/" className="hover:opacity-80 transition-opacity">
@@ -218,6 +225,10 @@ export function AppSidebar() {
                   <NavLink key={item.path} item={item} />
                 ))}
               </SidebarMenu>
+              <SidebarSeparator className="my-2" />
+              <SidebarMenu>
+                <NavLink item={libraryItem} />
+              </SidebarMenu>
             </>
           ) : (
             <>
@@ -226,6 +237,10 @@ export function AppSidebar() {
                 {teacherItems.map((item) => (
                   <NavLink key={item.path} item={item} />
                 ))}
+              </SidebarMenu>
+              <SidebarSeparator className="my-2" />
+              <SidebarMenu>
+                <NavLink item={libraryItem} />
               </SidebarMenu>
             </>
           )}
@@ -272,6 +287,20 @@ export function AppSidebar() {
 
             <SidebarMenu>
               <SidebarMenuItem>
+                <SidebarMenuButton className={SB_ITEM_CLASS} onClick={() => setFeedbackOpen(true)}>
+                  <MessageSquarePlus className="w-[15px] h-[15px] shrink-0" />
+                  <span>피드백 보내기</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className={SB_ITEM_CLASS}>
+                  <Link to="/help">
+                    <HelpCircle className="w-[15px] h-[15px] shrink-0" />
+                    <span>도움말</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild className={SB_ITEM_CLASS}>
                   <Link to="/profile/settings">
                     <Settings className="w-[15px] h-[15px] shrink-0" />
@@ -293,5 +322,7 @@ export function AppSidebar() {
         )}
       </SidebarFooter>
     </Sidebar>
+    <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} context="sidebar" />
+    </>
   );
 }

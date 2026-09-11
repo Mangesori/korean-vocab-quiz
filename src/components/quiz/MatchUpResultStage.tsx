@@ -23,7 +23,7 @@ export function MatchUpResultStage({ problems, results, onNext, nextLabel, hideA
     <div className="w-full max-w-3xl mx-auto space-y-6">
       <div className="flex flex-col items-center justify-center py-6">
         <p className="text-5xl sm:text-6xl font-extrabold text-primary drop-shadow-sm">{score}점</p>
-        <p className="text-lg font-medium text-slate-600 mt-3">
+        <p className="text-lg font-medium text-[#6B6460] mt-3">
           {total}문제 중 <span className="text-primary font-bold">{correctCount}</span>문제를 맞혔어요!
         </p>
       </div>
@@ -50,7 +50,7 @@ export function MatchUpResultStage({ problems, results, onNext, nextLabel, hideA
           <Button
             variant="outline"
             onClick={onBack}
-            className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            className="h-12 px-6 rounded-xl bg-[#FAF8F5] sm:bg-white/50 border-[#EBE5DE] text-[#6B6460] font-semibold hover:bg-white hover:text-[#1A1714] shadow-none sm:shadow-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-2" /> <span className="hidden sm:inline">{backLabel ?? "이전"}</span>
             <span className="sm:hidden">이전</span>

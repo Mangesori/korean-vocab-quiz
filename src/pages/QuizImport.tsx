@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   Check,
-  ClipboardPaste,
   Keyboard,
   Library,
   Link2,
@@ -424,327 +423,348 @@ export default function QuizImport() {
 
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-10 max-w-2xl">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
-            <ClipboardPaste className="h-8 w-8 text-primary" />
-            붙여넣기로 퀴즈 만들기
-          </h1>
-          <p className="text-sm text-muted-foreground mt-2">
+      <div className="bg-[#FAF8F5] px-[18px] sm:px-[30px] py-[26px] sm:py-[30px]">
+        <div className="max-w-[756px] mx-auto">
+          <div className="text-[21px] font-bold tracking-[-0.4px] pl-2">붙여넣기로 퀴즈 만들기</div>
+          <p className="text-sm text-muted-foreground mt-1 pl-2">
             문장을 미리 채운 표를 붙여넣으면 AI를 쓰지 않고 바로 퀴즈를 만들어요.
           </p>
-        </div>
 
-        <Tabs value={mode} onValueChange={(v) => setMode(v as "quiz" | "bank")} className="mb-6">
-          <TabsList>
-            <TabsTrigger value="quiz">퀴즈 만들기</TabsTrigger>
-            <TabsTrigger value="bank">문장 은행에만 저장</TabsTrigger>
-          </TabsList>
-        </Tabs>
+          <Tabs value={mode} onValueChange={(v) => setMode(v as "quiz" | "bank")} className="mt-[18px]">
+            <TabsList className="w-full grid grid-cols-2 bg-[#F5F1EB] rounded-[11px] p-1 h-auto">
+              <TabsTrigger
+                value="quiz"
+                className="rounded-[8px] text-[12.5px] font-bold py-[9px] data-[state=active]:bg-primary data-[state=active]:text-white"
+              >
+                퀴즈 만들기
+              </TabsTrigger>
+              <TabsTrigger
+                value="bank"
+                className="rounded-[8px] text-[12.5px] font-bold py-[9px] data-[state=active]:bg-primary data-[state=active]:text-white"
+              >
+                문장 은행에만 저장
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-        <div className="bg-card rounded-2xl border border-border/60 shadow-sm p-6 md:p-8 space-y-8">
-          {/* ── 1. 제목 ── */}
-          {mode === "quiz" && (
-            <section>
-              <div className="flex items-center gap-3 mb-3">
-                <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">1</span>
-                <h2 className="font-semibold text-foreground">퀴즈 제목</h2>
-              </div>
-              <Input placeholder="예: 1과 어휘 퀴즈 (A1)" value={title} onChange={(e) => setTitle(e.target.value)} />
-            </section>
-          )}
-
-          {/* ── 2. 표 붙여넣기 ── */}
-          <section>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">2</span>
-              <h2 className="font-semibold text-foreground">표 붙여넣기</h2>
-            </div>
-
-            <Textarea
-              placeholder={PLACEHOLDER}
-              value={rawText}
-              onChange={(e) => setRawText(e.target.value)}
-              className="min-h-[220px] font-mono text-xs resize-none"
-            />
-
-            <div className="flex items-center justify-between mt-2 gap-3 flex-wrap">
-              <div className="text-sm text-muted-foreground">
-                읽은 줄 <span className="font-semibold text-foreground">{parsed.rows.length}</span>개
-                {parsed.issues.length > 0 && (
-                  <span className="text-destructive"> · 문제 {parsed.issues.length}건</span>
-                )}
-              </div>
-              <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => fileRef.current?.click()}>
-                <Upload className="w-3.5 h-3.5" />
-                파일 열기
-              </Button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".tsv,.csv,.txt,text/plain"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void handleFile(f);
-                  e.target.value = "";
-                }}
-              />
-            </div>
-
-            {parsed.issues.length > 0 && (
-              <div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
-                <div className="flex items-center gap-1.5 text-sm font-medium text-destructive mb-1.5">
-                  <AlertTriangle className="w-4 h-4" />
-                  건너뛴 줄 {parsed.issues.length}개
+          <div className="mt-[18px] bg-white border border-[#EBE5DE] rounded-[18px] px-7 py-[26px]">
+            {/* ── 1. 제목 ── */}
+            {mode === "quiz" && (
+              <section>
+                <div className="flex items-center gap-2.5">
+                  <span className="w-[26px] h-[26px] rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <h2 className="text-[15.5px] font-bold tracking-[-0.2px]">퀴즈 제목</h2>
                 </div>
-                <ul className="space-y-0.5 max-h-40 overflow-y-auto">
-                  {parsed.issues.slice(0, 20).map((it) => (
-                    <li key={it.line} className="text-xs text-muted-foreground">
-                      <span className="font-mono text-foreground">{it.line}번째 줄</span> — {it.message}
-                    </li>
-                  ))}
-                  {parsed.issues.length > 20 && (
-                    <li className="text-xs text-muted-foreground">…외 {parsed.issues.length - 20}건</li>
-                  )}
-                </ul>
-              </div>
+                <Input
+                  placeholder="예: 1과 어휘 퀴즈 (A1)"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="mt-2.5 bg-[#FAF8F5] border-[#EBE5DE] rounded-[11px] text-[13px] h-auto py-[13px] px-[15px]"
+                />
+              </section>
             )}
-          </section>
 
-          {/* ── 3. 레벨 ── */}
-          {mode === "quiz" && (
-          <section>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">3</span>
-              <h2 className="font-semibold text-foreground">레벨</h2>
-            </div>
-            {availableLevels.length === 0 ? (
-              <p className="text-sm text-muted-foreground">표를 붙여넣으면 들어 있는 레벨이 여기 나와요.</p>
-            ) : (
-              <>
-                <div className="flex flex-wrap gap-2">
-                  {availableLevels.map((l) => (
+            {/* ── 2. 표 붙여넣기 ── */}
+            <section className={mode === "quiz" ? "mt-6 pt-5 border-t border-[#F2EDE7]" : ""}>
+              <div className="flex items-center gap-2.5">
+                <span className="w-[26px] h-[26px] rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
+                <h2 className="text-[15.5px] font-bold tracking-[-0.2px]">표 붙여넣기</h2>
+              </div>
+
+              <Textarea
+                placeholder={PLACEHOLDER}
+                value={rawText}
+                onChange={(e) => setRawText(e.target.value)}
+                className="mt-2.5 min-h-[220px] font-mono text-xs resize-none bg-[#FAF8F5] border-[#EBE5DE] rounded-[11px]"
+              />
+
+              <div className="flex items-center justify-between mt-2 gap-3 flex-wrap">
+                <div className="text-sm text-muted-foreground">
+                  읽은 줄 <span className="font-semibold text-foreground">{parsed.rows.length}</span>개
+                  {parsed.issues.length > 0 && (
+                    <span className="text-destructive"> · 문제 {parsed.issues.length}건</span>
+                  )}
+                </div>
+                <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => fileRef.current?.click()}>
+                  <Upload className="w-3.5 h-3.5" />
+                  파일 열기
+                </Button>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".tsv,.csv,.txt,text/plain"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void handleFile(f);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+
+              {parsed.issues.length > 0 && (
+                <div className="mt-3 rounded-[11px] border border-destructive/30 bg-destructive/5 p-3">
+                  <div className="flex items-center gap-1.5 text-sm font-medium text-destructive mb-1.5">
+                    <AlertTriangle className="w-4 h-4" />
+                    건너뛴 줄 {parsed.issues.length}개
+                  </div>
+                  <ul className="space-y-0.5 max-h-40 overflow-y-auto">
+                    {parsed.issues.slice(0, 20).map((it) => (
+                      <li key={it.line} className="text-xs text-muted-foreground">
+                        <span className="font-mono text-foreground">{it.line}번째 줄</span> — {it.message}
+                      </li>
+                    ))}
+                    {parsed.issues.length > 20 && (
+                      <li className="text-xs text-muted-foreground">…외 {parsed.issues.length - 20}건</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </section>
+
+            {/* ── 3. 레벨 ── */}
+            {mode === "quiz" && (
+            <section className="mt-6 pt-5 border-t border-[#F2EDE7]">
+              <div className="flex items-center gap-2.5">
+                <span className="w-[26px] h-[26px] rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
+                <h2 className="text-[15.5px] font-bold tracking-[-0.2px]">레벨</h2>
+              </div>
+              {availableLevels.length === 0 ? (
+                <p className="text-sm text-muted-foreground mt-3">표를 붙여넣으면 들어 있는 레벨이 여기 나와요.</p>
+              ) : (
+                <>
+                  <div className="flex gap-[7px] mt-3.5">
+                    {availableLevels.map((l) => (
+                      <button
+                        key={l}
+                        type="button"
+                        onClick={() => setLevel(l)}
+                        className={`flex-1 text-center text-[12.5px] rounded-[10px] py-[9px] ${
+                          effectiveLevel === l
+                            ? 'font-bold text-primary bg-[#E8F1EB] border-[1.5px] border-primary'
+                            : 'font-semibold text-[#6B6460] bg-[#F5F1EB] border border-transparent'
+                        }`}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-foreground">단어당 최대 문장 수</label>
+                      <span className="text-sm font-semibold text-foreground">{perWordLimit}개</span>
+                    </div>
+                    <Slider value={[perWordLimit]} onValueChange={(v) => setPerWordLimit(v[0])} min={1} max={5} step={1} />
+                    <p className="text-xs text-muted-foreground">
+                      한 단어에 예문이 여러 개면 앞에서부터 이만큼만 써요.
+                    </p>
+                  </div>
+                </>
+              )}
+            </section>
+            )}
+
+            {/* ── 4. 퀴즈 유형 ── */}
+            {mode === "quiz" && (
+            <section className="mt-6 pt-5 border-t border-[#F2EDE7]">
+              <div className="flex items-center gap-2.5">
+                <span className="w-[26px] h-[26px] rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">4</span>
+                <h2 className="text-[15.5px] font-bold tracking-[-0.2px]">퀴즈 유형</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-2.5">
+                {STAGE_CARDS.map(({ key, label, desc, icon: Icon }) => {
+                  const on = stages[key];
+                  const count = stageCount(key);
+                  return (
                     <button
-                      key={l}
+                      key={key}
                       type="button"
-                      onClick={() => setLevel(l)}
-                      className={`px-4 py-2 rounded-full border-2 font-bold text-sm transition-all ${
-                        effectiveLevel === l
-                          ? "border-primary bg-accent text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/40"
+                      onClick={() => setStages((s) => ({ ...s, [key]: !s[key] }))}
+                      className={`text-left rounded-[11px] px-3.5 py-3 border ${
+                        on ? 'border-[1.5px] border-primary bg-[#F4F9F6]' : 'border-[#E7E1DA]'
                       }`}
                     >
-                      {l}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`flex items-center gap-1.5 text-[13px] ${on ? 'font-bold' : 'font-semibold'}`}>
+                          <Icon className={`w-3.5 h-3.5 ${on ? 'text-primary' : 'text-muted-foreground'}`} />
+                          {label}
+                        </span>
+                        {on && <Check className="w-[15px] h-[15px] text-primary shrink-0" strokeWidth={2.4} />}
+                      </div>
+                      <div className={`text-[11px] mt-0.5 ${on ? 'text-[#5C7D6C]' : 'text-[#8A837D]'}`}>
+                        {count > 0 ? `${desc} · ${count}문제` : desc}
+                      </div>
                     </button>
-                  ))}
-                </div>
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-foreground">단어당 최대 문장 수</label>
-                    <span className="text-sm font-semibold text-foreground">{perWordLimit}개</span>
-                  </div>
-                  <Slider value={[perWordLimit]} onValueChange={(v) => setPerWordLimit(v[0])} min={1} max={5} step={1} />
-                  <p className="text-xs text-muted-foreground">
-                    한 단어에 예문이 여러 개면 앞에서부터 이만큼만 써요.
-                  </p>
-                </div>
-              </>
+                  );
+                })}
+              </div>
+            </section>
             )}
-          </section>
-          )}
 
-          {/* ── 4. 퀴즈 유형 ── */}
-          {mode === "quiz" && (
-          <section>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">4</span>
-              <h2 className="font-semibold text-foreground">퀴즈 유형</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {STAGE_CARDS.map(({ key, label, desc, icon: Icon }) => {
-                const on = stages[key];
-                const count = stageCount(key);
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setStages((s) => ({ ...s, [key]: !s[key] }))}
-                    className={`relative p-4 rounded-xl border-2 text-left transition-all ${
-                      on ? "border-primary bg-accent" : "border-border hover:border-primary/40"
-                    }`}
-                  >
-                    {on && <Check className="absolute top-3 right-3 w-4 h-4 text-primary" />}
-                    <div className="flex items-center gap-2 mb-1">
-                      <Icon className={`w-4 h-4 ${on ? "text-primary" : "text-muted-foreground"}`} />
-                      <span className="font-bold text-sm text-foreground">{label}</span>
-                    </div>
-                    <div className={`text-xs ${on ? "text-primary" : "text-muted-foreground"}`}>
-                      {count > 0 ? `${desc} · ${count}문제` : desc}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-          )}
-
-          {/* ── 5. 추가 설정 ── */}
-          <section>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center flex-shrink-0">5</span>
-              <h2 className="font-semibold text-foreground">추가 설정</h2>
-            </div>
-
-            <div className="space-y-5">
-              {mode === "quiz" && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-foreground">세트당 단어 수</label>
-                  <span className="text-sm font-semibold text-foreground">{wordsPerSet}개</span>
-                </div>
-                <Slider value={[wordsPerSet]} onValueChange={(v) => setWordsPerSet(v[0])} min={1} max={10} step={1} />
-              </div>
-              )}
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">번역 언어</label>
-                <Select value={translationLanguage} onValueChange={setTranslationLanguage}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TRANSLATION_LANGUAGES.map((lang) => (
-                      <SelectItem key={lang.value} value={lang.value}>
-                        {lang.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">표의 `번역` 칸이 어느 언어인지 알려 주는 값이에요.</p>
+            {/* ── 5. 추가 설정 ── */}
+            <section className="mt-6 pt-5 border-t border-[#F2EDE7]">
+              <div className="flex items-center gap-2.5">
+                <span className="w-[26px] h-[26px] rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center flex-shrink-0">5</span>
+                <h2 className="text-[15.5px] font-bold tracking-[-0.2px]">추가 설정</h2>
               </div>
 
-              {mode === "quiz" && (
-              <div className="rounded-xl border border-border p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-medium text-foreground">세트당 제한 시간</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">세트마다 타이머가 초기화됩니다</div>
+              <div className="space-y-5 mt-3.5">
+                {mode === "quiz" && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-foreground">세트당 단어 수</label>
+                    <span className="text-sm font-semibold text-foreground">{wordsPerSet}개</span>
                   </div>
-                  <Switch checked={timerEnabled} onCheckedChange={setTimerEnabled} />
+                  <Slider value={[wordsPerSet]} onValueChange={(v) => setWordsPerSet(v[0])} min={1} max={10} step={1} />
                 </div>
-                {timerEnabled && (
-                  <div className="space-y-2 pt-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">제한 시간</span>
-                      <span className="text-sm font-semibold text-foreground">
-                        {Math.floor(timerSeconds / 60) > 0 && `${Math.floor(timerSeconds / 60)}분 `}
-                        {timerSeconds % 60}초
-                      </span>
-                    </div>
-                    <Slider value={[timerSeconds]} onValueChange={(v) => setTimerSeconds(v[0])} min={10} max={300} step={10} />
-                  </div>
                 )}
-              </div>
-              )}
 
-              {mode === "quiz" ? (
-              <div className="rounded-xl border border-border p-4">
-                <div className="flex items-center justify-between gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">번역 언어</label>
+                  <Select value={translationLanguage} onValueChange={setTranslationLanguage}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TRANSLATION_LANGUAGES.map((lang) => (
+                        <SelectItem key={lang.value} value={lang.value}>
+                          {lang.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">표의 `번역` 칸이 어느 언어인지 알려 주는 값이에요.</p>
+                </div>
+
+                {mode === "quiz" && (
+                <div className="rounded-[11px] border border-[#E7E1DA] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-foreground">세트당 제한 시간</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">세트마다 타이머가 초기화됩니다</div>
+                    </div>
+                    <Switch checked={timerEnabled} onCheckedChange={setTimerEnabled} />
+                  </div>
+                  {timerEnabled && (
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">제한 시간</span>
+                        <span className="text-sm font-semibold text-foreground">
+                          {Math.floor(timerSeconds / 60) > 0 && `${Math.floor(timerSeconds / 60)}분 `}
+                          {timerSeconds % 60}초
+                        </span>
+                      </div>
+                      <Slider value={[timerSeconds]} onValueChange={(v) => setTimerSeconds(v[0])} min={10} max={300} step={10} />
+                    </div>
+                  )}
+                </div>
+                )}
+
+                {mode === "quiz" ? (
+                <div className="rounded-[11px] border border-[#E7E1DA] p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <Library className="w-4 h-4 text-muted-foreground" />
+                        문장 은행에도 저장
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        붙여넣은 <span className="font-semibold text-foreground">{parsed.rows.length}줄</span> 전체를
+                        복습용으로 쌓아 둡니다. 복습할 때 같은 단어를 매번 다른 문장으로 물어봐요.
+                      </div>
+                    </div>
+                    <Switch checked={saveToBank} onCheckedChange={setSaveToBank} />
+                  </div>
+                  {saveToBank && (
+                    <div className="mt-3 pt-3 border-t border-[#F2EDE7] space-y-1.5">
+                      <label className="text-xs font-medium text-foreground">배치 라벨 (선택)</label>
+                      <Input
+                        placeholder="예: 2026-08-14 신규 347단어"
+                        value={batchLabel}
+                        onChange={(e) => setBatchLabel(e.target.value)}
+                        className="bg-[#FAF8F5] border-[#EBE5DE] rounded-[11px]"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        나중에 "이번에 새로 추가한 단어들만" 골라 복습 퀴즈를 보낼 때 씁니다. 비워 두면 배치 구분 없이 저장돼요.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                ) : (
+                <div className="rounded-[11px] border border-[#E7E1DA] p-4 space-y-3">
                   <div>
                     <div className="text-sm font-medium text-foreground flex items-center gap-1.5">
                       <Library className="w-4 h-4 text-muted-foreground" />
-                      문장 은행에도 저장
+                      문장 은행에만 저장
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      붙여넣은 <span className="font-semibold text-foreground">{parsed.rows.length}줄</span> 전체를
-                      복습용으로 쌓아 둡니다. 복습할 때 같은 단어를 매번 다른 문장으로 물어봐요.
+                      이 표의 모든 행이 문장 은행에 저장됩니다.
                     </div>
                   </div>
-                  <Switch checked={saveToBank} onCheckedChange={setSaveToBank} />
-                </div>
-                {saveToBank && (
-                  <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+                  <div className="pt-3 border-t border-[#F2EDE7] space-y-1.5">
                     <label className="text-xs font-medium text-foreground">배치 라벨 (선택)</label>
                     <Input
                       placeholder="예: 2026-08-14 신규 347단어"
                       value={batchLabel}
                       onChange={(e) => setBatchLabel(e.target.value)}
+                      className="bg-[#FAF8F5] border-[#EBE5DE] rounded-[11px]"
                     />
                     <p className="text-xs text-muted-foreground">
                       나중에 "이번에 새로 추가한 단어들만" 골라 복습 퀴즈를 보낼 때 씁니다. 비워 두면 배치 구분 없이 저장돼요.
                     </p>
                   </div>
+                </div>
+                )}
+
+                {mode === "quiz" && (
+                <div className="rounded-[11px] border border-[#E7E1DA] p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <Volume2 className="w-4 h-4 text-muted-foreground" />
+                        음성 만들기
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        이것만 외부 API(TTS)를 씁니다. 꺼 두면 저장이 훨씬 빨라요.
+                      </div>
+                    </div>
+                    <Switch checked={ttsEnabled} onCheckedChange={setTtsEnabled} />
+                  </div>
+                </div>
                 )}
               </div>
-              ) : (
-              <div className="rounded-xl border border-border p-4 space-y-3">
-                <div>
-                  <div className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                    <Library className="w-4 h-4 text-muted-foreground" />
-                    문장 은행에만 저장
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    이 표의 모든 행이 문장 은행에 저장됩니다.
-                  </div>
-                </div>
-                <div className="pt-3 border-t border-border space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">배치 라벨 (선택)</label>
-                  <Input
-                    placeholder="예: 2026-08-14 신규 347단어"
-                    value={batchLabel}
-                    onChange={(e) => setBatchLabel(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    나중에 "이번에 새로 추가한 단어들만" 골라 복습 퀴즈를 보낼 때 씁니다. 비워 두면 배치 구분 없이 저장돼요.
-                  </p>
-                </div>
-              </div>
-              )}
+            </section>
 
-              {mode === "quiz" && (
-              <div className="rounded-xl border border-border p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <div className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                      <Volume2 className="w-4 h-4 text-muted-foreground" />
-                      음성 만들기
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      이것만 외부 API(TTS)를 씁니다. 꺼 두면 저장이 훨씬 빨라요.
-                    </div>
-                  </div>
-                  <Switch checked={ttsEnabled} onCheckedChange={setTtsEnabled} />
-                </div>
-              </div>
+            {/* ── 저장 ── */}
+            <div className="mt-5">
+              <Button
+                size="lg"
+                className="w-full gap-2 rounded-[13px] h-auto py-[15px] text-[14px]"
+                onClick={handleSave}
+                disabled={!canSave}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> 저장 중...
+                  </>
+                ) : mode === "bank" ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    문장 은행에 저장
+                    {parsed.rows.length > 0 && ` (${parsed.rows.length}줄)`}
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    퀴즈 만들기
+                    {built.problems.length > 0 && ` (${built.words.length}단어 · ${built.problems.length}문제)`}
+                  </>
+                )}
+              </Button>
+              {mode === "quiz" && !anyStage && built.problems.length > 0 && (
+                <p className="text-xs text-destructive text-center mt-2">퀴즈 유형을 하나 이상 골라 주세요.</p>
               )}
             </div>
-          </section>
-
-          {/* ── 저장 ── */}
-          <div className="pt-2 pb-8">
-            <Button size="lg" className="w-full gap-2" onClick={handleSave} disabled={!canSave}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> 저장 중...
-                </>
-              ) : mode === "bank" ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  문장 은행에 저장
-                  {parsed.rows.length > 0 && ` (${parsed.rows.length}줄)`}
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4" />
-                  퀴즈 만들기
-                  {built.problems.length > 0 && ` (${built.words.length}단어 · ${built.problems.length}문제)`}
-                </>
-              )}
-            </Button>
-            {mode === "quiz" && !anyStage && built.problems.length > 0 && (
-              <p className="text-xs text-destructive text-center mt-2">퀴즈 유형을 하나 이상 골라 주세요.</p>
-            )}
           </div>
         </div>
       </div>

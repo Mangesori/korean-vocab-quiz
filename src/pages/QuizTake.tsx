@@ -1904,7 +1904,7 @@ export default function QuizTake() {
           </div>
           <div className="flex flex-col items-center justify-center py-6 mb-6">
             <p className="text-5xl sm:text-6xl font-extrabold text-primary drop-shadow-sm">{score}점</p>
-            <p className="text-lg font-medium text-slate-600 mt-3">
+            <p className="text-lg font-medium text-muted-foreground mt-3">
               {totalCount}문제 중 <span className="text-primary font-bold">{correctCount}</span>문제를 맞혔어요!
             </p>
           </div>
@@ -2112,6 +2112,25 @@ export default function QuizTake() {
       );
     }
 
+    // 라이브 세션 비회원 제출 완료 — 계정이 없어 결과 페이지로 navigate할 곳이 없다
+    // (handleSubmit의 로그인 경로는 결과 페이지로 이동하지만, 이 분기는 그 전에 return한다).
+    // 화면을 안 만들면 아래 로딩 스피너 폴백에 걸려 학생이 빈 화면에 계속 머무르게 된다.
+    if (currentStage === "completed") {
+      return (
+        <div className="container mx-auto px-4 py-16 flex justify-center">
+          <Card className="max-w-md w-full">
+            <CardContent className="pt-8 pb-8 flex flex-col items-center text-center gap-3">
+              <CheckCircle className="w-12 h-12 text-primary" />
+              <h2 className="text-xl font-bold text-foreground">제출 완료</h2>
+              <p className="text-sm text-muted-foreground">
+                수고하셨어요! 선생님 화면에 결과가 표시됩니다.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
     // 빈칸 스테이지가 아닌데 위 분기에 안 걸렸으면(해당 유형 데이터 로딩 중) 스피너.
     // 빈칸이 첫 스테이지가 아닐 수 있으므로(예: 짝 맞추기 먼저) 빈칸 스테이지로 잘못 폴백하지 않도록 방지.
     if (currentStage !== "fill_blank" && currentStage !== "fill_blank_result") {
@@ -2143,7 +2162,7 @@ export default function QuizTake() {
   const currentGlobalIndex = getCurrentGlobalStageIndex();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white sm:bg-background">
       {/* 퀴즈 공통 Header & Global Stepper */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b shadow-sm">
         <div className="container mx-auto px-4 py-3">
@@ -2204,7 +2223,7 @@ export default function QuizTake() {
                   handleSubmit()의 기존 미완료 가드를 그대로 타므로 굳이 멈출 필요가 없다). */}
               <div className="shrink-0">
                 {quiz.timer_enabled && timeLeft !== null && isSetBasedStage && (
-                  <div className={`flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold border ${timeLeft < 30 ? "bg-destructive/10 text-destructive border-transparent" : "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                  <div className={`flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold border ${timeLeft < 30 ? "bg-destructive/10 text-destructive border-transparent" : "bg-[#F4F0EA] text-muted-foreground border-border"}`}>
                     <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span className="font-mono">{formatTime(timeLeft)}</span>
                   </div>
@@ -2215,11 +2234,11 @@ export default function QuizTake() {
             {/* 두 번째 줄: 진행 상황 정보(프로그레스 바) */}
             {stageProgress.total > 0 && !currentStage.includes("_result") && currentStage !== "completed" && (
               <div className="flex items-center justify-between gap-4 w-full px-1">
-                <Progress 
-                  value={stageProgress.total > 0 ? (stageProgress.current / stageProgress.total) * 100 : 0} 
-                  className="flex-1 h-2.5" 
+                <Progress
+                  value={stageProgress.total > 0 ? (stageProgress.current / stageProgress.total) * 100 : 0}
+                  className="flex-1 h-2.5 bg-[#F4F0EA]"
                 />
-                <span className="shrink-0 px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold shadow-sm border border-slate-200">
+                <span className="shrink-0 px-3 py-1 bg-[#F4F0EA] text-[#4A443F] rounded-lg text-sm font-bold shadow-sm border border-border">
                   {stageProgress.label}
                 </span>
               </div>

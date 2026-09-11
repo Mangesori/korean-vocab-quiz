@@ -30,7 +30,7 @@ export function TypeAnswerStudentView({ problems }: { problems: TypeAnswerStuden
           뜻을 보고 알맞은 한국어 단어를 입력하세요
         </p>
 
-        <div className="p-6 sm:p-8 bg-slate-50 rounded-2xl text-center min-h-[110px] flex items-center justify-center">
+        <div className="p-6 sm:p-8 bg-[#FAF8F5] rounded-2xl text-center min-h-[110px] flex items-center justify-center">
           <p className="text-xl sm:text-2xl font-bold text-foreground break-keep">{problem.prompt}</p>
         </div>
 
@@ -45,7 +45,7 @@ export function TypeAnswerStudentView({ problems }: { problems: TypeAnswerStuden
             variant="outline"
             onClick={() => setPreviewIndex((p) => Math.max(0, p - 1))}
             disabled={previewIndex === 0}
-            className="h-12 px-6 rounded-xl bg-white/50 border-slate-200 text-slate-600 font-semibold hover:bg-white hover:text-slate-800 shadow-sm"
+            className="h-12 px-6 rounded-xl bg-white/50 border-[#EBE5DE] text-[#6B6460] font-semibold hover:bg-white hover:text-[#1A1714] shadow-sm"
           >
             <ChevronLeft className="w-4 h-4 mr-2" /> 이전
           </Button>

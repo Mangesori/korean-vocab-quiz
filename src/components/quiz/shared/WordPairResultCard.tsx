@@ -45,7 +45,7 @@ export function WordPairResultCard({
             </span>
             <Badge
               variant="outline"
-              className="font-semibold text-base px-3 py-1 bg-slate-50 border-slate-200 text-slate-700 break-keep"
+              className="font-semibold text-base px-3 py-1 bg-[#FAF8F5] border-[#EBE5DE] text-[#4A443F] break-keep"
             >
               {prompt}
             </Badge>

@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style data-omelette-injected>html,body{background:transparent}</style><script data-omelette-injected>(()=>{{const n=new URLSearchParams(location.search).get("theme");if(n==="light"||n==="dark"){document.documentElement.dataset.theme=n}}{if(new URLSearchParams(location.search).get("_omthumb")==="1"){const n=(f)=>{const g=f.focus;if(!g)return;f.focus=function(h){g.call(this,{...h,preventScroll:true})}};n(HTMLElement.prototype);n(SVGElement.prototype);if(typeof MathMLElement!=="undefined"){n(MathMLElement.prototype)}const d=(f)=>{f.removeAttribute("autofocus");f.inert=true;if(!(f instanceof HTMLElement))f.removeAttribute("tabindex")};const p=(f)=>{if(f.hasAttribute("autofocus"))d(f);for(const g of f.querySelectorAll("[autofocus]")){d(g)}};p(document.documentElement);new MutationObserver((f)=>{for(const g of f){for(const h of g.addedNodes){if(h.nodeType===1)p(h)}}}).observe(document,{childList:true,subtree:true})}}{const n=()=>{try{if(document.querySelector('meta[name="color-scheme"]'))return;const d=getComputedStyle(document.documentElement).getPropertyValue("color-scheme").trim();if(d&&d!=="normal")return;const p=(y)=>{if(!y)return null;const m=getComputedStyle(y).backgroundColor.match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+%?))?\s*\)$/);if(!m)return null;const w=m[4]==null?1:parseFloat(m[4])/(m[4].endsWith("%")?100:1);if(w<0.99)return null;return[+m[1],+m[2],+m[3]]};const f=p(document.body)||p(document.documentElement);if(!f)return;const g=(y)=>{const m=y/255;return m<=0.04045?m/12.92:((m+0.055)/1.055)**2.4};const h=0.2126*g(f[0])+0.7152*g(f[1])+0.0722*g(f[2]);document.documentElement.style.setProperty("color-scheme",h<0.4?"dark":"light")}catch{}};if(document.readyState==="complete")n();else window.addEventListener("load",n)}var I=["https://claude.ai","https://preview.claude.ai","https://cb874781-80c1-4ef8-b9cc-e9edf15aedf8.claudeusercontent.com"];var B=true;var K=false;var C=()=>{};if(K===true){try{const n=setTimeout.bind(window);const d=1e4;const p=15;const f=1e4;const g=120000;const h=200;const y=(o)=>{try{let r;if(typeof o==="string")r=o;else if(o instanceof URL)r=o.href;else if(typeof Request!=="undefined"&&o instanceof Request)r=o.url;else return null;if(!r)return null;const l=document.baseURI;const i=new URL(r,l);if(i.protocol!=="http:"&&i.protocol!=="https:")return null;if(i.origin!==new URL(l).origin)return null;return i.origin+i.pathname}catch{return null}};const m=new Map;const w=(o)=>{let r=m.get(o);if(!r){if(m.size>=h){const l=m.keys().next().value;if(l!==undefined)m.delete(l)}r={fails:[],until:0,cooldown:f,hard:false};m.set(o,r)}return r};const R=(o)=>{const r=m.get(o);return r!==undefined&&r.until>Date.now()};const O=(o,r)=>{const l=Date.now();const i=w(o);if(r)i.hard=true;if(i.until>l)return;i.fails.push(l);while(i.fails.length>0&&i.fails[0]<=l-d)i.fails.shift();if(i.fails.length>=p){i.until=l+i.cooldown;if(i.hard)i.cooldown=Math.min(i.cooldown*2,g);i.fails.length=0;try{n(()=>{try{S(true)}catch{}},i.until-l+100)}catch{}console.warn("[omelette] asset circuit breaker: pausing requests to "+o+" for "+Math.round((i.until-l)/1000)+"s after "+p+" failures in "+d/1000+"s")}};const e=(o)=>{m.delete(o)};const t=100;const a=new WeakMap;const u=new Set;let s=null;const S=(o)=>{for(const r of Array.from(u)){try{const l=a.get(r);if(l===undefined){u.delete(r);continue}if(o){const i=y(l);if(i!==null&&R(i))continue}a.delete(r);u.delete(r);if(s!==null)s.call(r,l)}catch{}}};C=()=>{try{m.clear();S(false)}catch{}};document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")C()});const _=window.fetch;if(typeof _==="function"){const o=function(...r){let l=null;try{l=y(r[0])}catch{}if(l!==null&&R(l)){let c;try{if(r[1]&&r[1].signal!==undefined){c=r[1].signal||undefined}else if(typeof Request!=="undefined"&&r[0]instanceof Request){c=r[0].signal||undefined}}catch{c=undefined}return new Promise((k,b)=>{const E=()=>{try{return c.reason!==undefined?c.reason:new DOMException("The operation was aborted.","AbortError")}catch{return new DOMException("The operation was aborted.","AbortError")}};try{if(c&&c.aborted){b(E());return}}catch{}let T=false;const j=()=>{if(T)return;T=true;b(E())};try{if(c)c.addEventListener("abort",j,{once:true})}catch{}n(()=>{if(T)return;T=true;try{if(c)c.removeEventListener("abort",j)}catch{}let L;try{L=new Response(null,{status:429,statusText:"Too Many Requests",headers:{"Retry-After":"10"}})}catch{L={ok:false,status:429}}k(L)},250)})}const i=_.apply(window,r);if(l!==null){const c=l;i.then((k)=>{try{if(k.ok)e(c);else if(k.status===401||k.status===403||k.status===404||k.status===429){O(c,k.status!==404)}}catch{}},()=>{})}return i};window.fetch=o}const v=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,"src");if(v!==undefined&&v.set!==undefined&&v.get!==undefined){const o=v.set;s=o;Object.defineProperty(HTMLImageElement.prototype,"src",{configurable:true,enumerable:v.enumerable,get:v.get,set(r){const l=`${r}`;try{const i=y(l);if(i!==null&&R(i)){a.set(this,l);if(u.size<t)u.add(this);return}}catch{}try{a.delete(this);u.delete(this)}catch{}o.call(this,l)}})}try{const o=HTMLImageElement.prototype.setAttribute;HTMLImageElement.prototype.setAttribute=function(r,l){if(arguments.length<2){o.apply(this,arguments);return}if(typeof r==="string"&&r.toLowerCase()==="src"){const i=`${l}`;try{const c=y(i);if(c!==null&&R(c)){a.set(this,i);if(u.size<t)u.add(this);return}a.delete(this);u.delete(this)}catch{}o.call(this,r,i);return}o.call(this,r,l)}}catch{}window.addEventListener("error",(o)=>{try{const r=o.target;if(r instanceof HTMLImageElement){const l=y(r.currentSrc||r.src||"");if(l!==null)O(l,true)}}catch{}},true);window.addEventListener("load",(o)=>{try{const r=o.target;if(r instanceof HTMLImageElement){const l=y(r.currentSrc||r.src||"");if(l!==null)e(l);const i=a.get(r);if(i!==undefined){let c=false;try{c=new URL(i,document.baseURI).href===new URL(r.currentSrc||r.src||"",document.baseURI).href}catch{c=false}if(c){a.delete(r);u.delete(r)}}}}catch{}},true)}catch{}}var J=30000;var G=3000;document.addEventListener("DOMContentLoaded",()=>{const n=window.Babel;const d="om-src-id";if(n&&n.registerPlugin&&!(n.availablePlugins&&n.availablePlugins[d])){n.registerPlugin(d,({types:h})=>({visitor:{JSXOpeningElement(y,m){const w=y.node;if(w.name&&w.name.type==="JSXMemberExpression")return;for(let t=0;t<w.attributes.length;t++){const a=w.attributes[t];if(a.type==="JSXAttribute"&&a.name&&a.name.name==="data-om-id")return}const R=m.file&&m.file.opts&&m.file.opts.filename||"?";const O=w.loc&&w.loc.start;const e=`jsx:${R}:${w.start??0}:${O?O.line:0}:${O?O.column+1:0}`;w.attributes.push(h.jsxAttribute(h.jsxIdentifier("data-om-id"),h.stringLiteral(e)))}}}))}const p="om-text-extract";let f=false;if(B&&n&&n.registerPlugin&&!(n.availablePlugins&&n.availablePlugins[p])){const h=window.React;if(h&&h.useSyncExternalStore&&h.createElement){f=true;const y={};const m=new Set;let w=0;window.__omTextO=y;window.__omTextSet=(e)=>{for(const t in e){const a=e[t];if(a==null)delete y[t];else y[t]=a}w++;m.forEach((t)=>t())};const R=(e)=>{m.add(e);return()=>m.delete(e)};const O=()=>w;window.__OmT=function e(t){h.useSyncExternalStore(R,O,O);return h.createElement("span",{"data-om-text":t.i,className:"__om-t"},t.i in y?y[t.i]:t.children)};n.registerPlugin(p,({types:e})=>{const t={style:1,script:1,noscript:1,textarea:1,title:1,option:1,text:1,tspan:1,textPath:1};const a={placeholder:1,alt:1,title:1,label:1,"aria-label":1,"aria-description":1,"aria-placeholder":1};const u=(o,r)=>e.logicalExpression("??",e.memberExpression(e.logicalExpression("||",e.memberExpression(e.identifier("window"),e.identifier("__omTextO")),e.objectExpression([])),e.stringLiteral(o),true),r);const s=(o)=>o.file&&o.file.opts&&o.file.opts.filename||"?";const S=(o)=>o.file&&o.file.code||"";const _=(o,r)=>{const l=(c)=>c&&c.start!=null&&c.end!=null&&(c.type==="StringLiteral"||c.type==="TemplateLiteral"&&c.expressions.length===0)?[c.start,c.end]:null;const i=l(r);if(i)return i;if(r&&r.type==="Identifier"){const c=o.scope.getBinding(r.name);if(c&&c.constant&&c.path.node.type==="VariableDeclarator"){return l(c.path.node.init)}}return null};const v=(o,r,l)=>{const i=o.node;let c=false;const k=(E,T)=>{c=true;return e.jsxElement(e.jsxOpeningElement(e.jsxIdentifier("__OmT"),[e.jsxAttribute(e.jsxIdentifier("i"),e.stringLiteral(E))],false),e.jsxClosingElement(e.jsxIdentifier("__OmT")),[T],false)};const b=i.children.map((E)=>{if(E.type==="JSXText"){if(E.start==null||E.end==null)return E;const T=l.slice(E.start,E.end);const j=T.length-T.trimStart().length;const L=T.length-T.trimEnd().length;if(j+L>=T.length)return E;return k(`txt:${r}:${E.start+j}:${E.end-L}`,E)}if(E.type==="JSXExpressionContainer"){const T=_(o,E.expression);if(T)return k(`str:${r}:${T[0]}:${T[1]}`,E)}return E});if(c)i.children=b};return{visitor:{JSXOpeningElement(o,r){const l=o.node;const i=s(r);const c={};for(let k=0;k<l.attributes.length;k++){const b=l.attributes[k];if(b.type!=="JSXAttribute"||!b.name)continue;const E=b.name.name;if(!a[E])continue;if(!b.value||b.value.type!=="StringLiteral")continue;if(b.value.start==null||b.value.end==null)continue;const T=`txt:${i}:${b.value.start}:${b.value.end}`;c[E]=T;b.value=e.jsxExpressionContainer(u(T,e.stringLiteral(b.value.value)))}if(Object.keys(c).length){l.attributes.push(e.jsxAttribute(e.jsxIdentifier("data-om-text-attrs"),e.stringLiteral(JSON.stringify(c))))}},JSXElement(o,r){const l=o.node.openingElement;const i=l&&l.name&&l.name.name;if(i==="__OmT")return;if(typeof i==="string"&&t[i])return;v(o,s(r),S(r))},JSXFragment(o,r){v(o,s(r),S(r))}}}})}}const g=f?["transform-react-jsx-source",d,p]:["transform-react-jsx-source",d];document.querySelectorAll('script[type="text/babel"],script[type="text/jsx"]').forEach((h,y)=>{const m=h.getAttribute("data-plugins")||"";const w=g.filter((R)=>m.indexOf(R)<0);if(w.length){h.setAttribute("data-plugins",m?`${m},${w.join(",")}`:w.join(","))}if(!h.hasAttribute("data-filename")){h.setAttribute("data-filename",h.getAttribute("src")||`inline-${y}`)}})});var A=window.parent;var U="not editable here — open the project in the Claude Design editor to save";var W=()=>Promise.resolve({persisted:false,noHost:true,reason:U});var H=W;var M="data/storage.json";var z=()=>{try{const n=new URL(document.baseURI);const d=n.pathname.match(/\/projects\/([^/]+)\/serve\//);if(d)return d[1];return n.hostname.split(".")[0]||""}catch{return location.hostname.split(".")[0]||""}};var Z=()=>{try{const n=new URL(document.baseURI);const d=n.pathname.indexOf("/serve/");if(d>=0)return n.origin+n.pathname.slice(0,d+"/serve/".length)+M}catch{}return"./"+M};var x=null;var N=()=>{if(!x){x=fetch(Z(),{cache:"no-store"}).then((n)=>{if(n.ok)return n.text();return n.status===404?"":null}).catch(()=>null).then((n)=>{if(n===null){x=null;return null}const d=new Map;if(!n)return d;let p;try{p=JSON.parse(n)}catch{console.warn("[omelette.storage] "+M+" is not valid JSON; treating the store as unreadable so a save cannot overwrite the "+"hand-edited bytes. Fix the JSON (or delete the file) to re-enable persistence.");x=null;return null}if(p===null||typeof p!=="object"||Array.isArray(p)){console.warn("[omelette.storage] "+M+" doesn't hold a JSON object; treating the store as unreadable so a save cannot "+"overwrite the hand-edited bytes. Make the top level a JSON object to re-enable persistence.");x=null;return null}const f=p;if("data"in f){const g=f.data;if(g===null||typeof g!=="object"||Array.isArray(g)){console.warn("[omelette.storage] "+M+' has a "data" field that is not a JSON object; treating the store as unreadable so a '+'save cannot overwrite the hand-edited bytes. Make "data" a JSON object to re-enable persistence.');x=null;return null}const h=f._meta;const y=h!==null&&typeof h==="object"?h.project:undefined;if(typeof y==="string"&&y!==""&&y!==z())return d;for(const m of Object.keys(g))d.set(m,g[m]);return d}for(const g of Object.keys(f)){if(g!=="_meta")d.set(g,f[g])}return d})}return x};var F=(n)=>H(M,JSON.stringify({_meta:{project:z(),version:1},data:Object.fromEntries(n)},null,2));var D=Promise.resolve();var $=(n)=>{const d=D.then(n);D=d.then(()=>{return},()=>{return});return d};var V=/sk-(?:ant-)?[A-Za-z0-9_-]{16,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{20,}|xox[a-z]-[A-Za-z0-9][A-Za-z0-9-]{9,}|AIza[0-9A-Za-z_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY-----/;var Y=/password|passwd|secret|api[_-]?key|access[_-]?token|auth[_-]?token|credential/i;var Q=(n,d,p)=>{if(V.test(d)||Y.test(n)&&typeof p==="string"&&p.length>=8){console.warn('[omelette.storage] the value for "'+n+'" looks like a credential. The storage file is a plaintext project file — visible to '+"everyone with project access and copied when the project is duplicated. Do not store secrets here.")}};var q={persisted:false,reason:"could not load the existing store — not overwriting it"};var X={persisted:false,reason:"stored value changed since a failed read — re-read this key before saving"};var P=new Set;var ee={get:(n)=>{if(typeof n!=="string"){return Promise.reject(new TypeError("storage.get: key must be a string"))}return $(N).then((d)=>{if(d===null){P.add(n);return null}P.delete(n);if(!d.has(n))return null;const p=d.get(n);return p==null?null:JSON.parse(JSON.stringify(p))})},set:(n,d)=>{if(typeof n!=="string"){return Promise.reject(new TypeError("storage.set: key must be a string"))}let p;try{p=JSON.stringify(d)}catch(g){return Promise.reject(new TypeError("storage.set: value must be JSON-serializable ("+String(g)+")"))}if(p===undefined){return Promise.reject(new TypeError("storage.set: value must be JSON-serializable"))}Q(n,p,d);const f=JSON.parse(p);return $(()=>N().then((g)=>{if(g===null)return q;if(P.has(n)){if(g.has(n))return X;P.delete(n)}g.set(n,f);return F(g)}))},delete:(n)=>{if(typeof n!=="string"){return Promise.reject(new TypeError("storage.delete: key must be a string"))}return $(()=>N().then((d)=>{if(d===null)return q;if(P.has(n)){if(d.has(n))return X;P.delete(n)}d.delete(n);return F(d)}))},keys:()=>$(N).then((n)=>n===null?[]:Array.from(n.keys()))};window.omelette={writeFile:(n,d)=>H(n,d).then((p)=>{if(!p.persisted&&!p.noHost){throw new Error(p.reason||"write failed")}}),storage:ee};if(A&&A!==window){const n=(e,t)=>{try{A.postMessage({__omelette_log:true,type:e,data:t},"*")}catch{}};["log","warn","error"].forEach((e)=>{const t=console[e];console[e]=(...a)=>{const u=a.map((s)=>{try{return typeof s==="object"?JSON.stringify(s):String(s)}catch{try{return String(s)}catch{return"[unstringifiable]"}}}).join(" ");n(e,u);t.apply(console,a)}});window.addEventListener("error",(e)=>{const t=e.target;if(t&&t!==window&&t.tagName){const a=t.src||t.href||"";n("resource_error",`${t.tagName} failed to load: ${a}`)}else{n("error",`${e.message||"Unknown error"} at ${e.filename||"?"}:${e.lineno||0}:${e.colno||0}`)}},true);window.addEventListener("unhandledrejection",(e)=>{const t=e.reason;const a=t instanceof Error?`${t.message} ${t.stack}`:String(t);n("error",`Unhandled rejection: ${a}`)});window.addEventListener("click",(e)=>{if(e.defaultPrevented||e.button!==0)return;if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;const t=e.composedPath?e.composedPath():[];const a=["button","input","select","textarea","summary","label"];let u=null;for(const v of t){if(!(v instanceof Element))continue;if(v.localName==="a"){if(!(v instanceof HTMLAnchorElement))return;u=v;break}if(a.indexOf(v.localName)!==-1)return}if(!u)return;if(u.isContentEditable)return;const s=u.closest("[contenteditable]");if(s&&s.getAttribute("contenteditable")!=="false")return;const S=(u.getAttribute("target")||"_self").toLowerCase();if(S!=="_self"&&S!=="_top"&&S!=="_parent")return;let _;try{_=new URL(u.href)}catch{return}if(_.protocol!=="http:"&&_.protocol!=="https:")return;if(location.origin==="null")return;if(_.origin===location.origin)return;e.preventDefault();window.open(_.href,"_blank","noopener,noreferrer")});const d=()=>{try{A.postMessage({type:"omelette:height",height:document.documentElement.scrollHeight},"*")}catch{}};if(window.ResizeObserver)new ResizeObserver(d).observe(document.documentElement);const p=()=>{d();if(!document.querySelector('script[type="text/babel"],script[type="text/jsx"]'))return;const e=()=>document.getElementById("root")||document.querySelector("body > div[id]");const t=e()?.firstElementChild??null;let a=0;const u=()=>{const s=e();if(s&&s.firstElementChild!==t||++a>30){d();return}setTimeout(u,100)};setTimeout(u,100)};if(document.readyState==="complete")p();else window.addEventListener("load",p);const f={};let g=0;const h=(e)=>new Promise((t,a)=>{if(!I.length){a(new Error("claude.complete: no parent origin"));return}const u=`c${++g}`;const s=()=>setTimeout(()=>{delete f[u];a(new Error(`claude.complete: no data for ${J/1000}s`))},J);const S=s();f[u]={resolve:t,reject:a,text:"",t:S,arm:s};try{for(const _ of I){A.postMessage({__om_api:true,id:u,body:e},_)}}catch(_){clearTimeout(S);delete f[u];a(_)}});const y=8;const m=async(e,t)=>{if(!Array.isArray(e.messages)){throw new Error("claude.complete: tools require a messages array")}const a=e.messages.slice();const u={...e,tools:e.tools.map((_)=>{if(_===null||typeof _!=="object")return _;const v={};for(const o of Object.keys(_)){if(typeof _[o]!=="function")v[o]=_[o]}return v})};const s=u.tool_choice;const S=s!=null&&(s.type==="any"||s.type==="tool")?{...u,tool_choice:s.disable_parallel_tool_use!==undefined?{type:"auto",disable_parallel_tool_use:s.disable_parallel_tool_use}:{type:"auto"}}:u;for(let _=0;_<y;_++){const v=await h({..._===0?u:S,messages:a});const o=v.message;const r=o&&Array.isArray(o.content)?o.content:null;const l=r?r.filter((c)=>c?.type==="tool_use"):[];if(o?.stop_reason!=="tool_use"||l.length===0){return v.text}const i=[];for(const c of l){const k=t.get(c.name);if(!k){i.push({type:"tool_result",tool_use_id:c.id,content:`no handler for tool "${c.name}"`,is_error:true});continue}try{const b=await k(c.input);const E=typeof b==="string"?b:O(b)??"";i.push({type:"tool_result",tool_use_id:c.id,content:E})}catch(b){i.push({type:"tool_result",tool_use_id:c.id,content:String(b?.message??b??"tool handler failed"),is_error:true})}}a.push({role:"assistant",content:r},{role:"user",content:i})}throw new Error(`claude.complete: exceeded ${y} tool turns`)};window.claude={complete(e){const t=e;if(t!==null&&typeof t==="object"&&Array.isArray(t.tools)&&t.tools.some((a)=>a!==null&&typeof a==="object"&&typeof a.run==="function")){const a=new Map;for(const u of t.tools){if(u!==null&&typeof u==="object"&&typeof u.run==="function"){a.set(String(u.name),u.run)}}return m(t,a)}return h(e).then((a)=>a.text)}};const w={};let R=0;H=(e,t)=>new Promise((a)=>{if(!I.length){a({persisted:false,noHost:true,reason:U});return}const u=`f${++R}`;const s=setTimeout(()=>{delete w[u];a({persisted:false,noHost:true,reason:U})},G);w[u]={settle:a,t:s};try{for(const S of I){A.postMessage({__om_file:true,id:u,op:"write",path:e,content:t},S)}}catch{clearTimeout(s);delete w[u];a({persisted:false,noHost:true,reason:U})}});const O=(e)=>{try{return JSON.stringify(e)}catch{return JSON.stringify(String(e))}};window.addEventListener("message",(e)=>{if(I.indexOf(e.origin)<0)return;if(e.source!==A)return;const t=e.data;if(!t)return;if(t.type==="omelette-preview-refresh"){if(typeof t.token!=="string"||!/^[0-9a-f.-]+(\.(rc|pr-[0-9]+))?(\.[0-9]+\.[0-9a-f]{16})?$/.test(t.token))return;const s=Math.max(1,Math.floor((t.expiresAt||0)-Date.now()/1000));document.cookie="__Host-omelette-preview="+t.token+"; Path=/; Secure; SameSite=None; Partitioned; Max-Age="+s;C();return}if(t.__om_file_r){const s=w[t.id];if(!s)return;clearTimeout(s.t);delete w[t.id];s.settle(t.ok?{persisted:true}:{persisted:false,reason:t.error||"write failed"});return}if(t.__om_api_r){const s=f[t.id];if(!s)return;if(t.error!=null){clearTimeout(s.t);delete f[t.id];s.reject(new Error(t.error));return}if(t.chunk!=null){clearTimeout(s.t);s.t=s.arm();s.text+=t.chunk;return}if(t.done){clearTimeout(s.t);delete f[t.id];s.resolve({text:t.text!=null?t.text:s.text,message:t.message});return}return}if(!t.__om_eval)return;const a=t;const u=(s)=>{e.source.postMessage({...s,__om_eval_r:1,id:a.id},e.origin)};try{const s=(0,eval)(a.code);if(s&&typeof s.then==="function"){s.then((S)=>u({ok:1,v:O(S)}),(S)=>u({ok:0,e:String(S)}))}else{u({ok:1,v:O(s)})}}catch(s){u({ok:0,e:String(s)})}})}})();
+</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  body { margin:0; background:#EFEAE3; font-family:'Pretendard Variable',Pretendard,sans-serif; color:#1A1714; -webkit-font-smoothing:antialiased; }
+  * { box-sizing:border-box; }
+  a { color:#1E6B47; }
+  a:hover { color:#155237; }
+  .tnum { font-feature-settings:"tnum" 1; }
+</style>
+</helmet>
+
+<section style="padding:48px 56px 80px;display:flex;flex-direction:column;gap:52px;background:#F3EFE9">
+
+  <div style="display:flex;flex-direction:column;gap:6px;max-width:900px">
+    <div style="font-size:12px;font-weight:800;letter-spacing:.08em;color:#9E9894">확정안</div>
+    <div style="font-size:30px;font-weight:800;letter-spacing:-.6px">퀴즈 라이브러리 · 관리자 화면</div>
+    <div style="font-size:14px;line-height:1.7;color:#6B6460">적용할 화면만 남겼습니다. 검토 과정에서 갈라졌던 대안(카드 그리드, 카드 행 목록, 역할 탭, 표 정돈안)은 제거했습니다. 공통 규칙: 표 행 <span class="tnum">64px</span>, 날짜는 <span class="tnum">2026년 8월 25일</span> 한 줄, 지표는 카드 대신 구분선으로 나눈 한 줄 스트립, 대시보드는 처리할 일만 담고 목록은 각 관리 페이지가 갖습니다.</div>
+  </div>
+
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <div style="font-size:14px;font-weight:800;color:#1A1714">퀴즈 라이브러리</div>
+      <div style="font-size:12.5px;color:#8A837D">선생님 공개 퀴즈 둘러보기 · 복사</div>
+    </div>
+    <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start">
+    <div id="2a" style="flex:0 0 1120px;display:flex;flex-direction:column;gap:12px;width:1120px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:11px;font-weight:800;color:#fff;background:#1E6B47;border-radius:6px;padding:3px 8px">2a</span>
+        <span style="font-size:15px;font-weight:700">넉넉한 리스트 — 제목이 주인공, 문장은 그 자리에서 펼친다</span>
+      </div>
+      <div style="font-size:13px;line-height:1.65;color:#6B6460;max-width:900px">제목을 표 셀 크기에서 <span class="tnum">19px</span>로 올리고, 관리 표(<span class="tnum">64px</span>)보다 넉넉한 <span class="tnum">84px</span> 행으로 벌렸습니다 — 둘러보는 화면이라 훑는 표와 다른 밀도를 씁니다. 밋밋함의 원인은 색이 없어서가 아니라 <b>제목이 보조 정보와 같은 크기</b>였던 것. 검색은 단어까지 훑고, <b>어떤 단어가 걸렸는지 행 안에 표시</b>합니다. 미리보기는 팝업 대신 <b>행을 눌러 아래로 펼치는 방식</b> — 두 퀴즈를 동시에 펼쳐 비교할 수 있습니다.</div>
+
+      <div style="background:#F8F5F0;border:1px solid #E2DDD8;border-radius:16px;padding:34px 36px 40px">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px">
+          <div>
+            <div style="font-size:26px;font-weight:800;letter-spacing:-.6px">퀴즈 라이브러리</div>
+            <div style="font-size:13.5px;color:#8A837D;margin-top:6px">다른 선생님이 공개한 퀴즈를 둘러보고 내 퀴즈로 복사해보세요</div>
+          </div>
+          <div class="tnum" style="font-size:12.5px;color:#8A837D;padding-bottom:3px">공개 퀴즈 <b style="color:#1A1714">128개</b> · 내가 공개한 퀴즈 <b style="color:#1E6B47">2개</b></div>
+        </div>
+
+        <div style="margin-top:24px">
+          <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid #1E6B47;border-radius:12px;padding:14px 16px">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1E6B47" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+            <span style="font-size:14.5px;color:#1A1714">박물관</span>
+            <span style="width:1px;height:17px;background:#1A1714;opacity:.5"></span>
+          </div>
+          <div style="margin-top:8px;background:#fff;border:1px solid #E2DDD8;border-radius:12px;box-shadow:0 8px 24px rgba(26,23,20,.08);padding:7px">
+            <div style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;background:#F8F5F0">
+              <span style="font-size:11px;font-weight:800;color:#1E6B47;background:#E8F5EE;border-radius:5px;padding:2px 7px">단어</span>
+              <span style="font-size:13.5px"><b>박물관</b></span>
+              <span class="tnum" style="font-size:12px;color:#8A837D;margin-left:auto">퀴즈 6개</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px">
+              <span style="font-size:11px;font-weight:800;color:#4A443F;background:#F1ECE6;border-radius:5px;padding:2px 7px">제목</span>
+              <span style="font-size:13.5px">서울대 1B — <b>박물관</b>·장소 어휘</span>
+              <span class="tnum" style="font-size:12px;color:#8A837D;margin-left:auto">퀴즈 1개</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-top:20px;flex-wrap:wrap">
+          <span style="font-size:12.5px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:10px 14px">레벨 전체 ⌄</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#1E6B47;background:#E8F5EE;border:1px solid #C8DED3;border-radius:10px;padding:10px 14px">
+            <span style="width:7px;height:7px;border-radius:999px;background:#1E6B47"></span>빈칸 채우기 포함 ✕
+          </span>
+          <span style="font-size:12.5px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:10px 14px">유형 추가 +</span>
+          <div style="flex:1"></div>
+          <span style="font-size:12.5px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:10px 14px">복사 많은 순 ⌄</span>
+        </div>
+
+        <div class="tnum" style="font-size:12.5px;color:#8A837D;margin-top:20px">‘박물관’ 검색 결과 <b style="color:#1A1714">4개</b></div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+          <sc-for list="{{ libList }}" as="q" hint-placeholder-count="4">
+            <div style="background:#fff;border:1px solid #E2DDD8;border-radius:14px;overflow:hidden">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;padding:20px 22px" style-hover="background:#FCFAF7">
+                <div style="min-width:0">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="flex:none;font-size:11px;font-weight:800;border-radius:999px;padding:3px 10px;background:{{ q.lvlBg }};color:{{ q.lvlFg }}">{{ q.level }}</span>
+                    <span style="font-size:19px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ q.title }}</span>
+                  </div>
+                  <div class="tnum" style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#8A837D;margin-top:8px">
+                    <span>{{ q.teacher }}</span><span style="color:#D8D2CB">·</span>
+                    <span>{{ q.count }}</span><span style="color:#D8D2CB">·</span>
+                    <span>{{ q.date }}</span><span style="color:#D8D2CB">·</span>
+                    <span style="color:#1E6B47;font-weight:700">{{ q.copies }}</span>
+                  </div>
+                  <sc-if value="{{ q.hasMatch }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;align-items:center;gap:7px;margin-top:9px;flex-wrap:wrap">
+                      <span style="font-size:11.5px;color:#8A837D">검색어 포함 단어</span>
+                      <sc-for list="{{ q.matched }}" as="w" hint-placeholder-count="2">
+                        <span style="font-size:11.5px;font-weight:800;color:#1E6B47;background:#E8F5EE;border-radius:6px;padding:2px 8px">{{ w.text }}</span>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+                <div style="display:flex;align-items:center;gap:9px">
+                  <button type="button" style="font-size:12.5px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:11px 15px;cursor:pointer" style-hover="background:#F8F5F0">문장 보기 ⌄</button>
+                  <button type="button" style="font-size:12.5px;font-weight:800;color:#fff;background:#1E6B47;border:none;border-radius:10px;padding:11px 17px;cursor:pointer" style-hover="background:#155237">내 퀴즈로 복사</button>
+                </div>
+              </div>
+              <sc-if value="{{ q.open }}" hint-placeholder-val="{{ true }}">
+                <div style="border-top:1px solid #F1ECE6;background:#FCFAF7;padding:18px 22px 20px">
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <span style="font-size:11.5px;font-weight:800;color:#8A837D">포함 유형</span>
+                    <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #EFE9E2;border-radius:7px;padding:3px 9px"><span style="width:6px;height:6px;border-radius:999px;background:#1E6B47"></span>빈칸 채우기</span>
+                    <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #EFE9E2;border-radius:7px;padding:3px 9px"><span style="width:6px;height:6px;border-radius:999px;background:#854D0E"></span>문장 순서</span>
+                    <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #EFE9E2;border-radius:7px;padding:3px 9px"><span style="width:6px;height:6px;border-radius:999px;background:#C13B2E"></span>말하기</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
+                    <sc-for list="{{ openSentences }}" as="s" hint-placeholder-count="4">
+                      <div style="display:flex;gap:10px;align-items:baseline;background:#fff;border:1px solid #EFE9E2;border-radius:10px;padding:11px 13px">
+                        <span style="flex:none;font-size:11.5px;font-weight:800;color:#1E6B47;background:#E8F5EE;border-radius:6px;padding:2px 8px">{{ s.word }}</span>
+                        <span style="font-size:13px;line-height:1.5;color:#4A443F">{{ s.sentence }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div class="tnum" style="font-size:12px;font-weight:700;color:#1E6B47;margin-top:12px">문장 20개 전체 보기 →</div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <div style="font-size:14px;font-weight:800;color:#1A1714">관리자 대시보드</div>
+      <div style="font-size:12.5px;color:#8A837D">처리할 일과 신호만 — 표 없음</div>
+    </div>
+    <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start">
+    <div id="5a" style="flex:0 0 1120px;display:flex;flex-direction:column;gap:12px;width:1120px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:11px;font-weight:800;color:#fff;background:#1E6B47;border-radius:6px;padding:3px 8px">5a</span>
+        <span style="font-size:15px;font-weight:700">관리자 대시보드 — 처리할 일이 먼저, 표는 없다</span>
+      </div>
+      <div style="font-size:13px;line-height:1.65;color:#6B6460;max-width:900px">선생님·학생 대시보드와 같은 구조입니다. 상단은 <b>지금 손을 대야 하는 큐</b>(선생님 권한 신청, 안 읽은 피드백) — 둘 다 다른 페이지로 보내는 관문입니다. 아래는 <b>눈여겨볼 신호</b>로, 차트가 아니라 <b>이상하면 손대야 하는 숫자</b>만 둡니다. 차트는 시스템 리포트에 있으니 여기서 반복하지 않습니다.</div>
+
+      <div style="background:#F8F5F0;border:1px solid #E2DDD8;border-radius:16px;padding:32px 34px 38px">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between">
+          <div>
+            <div style="font-size:24px;font-weight:800;letter-spacing:-.5px">관리자 대시보드</div>
+            <div style="font-size:13px;color:#8A837D;margin-top:5px">처리할 일 2건이 기다리고 있습니다</div>
+          </div>
+          <div class="tnum" style="font-size:12.5px;color:#9E9894">2026년 9월 4일</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:9px;margin-top:20px">
+          <sc-for list="{{ adminQueue }}" as="q" hint-placeholder-count="2">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;background:#fff;border:1px solid #E2DDD8;border-radius:13px;padding:18px 22px" style-hover="border-color:#C8DED3">
+              <div style="min-width:0">
+                <div style="display:flex;align-items:baseline;gap:9px">
+                  <span style="font-size:15.5px;font-weight:800">{{ q.label }}</span>
+                  <span class="tnum" style="font-size:15.5px;font-weight:800;color:#1E6B47">{{ q.count }}</span>
+                </div>
+                <div style="font-size:12.5px;color:#8A837D;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ q.desc }}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:11.5px;color:#9E9894">{{ q.to }}에서</span>
+                <span style="font-size:12.5px;font-weight:800;color:#fff;background:#1E6B47;border-radius:10px;padding:10px 16px">{{ q.cta }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;background:#fff;border:1px solid #E2DDD8;border-radius:14px;margin-top:18px;overflow:hidden">
+          <sc-for list="{{ adminStats }}" as="s" hint-placeholder-count="4">
+            <div style="flex:1;padding:16px 20px;border-right:1px solid #F1ECE6">
+              <div style="font-size:11.5px;font-weight:700;color:#8A837D">{{ s.label }}</div>
+              <div class="tnum" style="font-size:26px;font-weight:800;letter-spacing:-.8px;margin-top:3px">{{ s.value }}</div>
+            </div>
+          </sc-for>
+          <div style="flex:1.3;padding:16px 20px">
+            <div style="font-size:11.5px;font-weight:700;color:#8A837D">역할 구성</div>
+            <div style="display:flex;height:9px;border-radius:999px;overflow:hidden;margin-top:12px">
+              <div style="width:53%;background:#1E6B47"></div><div style="width:45%;background:#1D4ED8"></div><div style="width:2%;background:#C13B2E"></div>
+            </div>
+            <div class="tnum" style="display:flex;flex-wrap:wrap;gap:5px 13px;margin-top:9px;font-size:11.5px;color:#4A443F">
+              <span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><span style="width:7px;height:7px;border-radius:999px;background:#1E6B47"></span>학생 31</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><span style="width:7px;height:7px;border-radius:999px;background:#1D4ED8"></span>선생님 27</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><span style="width:7px;height:7px;border-radius:999px;background:#C13B2E"></span>관리자 1</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+          <div style="background:#fff;border:1px solid #E2DDD8;border-radius:14px;padding:20px 22px 16px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <div style="font-size:14px;font-weight:800">눈여겨볼 신호</div>
+              <span style="font-size:11.5px;color:#9E9894">자세한 추이는 시스템 리포트</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:1px;margin-top:12px">
+              <sc-for list="{{ adminSignals }}" as="g" hint-placeholder-count="4">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #F7F3EE">
+                  <span style="font-size:13px;color:#4A443F">{{ g.label }}</span>
+                  <span style="display:flex;align-items:baseline;gap:8px;white-space:nowrap">
+                    <span class="tnum" style="font-size:15px;font-weight:800;color:{{ g.valueColor }}">{{ g.value }}</span>
+                    <span class="tnum" style="font-size:11.5px;color:#9E9894">{{ g.note }}</span>
+                  </span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1px solid #E2DDD8;border-radius:14px;padding:20px 22px 16px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <div style="font-size:14px;font-weight:800">최근 가입</div>
+              <span style="font-size:11.5px;font-weight:700;color:#1E6B47">사용자 관리에서 전체 보기 →</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:1px;margin-top:12px">
+              <sc-for list="{{ recentSignups }}" as="u" hint-placeholder-count="5">
+                <div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #F7F3EE">
+                  <span style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.name }}</span>
+                  <span style="font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;background:{{ u.roleBg }};color:{{ u.roleFg }}">{{ u.role }}</span>
+                  <span class="tnum" style="font-size:12px;color:#9E9894;width:44px;text-align:right">{{ u.when }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <div style="font-size:14px;font-weight:800;color:#1A1714">사용자 관리 (신규 페이지)</div>
+      <div style="font-size:12.5px;color:#8A837D">대시보드에서 분리한 전체 사용자 목록</div>
+    </div>
+    <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start">
+    <div id="5b" style="flex:0 0 1120px;display:flex;flex-direction:column;gap:12px;width:1120px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:11px;font-weight:800;color:#fff;background:#1E6B47;border-radius:6px;padding:3px 8px">5b</span>
+        <span style="font-size:15px;font-weight:700">사용자 관리 (새 페이지) — 목록은 여기로</span>
+      </div>
+      <div style="font-size:13px;line-height:1.65;color:#6B6460;max-width:900px">선생님 관리와 같은 자리·같은 규칙의 페이지입니다. 가입 시 역할이 학생으로 확정되므로 “역할 미지정” 상태는 없고, 대시보드에서는 <b>최근 가입</b> 카드가 이 페이지로 연결됩니다. 표 골격은 공통 규칙 그대로(<span class="tnum">64px</span> 행, 한 줄 날짜).</div>
+
+      <div style="background:#F8F5F0;border:1px solid #E2DDD8;border-radius:16px;padding:32px 34px 38px">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between">
+          <div style="font-size:24px;font-weight:800;letter-spacing:-.5px">사용자 관리</div>
+          <div class="tnum" style="font-size:12.5px;color:#8A837D">전체 <b style="color:#1A1714">59명</b> · 학생 31 · 선생님 27 · 관리자 1</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E2DDD8;border-radius:14px;margin-top:20px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:12px;padding:18px 24px;border-bottom:1px solid #F1ECE6">
+            <div style="display:flex;align-items:center;gap:9px;background:#F8F5F0;border:1px solid #E2DDD8;border-radius:10px;padding:10px 13px;width:280px">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A29B94" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+              <span style="font-size:13px;color:#A29B94">이름 또는 이메일</span>
+            </div>
+            <div style="flex:1"></div>
+            <div style="display:flex;gap:5px;align-items:center">
+              <span style="font-size:12px;font-weight:800;color:#fff;background:#1E6B47;border-radius:10px;padding:8px 13px">전체 59</span>
+              <span style="font-size:12px;font-weight:700;color:#4A443F;background:#F8F5F0;border:1px solid #E2DDD8;border-radius:10px;padding:8px 13px">학생 31</span>
+              <span style="font-size:12px;font-weight:700;color:#4A443F;background:#F8F5F0;border:1px solid #E2DDD8;border-radius:10px;padding:8px 13px">선생님 27</span>
+              <span style="font-size:12px;font-weight:700;color:#4A443F;background:#F8F5F0;border:1px solid #E2DDD8;border-radius:10px;padding:8px 13px">관리자 1</span>
+              <div style="width:1px;height:22px;background:#E2DDD8;margin:0 3px"></div>
+              <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:8px 13px">최근 가입순 ⌄</span>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:200px 1fr 116px 132px 200px;gap:20px;padding:12px 24px;background:#FBF9F6;border-bottom:1px solid #F1ECE6;font-size:11px;font-weight:800;color:#8A837D;letter-spacing:.03em">
+            <span>이름</span><span>이메일</span><span>현재 역할</span><span>가입일</span><span style="text-align:right">관리</span>
+          </div>
+          <sc-for list="{{ adminUsers }}" as="u" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:200px 1fr 116px 132px 200px;gap:20px;align-items:center;padding:0 24px;height:64px;border-bottom:1px solid #F7F3EE" style-hover="background:#FBF9F6">
+              <span style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.name }}</span>
+              <span style="font-size:13px;color:#6B6460;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.email }}</span>
+              <span style="justify-self:start;font-size:11px;font-weight:800;border-radius:999px;padding:4px 10px;background:{{ u.roleBg }};color:{{ u.roleFg }}">{{ u.role }}</span>
+              <span class="tnum" style="font-size:13px;color:#8A837D">{{ u.date }}</span>
+              <div style="justify-self:end;display:flex;align-items:center;gap:8px">
+                <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:9px;padding:6px 12px">역할 변경 ⌄</span>
+                <span style="font-size:12px;font-weight:700;color:#8A837D;background:#fff;border:1px solid #E2DDD8;border-radius:9px;padding:6px 9px">⋯</span>
+              </div>
+            </div>
+          </sc-for>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px">
+            <span class="tnum" style="font-size:12.5px;color:#8A837D">1–6 / 59</span>
+            <div style="display:flex;gap:8px">
+              <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:8px 13px">사용자 목록 내보내기</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+  </div>
+
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <div style="font-size:14px;font-weight:800;color:#1A1714">선생님 관리</div>
+      <div style="font-size:12.5px;color:#8A837D">권한 신청 검토 + 활동 기준 목록</div>
+    </div>
+    <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start">
+    <div id="4a" style="flex:0 0 1120px;display:flex;flex-direction:column;gap:12px;width:1120px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:11px;font-weight:800;color:#fff;background:#1E6B47;border-radius:6px;padding:3px 8px">4a</span>
+        <span style="font-size:15px;font-weight:700">선생님 관리 — 승인 판단에 필요한 맥락, 목록은 활동 기준</span>
+      </div>
+      <div style="font-size:13px;line-height:1.65;color:#6B6460;max-width:900px">바꾼 것 셋. ① 신청 줄에 <b>이 사람을 승인해도 되는지 판단할 근거</b>(가입 시점, 학생으로서의 활동)를 넣었습니다 — 이름·이메일만으로는 판단할 수 없습니다. ② 1건/여러 건 두 벌을 만들지 않고 <b>1건부터 N건까지 같은 형태</b>로 쌓입니다. ③ 목록의 첫 정보를 가입일에서 <b>마지막 활동</b>으로 바꾸고 기본 정렬도 활동순으로 두었습니다. 퀴즈를 한 번도 만들지 않은 계정은 조용한 <b>휴면</b> 표시만 붙습니다.</div>
+
+      <div style="background:#F8F5F0;border:1px solid #E2DDD8;border-radius:16px;padding:32px 34px 38px">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between">
+          <div style="font-size:24px;font-weight:800;letter-spacing:-.5px">선생님 관리</div>
+          <div class="tnum" style="font-size:12.5px;color:#8A837D">선생님 <b style="color:#1A1714">27명</b> · 최근 30일 활동 <b style="color:#1A1714">14명</b> · 휴면 <b style="color:#D97706">6명</b></div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #F0D9A8;border-radius:13px;margin-top:20px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:12px;padding:15px 20px;background:#FEFBF4;border-bottom:1px solid #F7EEDC">
+            <div style="flex:1;font-size:14.5px;font-weight:800">선생님 권한 신청 3건 — 승인하면 즉시 선생님으로 전환됩니다</div>
+            <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:8px;padding:7px 12px">모두 승인</span>
+          </div>
+          <sc-for list="{{ pendingApps }}" as="p" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;padding:15px 20px;border-bottom:1px solid #FBF6EC" style-hover="background:#FEFCF8">
+              <div style="min-width:0">
+                <div style="display:flex;align-items:baseline;gap:10px">
+                  <span style="font-size:14.5px;font-weight:700;white-space:nowrap">{{ p.name }}</span>
+                  <span style="font-size:12.5px;color:#8A837D;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.email }}</span>
+                </div>
+                <div class="tnum" style="font-size:12.5px;color:#6B6460;margin-top:4px">{{ p.applied }}<span style="color:#D8D2CB;margin:0 7px">·</span>{{ p.context }}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:8px;padding:7px 13px">거절</span>
+                <span style="font-size:12px;font-weight:800;color:#fff;background:#1E6B47;border-radius:8px;padding:7px 14px">승인</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E2DDD8;border-radius:14px;margin-top:18px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:14px;padding:18px 24px;border-bottom:1px solid #F1ECE6">
+            <div style="font-size:16px;font-weight:800">계정 목록</div>
+            <div style="flex:1"></div>
+            <div style="display:flex;align-items:center;gap:9px;background:#F8F5F0;border:1px solid #E2DDD8;border-radius:10px;padding:10px 13px;width:240px">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A29B94" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+              <span style="font-size:13px;color:#A29B94">이름 또는 이메일</span>
+            </div>
+            <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:9px;padding:9px 13px">휴면만 보기</span>
+            <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:9px;padding:9px 13px">최근 활동순 ⌄</span>
+          </div>
+          <div style="display:grid;grid-template-columns:172px 1fr 120px 232px 128px;gap:20px;padding:12px 24px;background:#FBF9F6;border-bottom:1px solid #F1ECE6;font-size:11px;font-weight:800;color:#8A837D;letter-spacing:.03em">
+            <span>이름</span><span>이메일</span><span>마지막 활동</span><span>운영 현황</span><span style="text-align:right">관리</span>
+          </div>
+          <sc-for list="{{ teacherRows }}" as="t" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:172px 1fr 120px 232px 128px;gap:20px;align-items:center;padding:0 24px;height:64px;border-bottom:1px solid #F7F3EE" style-hover="background:#FBF9F6">
+              <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                <span style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.name }}</span>
+                <sc-if value="{{ t.dormant }}" hint-placeholder-val="{{ true }}">
+                  <span style="flex:none;font-size:10.5px;font-weight:800;color:#B45309;background:#FEF3E2;border-radius:5px;padding:2px 7px">휴면</span>
+                </sc-if>
+              </div>
+              <span style="font-size:13px;color:#6B6460;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.email }}</span>
+              <span class="tnum" style="font-size:13px;font-weight:700;color:{{ t.activeColor }}">{{ t.active }}</span>
+              <div class="tnum" style="min-width:0">
+                <div style="font-size:12.5px;color:#4A443F">{{ t.classes }}<span style="color:#D8D2CB;margin:0 6px">·</span>{{ t.quizzes }}<span style="color:#D8D2CB;margin:0 6px">·</span>{{ t.students }}</div>
+                <div style="font-size:11.5px;color:#9E9894;margin-top:2px">{{ t.joined }}</div>
+              </div>
+              <div style="justify-self:end;display:flex;align-items:center;gap:7px">
+                <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:9px;padding:6px 12px">자세히</span>
+                <span style="font-size:12px;font-weight:700;color:#8A837D;background:#fff;border:1px solid #E2DDD8;border-radius:9px;padding:6px 9px">⋯</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <div style="font-size:14px;font-weight:800;color:#1A1714">문장 은행 관리</div>
+      <div style="font-size:12.5px;color:#8A837D">누락 채우기 중심</div>
+    </div>
+    <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start">
+    <div id="4b" style="flex:0 0 1120px;display:flex;flex-direction:column;gap:12px;width:1120px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:11px;font-weight:800;color:#fff;background:#1E6B47;border-radius:6px;padding:3px 8px">4b</span>
+        <span style="font-size:15px;font-weight:700">문장 은행 — 정답을 문장 안에서 강조하고, 빠진 것을 찾게 한다</span>
+      </div>
+      <div style="font-size:13px;line-height:1.65;color:#6B6460;max-width:900px">7칸 표에서는 문장과 번역이 모두 <span style="color:#A29B94">…</span>로 잘렸습니다. 문장·번역을 두 줄로 두어 <b>전체 길이를 그대로</b> 보여줍니다. 정답은 조사·어미를 포함한 형태(<b>박물관은 · 운전할 수 없어요</b>)라서 문장 안에서 그 범위 그대로 강조합니다. 힌트는 있음/없음이 아니라 <b>실제 문법 힌트를 그대로</b> 보여줍니다 — 빠진 곳은 <b>힌트 —</b>로 남아 한눈에 드러납니다. 번역(문장)과 뜻(단어)은 별개 필드라 필터도 따로 두었습니다. 버튼 모양은 앱과 같은 둥근 값을 쓰지만, 다중 선택 체크박스는 원형이 “하나만 고르기”로 읽혀 둥근 사각형으로 바꿨습니다. 선택 후 일괄 삭제도 실제 기능이라 체크박스를 넣었습니다.</div>
+
+      <div style="background:#F8F5F0;border:1px solid #E2DDD8;border-radius:16px;padding:32px 34px 38px">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between">
+          <div style="font-size:24px;font-weight:800;letter-spacing:-.5px">문장 은행 관리</div>
+          <div class="tnum" style="font-size:12.5px;color:#8A837D">문장 <b style="color:#1A1714">191개</b> · 단어 <b style="color:#1A1714">302개</b> · 문장 2개 이상 확보 <b style="color:#1A1714">191단어</b></div>
+        </div>
+
+        <div style="display:flex;background:#fff;border:1px solid #E2DDD8;border-radius:14px;margin-top:20px;overflow:hidden">
+          <sc-for list="{{ bankCoverage }}" as="c" hint-placeholder-count="6">
+            <div style="flex:1;padding:15px 18px;border-right:1px solid #F1ECE6">
+              <div style="font-size:11px;font-weight:800;color:#8A837D">{{ c.level }}</div>
+              <div class="tnum" style="font-size:19px;font-weight:800;margin-top:3px">{{ c.ok }}</div>
+              <div class="tnum" style="font-size:11.5px;color:{{ c.shortColor }};margin-top:2px">{{ c.short }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-top:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px;display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:10px 13px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A29B94" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+            <span style="font-size:13px;color:#A29B94">단어 또는 작성자 검색</span>
+          </div>
+          <span style="font-size:12.5px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:10px 14px">작성자 ⌄</span>
+          <span style="font-size:12.5px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:10px 14px">레벨 ⌄</span>
+          <span style="font-size:12.5px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:10px 14px">출처 ⌄</span>
+          <span style="font-size:12.5px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:10px 14px">배치 ⌄</span>
+          <span style="font-size:12.5px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:10px 14px">최신순 ⌄</span>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:700;color:#B45309;background:#FEF3E2;border:1px solid #F0D9A8;border-radius:10px;padding:8px 13px">번역 없음 <span class="tnum">14</span></span>
+          <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:8px 13px">뜻 없음 <span class="tnum">22</span></span>
+          <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:8px 13px">힌트 없음 <span class="tnum">31</span></span>
+          <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:10px;padding:8px 13px">문장 1개뿐인 단어 <span class="tnum">47</span></span>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #C8DED3;border-radius:11px;padding:12px 18px;margin-top:14px">
+          <span class="tnum" style="font-size:13px;font-weight:700;color:#1E6B47">이 페이지에서 2개 선택됨</span>
+          <span class="tnum" style="font-size:12.5px;font-weight:700;color:#4A443F;text-decoration:underline">검색 결과 191개 모두 선택</span>
+          <div style="flex:1"></div>
+          <span style="font-size:12px;font-weight:700;color:#4A443F">선택 해제</span>
+          <span style="font-size:12px;font-weight:800;color:#fff;background:#C13B2E;border-radius:10px;padding:8px 14px">선택 삭제</span>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E2DDD8;border-radius:14px;margin-top:12px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:22px 176px 1fr 116px;gap:18px;align-items:center;padding:11px 20px;background:#FBF9F6;border-bottom:1px solid #F1ECE6">
+            <span style="width:16px;height:16px;border:1.5px solid #1E6B47;background:#fff;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#1E6B47;font-size:12px;font-weight:900">–</span>
+            <span style="font-size:11.5px;font-weight:800;color:#4A443F">이 페이지 전체 선택</span>
+            <span class="tnum" style="font-size:11.5px;color:#8A837D">5개 중 2개 선택됨</span>
+            <span style="text-align:right;font-size:11px;font-weight:800;color:#8A837D;letter-spacing:.03em">관리</span>
+          </div>
+          <sc-for list="{{ bankEntries }}" as="r" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:22px 176px 1fr 116px;gap:18px;align-items:start;padding:16px 20px;border-bottom:1px solid #F7F3EE;background:{{ r.rowBg }}" style-hover="background:#FCFAF7">
+              <span style="width:16px;height:16px;border:1.5px solid {{ r.boxBorder }};background:{{ r.boxBg }};border-radius:4px;margin-top:2px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:900">{{ r.check }}</span>
+              <div style="min-width:0">
+                <div style="display:flex;align-items:baseline;gap:8px">
+                  <span style="font-size:14.5px;font-weight:800">{{ r.word }}</span>
+                  <span style="font-size:11px;font-weight:800;color:#8A837D">{{ r.level }}</span>
+                </div>
+                <div style="font-size:12px;font-weight:700;color:{{ r.meaningColor }};margin-top:3px">{{ r.meaning }}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px">
+                  <span style="font-size:10.5px;font-weight:800;border-radius:6px;padding:2px 7px;background:{{ r.srcBg }};color:{{ r.srcFg }}">{{ r.source }}</span>
+                  <sc-for list="{{ r.flags }}" as="f" hint-placeholder-count="1">
+                    <span style="font-size:10.5px;font-weight:800;border-radius:6px;padding:2px 7px;background:#FEF3E2;color:#B45309">{{ f.label }}</span>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="min-width:0">
+                <div style="font-size:14px;line-height:1.6;color:#1A1714">{{ r.pre }}<span style="font-weight:800;color:#1E6B47">{{ r.ans }}</span>{{ r.post }}</div>
+                <div style="font-size:12.5px;line-height:1.55;font-weight:700;color:{{ r.trColor }};margin-top:5px">{{ r.translation }}</div>
+                <div style="display:flex;align-items:baseline;gap:10px;font-size:12px;margin-top:7px;flex-wrap:wrap">
+                  <span style="display:flex;align-items:baseline;gap:7px">
+                    <span style="flex:none;font-weight:800;color:#8A837D">힌트</span>
+                    <span style="font-weight:700;color:{{ r.hintColor }}">{{ r.hint }}</span>
+
+                  </span>
+                  <span style="color:#E2DDD8">|</span>
+                  <span style="font-size:11.5px;color:#9E9894">{{ r.creator }}<span style="color:#D8D2CB;margin:0 6px">·</span>{{ r.batch }}</span>
+                </div>
+              </div>
+              <div style="justify-self:end;display:flex;align-items:center;gap:7px">
+                <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:8px;padding:6px 12px">수정</span>
+                <span style="font-size:12px;font-weight:700;color:#8A837D;background:#fff;border:1px solid #E2DDD8;border-radius:8px;padding:6px 9px">⋯</span>
+              </div>
+            </div>
+          </sc-for>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px">
+            <span class="tnum" style="font-size:12.5px;color:#8A837D">1–5 / 191</span>
+            <div style="display:flex;gap:6px">
+              <span style="font-size:12px;font-weight:700;color:#9E9894;background:#F8F5F0;border:1px solid #E2DDD8;border-radius:8px;padding:7px 12px">이전</span>
+              <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:8px;padding:7px 12px">다음</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+  </div>
+
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <div style="font-size:14px;font-weight:800;color:#1A1714">시스템 리포트</div>
+      <div style="font-size:12.5px;color:#8A837D">지표 위계 + 정돈된 차트</div>
+    </div>
+    <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start">
+      <div id="1d" style="flex:0 0 1120px;display:flex;flex-direction:column;gap:12px;width:1120px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;font-weight:800;color:#fff;background:#1E6B47;border-radius:6px;padding:3px 8px">1d</span>
+          <span style="font-size:15px;font-weight:700">시스템 리포트 — 지표 6개를 위계로 나누고 차트를 정돈</span>
+        </div>
+        <div style="font-size:13px;line-height:1.65;color:#6B6460;max-width:900px">같은 크기 카드 6개는 무엇이 중요한지 알려주지 않습니다. 제출·정답률·활동 학생을 <b>주지표</b>로 올리고 나머지는 지표 줄로 내렸습니다. 유형 분포는 <b>많은 순으로 정렬</b>하고, 0값(C2·9월)은 막대를 그리지 않고 흐린 글자로만 둡니다. </div>
+
+        <div style="background:#F8F5F0;border:1px solid #E2DDD8;border-radius:16px;padding:30px 32px 36px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:21px;font-weight:800;letter-spacing:-.4px">시스템 리포트</div>
+            <div style="display:flex;gap:8px">
+              <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:9px;padding:9px 13px">전체 기간 ⌄</span>
+              <span style="font-size:12px;font-weight:700;color:#4A443F;background:#fff;border:1px solid #E2DDD8;border-radius:9px;padding:9px 13px">CSV 내보내기</span>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px">
+            <div style="background:#fff;border:1px solid #E2DDD8;border-radius:14px;padding:20px 22px">
+              <div style="font-size:12px;font-weight:700;color:#8A837D">총 제출 수</div>
+              <div class="tnum" style="font-size:36px;font-weight:800;letter-spacing:-1.2px;margin-top:2px">184</div>
+              <div style="font-size:12px;color:#9E9894">이번 달 신규 없음</div>
+            </div>
+            <div style="background:#fff;border:1px solid #E2DDD8;border-radius:14px;padding:20px 22px">
+              <div style="font-size:12px;font-weight:700;color:#8A837D">평균 정답률</div>
+              <div class="tnum" style="font-size:36px;font-weight:800;letter-spacing:-1.2px;margin-top:2px;color:#1E6B47">75%</div>
+              <div style="display:flex;height:6px;border-radius:999px;background:#EFE9E2;overflow:hidden;margin-top:9px"><div style="width:75%;background:#1E6B47"></div></div>
+            </div>
+            <div style="background:#fff;border:1px solid #E2DDD8;border-radius:14px;padding:20px 22px">
+              <div style="font-size:12px;font-weight:700;color:#8A837D">최근 30일 활동 학생</div>
+              <div class="tnum" style="font-size:36px;font-weight:800;letter-spacing:-1.2px;margin-top:2px">11</div>
+              <div class="tnum" style="font-size:12px;color:#9E9894">전체 학생 31명 중 35%</div>
+            </div>
+          </div>
+
+          <div style="display:flex;background:#fff;border:1px solid #E2DDD8;border-radius:14px;margin-top:14px;overflow:hidden">
+            <div style="flex:1;padding:14px 20px;border-right:1px solid #F1ECE6">
+              <div style="font-size:11.5px;font-weight:700;color:#8A837D">총 학생 수</div>
+              <div class="tnum" style="font-size:20px;font-weight:800;margin-top:2px">31</div>
+            </div>
+            <div style="flex:1;padding:14px 20px;border-right:1px solid #F1ECE6">
+              <div style="font-size:11.5px;font-weight:700;color:#8A837D">총 퀴즈 수</div>
+              <div class="tnum" style="font-size:20px;font-weight:800;margin-top:2px">191</div>
+            </div>
+            <div style="flex:1;padding:14px 20px">
+              <div style="font-size:11.5px;font-weight:700;color:#8A837D">제출 0건 퀴즈</div>
+              <div class="tnum" style="font-size:20px;font-weight:800;margin-top:2px;color:#D97706">47<span style="font-size:12px;font-weight:700;color:#9E9894;margin-left:6px">전체의 25%</span></div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+            <div style="background:#fff;border:1px solid #E2DDD8;border-radius:14px;padding:20px 22px 22px">
+              <div style="font-size:14px;font-weight:800">CEFR 레벨 분포</div>
+              <div class="tnum" style="font-size:12px;color:#8A837D;margin-top:2px">퀴즈 191개 기준</div>
+              <div style="display:flex;flex-direction:column;gap:11px;margin-top:16px">
+                <sc-for list="{{ cefr }}" as="c" hint-placeholder-count="6">
+                  <div style="display:grid;grid-template-columns:38px 1fr 84px;gap:12px;align-items:center">
+                    <span style="font-size:11px;font-weight:800;text-align:center;border-radius:999px;padding:3px 0;background:{{ c.bg }};color:{{ c.fg }}">{{ c.level }}</span>
+                    <div style="height:7px;border-radius:999px;background:#F1ECE6;overflow:hidden">
+                      <div style="height:100%;width:{{ c.pct }};background:#1E6B47"></div>
+                    </div>
+                    <span class="tnum" style="font-size:12px;color:{{ c.textColor }};text-align:right">{{ c.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="background:#fff;border:1px solid #E2DDD8;border-radius:14px;padding:20px 22px 22px">
+              <div style="font-size:14px;font-weight:800">퀴즈 유형 분포</div>
+              <div class="tnum" style="font-size:12px;color:#8A837D;margin-top:2px">유형별 포함 퀴즈 수 · 전체 191개</div>
+              <div style="display:flex;flex-direction:column;gap:11px;margin-top:16px">
+                <sc-for list="{{ typeDist }}" as="t" hint-placeholder-count="6">
+                  <div style="display:grid;grid-template-columns:104px 1fr 78px;gap:12px;align-items:center">
+                    <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#4A443F">
+                      <span style="width:7px;height:7px;border-radius:999px;background:{{ t.color }}"></span>{{ t.label }}
+                    </span>
+                    <div style="height:7px;border-radius:999px;background:#F1ECE6;overflow:hidden">
+                      <div style="height:100%;width:{{ t.pct }};background:{{ t.color }}"></div>
+                    </div>
+                    <span class="tnum" style="font-size:12px;color:#6B6460;text-align:right">{{ t.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1px solid #E2DDD8;border-radius:14px;padding:20px 22px 22px;margin-top:14px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <div>
+                <div style="font-size:14px;font-weight:800">월별 제출 추이</div>
+                <div style="font-size:12px;color:#8A837D;margin-top:2px">최근 6개월</div>
+              </div>
+              <div class="tnum" style="font-size:12px;color:#8A837D">최고 25건 · 6월·7월</div>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:14px;height:132px;margin-top:18px;padding-top:6px;border-bottom:1px solid #EFE9E2">
+              <sc-for list="{{ monthly }}" as="m" hint-placeholder-count="6">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:7px;height:100%">
+                  <span class="tnum" style="font-size:11.5px;font-weight:700;color:{{ m.textColor }}">{{ m.value }}</span>
+                  <div style="width:100%;max-width:46px;height:{{ m.h }};background:{{ m.fill }};border-radius:6px 6px 0 0"></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:14px;margin-top:8px">
+              <sc-for list="{{ monthly }}" as="m" hint-placeholder-count="6">
+                <span style="flex:1;text-align:center;font-size:11.5px;color:#8A837D">{{ m.label }}</span>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const T = {
+  matchup: { label: '짝 맞추기', color: '#1D4ED8' },
+  type_answer: { label: '받아쓰기', color: '#0E7490' },
+  fill_blank: { label: '빈칸 채우기', color: '#1E6B47' },
+  word_magnet: { label: '문장 순서', color: '#854D0E' },
+  sentence_making: { label: '문장 만들기', color: '#6D28D9' },
+  recording: { label: '말하기', color: '#C13B2E' },
+};
+
+class Component extends DCLogic {
+  renderVals() {
+    const t = (...keys) => keys.map((k) => T[k]);
+    return {
+      libList: [
+        { level: 'A1', lvlBg: '#D1FAE5', lvlFg: '#047857', title: '서울대 1B pt.1', teacher: '준 선생님', count: '단어 20개', date: '2026. 8. 15.', copies: '복사 4회', open: true, hasMatch: true, matched: [{ text: '박물관' }, { text: '미술관' }] },
+        { level: 'A2', lvlBg: '#CCFBF1', lvlFg: '#0F766E', title: '연세대 2A 3과 어휘', teacher: '남소라 선생님', count: '단어 24개', date: '2026. 8. 11.', copies: '복사 2회', open: false, hasMatch: true, matched: [{ text: '박물관' }] },
+        { level: 'B1', lvlBg: '#E0F2FE', lvlFg: '#0369A1', title: '박물관·전시 주제 어휘', teacher: '김지수 선생님', count: '단어 18개', date: '2026. 8. 4.', copies: '복사 9회', open: false, hasMatch: true, matched: [{ text: '박물관' }, { text: '관람' }, { text: '전시회' }] },
+        { level: 'A1', lvlBg: '#D1FAE5', lvlFg: '#047857', title: '서울대 1B — 박물관·장소 어휘', teacher: '유정 선생님', count: '단어 40개', date: '2026. 7. 30.', copies: '복사 1회', open: false, hasMatch: false, matched: [] },
+      ],
+      openSentences: [
+        { word: '박물관', sentence: '이 박물관은 월요일에 문을 닫아요.' },
+        { word: '운전하다', sentence: '저는 아직 면허가 없어서 운전할 수 없어요.' },
+        { word: '돈을 찾다', sentence: '내일 은행에서 돈을 찾으려고 해요.' },
+        { word: '얼마 전', sentence: '얼마 전부터 우리 집 앞에 새 가게가 생겼어요.' },
+      ],
+      adminQueue: [
+        { label: '선생님 권한 신청', count: '3건', desc: '박현서 · 조은비 · Elena Petrova', cta: '검토하기', to: '선생님 관리' },
+        { label: '읽지 않은 피드백', count: '4건', desc: '가장 오래된 건 8월 21일 접수', cta: '읽기', to: '피드백' },
+      ],
+      recentSignups: [
+        { name: 'Iulia Martinenco', role: '학생', roleBg: '#F1ECE6', roleFg: '#4A443F', when: '오늘' },
+        { name: 'free l2j', role: '학생', roleBg: '#F1ECE6', roleFg: '#4A443F', when: '어제' },
+        { name: '남소라', role: '선생님', roleBg: '#E8F5EE', roleFg: '#1E6B47', when: '어제' },
+        { name: '정하윤', role: '학생', roleBg: '#F1ECE6', roleFg: '#4A443F', when: '2일 전' },
+        { name: 'Marco Bianchi', role: '학생', roleBg: '#F1ECE6', roleFg: '#4A443F', when: '3일 전' },
+      ],
+      adminSignals: [
+        { label: '제출이 한 번도 없는 퀴즈', value: '47개', note: '전체 191개의 25%', valueColor: '#D97706' },
+        { label: '퀴즈를 만들지 않은 선생님', value: '6명', note: '선생님 27명 중', valueColor: '#D97706' },
+        { label: '문장이 없는 레벨', value: 'C2', note: 'C1도 1단어뿐', valueColor: '#D97706' },
+        { label: '최근 30일 활동 학생', value: '11명', note: '전체 학생 31명 중 35%', valueColor: '#1A1714' },
+      ],
+      pendingApps: [
+        { name: '박현서', email: 'hyunseo.park@gmail.com', applied: '2026년 8월 30일 신청', context: '가입 8월 28일 · 아직 클래스 없음' },
+        { name: '조은비', email: 'eunbi.cho@naver.com', applied: '2026년 8월 29일 신청', context: '가입 7월 12일 · 학생으로 제출 6건' },
+        { name: 'Elena Petrova', email: 'elena.petrova@gmail.com', applied: '2026년 8월 27일 신청', context: '가입 8월 27일 · 아직 클래스 없음' },
+      ],
+      teacherRows: [
+        { name: '준', email: 'jun.teacher@gmail.com', active: '오늘', activeColor: '#1E6B47', classes: '클래스 4', quizzes: '퀴즈 32', students: '학생 18명', dormant: false, joined: '2026년 8월 15일 가입' },
+        { name: '남소라', email: 'nsr0114@gmail.com', active: '2일 전', activeColor: '#4A443F', classes: '클래스 3', quizzes: '퀴즈 21', students: '학생 12명', dormant: false, joined: '2026년 8월 24일 가입' },
+        { name: '김지수', email: 'jisoorosa@naver.com', active: '5일 전', activeColor: '#4A443F', classes: '클래스 2', quizzes: '퀴즈 14', students: '학생 9명', dormant: false, joined: '2026년 8월 24일 가입' },
+        { name: '유정', email: 'laon818@gmail.com', active: '3주 전', activeColor: '#8A837D', classes: '클래스 2', quizzes: '퀴즈 11', students: '학생 7명', dormant: false, joined: '2026년 8월 23일 가입' },
+        { name: '김영주', email: 'jigaboo@naver.com', active: '활동 없음', activeColor: '#D97706', classes: '클래스 1', quizzes: '퀴즈 0', students: '학생 0명', dormant: true, joined: '2026년 8월 24일 가입' },
+        { name: '박영주', email: 'youngju.park@gmail.com', active: '6주 전', activeColor: '#8A837D', classes: '클래스 1', quizzes: '퀴즈 6', students: '학생 4명', dormant: false, joined: '2026년 7월 22일 가입' },
+      ],
+      bankCoverage: [
+        { level: 'A1', ok: '103단어', short: '45단어 부족', shortColor: '#B45309' },
+        { level: 'A2', ok: '36단어', short: '22단어 부족', shortColor: '#B45309' },
+        { level: 'B1', ok: '41단어', short: '29단어 부족', shortColor: '#B45309' },
+        { level: 'B2', ok: '10단어', short: '12단어 부족', shortColor: '#B45309' },
+        { level: 'C1', ok: '1단어', short: '3단어 부족', shortColor: '#B45309' },
+        { level: 'C2', ok: '없음', short: '데이터 없음', shortColor: '#9E9894' },
+      ],
+      bankEntries: [
+        { word: '박물관', meaning: 'museum', level: 'A1', rowBg: '#fff', boxBorder: '#D3CCC4', boxBg: '#fff', check: '',
+          pre: '이 ', ans: '박물관은', post: ' 월요일에 문을 닫아요.',
+          translation: 'This [museum] is closed on Mondays.', trColor: '#8A837D', meaningColor: '#8A837D',
+          hint: '은/는', hintColor: '#4A443F',
+          creator: '준', source: '일괄 등록', srcBg: '#EEF2FF', srcFg: '#4338CA', batch: '8/15 배치', flags: [] },
+        { word: '운전하다', meaning: 'to drive', level: 'A1', rowBg: '#fff', boxBorder: '#D3CCC4', boxBg: '#fff', check: '',
+          pre: '저는 아직 면허가 없어서 ', ans: '운전할 수 없어요', post: '.',
+          translation: "I can't [drive] yet because I don't have a license.", trColor: '#8A837D', meaningColor: '#8A837D',
+          hint: '-(으)ㄹ 수 있다/없다 + 아/어요', hintColor: '#4A443F',
+          creator: '준', source: '일괄 등록', srcBg: '#EEF2FF', srcFg: '#4338CA', batch: '8/15 배치', flags: [] },
+        { word: '미루다', meaning: '—', level: 'A2', rowBg: '#F4FAF6', boxBorder: '#1E6B47', boxBg: '#1E6B47', check: '✓',
+          pre: '숙제를 계속 ', ans: '미루면', post: ' 나중에 힘들어요.',
+          translation: '—', trColor: '#B45309', meaningColor: '#B45309', hint: '—', hintColor: '#9E9894',
+          creator: '남소라', source: '퀴즈', srcBg: '#F1ECE6', srcFg: '#6B6460', batch: '연세대 2A 3과 어휘',
+          flags: [] },
+        { word: '분리수거', meaning: 'recycling', level: 'B1', rowBg: '#fff', boxBorder: '#D3CCC4', boxBg: '#fff', check: '',
+          pre: '새로 이사 온 아파트에서는 ', ans: '분리수거를', post: ' 철저히 해야 해요.',
+          translation: 'In the apartment I just moved to, I have to do [waste separation] thoroughly.', trColor: '#8A837D', meaningColor: '#8A837D',
+          hint: '을/를', hintColor: '#4A443F',
+          creator: '김지수', source: '일괄 등록', srcBg: '#EEF2FF', srcFg: '#4338CA', batch: '8/4 배치', flags: [] },
+        { word: '금지하다', meaning: 'to ban', level: 'B1', rowBg: '#F4FAF6', boxBorder: '#1E6B47', boxBg: '#1E6B47', check: '✓',
+          pre: '요즘 일회용 컵 사용을 ', ans: '금지하는', post: ' 카페가 점점 늘고 있어요.',
+          translation: 'These days, more and more cafes [forbid] the use of disposable cups.', trColor: '#8A837D', meaningColor: '#8A837D',
+          hint: '-는', hintColor: '#4A443F',
+          creator: '김지수', source: '퀴즈', srcBg: '#F1ECE6', srcFg: '#6B6460', batch: '환경·재활용 주제 어휘',
+          flags: [{ label: '문장 1개뿐' }] },
+      ],
+      adminStats: [
+        { label: '전체 사용자', value: '59', delta: '이번 달 신규 없음', deltaColor: '#9E9894' },
+        { label: '선생님', value: '27', delta: '이번 달 신규 없음', deltaColor: '#9E9894' },
+        { label: '클래스', value: '29', delta: '이번 달 신규 없음', deltaColor: '#9E9894' },
+        { label: '퀴즈', value: '191', delta: '이번 달 +1', deltaColor: '#1E6B47' },
+      ],
+      adminUsers: [
+        { name: 'Iulia Martinenco', email: 'iulia.martinenco@gmail.com', role: '학생', roleBg: '#F1ECE6', roleFg: '#4A443F', date: '2026년 8월 25일' },
+        { name: 'free l2j', email: 'freel2j@gmail.com', role: '학생', roleBg: '#F1ECE6', roleFg: '#4A443F', date: '2026년 8월 24일' },
+        { name: '남소라', email: 'nsr0114@gmail.com', role: '선생님', roleBg: '#E8F5EE', roleFg: '#1E6B47', date: '2026년 8월 24일' },
+        { name: '김지수', email: 'jisoorosa@naver.com', role: '선생님', roleBg: '#E8F5EE', roleFg: '#1E6B47', date: '2026년 8월 24일' },
+        { name: '김영주', email: 'jigaboo@naver.com', role: '선생님', roleBg: '#E8F5EE', roleFg: '#1E6B47', date: '2026년 8월 24일' },
+        { name: '유정', email: 'laon818@gmail.com', role: '선생님', roleBg: '#E8F5EE', roleFg: '#1E6B47', date: '2026년 8월 23일' },
+      ],
+      cefr: [
+        { level: 'A1', value: '103개 · 54%', pct: '54%', bg: '#D1FAE5', fg: '#047857', textColor: '#4A443F' },
+        { level: 'B1', value: '41개 · 21%', pct: '21%', bg: '#E0F2FE', fg: '#0369A1', textColor: '#4A443F' },
+        { level: 'A2', value: '36개 · 19%', pct: '19%', bg: '#CCFBF1', fg: '#0F766E', textColor: '#4A443F' },
+        { level: 'B2', value: '10개 · 5%', pct: '5%', bg: '#EDE9FE', fg: '#6D28D9', textColor: '#4A443F' },
+        { level: 'C1', value: '1개 · 1%', pct: '1%', bg: '#F3E8FF', fg: '#7E22CE', textColor: '#4A443F' },
+        { level: 'C2', value: '없음', pct: '0%', bg: '#FCE7F3', fg: '#BE185D', textColor: '#B8B1AA' },
+      ],
+      typeDist: [
+        { label: '빈칸 채우기', value: '185개 97%', pct: '97%', color: '#1E6B47' },
+        { label: '문장 만들기', value: '115개 60%', pct: '60%', color: '#6D28D9' },
+        { label: '말하기 연습', value: '114개 60%', pct: '60%', color: '#C13B2E' },
+        { label: '문장 순서', value: '44개 23%', pct: '23%', color: '#854D0E' },
+        { label: '짝 맞추기', value: '15개 8%', pct: '8%', color: '#1D4ED8' },
+        { label: '단어 받아쓰기', value: '13개 7%', pct: '7%', color: '#0E7490' },
+      ],
+      monthly: [
+        { label: '4월', value: '22건', h: '88%', fill: '#CFE3D8', textColor: '#6B6460' },
+        { label: '5월', value: '21건', h: '84%', fill: '#CFE3D8', textColor: '#6B6460' },
+        { label: '6월', value: '25건', h: '100%', fill: '#1E6B47', textColor: '#1A1714' },
+        { label: '7월', value: '25건', h: '100%', fill: '#1E6B47', textColor: '#1A1714' },
+        { label: '8월', value: '24건', h: '96%', fill: '#CFE3D8', textColor: '#6B6460' },
+        { label: '9월', value: '0건', h: '0%', fill: 'transparent', textColor: '#B8B1AA' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

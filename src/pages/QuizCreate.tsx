@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, PenLine, PenSquare, Mic, Type, Sparkles, Link2, Keyboard, Magnet, Check, History, BookOpen, ChevronDown } from "lucide-react";
+import { Loader2, PenLine, Mic, Type, Sparkles, Link2, Keyboard, Magnet, Check, History, BookOpen, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -414,10 +414,7 @@ export default function QuizCreate() {
     <AppLayout>
       <div className="bg-[#FAF8F5] px-[18px] sm:px-[30px] py-[26px] sm:py-[30px]">
         <div className="max-w-[756px] mx-auto">
-          <div className="flex items-center gap-2.5">
-            <PenSquare className="h-[22px] w-[22px] text-primary" strokeWidth={1.8} />
-            <div className="text-[21px] font-bold tracking-[-0.4px]">퀴즈 만들기</div>
-          </div>
+          <div className="text-[21px] font-bold tracking-[-0.4px] pl-2">퀴즈 만들기</div>
 
           <div className="mt-[18px] bg-white border border-[#EBE5DE] rounded-[18px] px-7 py-[26px]">
             {/* ── 다른 방식으로 만들기 ── */}

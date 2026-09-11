@@ -147,7 +147,7 @@ export default function ClassAssignedQuizzes() {
 
   return (
     <AppLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="px-[18px] sm:px-[30px] py-[26px] sm:py-8">
         <div className="flex flex-col gap-4 mb-8">
           <Button variant="ghost" onClick={() => navigate(`/class/${id}`)} className="self-start mb-2">
             <ArrowLeft className="w-4 h-4 mr-2" /> 클래스로 돌아가기

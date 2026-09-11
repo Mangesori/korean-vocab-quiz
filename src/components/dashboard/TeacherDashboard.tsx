@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,9 +8,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Users } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Users, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { isResultComplete } from "@/types/quiz";
+import { QuizResultDialog } from "@/components/quiz/QuizResultDialog";
 
 function asRow(value: unknown): Record<string, unknown> {
   return (value ?? {}) as Record<string, unknown>;
@@ -43,6 +55,15 @@ interface ResultRow {
   word_magnet_score: number | null;
   sentence_making_score: number | null;
   recording_score: number | null;
+  answers: any[];
+  fill_blank_total: number | null;
+  matchup_total: number | null;
+  type_answer_total: number | null;
+  word_magnet_total: number | null;
+  sentence_making_total: number | null;
+  recording_total: number | null;
+  is_anonymous: boolean | null;
+  anonymous_name: string | null;
 }
 
 interface QuizRow {
@@ -66,6 +87,27 @@ interface HeroResultRow {
   score: number;
   total: number;
   completedAt: string;
+  isAnonymous: boolean;
+}
+
+interface DialogResult {
+  id: string;
+  score: number;
+  total_questions: number;
+  completed_at: string;
+  answers: any[];
+  fill_blank_score: number | null;
+  fill_blank_total: number | null;
+  matchup_score: number | null;
+  matchup_total: number | null;
+  type_answer_score: number | null;
+  type_answer_total: number | null;
+  word_magnet_score: number | null;
+  word_magnet_total: number | null;
+  sentence_making_score: number | null;
+  sentence_making_total: number | null;
+  recording_score: number | null;
+  recording_total: number | null;
 }
 
 interface PendingRow {
@@ -74,6 +116,7 @@ interface PendingRow {
   quizId: string;
   quizTitle: string;
   assignedAt: string;
+  assignmentId: string;
 }
 
 interface RecentQuizRow {
@@ -85,16 +128,28 @@ interface RecentQuizRow {
 interface ActiveClassRow {
   id: string;
   name: string;
-  avgScore: number;
+  pendingCount: number;
+  hasUnviewed: boolean;
   lastActivity: string;
 }
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [pasteWords, setPasteWords] = useState("");
+  const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
+  const [pendingExpanded, setPendingExpanded] = useState(true);
+  const [pendingVisibleCount, setPendingVisibleCount] = useState(5);
+  const [staleThreshold, setStaleThreshold] = useState(30);
+  const [isRemindingAll, setIsRemindingAll] = useState(false);
+  const [assignmentToWithdraw, setAssignmentToWithdraw] = useState<PendingRow | null>(null);
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [bulkWithdrawOpen, setBulkWithdrawOpen] = useState(false);
+  const [isBulkWithdrawing, setIsBulkWithdrawing] = useState(false);
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["teacherDashboard", user?.id],
     queryFn: async () => {
       const teacherId = user!.id;
@@ -137,7 +192,7 @@ export default function TeacherDashboard() {
         ? await supabase
             .from("quiz_results")
             .select(
-              "id, quiz_id, student_id, score, total_questions, completed_at, viewed_at, fill_blank_score, matchup_score, type_answer_score, word_magnet_score, sentence_making_score, recording_score"
+              "id, quiz_id, student_id, score, total_questions, completed_at, viewed_at, fill_blank_score, matchup_score, type_answer_score, word_magnet_score, sentence_making_score, recording_score, answers, fill_blank_total, matchup_total, type_answer_total, word_magnet_total, sentence_making_total, recording_total, is_anonymous, anonymous_name"
             )
             .in("quiz_id", quizIds)
             .not("student_id", "is", null)
@@ -174,30 +229,34 @@ export default function TeacherDashboard() {
         id: r.id,
         quizId: r.quiz_id,
         quizTitle: quizMap.get(r.quiz_id)?.title ?? "",
-        studentName: nameById.get(r.student_id!) ?? "알 수 없음",
+        studentName: r.is_anonymous
+          ? r.anonymous_name || "익명"
+          : nameById.get(r.student_id!) ?? "알 수 없음",
         score: r.score,
         total: r.total_questions,
         completedAt: r.completed_at,
+        isAnonymous: !!r.is_anonymous,
       });
 
       const heroResults = unviewed.slice(0, 3).map(toHeroRow);
 
-      // ── 최근 결과 (2c 전용) — 확인 여부와 무관하게 최신순 ──────────────
-      const recentResults = [...results]
+      // ── 최근 결과 (2a·2c 공통) — 이미 확인한 것만, 최신순 ──────────────
+      const recentResults = results
+        .filter((r) => !!r.viewed_at)
         .sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())
         .slice(0, 3)
         .map(toHeroRow);
 
       // ── 아직 안 푼 학생 ───────────────────────────────────────────────
       // class_id 배정은 반 전체 학생에게, student_id 배정은 그 학생에게만 적용된다.
-      type Pair = { studentId: string; quizId: string; assignedAt: string };
+      type Pair = { studentId: string; quizId: string; assignedAt: string; assignmentId: string };
       const pairs: Pair[] = [];
       (assignmentsData ?? []).forEach((a) => {
         if (a.student_id) {
-          pairs.push({ studentId: a.student_id, quizId: a.quiz_id, assignedAt: a.assigned_at });
+          pairs.push({ studentId: a.student_id, quizId: a.quiz_id, assignedAt: a.assigned_at, assignmentId: a.id });
         } else if (a.class_id) {
           (membersByClass.get(a.class_id) ?? []).forEach((studentId) =>
-            pairs.push({ studentId, quizId: a.quiz_id, assignedAt: a.assigned_at })
+            pairs.push({ studentId, quizId: a.quiz_id, assignedAt: a.assigned_at, assignmentId: a.id })
           );
         }
       });
@@ -238,6 +297,7 @@ export default function TeacherDashboard() {
             quizId: p.quizId,
             quizTitle: quiz.title,
             assignedAt: p.assignedAt,
+            assignmentId: p.assignmentId,
           });
         }
       }
@@ -255,18 +315,62 @@ export default function TeacherDashboard() {
         resultsByStudent.set(r.student_id, arr);
       });
 
+      // 학생이 여러 반에 속할 수도 있지만, 첫 번째로 찾은 반에 귀속시킨다 (근사치로 충분하다).
+      const classByStudent = new Map<string, string>();
+      membersByClass.forEach((studentIds, classId) => {
+        studentIds.forEach((sid) => {
+          if (!classByStudent.has(sid)) classByStudent.set(sid, classId);
+        });
+      });
+
+      // class_id 배정은 반 전체 학생에게, student_id 배정은 classByStudent로 반을 찾아 적용한다.
+      type ClassPair = { classId: string; studentId: string; quizId: string; assignedAt: string };
+      const classPairs: ClassPair[] = [];
+      (assignmentsData ?? []).forEach((a) => {
+        if (a.class_id && membersByClass.has(a.class_id)) {
+          (membersByClass.get(a.class_id) ?? []).forEach((sid) =>
+            classPairs.push({ classId: a.class_id!, studentId: sid, quizId: a.quiz_id, assignedAt: a.assigned_at })
+          );
+        } else if (a.student_id) {
+          const classId = classByStudent.get(a.student_id);
+          if (classId) classPairs.push({ classId, studentId: a.student_id, quizId: a.quiz_id, assignedAt: a.assigned_at });
+        }
+      });
+
+      const perClassPending = new Map<string, Set<string>>();
+      classPairs.forEach((p) => {
+        const quiz = quizMap.get(p.quizId);
+        if (!quiz) return;
+        const key = `${p.studentId}:${p.quizId}`;
+        const hasComplete = (resultsByStudentQuiz.get(key) ?? []).some(
+          (r) => new Date(r.completed_at) > new Date(p.assignedAt) && isResultComplete(asRow(quiz), asRow(r))
+        );
+        if (!hasComplete) {
+          const set = perClassPending.get(p.classId) ?? new Set<string>();
+          set.add(p.studentId);
+          perClassPending.set(p.classId, set);
+        }
+      });
+
+      // 미확인 결과가 있는 클래스 집합
+      const classesWithUnviewed = new Set<string>();
+      unviewed.forEach((r) => {
+        if (!r.student_id) return;
+        const classId = classByStudent.get(r.student_id);
+        if (classId) classesWithUnviewed.add(classId);
+      });
+
       const recentActiveClasses: ActiveClassRow[] = (classesData ?? [])
         .map((c) => {
           const classResults = (membersByClass.get(c.id) ?? []).flatMap((sid) => resultsByStudent.get(sid) ?? []);
           if (classResults.length === 0) return null;
-          const avgScore = Math.round(
-            classResults.reduce((sum, r) => sum + (r.score / r.total_questions) * 100, 0) / classResults.length
-          );
           const lastActivity = classResults.reduce(
             (latest, r) => (new Date(r.completed_at) > new Date(latest) ? r.completed_at : latest),
             classResults[0].completed_at
           );
-          return { id: c.id, name: c.name, avgScore, lastActivity };
+          const pendingCount = perClassPending.get(c.id)?.size ?? 0;
+          const hasUnviewed = classesWithUnviewed.has(c.id);
+          return { id: c.id, name: c.name, pendingCount, hasUnviewed, lastActivity };
         })
         .filter((c): c is ActiveClassRow => c !== null)
         .sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime())
@@ -288,8 +392,9 @@ export default function TeacherDashboard() {
         unviewedCount: unviewed.length,
         heroResults,
         recentResults,
+        results,
         pendingCount: pendingList.length,
-        pendingStudents: pendingList.slice(0, 3),
+        pendingStudents: pendingList,
         recentQuizzes,
         recentActiveClasses,
       };
@@ -305,6 +410,37 @@ export default function TeacherDashboard() {
   const pendingStudents = data?.pendingStudents ?? [];
   const recentQuizzes = data?.recentQuizzes ?? [];
   const recentActiveClasses = data?.recentActiveClasses ?? [];
+  const results = data?.results ?? [];
+
+  const selectedResultRow = results.find((r) => r.id === selectedResultId) ?? null;
+  const selectedHeroRow =
+    [...heroResults, ...recentResults].find((r) => r.id === selectedResultId) ?? null;
+  const selectedDialogResult: DialogResult | null = selectedResultRow
+    ? {
+        id: selectedResultRow.id,
+        score: selectedResultRow.score,
+        total_questions: selectedResultRow.total_questions,
+        completed_at: selectedResultRow.completed_at,
+        answers: selectedResultRow.answers,
+        fill_blank_score: selectedResultRow.fill_blank_score,
+        fill_blank_total: selectedResultRow.fill_blank_total,
+        matchup_score: selectedResultRow.matchup_score,
+        matchup_total: selectedResultRow.matchup_total,
+        type_answer_score: selectedResultRow.type_answer_score,
+        type_answer_total: selectedResultRow.type_answer_total,
+        word_magnet_score: selectedResultRow.word_magnet_score,
+        word_magnet_total: selectedResultRow.word_magnet_total,
+        sentence_making_score: selectedResultRow.sentence_making_score,
+        sentence_making_total: selectedResultRow.sentence_making_total,
+        recording_score: selectedResultRow.recording_score,
+        recording_total: selectedResultRow.recording_total,
+      }
+    : null;
+
+  const handleResultDialogClose = () => {
+    setSelectedResultId(null);
+    queryClient.invalidateQueries({ queryKey: ["teacherDashboard", user?.id] });
+  };
 
   const displayName = data?.teacherName || user?.email?.split("@")[0] || "";
   const todayLabel = format(new Date(), "yyyy년 M월 d일 EEEE", { locale: ko });
@@ -324,6 +460,76 @@ export default function TeacherDashboard() {
     else toast.success("재알림을 보냈습니다");
   };
 
+  const handleRemindAll = async (rows: PendingRow[]) => {
+    if (rows.length === 0) return;
+    setIsRemindingAll(true);
+    try {
+      const results = await Promise.all(
+        rows.map((row) =>
+          supabase.from("notifications").insert({
+            user_id: row.studentId,
+            type: "quiz_assigned",
+            title: "퀴즈 알림",
+            message: `"${row.quizTitle}" 퀴즈가 아직 남아있어요`,
+            from_user_id: user!.id,
+            quiz_id: row.quizId,
+          })
+        )
+      );
+      const successCount = results.filter((r) => !r.error).length;
+      if (successCount === rows.length) toast.success(`${successCount}명에게 재알림을 보냈습니다`);
+      else if (successCount > 0) toast.warning(`${successCount}/${rows.length}명에게 재알림을 보냈습니다`);
+      else toast.error("재알림을 보내지 못했습니다");
+    } finally {
+      setIsRemindingAll(false);
+    }
+  };
+
+  const handleWithdrawClick = (row: PendingRow) => {
+    setAssignmentToWithdraw(row);
+    setWithdrawDialogOpen(true);
+  };
+
+  const handleWithdrawConfirm = async () => {
+    if (!assignmentToWithdraw) return;
+    setIsWithdrawing(true);
+    try {
+      const { error } = await supabase.from("quiz_assignments").delete().eq("id", assignmentToWithdraw.assignmentId);
+      if (error) throw error;
+      toast.success("퀴즈 할당이 삭제되었습니다");
+      queryClient.invalidateQueries({ queryKey: ["teacherDashboard", user?.id] });
+      setWithdrawDialogOpen(false);
+      setAssignmentToWithdraw(null);
+    } catch (error) {
+      console.error("Error withdrawing assignment:", error);
+      toast.error("퀴즈 할당 삭제에 실패했습니다");
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
+  const handleBulkWithdrawConfirm = async (rows: PendingRow[]) => {
+    if (rows.length === 0) return;
+    setIsBulkWithdrawing(true);
+    try {
+      const { error } = await supabase
+        .from("quiz_assignments")
+        .delete()
+        .in("id", rows.map((r) => r.assignmentId));
+      if (error) throw error;
+      toast.success(`${rows.length}건의 할당을 삭제했습니다`);
+      queryClient.invalidateQueries({ queryKey: ["teacherDashboard", user?.id] });
+      setBulkWithdrawOpen(false);
+    } catch (error) {
+      console.error("Error bulk withdrawing assignments:", error);
+      toast.error("할당 삭제에 실패했습니다");
+    } finally {
+      setIsBulkWithdrawing(false);
+    }
+  };
+
+  const daysSince = (dateStr: string) => Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
+
   const handleCreateFromPaste = () => {
     if (!pasteWords.trim()) {
       toast.error("단어를 입력해주세요");
@@ -334,36 +540,118 @@ export default function TeacherDashboard() {
 
   const resultScoreColor = (score: number, total: number) => (total > 0 && score / total >= 0.8 ? "#1E6B47" : "#B4552D");
 
-  // ── 아직 안 푼 학생 카드 (2a·2c 공통) ───────────────────────────────
+  // ── 아직 안 푼 학생 카드 (2a·2c 공통, 14-6 아코디언) ─────────────────
+  const visiblePending = pendingStudents.slice(0, pendingVisibleCount);
+  const remainingPending = pendingStudents.length - visiblePending.length;
+  const staleRows = pendingStudents.filter((p) => daysSince(p.assignedAt) >= staleThreshold);
+  const staleCount = staleRows.length;
+
   const pendingCard = pendingCount > 0 && (
     <div className="bg-white border border-[#EBE5DE] rounded-2xl p-5">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline justify-between gap-3">
         <div className="text-[14.5px] font-bold tracking-[-0.2px]">
           아직 안 푼 학생 <span className="text-[#B4552D]">{pendingCount}명</span>
         </div>
-        <Link to="/classes" className="text-xs font-semibold text-primary">
-          전체 배정 보기 →
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => handleRemindAll(visiblePending)}
+            disabled={isRemindingAll}
+            className="text-[11.5px] font-semibold text-[#4A443F] border border-[#E3DCD3] rounded-lg px-3 py-1.5 disabled:opacity-50"
+          >
+            모두 재알림
+          </button>
+          <button
+            onClick={() => setPendingExpanded((v) => !v)}
+            className="text-xs font-semibold text-primary"
+          >
+            {pendingExpanded ? "접기 ▴" : "펼치기 ▾"}
+          </button>
+        </div>
       </div>
-      <div className="mt-3.5 flex flex-col">
-        {pendingStudents.map((p) => (
-          <div key={p.studentId} className="flex items-center gap-3 py-3 border-t border-[#F2EDE7]">
-            <div className="w-[26px] h-[26px] rounded-full bg-[#F3F0EA] grid place-items-center text-[10.5px] font-bold text-[#6B6460] shrink-0">
-              {initials(p.studentName)}
+
+      {pendingExpanded && (
+        <>
+          <div
+            className="mt-3.5 flex items-center justify-between gap-3 rounded-[10px] px-[13px] py-[10px]"
+            style={{ background: "#FAF8F5", border: "1px solid #EBE5DE" }}
+          >
+            <div className="text-xs text-[#6B6460] leading-[1.5]">
+              배정한 지 오래된 순입니다. {staleThreshold}일 넘게 방치된 배정이 {staleCount}건 있습니다 — 회수하거나 재알림하세요.
             </div>
-            <div className="flex-1 min-w-0 text-[13px] font-semibold">{p.studentName}</div>
-            <div className="text-xs text-[#8A837D] whitespace-nowrap">
-              {p.quizTitle} · {relativeTime(p.assignedAt)} 배정
+            <div className="flex items-center gap-2 shrink-0">
+              <Select value={String(staleThreshold)} onValueChange={(v) => setStaleThreshold(Number(v))}>
+                <SelectTrigger className="h-8 w-[100px] text-xs shrink-0">
+                  <SelectValue placeholder="방치 기간" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">7일</SelectItem>
+                  <SelectItem value="30">30일</SelectItem>
+                  <SelectItem value="90">90일</SelectItem>
+                </SelectContent>
+              </Select>
+              <button
+                onClick={() => handleRemindAll(staleRows)}
+                disabled={isRemindingAll || staleCount === 0}
+                className="text-[11.5px] font-semibold text-[#4A443F] border border-[#E3DCD3] rounded-lg px-2.5 py-1.5 disabled:opacity-40 whitespace-nowrap"
+              >
+                {staleCount}건 재알림
+              </button>
+              <button
+                onClick={() => setBulkWithdrawOpen(true)}
+                disabled={staleCount === 0}
+                className="text-[11.5px] font-semibold text-[#B4552D] border border-[#E3DCD3] rounded-lg px-2.5 py-1.5 disabled:opacity-40 whitespace-nowrap"
+              >
+                {staleCount}건 회수
+              </button>
             </div>
-            <button
-              onClick={() => handleRemind(p)}
-              className="border border-[#E3DCD3] text-[#4A443F] text-[11.5px] font-semibold rounded-lg px-3 py-1.5 shrink-0"
-            >
-              재알림
-            </button>
           </div>
-        ))}
-      </div>
+
+          <div className="mt-1 flex flex-col">
+            {visiblePending.map((p) => {
+              const elapsed = daysSince(p.assignedAt);
+              const isStale = elapsed >= staleThreshold;
+              return (
+                <div key={p.studentId} className="flex items-center gap-3 py-3 border-t border-[#F2EDE7]">
+                  <div className="w-[26px] h-[26px] rounded-full bg-[#F3F0EA] grid place-items-center text-[10.5px] font-bold text-[#6B6460] shrink-0">
+                    {initials(p.studentName)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold truncate">{p.studentName}</div>
+                    <div className="text-[11.5px] text-[#8A837D] truncate">{p.quizTitle}</div>
+                  </div>
+                  <span
+                    className="shrink-0 text-[11.5px] font-bold rounded-[7px] px-[9px] py-[5px]"
+                    style={isStale ? { background: "#FBEFE9", color: "#B4552D" } : { background: "#F3F0EA", color: "#8A837D" }}
+                  >
+                    {elapsed}일째
+                  </span>
+                  <button
+                    onClick={() => handleRemind(p)}
+                    className="border border-[#E3DCD3] text-[#4A443F] text-[11.5px] font-semibold rounded-lg px-3 py-1.5 shrink-0"
+                  >
+                    재알림
+                  </button>
+                  <button
+                    onClick={() => handleWithdrawClick(p)}
+                    className="border border-[#E3DCD3] text-[#B4552D] text-[11.5px] font-semibold rounded-lg px-3 py-1.5 shrink-0"
+                  >
+                    회수
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {remainingPending > 0 && (
+            <button
+              onClick={() => setPendingVisibleCount((v) => v + 10)}
+              className="w-full text-center mt-1 pt-3 border-t border-[#F2EDE7] text-xs font-semibold text-primary"
+            >
+              {remainingPending}명 더 보기
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 
@@ -426,9 +714,17 @@ export default function TeacherDashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[12.5px] font-semibold truncate">{c.name}</div>
-                  <div className="text-[10.5px] text-[#8A837D] mt-px">{relativeTime(c.lastActivity)}</div>
+                  <div className="text-[10.5px] text-[#8A837D] mt-px">{relativeTime(c.lastActivity)} 제출</div>
                 </div>
-                <span className="text-[11.5px] font-bold text-primary">{c.avgScore}%</span>
+                {c.pendingCount > 0 ? (
+                  <span className="shrink-0 text-[10.5px] font-bold rounded-[6px] px-[7px] py-1" style={{ background: "#FBEFE9", color: "#B4552D" }}>
+                    미제출 {c.pendingCount}
+                  </span>
+                ) : c.hasUnviewed ? (
+                  <span className="shrink-0 text-[10.5px] font-bold rounded-[6px] px-[7px] py-1" style={{ background: "#E8F1EB", color: "#1E6B47" }}>
+                    확인 대기
+                  </span>
+                ) : null}
               </Link>
             ))}
           </div>
@@ -449,17 +745,27 @@ export default function TeacherDashboard() {
     </div>
   );
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="bg-[#FAF8F5] px-[18px] sm:px-[30px] py-[26px] sm:py-8">
         <div className="flex items-baseline justify-between">
-          <div className="text-[21px] font-bold tracking-[-0.4px]">안녕하세요, {displayName} 선생님</div>
+          <div className="text-[21px] font-bold tracking-[-0.4px] pl-2">안녕하세요, {displayName} 선생님</div>
           <div className="text-xs text-[#8A837D]">{todayLabel}</div>
         </div>
 
         {noQuizzesNoClasses ? (
           /* ── 2b: 퀴즈 0 · 클래스 0 (신규 가입) ── */
-          <div className="mt-[18px] max-w-[940px] flex flex-col gap-3">
+          <div className="mt-[18px] flex flex-col gap-3">
             <div className="bg-primary rounded-2xl sm:rounded-[18px] px-6 py-6 sm:px-[30px] sm:py-7 text-white">
               <div className="text-[19px] sm:text-[22px] font-bold tracking-[-0.4px]">첫 퀴즈를 만들어 보세요</div>
               <p className="text-[12.5px] sm:text-[13px] text-white/[.78] mt-1.5 leading-[1.55] sm:max-w-[560px]">
@@ -541,10 +847,11 @@ export default function TeacherDashboard() {
                   </div>
                   <div className="mt-[18px] flex flex-col gap-2">
                     {heroResults.map((r) => (
-                      <Link
+                      <button
                         key={r.id}
-                        to={`/quiz/${r.quizId}/result/${r.id}`}
-                        className="flex items-center gap-3.5 bg-white/[.11] rounded-xl px-4 py-[13px]"
+                        type="button"
+                        onClick={() => setSelectedResultId(r.id)}
+                        className="w-full text-left flex items-center gap-3.5 bg-white/[.11] rounded-xl px-4 py-[13px]"
                       >
                         <div className="w-[30px] h-[30px] rounded-full bg-white/[.22] grid place-items-center text-[11.5px] font-bold shrink-0">
                           {initials(r.studentName)}
@@ -561,7 +868,7 @@ export default function TeacherDashboard() {
                         <span className="shrink-0 bg-white text-primary text-xs font-bold rounded-[9px] px-[15px] py-2">
                           결과 보기
                         </span>
-                      </Link>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -569,7 +876,7 @@ export default function TeacherDashboard() {
 
               {pendingCard}
 
-              {allCaughtUp && recentResults.length > 0 && (
+              {recentResults.length > 0 && (
                 <div className="bg-white border border-[#EBE5DE] rounded-2xl p-5">
                   <div className="flex items-baseline justify-between">
                     <div className="text-[14.5px] font-bold tracking-[-0.2px]">최근 결과</div>
@@ -579,10 +886,11 @@ export default function TeacherDashboard() {
                   </div>
                   <div className="mt-3.5 flex flex-col">
                     {recentResults.map((r) => (
-                      <Link
+                      <button
                         key={r.id}
-                        to={`/quiz/${r.quizId}/result/${r.id}`}
-                        className="flex items-center gap-3 py-3 border-t border-[#F2EDE7]"
+                        type="button"
+                        onClick={() => setSelectedResultId(r.id)}
+                        className="w-full text-left flex items-center gap-3 py-3 border-t border-[#F2EDE7]"
                       >
                         <div className="w-[26px] h-[26px] rounded-full bg-[#E8F1EB] grid place-items-center text-[10.5px] font-bold text-primary shrink-0">
                           {initials(r.studentName)}
@@ -594,7 +902,7 @@ export default function TeacherDashboard() {
                         <div className="text-[13.5px] font-bold" style={{ color: resultScoreColor(r.score, r.total) }}>
                           {r.score}/{r.total}
                         </div>
-                      </Link>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -605,6 +913,59 @@ export default function TeacherDashboard() {
           </div>
         )}
       </div>
+
+      <QuizResultDialog
+        isOpen={!!selectedDialogResult}
+        onClose={handleResultDialogClose}
+        result={selectedDialogResult}
+        studentName={selectedHeroRow?.studentName ?? ""}
+        isAnonymous={selectedHeroRow?.isAnonymous}
+        quizId={selectedHeroRow?.quizId ?? ""}
+        onDataChanged={() => queryClient.invalidateQueries({ queryKey: ["teacherDashboard", user?.id] })}
+        markViewedOnOpen
+      />
+
+      <AlertDialog open={withdrawDialogOpen} onOpenChange={setWithdrawDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>퀴즈 할당 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              {assignmentToWithdraw && (
+                <>
+                  {assignmentToWithdraw.studentName}님에게 배정한 "{assignmentToWithdraw.quizTitle}" 할당을 삭제합니다.
+                  <br />
+                  이 배정이 여러 학생에게 적용된 것이면 전체에서 취소됩니다.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isWithdrawing}>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handleWithdrawConfirm} disabled={isWithdrawing}>
+              {isWithdrawing ? "삭제 중..." : "삭제"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkWithdrawOpen} onOpenChange={setBulkWithdrawOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>퀴즈 할당 일괄 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              {staleThreshold}일 넘게 방치된 배정 {staleCount}건을 모두 삭제합니다.
+              <br />
+              반 전체에 적용된 배정이 섞여 있으면 그 반 전체에서도 함께 취소됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkWithdrawing}>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleBulkWithdrawConfirm(staleRows)} disabled={isBulkWithdrawing}>
+              {isBulkWithdrawing ? "삭제 중..." : `${staleCount}건 삭제`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
