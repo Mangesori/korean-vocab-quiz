@@ -16,7 +16,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Copy, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -179,38 +178,41 @@ export function DuplicateQuizButton({
   });
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant={variant} size={size}>
-          <Copy className={`h-4 w-4 ${showLabel ? 'mr-2' : ''}`} />
-          {showLabel && '복제'}
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>퀴즈 복제</AlertDialogTitle>
-          <AlertDialogDescription>
-            "{quiz.title}" 퀴즈를 복제하시겠습니까?
-            <br />
-            복제된 퀴즈는 새로운 퀴즈로 생성됩니다.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>취소</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={(e) => {
-              e.preventDefault();
-              duplicateMutation.mutate();
-            }}
-            disabled={duplicateMutation.isPending}
-          >
-            {duplicateMutation.isPending && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            복제하기
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <>
+      {/* AlertDialogTrigger asChild는 모바일 Safari에서 다이얼로그가 열리자마자
+          같은 탭 제스처가 "바깥 클릭"으로 오인되어 즉시 닫히는 문제가 있다(Radix 이슈).
+          이 앱의 다른 모든 AlertDialog처럼 트리거를 분리하고 상태로만 연다. */}
+      <Button variant={variant} size={size} onClick={() => setOpen(true)}>
+        <Copy className={`h-4 w-4 ${showLabel ? 'mr-2' : ''}`} />
+        {showLabel && '복제'}
+      </Button>
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>퀴즈 복제</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{quiz.title}" 퀴즈를 복제하시겠습니까?
+              <br />
+              복제된 퀴즈는 새로운 퀴즈로 생성됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                duplicateMutation.mutate();
+              }}
+              disabled={duplicateMutation.isPending}
+            >
+              {duplicateMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              복제하기
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
