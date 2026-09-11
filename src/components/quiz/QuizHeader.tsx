@@ -1,11 +1,11 @@
 
 import { useState } from "react";
-import { FileText, Clock, Pencil, Trash2, Send, Radio, MoreVertical, Users, ChevronDown } from "lucide-react";
+import { FileText, Clock, Pencil, Trash2, Send, Radio, MoreVertical, Users, ChevronDown, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { Quiz } from "@/hooks/useQuizData";
-import { DuplicateQuizButton } from "./DuplicateQuizButton";
+import { DuplicateQuizDialog } from "./DuplicateQuizDialog";
 import { formatDateShort } from '@/lib/formatDate';
 import { useQuizAssignedStudents } from "./QuizAssignedStudents";
 import {
@@ -46,7 +46,7 @@ export function QuizHeader({
 }: QuizHeaderProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
 
   // 접힌 상태에서도 값이 바로 보여야 하므로(펼치지 않아도 답을 알 수 있게) 헤더가
   // 독립적으로 배정 학생 쿼리를 구독한다 — QuizAssignedStudents 카드와 쿼리 키가 같아
@@ -140,7 +140,7 @@ export function QuizHeader({
         >
           <Send className="w-4 h-4 mr-2" /> <span className="whitespace-nowrap">퀴즈 보내기</span>
         </Button>
-        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+        <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon" className="h-11 w-11 sm:h-10 sm:w-10 shrink-0" aria-label="더보기">
               <MoreVertical className="h-4 w-4" />
@@ -153,18 +153,19 @@ export function QuizHeader({
                 라이브 세션 시작
               </DropdownMenuItem>
             )}
-            <DuplicateQuizButton
-              quiz={quiz}
-              showLabel
-              asMenuItem
-              onTriggerClick={() => setMenuOpen(false)}
-            />
+            <DropdownMenuItem onClick={() => setDuplicateOpen(true)} className="gap-2">
+              <Copy className="w-4 h-4" />
+              복제
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={onDelete} className="gap-2 text-destructive focus:text-destructive">
               <Trash2 className="w-4 h-4" />
               삭제
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* 드롭다운이 닫힐 때 함께 언마운트되지 않도록 DropdownMenu 바깥에서 렌더링한다. */}
+        <DuplicateQuizDialog quiz={quiz} open={duplicateOpen} onOpenChange={setDuplicateOpen} />
       </div>
     </div>
   );

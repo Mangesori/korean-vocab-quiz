@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +5,6 @@ import type { Quiz } from '@/hooks/useQuizData';
 import type { Json } from '@/integrations/supabase/types';
 import { quizInsertErrorMessage } from '@/lib/supabaseErrors';
 import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,36 +15,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Copy, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
-
-interface DuplicateQuizButtonProps {
+interface DuplicateQuizDialogProps {
   quiz: Quiz;
-  variant?: 'default' | 'outline' | 'ghost';
-  size?: 'default' | 'sm' | 'lg' | 'icon';
-  showLabel?: boolean;
-  /** ⋮ 드롭다운 메뉴 항목처럼 보이게 할 때 등, 트리거 버튼에 얹을 추가 클래스. */
-  className?: string;
-  /**
-   * ⋮ 드롭다운 메뉴 안에 놓일 때 true로 넘기면 shadcn Button의 variant/size 시스템을
-   * 아예 쓰지 않고, DropdownMenuItem과 완전히 동일한 클래스를 가진 순수 <button>으로
-   * 트리거를 렌더링한다. Button의 기본 크기 클래스(h-10 px-4 py-2 등)와 여기서 넘기는
-   * className이 twMerge로 병합될 때 미묘하게 어긋나 "복제" 항목만 다른 메뉴 항목보다
-   * 오른쪽으로 밀려 보이는 문제가 있었다 — variant/size/className 조합 대신 이 prop을
-   * 쓰는 쪽이 안전하다.
-   */
-  asMenuItem?: boolean;
-  /** 트리거를 클릭했을 때(다이얼로그가 뜨기 직전) 추가로 실행할 콜백 — 예: 상위 드롭다운 닫기. */
-  onTriggerClick?: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
-
-// DropdownMenuItem(src/components/ui/dropdown-menu.tsx)과 완전히 동일한 좌측 정렬/패딩/간격을
-// 갖도록 맞춘 클래스. asMenuItem일 때 이 버튼의 아이콘+텍스트 시작 x좌표가 다른
-// DropdownMenuItem들과 정확히 일치해야 한다.
-const MENU_ITEM_CLASSES =
-  'relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground';
 
 // 문제 데이터가 흩어져 있는 7개 테이블 = select(quiz_id) → insert(newQuiz.id) 패턴이 전부 동일하다.
 // 예전에는 테이블마다 이 패턴을 손으로 복붙했는데, 그래서 matchup/type_answer/word_magnet
@@ -101,18 +77,13 @@ function pick(row: Record<string, unknown>, cols: readonly string[]) {
   return result;
 }
 
-export function DuplicateQuizButton({
-  quiz,
-  variant = 'outline',
-  size = 'default',
-  showLabel = true,
-  className,
-  asMenuItem = false,
-  onTriggerClick,
-}: DuplicateQuizButtonProps) {
+// 트리거("복제" 메뉴 항목/버튼)는 호출부가 직접 렌더링하고 여기서는 다이얼로그만 그린다.
+// 예전에는 트리거와 다이얼로그가 한 컴포넌트에 묶여 있었고, 그 컴포넌트를 ⋮ 메뉴의
+// DropdownMenuContent 안에 넣었다. 메뉴가 닫히면 자식인 다이얼로그까지 함께 언마운트돼서
+// 확인창이 떴다가 바로 사라졌다. 다이얼로그는 반드시 드롭다운 바깥에서 렌더링해야 한다.
+export function DuplicateQuizDialog({ quiz, open, onOpenChange }: DuplicateQuizDialogProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
 
   const duplicateMutation = useMutation({
     mutationFn: async () => {
@@ -187,7 +158,7 @@ export function DuplicateQuizButton({
     },
     onSuccess: (newQuiz) => {
       toast.success('퀴즈가 복제되었습니다.');
-      setOpen(false);
+      onOpenChange(false);
       navigate(`/quiz/${newQuiz.id}`);
     },
     onError: (error) => {
@@ -200,55 +171,33 @@ export function DuplicateQuizButton({
     },
   });
 
-  const handleTriggerClick = () => {
-    onTriggerClick?.();
-    setOpen(true);
-  };
-
   return (
-    <>
-      {/* AlertDialogTrigger asChild는 모바일 Safari에서 다이얼로그가 열리자마자
-          같은 탭 제스처가 "바깥 클릭"으로 오인되어 즉시 닫히는 문제가 있다(Radix 이슈).
-          ⋮ 드롭다운 메뉴 안(asMenuItem)에서는 중첩 트리거라 더 취약하다.
-          이 앱의 다른 모든 AlertDialog처럼 트리거를 분리하고 상태로만 연다. */}
-      {asMenuItem ? (
-        <button type="button" className={cn(MENU_ITEM_CLASSES, className)} onClick={handleTriggerClick}>
-          <Copy className="h-4 w-4" />
-          {showLabel && '복제'}
-        </button>
-      ) : (
-        <Button variant={variant} size={size} className={cn(className)} onClick={handleTriggerClick}>
-          <Copy className={`h-4 w-4 ${showLabel ? 'mr-2' : ''}`} />
-          {showLabel && '복제'}
-        </Button>
-      )}
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>퀴즈 복제</AlertDialogTitle>
-            <AlertDialogDescription>
-              "{quiz.title}" 퀴즈를 복제하시겠습니까?
-              <br />
-              복제된 퀴즈는 새로운 퀴즈로 생성됩니다.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                duplicateMutation.mutate();
-              }}
-              disabled={duplicateMutation.isPending}
-            >
-              {duplicateMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              복제하기
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>퀴즈 복제</AlertDialogTitle>
+          <AlertDialogDescription>
+            "{quiz.title}" 퀴즈를 복제하시겠습니까?
+            <br />
+            복제된 퀴즈는 새로운 퀴즈로 생성됩니다.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>취소</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault();
+              duplicateMutation.mutate();
+            }}
+            disabled={duplicateMutation.isPending}
+          >
+            {duplicateMutation.isPending && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            복제하기
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
