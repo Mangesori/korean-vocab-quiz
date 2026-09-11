@@ -657,7 +657,7 @@ export default function TeacherDashboard() {
 
   // ── 오른쪽 레일 (2a·2c 공통) ─────────────────────────────────────────
   const rail = (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 min-w-0">
       <Link
         to="/quiz/create"
         className="bg-primary rounded-2xl px-[18px] py-[15px] text-white flex items-center gap-2.5"
@@ -817,9 +817,12 @@ export default function TeacherDashboard() {
             </div>
           </div>
         ) : (
-          /* ── 2a(확인할 결과 있음) · 2c(모두 확인함) ── */
+          /* ── 2a(확인할 결과 있음) · 2c(모두 확인함) ──
+             두 자식의 min-w-0은 필수다. grid 아이템의 기본 min-width는 auto여서, 카드 하나의
+             min-content가 넓으면(= 최근 결과 카드) 모바일의 auto 트랙이 그만큼 벌어지고
+             형제 카드까지 전부 화면 오른쪽 밖으로 밀려난다. */
           <div className="mt-[18px] grid lg:grid-cols-[1fr_296px] gap-5 items-start">
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 min-w-0">
               {allCaughtUp ? (
                 <div className="bg-primary rounded-2xl sm:rounded-[18px] px-[26px] sm:px-7 py-[26px] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                   <div>
