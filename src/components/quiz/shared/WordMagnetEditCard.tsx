@@ -60,13 +60,11 @@ export function WordMagnetEditCard({
   dragHandleProps,
 }: WordMagnetEditCardProps) {
   const [splitIdx, setSplitIdx] = useState<number | null>(null);
-  // 합치기 미리보기: mergePreviewIdx === i 이면 items[i-1]+items[i]를 점선으로 묶어 보여줌 (확정 전)
-  const [mergePreviewIdx, setMergePreviewIdx] = useState<number | null>(null);
-  // 방금 합친 동작 하나만 되돌릴 수 있도록 직전 상태 스냅샷 보관
+  // 방금 합친 동작 하나만 되돌릴 수 있도록 직전 상태 스냅샷 보관 — 합치기는 "앞 타일"이라는
+  // 대상이 이미 확정돼 있어 나누기(분할 위치 선택)와 달리 미리보기로 물어볼 게 없다.
+  // 잘못 눌러도 이 되돌리기로 바로 복구되므로 확인 단계 없이 즉시 합친다.
   const [lastMerge, setLastMerge] = useState<TileItem[] | null>(null);
   // 16-5 · 모바일 진입 경로 — 호버가 없으므로 탭하면 이 타일에 대한 액션 시트를 연다.
-  // 시트 자체는 아무 로직도 갖지 않고 splitIdx/mergePreviewIdx를 그대로 세팅할 뿐 —
-  // 이후 렌더링은 데스크톱과 동일한 분기(splitIdx === i / mergePreviewIdx === i)를 탄다.
   const [mobileActionIdx, setMobileActionIdx] = useState<number | null>(null);
 
   const toggleParticle = (i: number) => {
@@ -82,7 +80,6 @@ export function WordMagnetEditCard({
     };
     setLastMerge(items);
     onChangeItems([...items.slice(0, i - 1), merged, ...items.slice(i + 1)]);
-    setMergePreviewIdx(null);
   };
 
   const undoLastMerge = () => {
@@ -214,46 +211,7 @@ export function WordMagnetEditCard({
                 </span>
               ) : (
                 items.map((t, i) => {
-                  // 합치기 미리보기 중인 뒤 타일(i)에 흡수되는 앞 타일(i-1)은 따로 그리지 않음
-                  if (mergePreviewIdx === i + 1) return null;
-
                   const tileMarginClass = i > 0 ? (t.isParticle ? "ml-1" : "ml-3") : "";
-
-                  // 6b · 합치기 미리보기 — 확정 전까지는 점선 테두리 + 고리 아이콘으로만 보여줌
-                  if (mergePreviewIdx === i && i > 0) {
-                    const prev = items[i - 1];
-                    const prevMarginClass = i - 1 > 0 ? (prev.isParticle ? "ml-1" : "ml-3") : "";
-                    const tileClass = (particle: boolean) =>
-                      `rounded-xl px-3 py-2 text-base shadow-sm border whitespace-nowrap ${
-                        particle
-                          ? "bg-[#F4F0EA] text-[#8A837D] border-[#EBE5DE]"
-                          : "bg-white text-foreground border-[#EBE5DE]"
-                      }`;
-                    return (
-                      <div
-                        key={i}
-                        className={`inline-flex items-center rounded-xl border-[1.5px] border-dashed border-primary bg-[#F4F9F6] p-1 ${prevMarginClass}`}
-                      >
-                        <span className={tileClass(prev.isParticle)}>{prev.content}</span>
-                        <button
-                          type="button"
-                          onClick={() => mergeLeft(i)}
-                          title="여기서 합치기 확정"
-                          className="mx-[-4px] z-[1] flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
-                        >
-                          <Link2 className="w-3 h-3" />
-                        </button>
-                        <span className={tileClass(t.isParticle)}>{t.content}</span>
-                        <button
-                          type="button"
-                          onClick={() => setMergePreviewIdx(null)}
-                          className="ml-1 px-1 text-[11px] text-[#6B6460] hover:text-foreground"
-                        >
-                          취소
-                        </button>
-                      </div>
-                    );
-                  }
 
                   // 6a · 나누기 2단계 — 글자 사이 막대 후보를 보여주고, 누른 자리에서만 실제로 갈라짐
                   if (splitIdx === i) {
@@ -303,10 +261,7 @@ export function WordMagnetEditCard({
                       {i > 0 && (
                         <button
                           type="button"
-                          onClick={() => {
-                            setMergePreviewIdx(i);
-                            setSplitIdx(null);
-                          }}
+                          onClick={() => mergeLeft(i)}
                           title="앞 타일과 합치기"
                           className="absolute top-1/2 -left-2 -translate-y-1/2 z-10 hidden h-5 w-5 items-center justify-center rounded-full border border-[#E3DCD3] bg-white text-[#8A837D] shadow-sm hover:text-primary hover:border-primary/50 sm:group-hover:flex"
                         >
@@ -316,10 +271,7 @@ export function WordMagnetEditCard({
                       {t.content.length > 1 && (
                         <button
                           type="button"
-                          onClick={() => {
-                            setSplitIdx(i);
-                            setMergePreviewIdx(null);
-                          }}
+                          onClick={() => setSplitIdx(i)}
                           title="나누기"
                           className="absolute -top-2 left-1/2 -translate-x-1/2 z-10 hidden h-5 w-5 items-center justify-center rounded-full border border-[#E3DCD3] bg-white text-[#8A837D] shadow-sm hover:text-primary hover:border-primary/50 sm:group-hover:flex"
                         >
@@ -356,7 +308,6 @@ export function WordMagnetEditCard({
                       className="justify-start h-12"
                       onClick={() => {
                         setSplitIdx(mobileActionIdx);
-                        setMergePreviewIdx(null);
                         setMobileActionIdx(null);
                       }}
                     >
@@ -369,8 +320,7 @@ export function WordMagnetEditCard({
                       variant="outline"
                       className="justify-start h-12"
                       onClick={() => {
-                        setMergePreviewIdx(mobileActionIdx);
-                        setSplitIdx(null);
+                        mergeLeft(mobileActionIdx);
                         setMobileActionIdx(null);
                       }}
                     >
@@ -395,8 +345,8 @@ export function WordMagnetEditCard({
             )}
             {index === 0 && (
               <p className="text-[11px] text-muted-foreground">
-                칩 클릭 = 조사/어미 토글 · 마우스를 올리면 나누기(✂)·합치기(🔗) 버튼이 나타납니다 — 나누기는 자리를
-                고른 뒤, 합치기는 미리보기를 확인한 뒤에 적용됩니다.
+                칩 클릭 = 조사/어미 토글 · 마우스를 올리면 나누기(✂)·합치기(🔗) 버튼이 나타납니다 — 나누기는
+                자리를 고른 뒤 적용되고, 합치기는 누르는 즉시 적용됩니다(되돌리기 가능).
               </p>
             )}
           </div>
