@@ -549,7 +549,9 @@ export default function Quizzes() {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              setExpandedQuizId((cur) => (cur === quiz.id ? null : quiz.id));
+                              setSelectedQuizForShare(quiz);
+                              setSendDialogOpen(true);
+                              setSelectedClassId("");
                             }}
                           >
                             배정하기
@@ -671,7 +673,13 @@ export default function Quizzes() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          setExpandedQuizId((cur) => (cur === quiz.id ? null : quiz.id));
+                          if (unassigned) {
+                            setSelectedQuizForShare(quiz);
+                            setSendDialogOpen(true);
+                            setSelectedClassId("");
+                          } else {
+                            setExpandedQuizId((cur) => (cur === quiz.id ? null : quiz.id));
+                          }
                         }}
                         className="text-xs font-semibold text-[#6B6460] border border-[#E3DCD3] rounded-md px-2.5 py-1"
                       >
