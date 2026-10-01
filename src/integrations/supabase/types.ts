@@ -1457,6 +1457,7 @@ export type Database = {
       }
       word_magnet_problems: {
         Row: {
+          acceptable_orders: Json
           base_text: string
           created_at: string
           id: string
@@ -1467,6 +1468,7 @@ export type Database = {
           translation: string | null
         }
         Insert: {
+          acceptable_orders?: Json
           base_text: string
           created_at?: string
           id?: string
@@ -1477,6 +1479,7 @@ export type Database = {
           translation?: string | null
         }
         Update: {
+          acceptable_orders?: Json
           base_text?: string
           created_at?: string
           id?: string

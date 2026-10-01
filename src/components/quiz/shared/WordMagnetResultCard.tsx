@@ -16,6 +16,11 @@ interface WordMagnetResultCardProps {
  * 아래 '내 답변 / 정답' 라벨 행. WordMagnetResultStage와 결과 페이지들이 공유한다.
  */
 export function WordMagnetResultCard({ result: r, index, answerLabel = "내 답변" }: WordMagnetResultCardProps) {
+  // 채점은 공백을 무시하므로 같은 기준으로 비교해야 띄어쓰기 차이를 다른 어순으로 오인하지 않는다.
+  const strip = (s: string) => s.replace(/\s+/g, "");
+  const isAlternateOrder =
+    r.isCorrect && !!r.userSentence && strip(r.userSentence) !== strip(r.correctSentence);
+
   return (
     <Card className="overflow-hidden border bg-white rounded-2xl shadow-sm">
       <CardContent className="p-6">
@@ -59,11 +64,23 @@ export function WordMagnetResultCard({ result: r, index, answerLabel = "내 답�
             </div>
           </div>
         ) : r.isCorrect ? (
-          <div className="flex items-start gap-3">
-            <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-accent text-primary">
-              정답
-            </span>
-            <p className="text-lg font-bold leading-relaxed text-foreground break-keep">{r.correctSentence}</p>
+          /* 허용 어순으로 맞힌 경우 학생이 쓴 문장과 base_text가 다르다.
+             그때 base_text를 "정답"이라고 내보이면 자기가 쓴 것과 달라 혼란스러우므로,
+             맞힌 문장을 그대로 보여주고 기본 답안은 아래에 따로 안내한다. */
+          <div className="space-y-2">
+            <div className="flex items-start gap-3">
+              <span className="shrink-0 text-xs font-bold py-1 w-16 text-center rounded-md mt-0.5 bg-accent text-primary">
+                정답
+              </span>
+              <p className="text-lg font-bold leading-relaxed text-foreground break-keep">
+                {r.userSentence || r.correctSentence}
+              </p>
+            </div>
+            {isAlternateOrder && (
+              <p className="text-xs text-muted-foreground pl-[76px] break-keep">
+                이 순서도 맞아요 · 기본 답안: {r.correctSentence}
+              </p>
+            )}
           </div>
         ) : (
           <div className="space-y-3">

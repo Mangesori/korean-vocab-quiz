@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Loader2, Trash2, Scissors, Link2, Sparkles, RefreshCw, GripVertical, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
 import { unmaskTranslation } from "@/utils/maskTranslation";
+import { assembleForDisplay, stripSpaces } from "@/lib/korean/wordMagnet";
 
 export interface TileItem {
   content: string;
@@ -30,6 +32,14 @@ interface WordMagnetEditCardProps {
   onChangeBaseText: (value: string) => void;
   onChangeTranslation: (value: string) => void;
   onChangeItems: (items: TileItem[]) => void;
+  /**
+   * base_text 외에 정답으로 인정할 어순들. 한국어는 조사가 격을 표시해 어순이
+   * 비교적 자유롭지만("어제 저는 갔어요" = "저는 어제 갔어요"), 어떤 재배열이
+   * 자연스러운지는 문법 제약을 봐야 알 수 있어 자동 판정이 어렵다.
+   * 그래서 선생님이 직접 골라 등록하고, 채점은 이 목록과의 일치만 본다.
+   */
+  acceptableOrders?: string[];
+  onChangeAcceptableOrders?: (orders: string[]) => void;
   /** AI 재분절(선택) */
   onResegment?: () => void;
   resegmenting?: boolean;
@@ -51,6 +61,8 @@ export function WordMagnetEditCard({
   onChangeBaseText,
   onChangeTranslation,
   onChangeItems,
+  acceptableOrders = [],
+  onChangeAcceptableOrders,
   onResegment,
   resegmenting = false,
   onRegenerateProblem,
@@ -66,10 +78,20 @@ export function WordMagnetEditCard({
   const [lastMerge, setLastMerge] = useState<TileItem[] | null>(null);
   // 16-5 · 모바일 진입 경로 — 호버가 없으므로 탭하면 이 타일에 대한 액션 시트를 연다.
   const [mobileActionIdx, setMobileActionIdx] = useState<number | null>(null);
+  // 허용 어순 추가 패널: 학생 화면과 같은 방식(타일을 눌러 배열)으로 직접 만들어 본다.
+  const [altOpen, setAltOpen] = useState(false);
+  const [altSlot, setAltSlot] = useState<number[]>([]);   // items 인덱스 순서
 
   const toggleParticle = (i: number) => {
     setLastMerge(null);
     onChangeItems(items.map((it, idx) => (idx === i ? { ...it, isParticle: !it.isParticle } : it)));
+  };
+
+  // 타일 구성이 바뀌면 기존 허용 어순은 더 이상 그 타일들로 만들 수 없으므로 비운다.
+  // (조사 표시 토글은 내용이 그대로라 영향 없음)
+  const resetAcceptableOrders = () => {
+    setAltSlot([]);
+    if (acceptableOrders.length > 0) onChangeAcceptableOrders?.([]);
   };
 
   const mergeLeft = (i: number) => {
@@ -80,6 +102,7 @@ export function WordMagnetEditCard({
     };
     setLastMerge(items);
     onChangeItems([...items.slice(0, i - 1), merged, ...items.slice(i + 1)]);
+    resetAcceptableOrders();
   };
 
   const undoLastMerge = () => {
@@ -98,6 +121,7 @@ export function WordMagnetEditCard({
     setLastMerge(null);
     onChangeItems([...items.slice(0, i), left, right, ...items.slice(i + 1)]);
     setSplitIdx(null);
+    resetAcceptableOrders();
   };
 
   return (
@@ -341,6 +365,126 @@ export function WordMagnetEditCard({
                 >
                   되돌리기
                 </button>
+              </div>
+            )}
+            {onChangeAcceptableOrders && items.length > 1 && (
+              <div className="mt-1 border-t border-dashed border-[#EAE4DC] pt-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-[#6B6460]">
+                    다른 정답 어순
+                    {acceptableOrders.length > 0 && ` (${acceptableOrders.length}개)`}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-primary hover:bg-primary/10"
+                    onClick={() => {
+                      setAltOpen((v) => !v);
+                      setAltSlot([]);
+                    }}
+                  >
+                    {altOpen ? "닫기" : "＋ 추가"}
+                  </Button>
+                </div>
+
+                {acceptableOrders.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {acceptableOrders.map((order, oi) => (
+                      <span
+                        key={`${order}-${oi}`}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-[#E8F5EE] px-2 py-1 text-[13px] text-primary"
+                      >
+                        {order}
+                        <button
+                          type="button"
+                          aria-label="이 어순 삭제"
+                          className="text-primary/70 hover:text-primary"
+                          onClick={() =>
+                            onChangeAcceptableOrders(acceptableOrders.filter((_, k) => k !== oi))
+                          }
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {altOpen && (
+                  <div className="mt-2 rounded-[9px] border border-dashed border-[#E3DCD3] bg-[#FCFBF9] p-2.5">
+                    <div className="mb-2 flex min-h-[42px] flex-wrap items-center rounded-lg border border-[#E3DCD3] bg-white p-2">
+                      {altSlot.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">
+                          아래 타일을 눌러 다른 순서로 배열하세요
+                        </span>
+                      ) : (
+                        altSlot.map((ti, pos) => (
+                          <button
+                            key={`${ti}-${pos}`}
+                            type="button"
+                            onClick={() => setAltSlot((prev) => prev.filter((_, k) => k !== pos))}
+                            className={`rounded-lg border px-2.5 py-1.5 text-sm ${
+                              pos > 0 ? (items[ti].isParticle ? "ml-0.5" : "ml-2.5") : ""
+                            } ${
+                              items[ti].isParticle
+                                ? "border-[#EBE5DE] bg-[#F4F0EA] text-[#8A837D]"
+                                : "border-[#EBE5DE] bg-white"
+                            }`}
+                          >
+                            {items[ti].content}
+                          </button>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="mb-2 flex flex-wrap gap-1.5">
+                      {items.map((t, ti) =>
+                        altSlot.includes(ti) ? null : (
+                          <button
+                            key={ti}
+                            type="button"
+                            onClick={() => setAltSlot((prev) => [...prev, ti])}
+                            className={`rounded-lg border px-2.5 py-1.5 text-sm ${
+                              t.isParticle
+                                ? "border-[#EBE5DE] bg-[#F4F0EA] text-[#8A837D]"
+                                : "border-[#EBE5DE] bg-white"
+                            }`}
+                          >
+                            {t.content}
+                          </button>
+                        )
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-8 text-xs"
+                        disabled={altSlot.length !== items.length}
+                        onClick={() => {
+                          const sentence = assembleForDisplay(altSlot.map((ti) => items[ti]));
+                          if (stripSpaces(sentence) === stripSpaces(assembleForDisplay(items))) {
+                            toast.error("기본 문장과 같은 순서예요.");
+                            return;
+                          }
+                          if (acceptableOrders.some((o) => stripSpaces(o) === stripSpaces(sentence))) {
+                            toast.error("이미 추가된 어순이에요.");
+                            return;
+                          }
+                          onChangeAcceptableOrders([...acceptableOrders, sentence]);
+                          setAltSlot([]);
+                        }}
+                      >
+                        이 순서도 정답으로 추가
+                      </Button>
+                      <span className="text-[11px] text-muted-foreground">
+                        타일을 모두 배치해야 추가할 수 있어요
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {index === 0 && (

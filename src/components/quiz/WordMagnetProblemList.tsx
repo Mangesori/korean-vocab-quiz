@@ -36,6 +36,8 @@ export interface WordMagnetProblem {
   base_text: string;
   translation: string | null;
   items: Array<{ content: string; isParticle: boolean }>;
+  /** base_text 외에 정답으로 인정할 어순들. 선생님이 직접 등록한다. */
+  acceptable_orders?: string[] | null;
   created_at: string;
   sort_order: number;
 }
@@ -128,6 +130,10 @@ export function WordMagnetProblemList({
 
   const handleUpdateItems = (id: string, items: WordMagnetProblem["items"]) => {
     setEditedProblems((prev) => prev.map((p) => (p.id === id ? { ...p, items } : p)));
+  };
+
+  const handleUpdateAcceptableOrders = (id: string, orders: string[]) => {
+    setEditedProblems((prev) => prev.map((p) => (p.id === id ? { ...p, acceptable_orders: orders } : p)));
   };
 
   const handleResegment = async (id: string) => {
@@ -324,6 +330,7 @@ export function WordMagnetProblemList({
               base_text: problem.base_text,
               translation: problem.translation || null,
               items: itemsToSave,
+              acceptable_orders: problem.acceptable_orders ?? [],
               sort_order: problem.sort_order,
             });
           } else {
@@ -333,6 +340,7 @@ export function WordMagnetProblemList({
                 base_text: problem.base_text,
                 translation: problem.translation || null,
                 items: itemsToSave,
+                acceptable_orders: problem.acceptable_orders ?? [],
                 sort_order: problem.sort_order,
               })
               .eq("id", problem.id);
@@ -525,6 +533,10 @@ export function WordMagnetProblemList({
                           onChangeBaseText={(v) => handleUpdateProblem(problem.id, "base_text", v)}
                           onChangeTranslation={(v) => handleUpdateProblem(problem.id, "translation", v)}
                           onChangeItems={(items) => handleUpdateItems(problem.id, items)}
+                          acceptableOrders={problem.acceptable_orders ?? []}
+                          onChangeAcceptableOrders={(orders) =>
+                            handleUpdateAcceptableOrders(problem.id, orders)
+                          }
                           onResegment={() => handleResegment(problem.id)}
                           resegmenting={resegmentingId === problem.id}
                           onRegenerateProblem={() => handleRegenerateProblem(problem.id)}
