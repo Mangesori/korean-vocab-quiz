@@ -40,6 +40,9 @@ interface WordMagnetEditCardProps {
    */
   acceptableOrders?: string[];
   onChangeAcceptableOrders?: (orders: string[]) => void;
+  /** AI에게 허용 어순을 제안받아 목록에 합친다(선택). */
+  onSuggestOrders?: () => void;
+  suggestingOrders?: boolean;
   /** AI 재분절(선택) */
   onResegment?: () => void;
   resegmenting?: boolean;
@@ -63,6 +66,8 @@ export function WordMagnetEditCard({
   onChangeItems,
   acceptableOrders = [],
   onChangeAcceptableOrders,
+  onSuggestOrders,
+  suggestingOrders = false,
   onResegment,
   resegmenting = false,
   onRegenerateProblem,
@@ -374,18 +379,37 @@ export function WordMagnetEditCard({
                     다른 정답 어순
                     {acceptableOrders.length > 0 && ` (${acceptableOrders.length}개)`}
                   </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-primary hover:bg-primary/10"
-                    onClick={() => {
-                      setAltOpen((v) => !v);
-                      setAltSlot([]);
-                    }}
-                  >
-                    {altOpen ? "닫기" : "＋ 추가"}
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    {onSuggestOrders && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-primary hover:bg-primary/10"
+                        onClick={onSuggestOrders}
+                        disabled={suggestingOrders}
+                      >
+                        {suggestingOrders ? (
+                          <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5 mr-1" />
+                        )}
+                        AI 추천
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-primary hover:bg-primary/10"
+                      onClick={() => {
+                        setAltOpen((v) => !v);
+                        setAltSlot([]);
+                      }}
+                    >
+                      {altOpen ? "닫기" : "＋ 직접 추가"}
+                    </Button>
+                  </div>
                 </div>
 
                 {acceptableOrders.length > 0 && (
@@ -409,6 +433,11 @@ export function WordMagnetEditCard({
                       </span>
                     ))}
                   </div>
+                )}
+                {acceptableOrders.length > 0 && (
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">
+                    여기 있는 어순은 모두 정답으로 채점돼요. AI가 제안한 것 중 어색한 게 있으면 ✕로 지워 주세요.
+                  </p>
                 )}
 
                 {altOpen && (

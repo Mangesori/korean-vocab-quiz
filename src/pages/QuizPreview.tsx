@@ -21,6 +21,7 @@ import { TypeAnswerPreview } from "@/components/quiz/TypeAnswerPreview";
 import { WordMagnetPreview } from "@/components/quiz/WordMagnetPreview";
 import { parseSentenceToItems } from "@/lib/korean/wordMagnet";
 import { segmentSentences } from "@/lib/korean/segment";
+import { suggestAcceptableOrders, mergeOrders } from "@/lib/korean/suggestOrders";
 import { isShortSentenceLevel } from "@/lib/quiz";
 import { quizInsertErrorMessage, readEdgeFunctionError } from "@/lib/supabaseErrors";
 import { STAGE_ORDER, STAGE_LABELS, type BaseStage } from "@/types/quiz";
@@ -57,6 +58,7 @@ export default function QuizPreview() {
   const [studentPreview, setStudentPreview] = useState(false);
   const [isSegmenting, setIsSegmenting] = useState(false);
   const [resegmentingId, setResegmentingId] = useState<string | null>(null);
+  const [suggestingWordMagnetIds, setSuggestingWordMagnetIds] = useState<Set<string>>(new Set());
   const [regeneratingWordMagnetId, setRegeneratingWordMagnetId] = useState<string | null>(null);
   const [regeneratingRecId, setRegeneratingRecId] = useState<string | null>(null);
   const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
@@ -185,6 +187,50 @@ export default function QuizPreview() {
     setDraft((prev) => (prev ? { ...prev, typeAnswerProblems: taProblems } : null));
   }, [draft?.typeAnswerEnabled, draft?.problems, draft?.typeAnswerProblems]);
 
+  /**
+   * 문장 순서 맞추기 허용 어순을 AI에게 제안받아 반영한다. "replace"는 타일이 막 바뀌어
+   * 비워둔 목록을 채우고, "merge"는 선생님이 넣은 것을 지키며 덧붙인다.
+   * 응답이 오는 사이 타일이 바뀌었으면 옛 타일 기준 제안이라 버린다.
+   * 상태 setter만 쓰므로 의존성 없이 고정해 둔다.
+   */
+  const applyWordMagnetSuggestions = useCallback(
+    async (
+      targets: { problem_id: string; items: { content: string; isParticle: boolean }[] }[],
+      mode: "merge" | "replace",
+    ) => {
+      const eligible = targets.filter((t) => t.items.length > 2);
+      if (eligible.length === 0) return {} as Record<string, string[]>;
+      setSuggestingWordMagnetIds((prev) => new Set([...prev, ...eligible.map((t) => t.problem_id)]));
+      try {
+        const map = await suggestAcceptableOrders(
+          eligible.map((t) => ({ id: t.problem_id, tiles: t.items }))
+        );
+        if (!map) return null;
+        const sentAt = new Map(eligible.map((t) => [t.problem_id, JSON.stringify(t.items)]));
+        setDraft((prev) => {
+          if (!prev?.wordMagnetProblems) return prev;
+          return {
+            ...prev,
+            wordMagnetProblems: prev.wordMagnetProblems.map((p) => {
+              const incoming = map[p.problem_id];
+              if (!incoming || sentAt.get(p.problem_id) !== JSON.stringify(p.items)) return p;
+              const existing = mode === "merge" ? (p.acceptable_orders ?? []) : [];
+              return { ...p, acceptable_orders: mergeOrders(existing, incoming, p.base_text) };
+            }),
+          };
+        });
+        return map;
+      } finally {
+        setSuggestingWordMagnetIds((prev) => {
+          const next = new Set(prev);
+          eligible.forEach((t) => next.delete(t.problem_id));
+          return next;
+        });
+      }
+    },
+    [],
+  );
+
   // 빈칸 채우기 문장에서 파생되는 base_text를 다시 계산하되, 이미 있는 word_magnet
   // 항목과 base_text가 동일한 문제는 그대로 재사용(교사가 손으로 고친 타일 순서 보존 +
   // 안 바뀐 문제까지 AI 분절 API를 다시 부르는 낭비 방지). 실제로 문장이 바뀌었거나
@@ -256,8 +302,10 @@ export default function QuizPreview() {
     );
 
     // 2) 바뀐/새 문제만 AI 분절로 업그레이드(실패 시 휴리스틱 유지)
+    let segmented: Record<string, { content: string; isParticle: boolean }[]> = {};
     try {
       const map = await segmentSentences(toSegment.map((b) => ({ id: b.problem_id, text: b.base_text })));
+      segmented = map;
       setDraft((prev) =>
         prev
           ? {
@@ -277,7 +325,19 @@ export default function QuizPreview() {
     } finally {
       setIsSegmenting(false);
     }
-  }, [draft?.wordMagnetEnabled, draft?.problems, draft?.wordMagnetProblems]);
+
+    // 3) 새 타일 기준으로 허용 어순 자동 제안(부가 기능 — 실패해도 조용히 넘어간다)
+    void applyWordMagnetSuggestions(
+      toSegment.map((b) => ({
+        problem_id: b.problem_id,
+        items:
+          segmented[b.problem_id] && segmented[b.problem_id].length > 0
+            ? segmented[b.problem_id]
+            : heuristic(b.base_text),
+      })),
+      "replace",
+    );
+  }, [draft?.wordMagnetEnabled, draft?.problems, draft?.wordMagnetProblems, applyWordMagnetSuggestions]);
 
   const updateWordMagnetItems = (
     problemId: string,
@@ -294,13 +354,54 @@ export default function QuizPreview() {
     });
   };
 
+  // 타일이 통째로 바뀌는 경로(재분절·재생성)용 — 기존 허용 어순은 새 타일로 만들 수 없으니 함께 비운다.
+  const replaceWordMagnetTiles = (
+    problemId: string,
+    items: { content: string; isParticle: boolean }[]
+  ) => {
+    setDraft((prev) => {
+      if (!prev || !prev.wordMagnetProblems) return prev;
+      return {
+        ...prev,
+        wordMagnetProblems: prev.wordMagnetProblems.map((p) =>
+          p.problem_id === problemId ? { ...p, items, acceptable_orders: [] } : p
+        ),
+      };
+    });
+  };
+
+  const updateWordMagnetAcceptableOrders = (problemId: string, orders: string[]) => {
+    setDraft((prev) => {
+      if (!prev || !prev.wordMagnetProblems) return prev;
+      return {
+        ...prev,
+        wordMagnetProblems: prev.wordMagnetProblems.map((p) =>
+          p.problem_id === problemId ? { ...p, acceptable_orders: orders } : p
+        ),
+      };
+    });
+  };
+
+  const suggestWordMagnetOrders = async (problemId: string) => {
+    const target = draft?.wordMagnetProblems?.find((p) => p.problem_id === problemId);
+    if (!target) return;
+    const map = await applyWordMagnetSuggestions([target], "merge");
+    if (map === null) {
+      toast.error("AI 추천을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+    } else if ((map[problemId]?.length ?? 0) === 0) {
+      toast.info("이 문장은 다른 자연스러운 어순이 없다고 판단했어요.");
+    }
+  };
+
   const resegmentWordMagnetProblem = async (problemId: string) => {
     const target = draft?.wordMagnetProblems?.find((p) => p.problem_id === problemId);
     if (!target || !target.base_text.trim()) return;
     setResegmentingId(problemId);
     try {
       const map = await segmentSentences([{ id: problemId, text: target.base_text }]);
-      updateWordMagnetItems(problemId, map[problemId] || []);
+      const items = map[problemId] || [];
+      replaceWordMagnetTiles(problemId, items);
+      void applyWordMagnetSuggestions([{ problem_id: problemId, items }], "replace");
     } finally {
       setResegmentingId(null);
     }
@@ -365,6 +466,7 @@ export default function QuizPreview() {
                   base_text: baseText,
                   translation,
                   items: parseSentenceToItems(baseText).map((it) => ({ content: it.content, isParticle: it.isParticle })),
+                  acceptable_orders: [],
                 }
               : p
           ),
@@ -377,14 +479,17 @@ export default function QuizPreview() {
         };
       });
 
+      let finalItems = parseSentenceToItems(baseText).map((it) => ({ content: it.content, isParticle: it.isParticle }));
       try {
         const map = await segmentSentences([{ id: problemId, text: baseText }]);
         if (map[problemId] && map[problemId].length > 0) {
-          updateWordMagnetItems(problemId, map[problemId]);
+          finalItems = map[problemId];
+          replaceWordMagnetTiles(problemId, finalItems);
         }
       } catch (segErr) {
         console.error("Segmentation upgrade failed, keeping heuristic tiles:", segErr);
       }
+      void applyWordMagnetSuggestions([{ problem_id: problemId, items: finalItems }], "replace");
 
       toast.success("문제가 재생성되었습니다");
     } catch (err) {
@@ -594,7 +699,8 @@ export default function QuizPreview() {
             content: it.content,
             isParticle: it.isParticle,
           }));
-          return { ...p, base_text: value, items };
+          // 문장이 바뀌면 타일도 다시 만들어지므로 기존 허용 어순은 더 이상 유효하지 않다.
+          return { ...p, base_text: value, items, acceptable_orders: [] };
         }
         return { ...p, translation: value };
       });
@@ -946,6 +1052,7 @@ export default function QuizPreview() {
             base_text: p.base_text,
             translation: p.translation || null,
             items: p.items,
+            acceptable_orders: p.acceptable_orders ?? [],
             sort_order: index,
           })) as unknown as Database["public"]["Tables"]["word_magnet_problems"]["Insert"][];
 
@@ -1295,6 +1402,9 @@ export default function QuizPreview() {
               studentPreview={studentPreview}
               updateWordMagnetProblem={updateWordMagnetProblem}
               updateWordMagnetItems={updateWordMagnetItems}
+              updateWordMagnetAcceptableOrders={updateWordMagnetAcceptableOrders}
+              suggestWordMagnetOrders={suggestWordMagnetOrders}
+              suggestingWordMagnetIds={suggestingWordMagnetIds}
               resegmentWordMagnetProblem={resegmentWordMagnetProblem}
               resegmentingId={resegmentingId}
               regenerateWordMagnetProblem={regenerateWordMagnetProblem}

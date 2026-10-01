@@ -9,6 +9,9 @@ interface WordMagnetPreviewProps {
   studentPreview: boolean;
   updateWordMagnetProblem: (id: string, field: "base_text" | "translation", value: string) => void;
   updateWordMagnetItems: (id: string, items: { content: string; isParticle: boolean }[]) => void;
+  updateWordMagnetAcceptableOrders: (id: string, orders: string[]) => void;
+  suggestWordMagnetOrders: (id: string) => void;
+  suggestingWordMagnetIds: Set<string>;
   resegmentWordMagnetProblem: (id: string) => void;
   resegmentingId: string | null;
   regenerateWordMagnetProblem: (id: string) => void;
@@ -24,6 +27,9 @@ export function WordMagnetPreview({
   studentPreview,
   updateWordMagnetProblem,
   updateWordMagnetItems,
+  updateWordMagnetAcceptableOrders,
+  suggestWordMagnetOrders,
+  suggestingWordMagnetIds,
   resegmentWordMagnetProblem,
   resegmentingId,
   regenerateWordMagnetProblem,
@@ -61,6 +67,10 @@ export function WordMagnetPreview({
                 onChangeBaseText={(v) => updateWordMagnetProblem(problem.problem_id, "base_text", v)}
                 onChangeTranslation={(v) => updateWordMagnetProblem(problem.problem_id, "translation", v)}
                 onChangeItems={(items) => updateWordMagnetItems(problem.problem_id, items)}
+                acceptableOrders={problem.acceptable_orders ?? []}
+                onChangeAcceptableOrders={(orders) => updateWordMagnetAcceptableOrders(problem.problem_id, orders)}
+                onSuggestOrders={() => suggestWordMagnetOrders(problem.problem_id)}
+                suggestingOrders={suggestingWordMagnetIds.has(problem.problem_id)}
                 onResegment={() => resegmentWordMagnetProblem(problem.problem_id)}
                 resegmenting={resegmentingId === problem.problem_id}
                 onRegenerateProblem={() => regenerateWordMagnetProblem(problem.problem_id)}

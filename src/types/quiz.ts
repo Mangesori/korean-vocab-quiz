@@ -63,6 +63,8 @@ export interface WordMagnetProblem {
   base_text: string; // 정답 완성 문장
   translation: string; // 프롬프트(번역)
   items: WordMagnetItemData[];
+  /** base_text 외에 정답으로 인정할 어순들(AI 제안 + 선생님 직접 추가). */
+  acceptable_orders?: string[];
 }
 
 export interface RecordingProblem {

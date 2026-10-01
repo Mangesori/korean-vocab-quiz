@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { parseSentenceToItems } from "@/lib/korean/wordMagnet";
 import { segmentSentences } from "@/lib/korean/segment";
+import { suggestAcceptableOrders, mergeOrders } from "@/lib/korean/suggestOrders";
 import { WordMagnetStudentView } from "@/components/quiz/shared/WordMagnetStudentView";
 import { WordMagnetEditCard } from "@/components/quiz/shared/WordMagnetEditCard";
 import { isShortSentenceLevel } from "@/lib/quiz";
@@ -94,6 +95,7 @@ export function WordMagnetProblemList({
   const [resegmentingId, setResegmentingId] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [isRegeneratingAll, setIsRegeneratingAll] = useState(false);
+  const [suggestingIds, setSuggestingIds] = useState<Set<string>>(new Set());
   const { id: quizId } = useParams<{ id: string }>();
 
   useEffect(() => {
@@ -136,13 +138,67 @@ export function WordMagnetProblemList({
     setEditedProblems((prev) => prev.map((p) => (p.id === id ? { ...p, acceptable_orders: orders } : p)));
   };
 
+  // 타일이 통째로 바뀌는 경로(재분절·재생성)용 — 기존 허용 어순은 새 타일로 만들 수 없으니 함께 비운다.
+  const replaceTiles = (id: string, items: WordMagnetProblem["items"]) => {
+    setEditedProblems((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, items, acceptable_orders: [] } : p))
+    );
+  };
+
+  /**
+   * AI 허용 어순 제안을 받아 반영한다. mode "merge"는 선생님이 넣은 것을 지키며 덧붙이고,
+   * "replace"는 방금 타일이 바뀌어 비워둔 목록을 채운다.
+   * 응답이 오는 사이 선생님이 타일을 고쳤으면 그 제안은 옛 타일 기준이라 버린다.
+   */
+  const applySuggestions = async (
+    targets: { id: string; items: WordMagnetProblem["items"]; base_text: string }[],
+    mode: "merge" | "replace",
+  ) => {
+    const eligible = targets.filter((t) => t.items.length > 2);
+    if (eligible.length === 0) return {};
+    setSuggestingIds((prev) => new Set([...prev, ...eligible.map((t) => t.id)]));
+    try {
+      const map = await suggestAcceptableOrders(eligible.map((t) => ({ id: t.id, tiles: t.items })));
+      if (!map) return null;
+      const sentAt = new Map(eligible.map((t) => [t.id, JSON.stringify(t.items)]));
+      setEditedProblems((prev) =>
+        prev.map((p) => {
+          const incoming = map[p.id];
+          if (!incoming || sentAt.get(p.id) !== JSON.stringify(p.items)) return p;
+          const existing = mode === "merge" ? (p.acceptable_orders ?? []) : [];
+          return { ...p, acceptable_orders: mergeOrders(existing, incoming, p.base_text) };
+        })
+      );
+      return map;
+    } finally {
+      setSuggestingIds((prev) => {
+        const next = new Set(prev);
+        eligible.forEach((t) => next.delete(t.id));
+        return next;
+      });
+    }
+  };
+
+  const handleSuggestOrders = async (id: string) => {
+    const target = editedProblems.find((p) => p.id === id);
+    if (!target) return;
+    const map = await applySuggestions([target], "merge");
+    if (map === null) {
+      toast.error("AI 추천을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+    } else if ((map[id]?.length ?? 0) === 0) {
+      toast.info("이 문장은 다른 자연스러운 어순이 없다고 판단했어요.");
+    }
+  };
+
   const handleResegment = async (id: string) => {
     const target = editedProblems.find((p) => p.id === id);
     if (!target || !target.base_text.trim()) return;
     setResegmentingId(id);
     try {
       const map = await segmentSentences([{ id, text: target.base_text }]);
-      handleUpdateItems(id, map[id] || []);
+      const items = map[id] || [];
+      replaceTiles(id, items);
+      void applySuggestions([{ id, items, base_text: target.base_text }], "replace");
     } finally {
       setResegmentingId(null);
     }
@@ -179,18 +235,25 @@ export function WordMagnetProblemList({
       const heuristicItems = parseSentenceToItems(baseText).map((it) => ({ content: it.content, isParticle: it.isParticle }));
 
       setEditedProblems((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, base_text: baseText, translation, items: heuristicItems } : p))
+        prev.map((p) =>
+          p.id === id
+            ? { ...p, base_text: baseText, translation, items: heuristicItems, acceptable_orders: [] }
+            : p
+        )
       );
       if (!isEditing) setIsEditing(true);
 
+      let finalItems = heuristicItems;
       try {
         const map = await segmentSentences([{ id, text: baseText }]);
         if (map[id] && map[id].length > 0) {
-          handleUpdateItems(id, map[id]);
+          finalItems = map[id];
+          replaceTiles(id, finalItems);
         }
       } catch (segErr) {
         console.error("Segmentation upgrade failed, keeping heuristic tiles:", segErr);
       }
+      void applySuggestions([{ id, items: finalItems, base_text: baseText }], "replace");
 
       toast.success("문제가 재생성되었습니다");
     } catch (error: any) {
@@ -240,6 +303,7 @@ export function WordMagnetProblemList({
           base_text: baseText,
           translation,
           items: parseSentenceToItems(baseText).map((it) => ({ content: it.content, isParticle: it.isParticle })),
+          acceptable_orders: [],
         };
       });
       setEditedProblems(updated);
@@ -253,14 +317,24 @@ export function WordMagnetProblemList({
         .map((p) => ({ id: p.id, text: p.base_text }));
 
       if (toSegment.length > 0) {
+        let map: Record<string, WordMagnetProblem["items"]> = {};
         try {
-          const map = await segmentSentences(toSegment);
+          map = await segmentSentences(toSegment);
           setEditedProblems((prev) =>
             prev.map((p) => (map[p.id] && map[p.id].length > 0 ? { ...p, items: map[p.id] } : p))
           );
         } catch (segErr) {
           console.error("Segmentation upgrade failed, keeping heuristic tiles:", segErr);
         }
+        const regenerated = updated.filter((p) => toSegment.some((s) => s.id === p.id));
+        void applySuggestions(
+          regenerated.map((p) => ({
+            id: p.id,
+            items: map[p.id] && map[p.id].length > 0 ? map[p.id] : p.items,
+            base_text: p.base_text,
+          })),
+          "replace",
+        );
       }
 
       toast.success("전체 문제가 재생성되었습니다");
@@ -537,6 +611,8 @@ export function WordMagnetProblemList({
                           onChangeAcceptableOrders={(orders) =>
                             handleUpdateAcceptableOrders(problem.id, orders)
                           }
+                          onSuggestOrders={() => handleSuggestOrders(problem.id)}
+                          suggestingOrders={suggestingIds.has(problem.id)}
                           onResegment={() => handleResegment(problem.id)}
                           resegmenting={resegmentingId === problem.id}
                           onRegenerateProblem={() => handleRegenerateProblem(problem.id)}

@@ -31,7 +31,15 @@ export interface CallClaudeOptions {
   timeoutMs?: number;
   /** 지정하면 output_config.format으로 구조화된 출력을 요청한다. */
   outputSchema?: ClaudeJsonSchemaFormat;
+  /**
+   * "default"면 안전 분류기가 요청을 거절(stop_reason: "refusal")했을 때 API가 같은
+   * 요청을 대체 모델로 다시 돌린다(서버 측 폴백, 베타). 거절 범주별로 대체 모델을
+   * API가 고르므로 모델 목록을 관리할 필요가 없다. 지정하지 않으면 기존 동작 그대로.
+   */
+  fallbacks?: "default";
 }
+
+const FALLBACK_BETA = "server-side-fallback-2026-07-01";
 
 export interface ClaudeCallResult {
   /**
@@ -111,6 +119,7 @@ export async function callClaude(
     system,
     timeoutMs,
     outputSchema,
+    fallbacks,
   } = options;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -129,14 +138,18 @@ export async function callClaude(
         messages: [{ role: "user", content: prompt }],
       };
       if (system) body.system = system;
+      if (fallbacks) body.fallbacks = fallbacks;
+
+      const headers: Record<string, string> = {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      };
+      if (fallbacks) headers["anthropic-beta"] = FALLBACK_BETA;
 
       response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: {
-          "x-api-key": ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-          "content-type": "application/json",
-        },
+        headers,
         body: JSON.stringify(body),
         signal: controller.signal,
       });
