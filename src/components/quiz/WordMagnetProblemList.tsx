@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Edit2, Save, Loader2, Plus, Eye, Info, RefreshCw, MoreVertical } from "lucide-react";
+import { Edit2, Save, Loader2, Plus, Eye, Info, RefreshCw, MoreVertical, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -176,6 +176,39 @@ export function WordMagnetProblemList({
         eligible.forEach((t) => next.delete(t.id));
         return next;
       });
+    }
+  };
+
+  // 모든 문제에 한 번에 AI 허용 어순 추천 — 선생님이 이미 넣은 어순은 지키고 덧붙인다.
+  const handleSuggestAll = async () => {
+    const targets = editedProblems.filter((p) => p.items.length > 2);
+    if (targets.length === 0) {
+      toast.info("어순을 바꿀 수 있는 문제가 없어요.");
+      return;
+    }
+    if (!isEditing) setIsEditing(true);
+
+    const map = await applySuggestions(targets, "merge");
+    if (map === null) {
+      toast.error("AI 추천을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+
+    let added = 0;
+    let problemsWithNew = 0;
+    for (const t of targets) {
+      const existing = t.acceptable_orders ?? [];
+      const n = mergeOrders(existing, map[t.id] ?? [], t.base_text).length - existing.length;
+      if (n > 0) problemsWithNew++;
+      added += n;
+    }
+    const failed = targets.filter((t) => !(t.id in map)).length;
+    const failNote = failed > 0 ? ` (${failed}개 문제는 불러오지 못했어요)` : "";
+
+    if (added === 0) {
+      toast.info(`새로 추천할 어순이 없었어요.${failNote}`);
+    } else {
+      toast.success(`${problemsWithNew}개 문제에 어순 ${added}개를 추천했어요. 확인 후 저장해 주세요.${failNote}`);
     }
   };
 
@@ -545,6 +578,21 @@ export function WordMagnetProblemList({
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSuggestAll}
+            disabled={suggestingIds.size > 0}
+            className="shrink-0 h-11 rounded-[11px] sm:h-9 sm:rounded-md text-primary"
+            title="모든 문제에 정답으로 인정할 다른 어순을 AI로 추천받습니다"
+          >
+            {suggestingIds.size > 0 ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4 mr-2" />
+            )}
+            <span>전체 AI 추천</span>
+          </Button>
           {isEditing ? (
             <>
               <Button
