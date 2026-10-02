@@ -8,6 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Save, Loader2, ArrowLeft, Eye, EyeOff, ArrowRight, ChevronRight } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { LevelBadge } from "@/components/ui/level-badge";
@@ -59,6 +69,11 @@ export default function QuizPreview() {
   const [isSegmenting, setIsSegmenting] = useState(false);
   const [resegmentingId, setResegmentingId] = useState<string | null>(null);
   const [suggestingWordMagnetIds, setSuggestingWordMagnetIds] = useState<Set<string>>(new Set());
+  // 어순 추천이 끝나기 전에 저장을 누르면 확인 팝업을 띄우고, "기다렸다가 저장"을 고르면
+  // 추천이 끝나는 즉시 자동 저장한다(saveQuiz는 조기 return 아래에 정의돼 ref로 부른다).
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+  const [waitingToSave, setWaitingToSave] = useState(false);
+  const saveQuizRef = useRef<() => Promise<void>>();
   const [regeneratingWordMagnetId, setRegeneratingWordMagnetId] = useState<string | null>(null);
   const [regeneratingRecId, setRegeneratingRecId] = useState<string | null>(null);
   const [showTranslations, setShowTranslations] = useState<Record<string, boolean>>({});
@@ -520,6 +535,18 @@ export default function QuizPreview() {
     }
     setPreviewStage(nextStage);
   };
+
+  // 분절 직후 곧바로 어순 추천이 이어지므로(같은 틱에 상태가 바뀜) 둘을 함께 "준비 중"으로 본다.
+  // 분절 중에 저장하면 타일도 임시(휴리스틱) 상태로 저장되기 때문에 함께 기다리는 게 맞다.
+  const wordMagnetPreparing =
+    !!draft?.wordMagnetEnabled && (isSegmenting || suggestingWordMagnetIds.size > 0);
+
+  useEffect(() => {
+    if (waitingToSave && !wordMagnetPreparing) {
+      setWaitingToSave(false);
+      void saveQuizRef.current?.();
+    }
+  }, [waitingToSave, wordMagnetPreparing]);
 
   useEffect(() => {
     if (draft) {
@@ -1227,6 +1254,16 @@ export default function QuizPreview() {
   };
 
   // 첫 퀴즈를 막 저장했을 때: 목록/상세로 바로 넘기지 않고 여기서 잠깐 멈춰 피드백을 유도한다.
+  saveQuizRef.current = saveQuiz;
+
+  const handleSaveClick = () => {
+    if (wordMagnetPreparing) {
+      setSaveConfirmOpen(true);
+      return;
+    }
+    void saveQuiz();
+  };
+
   if (firstQuizSavedId) {
     return (
       <AppLayout>
@@ -1309,9 +1346,9 @@ export default function QuizPreview() {
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               ) : (
-                <Button onClick={saveQuiz} disabled={isSaving} size="lg">
-                  {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                  저장하기
+                <Button onClick={handleSaveClick} disabled={isSaving || waitingToSave} size="lg">
+                  {isSaving || waitingToSave ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                  {waitingToSave ? "어순 추천 기다리는 중…" : "저장하기"}
                 </Button>
               )}
             </div>
@@ -1455,13 +1492,36 @@ export default function QuizPreview() {
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={saveQuiz} disabled={isSaving} size="lg">
-              {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-              퀴즈 저장하기
+            <Button onClick={handleSaveClick} disabled={isSaving || waitingToSave} size="lg">
+              {isSaving || waitingToSave ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              {waitingToSave ? "어순 추천 기다리는 중…" : "퀴즈 저장하기"}
             </Button>
           )}
         </div>
       </div>
+
+      <AlertDialog open={saveConfirmOpen} onOpenChange={setSaveConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>다른 정답 어순을 아직 추천받고 있어요</AlertDialogTitle>
+            <AlertDialogDescription>
+              문장 순서 맞추기에서 정답으로 인정할 다른 어순을 AI가 찾고 있어요. 보통 1분 안에 끝나요.
+              <br />
+              지금 저장하면 다른 어순 없이 저장돼요. 나중에 퀴즈 편집 화면의 "전체 AI 추천"으로 추가할 수 있어요.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-background text-foreground border border-input hover:bg-accent hover:text-accent-foreground"
+              onClick={() => void saveQuiz()}
+            >
+              지금 저장
+            </AlertDialogAction>
+            <AlertDialogAction onClick={() => setWaitingToSave(true)}>기다렸다가 저장</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
