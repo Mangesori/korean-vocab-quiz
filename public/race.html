@@ -3,23 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#F9F7F4">
+<meta name="theme-color" content="#F8F5F0">
 <title>단어 달리기</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" media="print" onload="this.media='all'">
 <style>
 :root {
-  --green: #1F6B48;
-  --green-dark: #17523A;
-  --bg: #F9F7F4;
-  --line: #E5DFDA;
-  --mint: #DCF0E4;
-  --panel: #FAF8F5;
-  --ink: #1B1917;
-  --sub: #6B635E;
-  --amber: #B4831C;
-  --amber-soft: #F5EAD0;
-  --red: #C0452B;
-  --red-soft: #F6E1DB;
+  /* 색 값은 DESIGN.md 기준 */
+  --green: #1E6B47;
+  --green-dark: #155237;
+  --bg: #F8F5F0;
+  --line: #E2DDD8;
+  --line-strong: #D3CCC4;
+  --mint: #E8F5EE;
+  --panel: #FFFFFF;
+  --ink: #1A1714;
+  --sub: #6B6460;
+  --hint: #9E9894;
+  --ok: #2D7D52;
+  --material: #F8FAFC;
+  --amber: #A9641A;
+  --amber-soft: #FDF0DC;
+  --red: #C13B2E;
+  --red-dark: #9E2F25;
+  --red-soft: #FBEDEA;
   --sky: #F4F0EA;
   --ground: #E9E1D6;
   --ground-edge: #D5CABD;
@@ -50,7 +56,8 @@ h1, h2, h3, p { margin: 0; }
 
 /* ---------- 공통 부품 ---------- */
 .corner { position: fixed; top: calc(8px + env(safe-area-inset-top)); right: 10px; z-index: 50; display: flex; align-items: center; gap: 6px; }
-.icon-btn { height: 36px; min-width: 36px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); font-size: 16px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+.icon-btn { height: 44px; min-width: 44px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--sub); font-size: 16px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+.icon-btn svg { width: 20px; height: 20px; display: block; }
 .icon-btn.armed { background: var(--red-soft); border-color: var(--red); color: var(--red); font-size: 13px; font-weight: 600; }
 .conn { width: 10px; height: 10px; border-radius: 50%; background: var(--line); margin-right: 2px; }
 .conn[data-s="on"] { background: var(--green); }
@@ -58,7 +65,7 @@ h1, h2, h3, p { margin: 0; }
 .conn[data-s="off"] { background: var(--red); }
 @keyframes blink { 50% { opacity: .35; } }
 
-.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; padding: 12px 18px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); font-size: 17px; font-weight: 600; }
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; padding: 12px 18px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); font-size: 17px; font-weight: 600; }
 .btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
 .btn.primary:active { background: var(--green-dark); }
 .btn.quiet { background: transparent; color: var(--sub); font-weight: 500; min-height: 44px; }
@@ -67,12 +74,12 @@ h1, h2, h3, p { margin: 0; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn small { font-weight: 500; opacity: .8; font-size: 13px; }
 .btn.small { width: auto; align-self: flex-start; min-height: 40px; padding: 6px 14px; font-size: 14px; border-radius: 10px; background: #fff; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
 .label { font-size: 13px; font-weight: 600; color: var(--sub); }
 .note { font-size: 13px; color: var(--sub); }
 .note.warn { color: var(--amber); }
 .note.bad { color: var(--red); }
-.field { width: 100%; min-height: 48px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font-size: 17px; outline: none; }
+.field { width: 100%; min-height: 48px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-size: 17px; outline: none; }
 .field:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--mint); }
 textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-size: 16px; }
 .code-input { text-align: center; font-size: 32px; font-weight: 700; letter-spacing: .3em; padding-left: .3em; }
@@ -81,14 +88,14 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .back { align-self: flex-start; border: 0; background: none; color: var(--sub); font-size: 15px; padding: 8px 4px; }
 
 .colors { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-.colors button { height: 60px; border-radius: 12px; border: 2px solid transparent; background: #fff; padding: 0; display: flex; align-items: center; justify-content: center; }
+.colors button { height: 60px; border-radius: 10px; border: 2px solid transparent; background: #fff; padding: 0; display: flex; align-items: center; justify-content: center; }
 .colors button[aria-pressed="true"] { border-color: var(--green); background: var(--mint); }
 
 .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .sets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .sets .btn.small { align-self: auto; }
 .sets .btn.small.ghost { color: var(--sub, #6B635E); border-style: dashed; }
-.seg button { min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font-size: 16px; font-weight: 600; }
+.seg button { min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-size: 16px; font-weight: 600; }
 .seg button[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: #fff; }
 
 .roster { display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; }
@@ -153,7 +160,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .rn.cheer .rn-arm-b { transform: rotate(112deg); }
 .rn.cheer .rn-air { animation: rn-hop .3s ease-out infinite alternate; }
 @keyframes rn-hop { from { transform: translateY(0); } to { transform: translateY(-14%); } }
-.rn-tag { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 1px; max-width: 96px; padding: 0 6px; border-radius: 999px; background: rgba(250,248,245,.92); border: 1px solid var(--line); font-size: 11px; font-weight: 700; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rn-tag { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 1px; max-width: 96px; padding: 0 6px; border-radius: 999px; background: rgba(255,255,255,.92); border: 1px solid var(--line); font-size: 11px; font-weight: 700; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rn-tag.mine { background: var(--green); border-color: var(--green); color: #fff; }
 
 /* ---------- 처음 화면 ---------- */
@@ -187,16 +194,18 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .mini .dot { position: absolute; top: 10px; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--c, var(--sub)); opacity: .75; will-change: left; }
 .mini .dot.me { width: 16px; height: 16px; margin: -8px 0 0 -8px; opacity: 1; z-index: 2; border: 2px solid #fff; box-shadow: 0 0 0 2px var(--ink); }
 
-.g-prompt { margin: 0 12px 8px; padding: 6px 14px; height: 108px; flex: none; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transition: background-color .15s, border-color .15s; }
-.g-prompt .p-label { font-size: 12px; font-weight: 600; color: var(--sub); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.g-prompt .p-main { width: 100%; max-height: 82px; overflow: hidden; font-size: 30px; font-weight: 800; letter-spacing: -.01em; line-height: 1.15; word-break: keep-all; overflow-wrap: anywhere; }
-.g-prompt.bad { background: var(--red-soft); border-color: var(--red); }
-.g-prompt.bad .p-label { color: var(--red); font-size: 14px; font-weight: 700; }
-.g-prompt.good { background: var(--mint); border-color: var(--green); }
+/* 흰 카드: 위는 안내문구, 아래 회색 칸은 문제 재료(뜻·문장)만 */
+.g-prompt { margin: 0 12px 8px; padding: 6px 8px 8px; height: 116px; box-sizing: border-box; flex: none; border-radius: 12px; background: var(--panel); border: 2px solid var(--line); display: flex; flex-direction: column; align-items: stretch; gap: 4px; text-align: center; transition: border-color .15s; }
+.g-prompt .p-label { flex: none; min-height: 18px; font-size: 13px; font-weight: 600; color: var(--sub); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-prompt .p-box { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0 10px; border-radius: 10px; background: var(--material); overflow: hidden; }
+.g-prompt .p-main { width: 100%; max-height: 68px; overflow: hidden; font-size: 28px; font-weight: 800; letter-spacing: -.01em; line-height: 1.15; word-break: keep-all; overflow-wrap: anywhere; }
+.g-prompt.bad { border-color: var(--red); }
+.g-prompt.bad .p-label { color: var(--red); font-weight: 700; }
+.g-prompt.good { border-color: var(--ok); }
+.g-prompt.good .p-label { color: var(--ok); font-weight: 700; }
 /* 문장형 문제의 빈칸 */
 .blank { display: inline-block; min-width: 2.4em; padding: 0 .25em; margin: 0 .12em; border-bottom: 3px solid var(--amber); background: var(--amber-soft); border-radius: 6px 6px 0 0; line-height: 1.12; }
 .blank.filled { color: var(--green); border-bottom-color: var(--green); background: var(--mint); }
-.g-prompt.good .blank.filled { background: #fff; }
 
 /* 옆에서 본 트랙. 배경 2겹 + 바닥이 서로 다른 빠르기로 흐름(패럴랙스) */
 .scene { position: relative; flex: 1; min-height: 120px; overflow: hidden; background: var(--sky); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); --gh: 100px; --feet: 16px; }
@@ -222,22 +231,33 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .speedlines i:nth-child(5) { top: 39%; animation-delay: -.27s; }
 @keyframes sl { to { transform: translateX(-580%); } }
 .hint { position: absolute; left: 12px; right: 12px; top: 10px; z-index: 5; pointer-events: none; text-align: center; font-size: 14px; font-weight: 600; color: var(--sub); }
-.hint span { background: rgba(250,248,245,.94); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; display: inline-block; }
+.hint span { background: rgba(255,255,255,.94); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; display: inline-block; }
 .scene.shake { animation: shake .3s; }
 @keyframes shake { 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
 
 /* 단어 버튼 3개 */
 /* 영역 높이는 한 판 동안 고정(보기 수가 문제마다 달라도 장면이 출렁이지 않게). 버튼이 그 안을 나눠 가짐 */
 .answers { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 2px; height: var(--ah, 196px); flex: none; }
-.ans { position: relative; display: flex; align-items: center; justify-content: center; flex: 1 1 0; min-height: 0; min-width: 0; padding: 2px 40px; border-radius: 14px; border: 2px solid var(--ink); border-bottom-width: 4px; background: #fff; text-align: center; overflow: hidden; touch-action: none; }
-.ans .k { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); color: var(--sub); font-size: 12px; font-weight: 700; line-height: 20px; }
+.ans { position: relative; display: flex; align-items: center; justify-content: center; flex: 1 1 0; min-height: 0; min-width: 0; padding: 2px 44px; border-radius: 12px; border: 1px solid var(--line); border-bottom: 4px solid var(--line-strong); background: #fff; color: var(--ink); text-align: center; overflow: hidden; touch-action: none; transition: background-color 80ms, border-color 80ms; }
+.ans:active:not(:disabled) { border-bottom-width: 2px; }
+.ans .k { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border-radius: 8px; background: var(--sub); color: #fff; font-size: 13px; font-weight: 800; line-height: 26px; }
+.ans[data-i="0"] .k { background: #B9502F; }
+.ans[data-i="1"] .k { background: #3B6FB6; }
+.ans[data-i="2"] .k { background: #7A5DB8; }
+.ans[data-i="3"] .k { background: #23766F; }
 .ans .t { display: block; width: 100%; font-size: 22px; font-weight: 700; line-height: 1.15; word-break: keep-all; }
 .ans:disabled { cursor: default; }
 .ans.off { opacity: .5; }
-.ans.dim { opacity: .4; }
-.ans.ok { background: var(--green); border-color: var(--green-dark); color: #fff; opacity: 1; }
-.ans.no { background: var(--red); border-color: #96351F; color: #fff; opacity: 1; }
-.ans.ok .k, .ans.no .k { background: rgba(255,255,255,.2); border-color: transparent; color: #fff; }
+.ans.dim { opacity: 1; color: var(--hint); border-bottom-color: var(--line); }
+.ans.dim .k { background: #EFEAE3; color: var(--hint); }
+/* 정답·오답은 색과 함께 ✓/✕ 표시로도 구분 */
+.ans.ok { background: var(--mint); border: 2px solid var(--ok); border-bottom: 4px solid var(--green); opacity: 1; }
+.ans.no { background: var(--red-soft); border: 2px solid var(--red); border-bottom: 4px solid var(--red-dark); opacity: 1; }
+.ans.ok .k, .ans.no .k { font-size: 0; }
+.ans.ok .k { background: var(--ok); }
+.ans.no .k { background: var(--red); }
+.ans.ok .k::before { content: "\2713"; font-size: 15px; }
+.ans.no .k::before { content: "\2715"; font-size: 13px; }
 
 .g-hud { display: flex; align-items: center; gap: 10px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); min-height: 46px; }
 .streak { font-size: 14px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--sub); white-space: nowrap; }
@@ -248,17 +268,18 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .tally { font-size: 13px; font-weight: 600; color: var(--sub); white-space: nowrap; }
 .tally b { color: var(--green); } .tally em { color: var(--red); font-style: normal; font-weight: 700; }
 
-.countdown { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: rgba(249,247,244,.82); pointer-events: none; }
+.countdown { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: rgba(248,245,240,.85); pointer-events: none; }
 .countdown .num { font-size: 120px; font-weight: 800; color: var(--green); line-height: 1; }
 .countdown .cap { font-size: 18px; font-weight: 600; color: var(--sub); }
 
 /* 낮은 화면(폰 가로): 버튼을 한 줄로 */
 @media (max-height: 520px) {
-  .g-prompt { height: 62px; padding: 4px 12px; margin-bottom: 4px; }
-  .g-prompt .p-main { font-size: 22px; max-height: 40px; }
+  .g-prompt { height: 70px; padding: 3px 6px 6px; margin-bottom: 4px; gap: 2px; }
+  .g-prompt .p-label { min-height: 16px; font-size: 12px; }
+  .g-prompt .p-main { font-size: 22px; max-height: 34px; }
   .answers { flex-direction: row; height: 58px !important; padding-top: 6px; }
-  .ans { padding: 2px 8px 2px 30px; }
-  .ans .k { left: 6px; }
+  .ans { padding: 2px 8px 2px 36px; }
+  .ans .k { left: 6px; width: 24px; height: 24px; line-height: 24px; }
   .hint { display: none; }
 }
 
@@ -271,7 +292,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .w-count { font-size: clamp(15px, 1.6vw, 22px); font-weight: 600; color: var(--sub); }
 .w-head .btn { width: auto; min-height: 42px; margin-left: auto; font-size: 15px; }
 .w-body { flex: 1; min-height: 0; display: flex; gap: 16px; }
-.w-lanes { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; background: var(--ground); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; overflow: hidden; }
+.w-lanes { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; background: var(--ground); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; overflow: hidden; }
 .w-empty { text-align: center; color: var(--sub); font-size: 20px; }
 .lane { display: flex; align-items: center; gap: 10px; flex: 1 1 0; min-height: 0; max-height: 96px; }
 .lane-label { width: 8em; flex: none; display: flex; align-items: center; gap: .4em; font-size: .4em; font-weight: 700; overflow: hidden; }
@@ -285,7 +306,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .lane-runner .rn { width: .93em; height: 1.2em; }
 .lane.fin .lane-name { color: var(--green); }
 .lane.gone { opacity: .45; }
-.w-side { width: clamp(220px, 22vw, 320px); flex: none; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.w-side { width: clamp(220px, 22vw, 320px); flex: none; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
 .w-side h3 { font-size: 16px; color: var(--sub); }
 .board { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .board li { display: flex; align-items: center; gap: 8px; font-size: clamp(16px, 1.7vw, 24px); font-weight: 700; }
@@ -348,8 +369,8 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 
   <div class="corner">
     <span id="conn" class="conn" hidden title="연결 상태" aria-label="연결 상태"></span>
-    <button id="btnMute" class="icon-btn" type="button" aria-label="소리 켜기/끄기">🔊</button>
-    <button id="btnQuit" class="icon-btn" type="button" aria-label="나가기" hidden>✕</button>
+    <button id="btnMute" class="icon-btn" type="button" aria-label="소리 끄기"></button>
+    <button id="btnQuit" class="icon-btn" type="button" aria-label="나가기" hidden></button>
   </div>
 
   <!-- 처음 화면 -->
@@ -481,7 +502,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     </div>
     <div id="gPrompt" class="g-prompt">
       <span id="pLabel" class="p-label">이 뜻의 단어는?</span>
-      <div id="pMain" class="p-main"></div>
+      <div class="p-box"><div id="pMain" class="p-main"></div></div>
     </div>
     <div id="scene" class="scene">
       <div id="scFar" class="sc-far"></div>
@@ -2453,7 +2474,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     } else {
       sfx.wrong();
       game.prompt.className = 'g-prompt bad';
-      setText(game.pLabel, '틀렸어요! 정답은 「' + q.answer + '」');
+      setText(game.pLabel, '아쉬워요 · 정답은 「' + q.answer + '」');
     }
   }
 
@@ -2466,7 +2487,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     });
     sfx.wrong();
     game.prompt.className = 'g-prompt bad';
-    setText(game.pLabel, '시간 초과! 정답은 「' + q.answer + '」');
+    setText(game.pLabel, '시간 초과 · 정답은 「' + q.answer + '」');
     if (q.kind === 's') setPromptText(q, true);
   }
 
@@ -3074,7 +3095,16 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     }
   }
 
-  function updateMuteButton() { setText($('btnMute'), muted ? '🔇' : '🔊'); }
+  // 아이콘은 고정된 문자열만 넣음(사용자 입력 없음)
+  const ICON_SOUND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>';
+  const ICON_MUTED = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M22 9l-6 6M16 9l6 6"/></svg>';
+  const ICON_CLOSE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+
+  function updateMuteButton() {
+    const b = $('btnMute');
+    b.innerHTML = muted ? ICON_MUTED : ICON_SOUND;
+    b.setAttribute('aria-label', muted ? '소리 켜기' : '소리 끄기');
+  }
 
   /* ====================================================================
    * 7. 화면 전환
@@ -3109,14 +3139,14 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   function disarm(btn) {
     if (!btn.classList.contains('armed')) return;
     btn.classList.remove('armed');
-    btn.textContent = btn.dataset.label || '✕';
+    btn.innerHTML = btn.dataset.label || ICON_CLOSE;   // armConfirm 이 저장해 둔 원래 내용(고정 문자열)
     clearTimeout(Number(btn.dataset.timer) || 0);
   }
 
   function armConfirm(btn, askText, action) {
     btn.addEventListener('click', function () {
       if (btn.classList.contains('armed')) { disarm(btn); action(); return; }
-      btn.dataset.label = btn.textContent;
+      btn.dataset.label = btn.innerHTML;
       btn.classList.add('armed');
       btn.textContent = askText;
       btn.dataset.timer = String(setTimeout(function () { disarm(btn); }, 3000));
@@ -3265,6 +3295,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   function init() {
     bindEvents();
     updateMuteButton();
+    $('btnQuit').innerHTML = ICON_CLOSE;
     const urlCode = roomFromUrl();
     if (urlCode) {
       show('join');
