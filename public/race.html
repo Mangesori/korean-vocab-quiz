@@ -1,0 +1,3284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#F9F7F4">
+<title>단어 달리기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" media="print" onload="this.media='all'">
+<style>
+:root {
+  --green: #1F6B48;
+  --green-dark: #17523A;
+  --bg: #F9F7F4;
+  --line: #E5DFDA;
+  --mint: #DCF0E4;
+  --panel: #FAF8F5;
+  --ink: #1B1917;
+  --sub: #6B635E;
+  --amber: #B4831C;
+  --amber-soft: #F5EAD0;
+  --red: #C0452B;
+  --red-soft: #F6E1DB;
+  --sky: #F4F0EA;
+  --ground: #E9E1D6;
+  --ground-edge: #D5CABD;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Segoe UI", Roboto, sans-serif;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.45;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-user-select: none; user-select: none;
+  -webkit-text-size-adjust: 100%;
+}
+input, textarea { -webkit-user-select: text; user-select: text; font: inherit; color: inherit; }
+button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+h1, h2, h3, p { margin: 0; }
+
+#app { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
+.screen { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; max-width: 480px; margin: 0 auto; }
+.screen.scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 56px 20px calc(24px + env(safe-area-inset-bottom)); gap: 16px; }
+.screen.wide { max-width: 1200px; }
+
+/* ---------- 공통 부품 ---------- */
+.corner { position: fixed; top: calc(8px + env(safe-area-inset-top)); right: 10px; z-index: 50; display: flex; align-items: center; gap: 6px; }
+.icon-btn { height: 36px; min-width: 36px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); font-size: 16px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+.icon-btn.armed { background: var(--red-soft); border-color: var(--red); color: var(--red); font-size: 13px; font-weight: 600; }
+.conn { width: 10px; height: 10px; border-radius: 50%; background: var(--line); margin-right: 2px; }
+.conn[data-s="on"] { background: var(--green); }
+.conn[data-s="connecting"] { background: var(--amber); animation: blink 1s infinite; }
+.conn[data-s="off"] { background: var(--red); }
+@keyframes blink { 50% { opacity: .35; } }
+
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; padding: 12px 18px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); font-size: 17px; font-weight: 600; }
+.btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
+.btn.primary:active { background: var(--green-dark); }
+.btn.quiet { background: transparent; color: var(--sub); font-weight: 500; min-height: 44px; }
+.btn.warn { color: var(--red); }
+.btn.armed { background: var(--red-soft); border-color: var(--red); color: var(--red); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn small { font-weight: 500; opacity: .8; font-size: 13px; }
+.btn.small { width: auto; align-self: flex-start; min-height: 40px; padding: 6px 14px; font-size: 14px; border-radius: 10px; background: #fff; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.label { font-size: 13px; font-weight: 600; color: var(--sub); }
+.note { font-size: 13px; color: var(--sub); }
+.note.warn { color: var(--amber); }
+.note.bad { color: var(--red); }
+.field { width: 100%; min-height: 48px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font-size: 17px; outline: none; }
+.field:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--mint); }
+textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-size: 16px; }
+.code-input { text-align: center; font-size: 32px; font-weight: 700; letter-spacing: .3em; padding-left: .3em; }
+.title { font-size: 34px; font-weight: 800; letter-spacing: -.02em; }
+.h2 { font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+.back { align-self: flex-start; border: 0; background: none; color: var(--sub); font-size: 15px; padding: 8px 4px; }
+
+.colors { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.colors button { height: 60px; border-radius: 12px; border: 2px solid transparent; background: #fff; padding: 0; display: flex; align-items: center; justify-content: center; }
+.colors button[aria-pressed="true"] { border-color: var(--green); background: var(--mint); }
+
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.sets .btn.small { align-self: auto; }
+.sets .btn.small.ghost { color: var(--sub, #6B635E); border-style: dashed; }
+.seg button { min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font-size: 16px; font-weight: 600; }
+.seg button[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: #fff; }
+
+.roster { display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 8px; min-height: 36px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font-size: 15px; font-weight: 500; max-width: 100%; }
+.chip .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip.me { border-color: var(--green); background: var(--mint); }
+.chip.host { color: var(--sub); padding-left: 12px; }
+
+/* ---------- 캐릭터(코드로 그린 SVG). 동작은 전부 CSS 키프레임 ---------- */
+.rn { position: relative; display: inline-block; flex: none; width: 31px; height: 40px; --c: #1F6B48; --rd: .26s; --jh: 46px; --jd: .69s; --fd: 1.6s; }
+.rn-air, .rn-spin { width: 100%; height: 100%; }
+.rn-air { transform-origin: 50% 100%; }
+.rn-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.rn-c { fill: var(--c); }
+.rn-arm-f, .rn-arm-b { transform-origin: 22.5px 26px; }
+.rn-leg-f, .rn-leg-b { transform-origin: 23px 42px; }
+/* ① 달리기: 팔다리가 번갈아 앞뒤로, 몸은 살짝 위아래로 */
+.rn-leg-f { animation: rn-leg-a var(--rd) ease-in-out infinite alternate; }
+.rn-leg-b { animation: rn-leg-b var(--rd) ease-in-out infinite alternate; }
+.rn-arm-f { animation: rn-arm-a var(--rd) ease-in-out infinite alternate; }
+.rn-arm-b { animation: rn-arm-b var(--rd) ease-in-out infinite alternate; }
+.rn-bob { animation: rn-bob calc(var(--rd) / 2) ease-in-out infinite alternate; }
+@keyframes rn-leg-a { from { transform: rotate(-44deg); } to { transform: rotate(40deg); } }
+@keyframes rn-leg-b { from { transform: rotate(40deg); } to { transform: rotate(-44deg); } }
+@keyframes rn-arm-a { from { transform: rotate(52deg); } to { transform: rotate(-56deg); } }
+@keyframes rn-arm-b { from { transform: rotate(-56deg); } to { transform: rotate(52deg); } }
+@keyframes rn-bob { from { transform: translateY(0); } to { transform: translateY(-2px); } }
+/* 서 있기 */
+.rn.still .rn-limb, .rn.still .rn-bob { animation: none; }
+/* ② 점프: 허들 넘는 자세로 포물선, 착지 때 살짝 눌림 */
+.rn.jump .rn-air { animation: rn-jump var(--jd) linear 1; }
+.rn.jump .rn-limb, .rn.jump .rn-bob { animation: none; }
+.rn.jump .rn-leg-f { transform: rotate(-80deg); }
+.rn.jump .rn-leg-b { transform: rotate(58deg); }
+.rn.jump .rn-arm-f { transform: rotate(72deg); }
+.rn.jump .rn-arm-b { transform: rotate(-112deg); }
+@keyframes rn-jump {
+  0% { transform: translateY(0); animation-timing-function: cubic-bezier(.5, 1, .89, 1); }
+  43.5% { transform: translateY(calc(-1 * var(--jh))); animation-timing-function: cubic-bezier(.11, 0, .5, 0); }
+  87% { transform: translateY(0) scale(1, 1); }
+  93% { transform: translateY(0) scale(1.1, .86); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+/* 연속 정답이 많으면 공중제비 */
+.rn-spin { transform-origin: 50% 55%; }
+.rn.flip .rn-spin { animation: rn-flip calc(var(--jd) * .87) ease-in-out 1; }
+@keyframes rn-flip { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+/* ③ 넘어짐: 앞으로 고꾸라졌다가 일어남 */
+.rn.fall .rn-spin { transform-origin: 82% 100%; animation: rn-fall var(--fd) ease-out 1 forwards; }
+.rn.fall .rn-limb, .rn.fall .rn-bob { animation: none; }
+.rn.fall .rn-arm-f, .rn.fall .rn-arm-b { transform: rotate(-150deg); }
+@keyframes rn-fall {
+  0% { transform: rotate(0); }
+  16% { transform: rotate(96deg) translateY(3px); }
+  22% { transform: rotate(86deg); }
+  68% { transform: rotate(88deg); }
+  100% { transform: rotate(0); }
+}
+/* ④ 만세 */
+.rn.cheer .rn-limb, .rn.cheer .rn-bob { animation: none; }
+.rn.cheer .rn-arm-f { transform: rotate(-112deg); }
+.rn.cheer .rn-arm-b { transform: rotate(112deg); }
+.rn.cheer .rn-air { animation: rn-hop .3s ease-out infinite alternate; }
+@keyframes rn-hop { from { transform: translateY(0); } to { transform: translateY(-14%); } }
+.rn-tag { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 1px; max-width: 96px; padding: 0 6px; border-radius: 999px; background: rgba(250,248,245,.92); border: 1px solid var(--line); font-size: 11px; font-weight: 700; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rn-tag.mine { background: var(--green); border-color: var(--green); color: #fff; }
+
+/* ---------- 처음 화면 ---------- */
+.hero { text-align: center; padding: 10px 0 6px; }
+.hero .rn { margin-bottom: 4px; }
+.hero p { color: var(--sub); margin-top: 6px; }
+.rules { font-size: 14px; color: var(--sub); padding-left: 18px; margin: 0; display: grid; gap: 4px; }
+
+/* ---------- 방장 대기실 ---------- */
+.host-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.join-card { align-items: center; text-align: center; padding: 24px 16px; }
+.room-code { font-size: clamp(64px, 11vw, 132px); font-weight: 800; letter-spacing: .08em; line-height: 1; color: var(--green); }
+.join-url { font-size: clamp(15px, 1.7vw, 22px); font-weight: 600; word-break: break-all; -webkit-user-select: text; user-select: text; }
+.qr { background: #fff; padding: 10px; border-radius: 12px; border: 1px solid var(--line); line-height: 0; }
+.qr svg { width: clamp(140px, 17vw, 220px); height: auto; display: block; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 500; min-height: 44px; }
+.check input { width: 22px; height: 22px; accent-color: var(--green); }
+.stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (max-width: 760px) { .host-grid { grid-template-columns: 1fr; } }
+
+/* ---------- 달리기 화면 ---------- */
+#scr-game { position: relative; background: var(--bg); }
+.g-top { padding: calc(8px + env(safe-area-inset-top)) 12px 6px; display: flex; flex-direction: column; gap: 6px; }
+.g-stats { display: flex; align-items: baseline; gap: 12px; min-height: 36px; padding-right: 104px; }
+.g-rank { font-size: 22px; font-weight: 800; color: var(--green); white-space: nowrap; }
+.g-rank small { font-size: 13px; font-weight: 600; color: var(--sub); margin-left: 2px; }
+.g-time { font-size: 15px; font-weight: 600; color: var(--sub); }
+.mini { position: relative; height: 20px; margin: 0 20px 0 10px; }
+.mini::before { content: ""; position: absolute; left: -10px; right: -10px; top: 9px; height: 3px; border-radius: 2px; background: var(--line); }
+.mini::after { content: ""; position: absolute; right: -16px; top: 1px; width: 6px; height: 18px; background: repeating-conic-gradient(var(--ink) 0% 25%, #fff 0% 50%) 0 0 / 6px 6px; opacity: .8; }
+.mini .dot { position: absolute; top: 10px; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--c, var(--sub)); opacity: .75; will-change: left; }
+.mini .dot.me { width: 16px; height: 16px; margin: -8px 0 0 -8px; opacity: 1; z-index: 2; border: 2px solid #fff; box-shadow: 0 0 0 2px var(--ink); }
+
+.g-prompt { margin: 0 12px 8px; padding: 6px 14px; height: 108px; flex: none; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transition: background-color .15s, border-color .15s; }
+.g-prompt .p-label { font-size: 12px; font-weight: 600; color: var(--sub); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-prompt .p-main { width: 100%; max-height: 82px; overflow: hidden; font-size: 30px; font-weight: 800; letter-spacing: -.01em; line-height: 1.15; word-break: keep-all; overflow-wrap: anywhere; }
+.g-prompt.bad { background: var(--red-soft); border-color: var(--red); }
+.g-prompt.bad .p-label { color: var(--red); font-size: 14px; font-weight: 700; }
+.g-prompt.good { background: var(--mint); border-color: var(--green); }
+/* 문장형 문제의 빈칸 */
+.blank { display: inline-block; min-width: 2.4em; padding: 0 .25em; margin: 0 .12em; border-bottom: 3px solid var(--amber); background: var(--amber-soft); border-radius: 6px 6px 0 0; line-height: 1.12; }
+.blank.filled { color: var(--green); border-bottom-color: var(--green); background: var(--mint); }
+.g-prompt.good .blank.filled { background: #fff; }
+
+/* 옆에서 본 트랙. 배경 2겹 + 바닥이 서로 다른 빠르기로 흐름(패럴랙스) */
+.scene { position: relative; flex: 1; min-height: 120px; overflow: hidden; background: var(--sky); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); --gh: 100px; --feet: 16px; }
+.sc-far { position: absolute; left: 0; bottom: var(--gh); width: calc(100% + 260px); height: 96px; will-change: transform;
+  background: radial-gradient(ellipse 130px 84px at 50% 100%, #E6EFE4 99%, transparent 100%) 0 100% / 260px 96px repeat-x; }
+.sc-mid { position: absolute; left: 0; bottom: var(--gh); width: calc(100% + 140px); height: 44px; will-change: transform;
+  background: radial-gradient(ellipse 52px 34px at 35% 100%, #CFE5D6 99%, transparent 100%) 0 100% / 140px 44px repeat-x; }
+.sc-ground { position: absolute; left: 0; right: 0; bottom: 0; height: var(--gh); background: var(--ground); border-top: 3px solid var(--ground-edge); overflow: hidden; }
+.sc-stripes { position: absolute; left: 0; top: 0; bottom: 0; width: calc(100% + 80px); will-change: transform;
+  background: repeating-linear-gradient(90deg, rgba(27,25,23,.05) 0 40px, transparent 40px 80px); }
+.hurdle { position: absolute; left: 0; bottom: var(--feet); width: 20px; height: 34px; z-index: 3; will-change: transform; }
+.hurdle i { position: absolute; inset: 0; border: 3px solid #3F3935; border-bottom: 0; border-top: 9px solid var(--amber); border-radius: 3px 3px 0 0; transform-origin: 100% 100%; transition: transform .16s ease-in, opacity .16s; }
+.hurdle.down i { transform: rotate(84deg); opacity: .5; }
+.finish { position: absolute; left: 0; bottom: 0; width: 16px; height: calc(var(--gh) + 34px); z-index: 2; will-change: transform; background: repeating-conic-gradient(var(--ink) 0% 25%, #fff 0% 50%) 0 0 / 16px 16px; opacity: .85; }
+.rivals { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.rival { position: absolute; left: 0; bottom: var(--feet); opacity: .55; will-change: transform; transform-origin: 50% 100%; line-height: 0; }
+.mebox { position: absolute; left: 0; bottom: var(--feet); z-index: 4; line-height: 0; }
+.mebox::before { content: ""; position: absolute; left: 12%; right: 12%; bottom: -4px; height: 9px; border-radius: 50%; background: rgba(27,25,23,.14); }
+.speedlines { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; }
+.speedlines i { position: absolute; right: -24%; width: 22%; height: 2px; border-radius: 2px; background: rgba(27,25,23,.2); animation: sl .42s linear infinite; }
+.speedlines i:nth-child(1) { top: 14%; } .speedlines i:nth-child(2) { top: 31%; animation-delay: -.2s; }
+.speedlines i:nth-child(3) { top: 47%; animation-delay: -.33s; } .speedlines i:nth-child(4) { top: 22%; animation-delay: -.1s; }
+.speedlines i:nth-child(5) { top: 39%; animation-delay: -.27s; }
+@keyframes sl { to { transform: translateX(-580%); } }
+.hint { position: absolute; left: 12px; right: 12px; top: 10px; z-index: 5; pointer-events: none; text-align: center; font-size: 14px; font-weight: 600; color: var(--sub); }
+.hint span { background: rgba(250,248,245,.94); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; display: inline-block; }
+.scene.shake { animation: shake .3s; }
+@keyframes shake { 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+
+/* 단어 버튼 3개 */
+/* 영역 높이는 한 판 동안 고정(보기 수가 문제마다 달라도 장면이 출렁이지 않게). 버튼이 그 안을 나눠 가짐 */
+.answers { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 2px; height: var(--ah, 196px); flex: none; }
+.ans { position: relative; display: flex; align-items: center; justify-content: center; flex: 1 1 0; min-height: 0; min-width: 0; padding: 2px 40px; border-radius: 14px; border: 2px solid var(--ink); border-bottom-width: 4px; background: #fff; text-align: center; overflow: hidden; touch-action: none; }
+.ans .k { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); color: var(--sub); font-size: 12px; font-weight: 700; line-height: 20px; }
+.ans .t { display: block; width: 100%; font-size: 22px; font-weight: 700; line-height: 1.15; word-break: keep-all; }
+.ans:disabled { cursor: default; }
+.ans.off { opacity: .5; }
+.ans.dim { opacity: .4; }
+.ans.ok { background: var(--green); border-color: var(--green-dark); color: #fff; opacity: 1; }
+.ans.no { background: var(--red); border-color: #96351F; color: #fff; opacity: 1; }
+.ans.ok .k, .ans.no .k { background: rgba(255,255,255,.2); border-color: transparent; color: #fff; }
+
+.g-hud { display: flex; align-items: center; gap: 10px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); min-height: 46px; }
+.streak { font-size: 14px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--sub); white-space: nowrap; }
+.streak.hot { background: var(--amber-soft); border-color: var(--amber); color: var(--amber); }
+.prog { flex: 1; height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+.prog i { display: block; height: 100%; width: 0; background: var(--green); border-radius: 5px; }
+.prog-txt { font-size: 14px; font-weight: 700; min-width: 40px; text-align: right; }
+.tally { font-size: 13px; font-weight: 600; color: var(--sub); white-space: nowrap; }
+.tally b { color: var(--green); } .tally em { color: var(--red); font-style: normal; font-weight: 700; }
+
+.countdown { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: rgba(249,247,244,.82); pointer-events: none; }
+.countdown .num { font-size: 120px; font-weight: 800; color: var(--green); line-height: 1; }
+.countdown .cap { font-size: 18px; font-weight: 600; color: var(--sub); }
+
+/* 낮은 화면(폰 가로): 버튼을 한 줄로 */
+@media (max-height: 520px) {
+  .g-prompt { height: 62px; padding: 4px 12px; margin-bottom: 4px; }
+  .g-prompt .p-main { font-size: 22px; max-height: 40px; }
+  .answers { flex-direction: row; height: 58px !important; padding-top: 6px; }
+  .ans { padding: 2px 8px 2px 30px; }
+  .ans .k { left: 6px; }
+  .hint { display: none; }
+}
+
+/* ---------- 관전 화면 ---------- */
+#scr-watch { padding: calc(10px + env(safe-area-inset-top)) 20px 16px; gap: 10px; max-width: none; }
+.w-head { display: flex; align-items: center; gap: 20px; padding-right: 110px; flex-wrap: wrap; }
+.w-title { font-size: clamp(20px, 2.4vw, 34px); font-weight: 800; }
+.w-title b { color: var(--green); letter-spacing: .06em; }
+.w-time { font-size: clamp(22px, 3vw, 44px); font-weight: 800; }
+.w-count { font-size: clamp(15px, 1.6vw, 22px); font-weight: 600; color: var(--sub); }
+.w-head .btn { width: auto; min-height: 42px; margin-left: auto; font-size: 15px; }
+.w-body { flex: 1; min-height: 0; display: flex; gap: 16px; }
+.w-lanes { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; background: var(--ground); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; overflow: hidden; }
+.w-empty { text-align: center; color: var(--sub); font-size: 20px; }
+.lane { display: flex; align-items: center; gap: 10px; flex: 1 1 0; min-height: 0; max-height: 96px; }
+.lane-label { width: 8em; flex: none; display: flex; align-items: center; gap: .4em; font-size: .4em; font-weight: 700; overflow: hidden; }
+.lane-rank { flex: none; min-width: 1.9em; height: 1.9em; border-radius: 1em; background: #fff; border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: .9em; }
+.lane-rank.top { background: var(--green); color: #fff; border-color: var(--green); }
+.lane-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lane-track { position: relative; flex: 1; align-self: stretch; border-bottom: 2px dashed var(--ground-edge); }
+.lane-track::after { content: ""; position: absolute; right: 0; top: 8%; bottom: 0; width: 8px; background: repeating-conic-gradient(var(--ink) 0% 25%, #fff 0% 50%) 0 0 / 8px 8px; opacity: .8; }
+.lane-rail { position: absolute; left: 0; right: 1.3em; top: 0; bottom: 0; }
+.lane-runner { position: absolute; left: 0; bottom: 0; line-height: 0; will-change: left; }
+.lane-runner .rn { width: .93em; height: 1.2em; }
+.lane.fin .lane-name { color: var(--green); }
+.lane.gone { opacity: .45; }
+.w-side { width: clamp(220px, 22vw, 320px); flex: none; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.w-side h3 { font-size: 16px; color: var(--sub); }
+.board { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.board li { display: flex; align-items: center; gap: 8px; font-size: clamp(16px, 1.7vw, 24px); font-weight: 700; }
+.board .rk { width: 1.6em; text-align: center; color: var(--green); flex: none; }
+.board .sw { width: .8em; height: .8em; border-radius: 50%; flex: none; background: var(--c, var(--sub)); }
+.board .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board .tm { font-size: .7em; color: var(--sub); font-weight: 600; flex: none; }
+/* 좁은 창: 순위표를 숨기고, 이름을 트랙 위에 겹쳐 올려 트랙이 가로를 다 쓰게 함 */
+@media (max-width: 800px) {
+  #scr-watch { padding-left: 10px; padding-right: 10px; }
+  .w-side { display: none; }
+  .lane { position: relative; }
+  .lane-label { position: absolute; left: 0; top: 0; z-index: 1; width: auto; max-width: 80%; font-size: clamp(11px, .26em, 15px); pointer-events: none; }
+  .lane-rank { min-width: 1.6em; height: 1.6em; }
+}
+
+/* ---------- 결과 화면 ---------- */
+.res-head { text-align: center; }
+.res-head .mine { font-size: 40px; font-weight: 800; color: var(--green); line-height: 1.2; }
+.res-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.screen.wide .res-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
+@media (max-width: 760px) { .screen.wide .res-grid { grid-template-columns: 1fr; } }
+.podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: end; padding-top: 14px; }
+.pod { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.pod .ph { height: 54px; }
+.pod .nm { font-size: 15px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 22px; }
+.pod .tm { font-size: 13px; color: var(--sub); font-weight: 600; min-height: 19px; }
+.pod .blk { width: 100%; border-radius: 10px 10px 0 0; background: var(--mint); color: var(--green); font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-top: 4px; }
+.pod.p1 .blk { height: 92px; background: var(--green); color: #fff; }
+.pod.p2 .blk { height: 64px; } .pod.p3 .blk { height: 44px; }
+.screen.wide .pod .nm { font-size: 22px; min-height: 32px; }
+.ranks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ranks li { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-bottom: 1px solid var(--line); font-size: 16px; }
+.ranks li:last-child { border-bottom: 0; }
+.ranks .rk { width: 2.2em; font-weight: 800; color: var(--green); flex: none; }
+.ranks .nm { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ranks .tm { font-weight: 600; color: var(--sub); flex: none; font-size: 14px; text-align: right; }
+.ranks li.me { background: var(--mint); border-radius: 10px; border-bottom-color: transparent; padding-left: 8px; padding-right: 8px; }
+.ranks li.run .rk { color: var(--sub); }
+.misses { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.misses li { display: flex; align-items: baseline; gap: 10px; font-size: 17px; }
+.misses .w { font-weight: 700; min-width: 0; } .misses .w.sent { flex: 1; font-weight: 600; } .misses .m { color: var(--sub); font-size: 14px; flex: 1; min-width: 0; }
+.misses .c { color: var(--red); font-weight: 700; font-size: 14px; flex: none; }
+.screen.wide .misses li { font-size: 22px; }
+
+/* 움직임 줄이기: 패럴랙스·공중제비·흔들림을 끄고, 점프·넘어짐은 짧게 */
+@media (prefers-reduced-motion: reduce) {
+  .rn.flip .rn-spin { animation: none; }
+  .rn.fall .rn-spin { animation: rn-fall-lite var(--fd) ease-out 1 forwards; }
+  .rn.cheer .rn-air { animation: none; }
+  .scene.shake { animation: none; }
+  .speedlines { display: none; }
+  .conn[data-s="connecting"] { animation: none; }
+}
+@keyframes rn-fall-lite { 0% { transform: rotate(0); } 12% { transform: rotate(28deg); } 60% { transform: rotate(28deg); } 100% { transform: rotate(0); } }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="corner">
+    <span id="conn" class="conn" hidden title="연결 상태" aria-label="연결 상태"></span>
+    <button id="btnMute" class="icon-btn" type="button" aria-label="소리 켜기/끄기">🔊</button>
+    <button id="btnQuit" class="icon-btn" type="button" aria-label="나가기" hidden>✕</button>
+  </div>
+
+  <!-- 처음 화면 -->
+  <section id="scr-home" class="screen scroll">
+    <div class="hero">
+      <div id="heroRunner"></div>
+      <h1 class="title">단어 달리기</h1>
+      <p>뜻을 보고 맞는 단어를 골라 허들을 넘어요</p>
+    </div>
+    <button id="btnSolo" class="btn primary" type="button">혼자 달리기 <small>컴퓨터 친구 4명과</small></button>
+    <div class="card">
+      <span class="label">같이 달리기</span>
+      <button id="btnJoinGo" class="btn" type="button">방 참가하기 <small>학생</small></button>
+      <button id="btnHostGo" class="btn" type="button">방 만들기 <small>선생님</small></button>
+      <p id="netNote" class="note"></p>
+    </div>
+    <ul class="rules">
+      <li>캐릭터는 저절로 달려요. 허들이 오기 전에 맞는 단어만 누르면 돼요.</li>
+      <li>맞히면 허들을 넘고 빨라져요. 빨리 맞힐수록 더 앞서가요.</li>
+      <li>틀리면 허들에 걸려 넘어져요. 탈락은 없어요.</li>
+      <li>결승선에 먼저 도착한 순서가 순위예요.</li>
+    </ul>
+  </section>
+
+  <!-- 혼자 달리기 준비 -->
+  <section id="scr-solo" class="screen scroll" hidden>
+    <button class="back" type="button" data-go="home">‹ 처음으로</button>
+    <h2 class="h2">혼자 달리기</h2>
+    <div class="card">
+      <span class="label">문제 목록 — 한 줄에 「단어, 뜻」 또는 「문장 ( ) | 정답 | 오답 | 오답」</span>
+      <textarea id="soloWords" class="field" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+      <p id="soloCount" class="note"></p>
+      <span class="label">1급 기본 세트 불러오기</span>
+      <div id="soloExample" class="sets"></div>
+      <span class="label repeat-label">단어마다 몇 번 나올까요?</span>
+      <div id="soloRepeat" class="seg"></div>
+      <p id="soloPlan" class="note"></p>
+      <span class="label">읽는 시간 (문제마다 허들이 오기까지 보장하는 시간)</span>
+      <div id="soloRead" class="seg"></div>
+    </div>
+    <div class="card">
+      <span class="label">내 캐릭터 색</span>
+      <div id="soloColors" class="colors"></div>
+    </div>
+    <button id="btnSoloStart" class="btn primary" type="button">출발!</button>
+  </section>
+
+  <!-- 참가 -->
+  <section id="scr-join" class="screen scroll" hidden>
+    <button class="back" type="button" data-go="home">‹ 처음으로</button>
+    <h2 class="h2">방 참가하기</h2>
+    <div class="card">
+      <label class="label" for="joinCode">방 코드 4자리</label>
+      <input id="joinCode" class="field code-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="0000">
+      <label class="label" for="joinName">이름</label>
+      <input id="joinName" class="field" type="text" maxlength="12" autocomplete="off" placeholder="이름을 써 주세요">
+    </div>
+    <div class="card">
+      <span class="label">내 캐릭터 색</span>
+      <div id="joinColors" class="colors"></div>
+    </div>
+    <p id="joinNote" class="note"></p>
+    <button id="btnJoin" class="btn primary" type="button">들어가기</button>
+  </section>
+
+  <!-- 학생 대기실 -->
+  <section id="scr-lobby" class="screen scroll" hidden>
+    <h2 class="h2">방 <span id="lobbyCode"></span></h2>
+    <p id="lobbyStatus" class="note"></p>
+    <div class="card">
+      <span class="label">함께 기다리는 사람 <span id="lobbyCount"></span></span>
+      <div id="lobbyRoster" class="roster"></div>
+    </div>
+    <div class="card">
+      <span class="label">내 캐릭터 색</span>
+      <div id="lobbyColors" class="colors"></div>
+    </div>
+    <button id="btnLobbyLeave" class="btn quiet" type="button">나가기</button>
+  </section>
+
+  <!-- 방장 대기실 -->
+  <section id="scr-host" class="screen scroll wide" hidden>
+    <h2 class="h2">단어 달리기 — 방 만들기</h2>
+    <div class="host-grid">
+      <div class="card join-card">
+        <span class="label">방 코드</span>
+        <div id="hostCode" class="room-code">----</div>
+        <div id="hostQr" class="qr" hidden></div>
+        <div id="hostUrl" class="join-url"></div>
+        <p id="hostUrlNote" class="note"></p>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <span class="label">참가자 <span id="hostCount"></span></span>
+          <div id="hostRoster" class="roster"></div>
+          <label class="check"><input id="hostPlays" type="checkbox"> 나도 달리기 (관전하지 않고 직접 참가)</label>
+          <div id="hostMe" class="stack" hidden>
+            <input id="hostName" class="field" type="text" maxlength="12" autocomplete="off" placeholder="내 이름">
+            <div id="hostColors" class="colors"></div>
+          </div>
+        </div>
+        <div class="card">
+          <span class="label">문제 목록 — 한 줄에 「단어, 뜻」 또는 「문장 ( ) | 정답 | 오답 | 오답」</span>
+          <textarea id="hostWords" class="field" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+          <p id="hostWordCount" class="note"></p>
+          <span class="label">1급 기본 세트 불러오기</span>
+          <div id="hostExample" class="sets"></div>
+          <span class="label repeat-label">단어마다 몇 번 나올까요?</span>
+          <div id="hostRepeat" class="seg"></div>
+          <p id="hostPlan" class="note"></p>
+          <span class="label">읽는 시간 (문제마다 허들이 오기까지 보장하는 시간)</span>
+          <div id="hostRead" class="seg"></div>
+        </div>
+        <p id="hostNote" class="note"></p>
+        <button id="btnHostStart" class="btn primary" type="button">시작</button>
+        <button id="btnHostClose" class="btn quiet" type="button">방 닫고 나가기</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 달리기 -->
+  <section id="scr-game" class="screen" hidden>
+    <div class="g-top">
+      <div class="g-stats">
+        <span class="g-rank"><span id="gRank">1위</span><small id="gOf"></small></span>
+        <span id="gTime" class="g-time">0:00</span>
+      </div>
+      <div id="gMini" class="mini"></div>
+    </div>
+    <div id="gPrompt" class="g-prompt">
+      <span id="pLabel" class="p-label">이 뜻의 단어는?</span>
+      <div id="pMain" class="p-main"></div>
+    </div>
+    <div id="scene" class="scene">
+      <div id="scFar" class="sc-far"></div>
+      <div id="scMid" class="sc-mid"></div>
+      <div class="sc-ground"><div id="scStripes" class="sc-stripes"></div></div>
+      <div id="speedlines" class="speedlines"><i></i><i></i><i></i><i></i><i></i></div>
+      <div id="finish" class="finish" hidden></div>
+      <div id="rivals" class="rivals"></div>
+      <div class="hurdle" hidden><i></i></div>
+      <div class="hurdle" hidden><i></i></div>
+      <div id="me" class="mebox"></div>
+      <div id="hint" class="hint" hidden><span>허들이 오기 전에 맞는 단어를 누르세요</span></div>
+    </div>
+    <div class="answers">
+      <button class="ans" type="button" data-i="0"><span class="k">1</span><span class="t"></span></button>
+      <button class="ans" type="button" data-i="1"><span class="k">2</span><span class="t"></span></button>
+      <button class="ans" type="button" data-i="2"><span class="k">3</span><span class="t"></span></button>
+      <button class="ans" type="button" data-i="3" hidden><span class="k">4</span><span class="t"></span></button>
+    </div>
+    <div class="g-hud">
+      <span id="gStreak" class="streak">연속 0</span>
+      <div class="prog"><i id="gProg"></i></div>
+      <span id="gProgTxt" class="prog-txt">0%</span>
+      <span class="tally"><b id="gOk">0</b> · <em id="gNo">0</em></span>
+    </div>
+  </section>
+
+  <!-- 관전 -->
+  <section id="scr-watch" class="screen wide" hidden>
+    <div class="w-head">
+      <span class="w-title">단어 달리기 · 방 <b id="wCode"></b></span>
+      <span id="wTime" class="w-time">0:00</span>
+      <span id="wCount" class="w-count"></span>
+      <button id="btnWatchEnd" class="btn warn" type="button">경주 끝내기</button>
+    </div>
+    <div class="w-body">
+      <div id="wLanes" class="w-lanes"></div>
+      <aside class="w-side">
+        <h3>지금 순위</h3>
+        <ol id="wBoard" class="board"></ol>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 결과 -->
+  <section id="scr-result" class="screen scroll" hidden>
+    <div class="res-head">
+      <h2 class="h2" id="resTitle">결과</h2>
+      <div id="resMine" class="mine"></div>
+      <p id="resNote" class="note"></p>
+    </div>
+    <div class="res-grid">
+      <div class="card">
+        <div id="resPodium" class="podium"></div>
+        <ol id="resRanks" class="ranks"></ol>
+      </div>
+      <div class="stack">
+        <div class="card" id="resMissCard">
+          <span class="label" id="resMissTitle">가장 많이 틀린 단어</span>
+          <ol id="resMisses" class="misses"></ol>
+        </div>
+        <button id="btnAgain" class="btn primary" type="button">다시 하기</button>
+        <button id="btnEnd" class="btn warn" type="button" hidden>경주 끝내기</button>
+        <button id="btnWords" class="btn" type="button" hidden>단어 바꾸기</button>
+        <button id="btnResLeave" class="btn quiet" type="button">나가기</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="countdown" class="countdown" hidden><div id="cdNum" class="num">3</div><div id="cdCap" class="cap">준비!</div></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ====================================================================
+   * 1. 설정
+   * ==================================================================== */
+
+  // 조정용 숫자는 전부 여기에 있습니다. 거리 단위는 m, 시간 단위는 초(표시가 없으면).
+  const CONFIG = {
+    // --- 달리기 ---
+    baseSpeed: 11,          // 기본 달리기 속도(m/초). 연속 정답이 없을 때의 속도
+    maxSpeed: 20,           // 최고 속도(m/초). gateGap / minReadSec 보다 크면 자동으로 그 값까지만 올라감
+    boostPerCorrect: 2.2,   // 정답 한 번(허들 하나 넘고 착지)에 붙는 속도(m/초)
+    speedDecay: 0.3,        // 붙은 속도가 기본 속도 쪽으로 줄어드는 빠르기(m/초, 매초)
+    // --- 한 판 길이: 단어 개수 × 반복 횟수로 문제 수를 정하고, 트랙 길이 = 문제 수 × gateGap + finishClear ---
+    repeatDefault: 2,       // "단어마다 몇 번" 기본값(1~3)
+    secPerQuestion: 2.9,    // 예상 시간 계산용: 평범한 실력(정답률 약 85%, 문제당 약 2초)이 넘어지는 시간까지 합쳐 한 문제에 쓰는 평균 시간(초)
+    estReadFactor: 0.7,     // 예상 시간 계산용: 평범한 실력은 그 문제의 "읽는 시간"의 이 비율쯤에서 답을 고른다고 봄
+    estOverheadSec: 0.9,    // 예상 시간 계산용: 답을 고른 뒤 대시·점프와 가끔 넘어지는 시간을 합친 문제당 평균(초)
+    minRaceSec: 40,         // 한 판 예상 시간의 최소(초). 이보다 짧으면 문제 수를 늘림
+    maxRaceSec: 300,        // 한 판 예상 시간의 최대(초). 이보다 길면 문제 수를 줄임
+    finishClear: 15,        // 결승선 앞 이 거리(m) 안에는 허들을 놓지 않음
+    // --- 허들(= 문제의 제한 시간) ---
+    gateGap: 40,            // 허들 등장 거리(m): 문제가 나올 때 허들이 캐릭터 앞 이만큼 떨어진 화면 오른쪽 끝에 나타남
+    minReadSec: 1.8,        // 최고 속도에서도 보장하는 "허들이 나타나서 닿기까지" 시간(초)
+    dashMult: 4,            // 일찍 맞혔을 때 허들까지 남은 구간을 당겨 오는 배속(빨리 맞힐수록 이득). 1이면 대시 없음
+    // --- 문제 길이에 따른 읽는 시간: 허들은 "현재 속도로 걸리는 시간"과 "그 문제의 읽는 시간" 중 긴 쪽에 맞춰 도착함 ---
+    //     읽는 시간 = (readBaseSec + readPerCharSec × 글자 수 [+ 문장형이면 readSentenceExtraSec]) × 읽는 시간 배수, 최대 readMaxSec
+    readBaseSec: 0.7,       // 읽는 시간의 기본(초)
+    readPerCharSec: 0.12,   // 글자 하나당 더하는 시간(초). 글자 수 = 문제 + 보기 전부, 공백·문장부호 제외
+    readAsciiWeight: 0.35,  // 영문자·숫자 한 글자를 한글 몇 글자로 칠지(영어 뜻은 빨리 읽히므로 작게)
+    readSentenceExtraSec: 1.2, // 문장형 문제에 더하는 시간(초). 문맥을 읽고 문법을 고르는 시간
+    readMaxSec: 9,          // 읽는 시간의 상한(초)
+    readScale: [1.4, 1.0, 0.75],   // 읽는 시간 3단계 배수: 여유 있게 / 보통 / 빠르게
+    readDefault: 1,         // 읽는 시간 기본 단계(0 = 여유 있게, 1 = 보통, 2 = 빠르게)
+    wrongWaitMaxSec: 1.5,   // 오답을 고른 뒤 허들이 닿기까지 기다리는 시간의 상한(초). 긴 문제에서 답답하지 않게
+    wrongMinTotalSec: 3.6,  // 단, 문제가 나온 지 이 시간(초)이 되기 전에는 당겨 오지 않음. 바로 찍으면 이만큼은 기다려야 해서 찍기가 손해로 남음
+    botRefReadSec: 2.0,     // 컴퓨터 상대의 react 는 읽는 시간이 이 값인 문제 기준. 긴 문제는 그만큼 비례해서 오래 걸림
+    // --- 정답: 점프 ---
+    jumpSec: 0.6,           // 점프해서 착지하기까지 시간(초). 꼭대기(절반 시점)에서 허들 위를 지나감
+    jumpHeight: 46,         // 점프 높이(px)
+    jumpHeightHigh: 66,     // 연속 정답이 highJumpStreak 이상일 때 점프 높이(px)
+    highJumpStreak: 3,      // 이 연속 정답부터 높은 점프
+    flipStreak: 5,          // 이 연속 정답부터 공중제비(1회전)
+    // --- 오답: 넘어짐 ---
+    stumbleSec: 1.6,        // 허들에 걸려 넘어져 멈춰 있는 시간(초)
+    knockback: 8,           // 넘어질 때 뒤로 밀리는 거리(m)
+    knockbackSec: 0.4,      // 뒤로 밀리는 동작에 걸리는 시간(초). stumbleSec 안에서 진행됨
+    wrongSpeedKeep: 0,      // 틀린 뒤에 남는 가속분의 비율(0 = 기본 속도로 돌아감, 1 = 속도 유지)
+    retryAfter: 3,          // 틀린 단어가 몇 문제 뒤에 다시 나오는지
+    // --- 화면 ---
+    charXRatio: 0.25,       // 내 캐릭터가 서 있는 가로 위치(장면 폭에 대한 비율, 왼쪽에서)
+    runCycleSec: 0.52,      // 기본 속도일 때 두 걸음(한 주기)에 걸리는 시간(초). 속도가 오르면 비례해서 빨라짐
+    rivalCount: 6,          // 같은 트랙에 함께 그려 줄 다른 참가자 최대 수
+    countdownSec: 3,        // 출발 전 카운트다운(초)
+    resultDelayMs: 1300,    // 결승선을 통과한 뒤 결과 화면으로 넘어가기까지(밀리초)
+    maxFrameDt: 0.1,        // 한 프레임에 계산하는 최대 시간(초). 탭이 멈췄다 돌아올 때 폭주 방지
+    // --- 단어 ---
+    minWords: 4,            // 필요한 최소 단어 쌍 개수
+    maxWords: 300,          // 단어 목록에서 읽어들이는 최대 개수
+    // --- 같이 달리기 ---
+    posIntervalMs: 500,     // 내 위치를 알리는 간격(밀리초). 줄이면 Realtime 한도에 걸릴 수 있음
+    finishResendMs: 3000,   // 결승 후 내 기록을 다시 알리는 간격(밀리초). 늦게 들어온 기기가 기록을 받게 함
+    remoteLeadSec: 1.2,     // 다른 참가자 위치를 속도로 미리 그려 주는 최대 시간(초)
+    // --- 혼자 달리기의 컴퓨터 상대 4명 ---
+    // acc = 정답률(0~1), react = 답을 고르는 데 걸리는 평균 시간(초, 매번 ±30% 흔들림).
+    // react 가 허들이 닿는 시간보다 길면 시간 초과로 넘어짐(속도가 붙을수록 자주).
+    bots: [
+      { acc: 0.90, react: 1.85 },
+      { acc: 0.82, react: 2.1 },
+      { acc: 0.78, react: 2.4 },
+      { acc: 0.72, react: 2.6 }
+    ]
+  };
+
+  // 최고 속도는 "읽을 시간 보장" 조건을 넘지 못함
+  const MAX_SPEED = Math.max(CONFIG.baseSpeed, Math.min(CONFIG.maxSpeed, CONFIG.gateGap / CONFIG.minReadSec));
+
+  // Supabase 프로젝트 주소와 공개(anon) 키. 프런트엔드에 원래 공개되는 값입니다. DB는 쓰지 않고 Realtime만 씁니다.
+  const SUPABASE_URL = 'https://lkuikpbquqcgbezepkxl.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrdWlrcGJxdXFjZ2JlemVwa3hsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1OTczNTMsImV4cCI6MjA4MzE3MzM1M30.GI4Rm22n9EeIRL8Nzdjtb3Och4J7yMMrNFnvmMQU6KQ';
+  const CDN_SUPABASE = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.89.0/dist/umd/supabase.js';
+  const CDN_QR = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+  const CHANNEL_PREFIX = 'wordrace:';
+
+  // 캐릭터 몸 색(참가자 구분용). 파란색·보라색·형광색은 쓰지 않음
+  const COLORS = ['#1F6B48', '#DE7A2D', '#E0A91B', '#8B5E3C', '#DB6F8E', '#7A726C', '#2F8F87', '#C0452B', '#7FA63A', '#E8A27C'];
+  const COLOR_NAMES = ['초록', '주황', '노랑', '갈색', '분홍', '회색', '청록', '빨강', '연두', '살구'];
+  const BOT_NAMES = ['토리', '모모', '두리', '나나'];
+
+  const DEFAULT_WORDS_TEXT = [
+    '가다, to go', '오다, to come', '먹다, to eat', '마시다, to drink', '자다, to sleep',
+    '읽다, to read', '기다리다, to wait', '만나다, to meet', '학교, school', '친구, friend',
+    '시간, time', '날씨, weather', '크다, to be big', '작다, to be small', '맛있다, to be delicious'
+  ].join('\n');
+
+  // "문장 문제 예시 넣기" 버튼으로 채우는 초급 문장형 예시(시제 4 · 조사 4 · 대화 2). 정답이 하나뿐인 것만
+  const SENTENCE_EXAMPLES_TEXT = [
+    '저는 어제 학교에 ( ). | 갔어요 | 가요 | 갈 거예요',
+    '내일 친구를 ( ). | 만날 거예요 | 만났어요 | 만나고 있어요',
+    '지난 주말에 영화를 ( ). | 봤어요 | 봐요 | 볼 거예요',
+    '작년에 한국어를 처음 ( ). | 배웠어요 | 배워요 | 배울 거예요',
+    '저는 도서관( ) 책을 읽어요. | 에서 | 에 | 을',
+    '저는 사과( ) 좋아해요. | 를 | 가 | 에',
+    '친구( ) 같이 영화를 봐요. | 하고 | 를 | 에서',
+    '아침 7시( ) 일어나요. | 에 | 에서 | 를',
+    'A: 이름이 뭐예요? B: ( ) | 저는 민수예요 | 학생이에요 | 한국 사람이에요',
+    'A: 뭐 먹을래요? B: ( ) | 비빔밥 먹을래요 | 어제 먹었어요 | 식당에 있어요'
+  ].join('\n');
+  // 1급(초급 1) 기본 세트. 정답이 하나뿐이도록 만들었지만 수업에 쓰기 전에 선생님 검토가 필요함.
+  // 줄 형식은 문제 목록과 같음: 문제 | 정답 | 오답 | 오답
+  const BUILTIN_SETS = [
+    { id: 'mix', name: '맛보기 10', text: SENTENCE_EXAMPLES_TEXT },
+    { id: 'particle1', name: '조사 22', text: [
+      '저( ) 학생이에요. | 는 | 은 | 를',
+      '이것( ) 책이에요. | 은 | 는 | 을',
+      '친구( ) 와요. | 가 | 이 | 를',
+      '날씨( ) 좋아요. | 가 | 를 | 에서',
+      '교실에 학생( ) 있어요. | 이 | 을 | 에서',
+      '저는 선생님( ) 아니에요. | 이 | 을 | 에',
+      '저는 사과( ) 좋아해요. | 를 | 가 | 에',
+      '저는 물( ) 마셔요. | 을 | 이 | 에',
+      '저는 한국어( ) 배워요. | 를 | 가 | 에',
+      '저는 지금 집( ) 있어요. | 에 | 에서 | 를',
+      '저는 도서관( ) 공부해요. | 에서 | 에 | 를',
+      '저는 식당( ) 밥을 먹어요. | 에서 | 에 | 가',
+      '아침 7시( ) 일어나요. | 에 | 에서 | 를',
+      '주말( ) 뭐 해요? | 에 | 를 | 가',
+      '저는 친구( ) 영화를 봐요. | 하고 | 를 | 에',
+      '빵( ) 우유를 샀어요. | 하고 | 을 | 에서',
+      '저는 버스( ) 학교에 가요. | 로 | 를 | 에서',
+      '9시( ) 6시까지 일해요. | 부터 | 까지 | 하고',
+      '저는 동생( ) 선물을 줘요. | 한테 | 를 | 에서',
+      '이것은 제 친구( ) 가방이에요. | 의 | 가 | 를',
+      '저는 커피를 좋아해요. 차( ) 좋아해요. | 도 | 가 | 에',
+      '저는 우유( ) 마셔요. 다른 것은 안 마셔요. | 만 | 에 | 가'
+    ].join('\n') },
+    { id: 'tense1', name: '시제 20', text: [
+      '저는 어제 학교에 ( ). | 갔어요 | 가요 | 갈 거예요',
+      '내일 친구를 ( ). | 만날 거예요 | 만났어요 | 만나고 있어요',
+      '지난 주말에 영화를 ( ). | 봤어요 | 봐요 | 볼 거예요',
+      '작년에 한국어를 처음 ( ). | 배웠어요 | 배워요 | 배울 거예요',
+      '어제 저녁에 뭐 ( )? | 먹었어요 | 먹어요 | 먹을 거예요',
+      '다음 주에 부산에 ( ). | 갈 거예요 | 갔어요 | 가고 있어요',
+      '어제는 날씨가 ( ). | 좋았어요 | 좋아요 | 좋을 거예요',
+      '어제 친구하고 커피를 ( ). | 마셨어요 | 마셔요 | 마실 거예요',
+      '내일 아침에 일찍 ( ). | 일어날 거예요 | 일어났어요 | 일어나고 있어요',
+      '지난달에 가방을 ( ). | 샀어요 | 사요 | 살 거예요',
+      '어제 숙제를 ( ). | 했어요 | 해요 | 할 거예요',
+      '다음 주말에 뭐 ( )? | 할 거예요 | 했어요 | 하고 있어요',
+      '어제 밤에 일찍 ( ). | 잤어요 | 자요 | 잘 거예요',
+      '내년에 한국에 ( ). | 갈 거예요 | 갔어요 | 가고 있어요',
+      '어제 책을 ( ). | 읽었어요 | 읽어요 | 읽을 거예요',
+      '어제 생일 파티가 ( ). | 재미있었어요 | 재미있어요 | 재미있을 거예요',
+      '내일은 비가 ( ). | 올 거예요 | 왔어요 | 오고 있어요',
+      '지난 여름에 바다에서 ( ). | 수영했어요 | 수영해요 | 수영할 거예요',
+      '어제는 일요일( ). | 이었어요 | 이에요 | 일 거예요',
+      '저는 내일 집에서 ( ). | 쉴 거예요 | 쉬었어요 | 쉬고 있어요'
+    ].join('\n') },
+    { id: 'number1', name: '숫자·단위 22', text: [
+      '사과 세 ( ) 주세요. | 개 | 명 | 권',
+      '물 한 ( ) 주세요. | 병 | 명 | 권',
+      '커피 두 ( ) 주세요. | 잔 | 권 | 명',
+      '책 세 ( ) 샀어요. | 권 | 잔 | 명',
+      '교실에 학생이 다섯 ( ) 있어요. | 명 | 개 | 권',
+      '고양이가 두 ( ) 있어요. | 마리 | 명 | 개',
+      '비빔밥 한 ( ) 주세요. | 그릇 | 잔 | 권',
+      '종이 한 ( ) 주세요. | 장 | 병 | 마리',
+      '저는 스무 ( )이에요. | 살 | 개 | 시',
+      '사과 3개 → 사과 ( ) 개 | 세 | 삼 | 셋',
+      '커피 4잔 → 커피 ( ) 잔 | 네 | 사 | 넷',
+      '학생 1명 → 학생 ( ) 명 | 한 | 일 | 하나',
+      '20살 → ( ) 살 | 스무 | 이십 | 스물',
+      '지금 2시예요. → ( ) 시 | 두 | 이 | 둘',
+      '10분 → ( ) 분 | 십 | 열 | 열한',
+      '7시 30분 → 일곱 시 ( ) 분 | 삼십 | 서른 | 세십',
+      '5,000원 → ( ) 원 | 오천 | 다섯천 | 오백',
+      '3월 → ( ) 월 | 삼 | 세 | 셋',
+      '6월 → ( ) | 유월 | 육월 | 여섯 월',
+      '10월 → ( ) | 시월 | 십월 | 열 월',
+      '15일 → ( ) 일 | 십오 | 열다섯 | 십다섯',
+      '4층 → ( ) 층 | 사 | 네 | 넷'
+    ].join('\n') },
+    // 위치는 그림 없이도 답이 하나로 정해지도록 앞 문장이나 상식으로 단서를 줌
+    { id: 'place1', name: '위치 18', text: [
+      '위 ↔ ( ) | 아래 | 옆 | 안',
+      '앞 ↔ ( ) | 뒤 | 옆 | 밖',
+      '안 ↔ ( ) | 밖 | 위 | 뒤',
+      '왼쪽 ↔ ( ) | 오른쪽 | 위쪽 | 뒤쪽',
+      '1층 ( )에 2층이 있어요. | 위 | 아래 | 옆',
+      '2층 ( )에 1층이 있어요. | 아래 | 위 | 안',
+      '하늘은 우리 ( )에 있어요. | 위 | 아래 | 안',
+      '책상 위에 컴퓨터가 있어요. 컴퓨터 ( )에 책상이 있어요. | 아래 | 위 | 안',
+      '고양이가 의자 아래에 있어요. 의자는 고양이 ( )에 있어요. | 위 | 아래 | 옆',
+      '제 뒤에 수진 씨가 있어요. 저는 수진 씨 ( )에 있어요. | 앞 | 뒤 | 위',
+      '제 앞에 민수 씨가 있어요. 저는 민수 씨 ( )에 있어요. | 뒤 | 앞 | 안',
+      '은행은 병원 왼쪽에 있어요. 병원은 은행 ( )에 있어요. | 오른쪽 | 왼쪽 | 뒤',
+      '병원 옆에 약국이 있어요. 약국은 병원 ( )에 있어요. | 옆 | 위 | 안',
+      '우리는 지금 교실 안에 있어요. 교실 ( )에 없어요. | 밖 | 안 | 위',
+      '집 밖은 추워요. 집 ( )은 따뜻해요. | 안 | 밖 | 뒤',
+      '교실 ( )에서 기다리세요. 들어오지 마세요. | 밖 | 안 | 위',
+      '화요일은 월요일과 수요일 ( )에 있어요. | 사이 | 앞 | 안',
+      '한국은 중국과 일본 ( )에 있어요. | 사이 | 안 | 위'
+    ].join('\n') },
+    { id: 'talk1', name: '기본 대화 22', text: [
+      'A: 안녕하세요? B: ( ) | 안녕하세요? | 안녕히 가세요. | 잘 먹겠습니다.',
+      'A: 처음 뵙겠습니다. B: ( ) | 만나서 반갑습니다. | 안녕히 가세요. | 잘 먹었습니다.',
+      'A: 이름이 뭐예요? B: ( ) | 저는 민수예요. | 학생이에요. | 한국 사람이에요.',
+      'A: 어느 나라 사람이에요? B: ( ) | 일본 사람이에요. | 회사원이에요. | 스무 살이에요.',
+      'A: 직업이 뭐예요? B: ( ) | 회사원이에요. | 미국 사람이에요. | 서울에 살아요.',
+      'A: 몇 살이에요? B: ( ) | 스무 살이에요. | 두 시예요. | 이천 원이에요.',
+      'A: 어디에 살아요? B: ( ) | 서울에 살아요. | 학생이에요. | 내일 가요.',
+      'A: 지금 몇 시예요? B: ( ) | 세 시예요. | 삼천 원이에요. | 월요일이에요.',
+      'A: 오늘 무슨 요일이에요? B: ( ) | 금요일이에요. | 두 시예요. | 5월이에요.',
+      'A: 이거 얼마예요? B: ( ) | 오천 원이에요. | 다섯 시예요. | 다섯 명이에요.',
+      'A: 날씨가 어때요? B: ( ) | 아주 좋아요. | 금요일이에요. | 학교에 가요.',
+      'A: 뭐 먹을래요? B: ( ) | 비빔밥 먹을래요. | 어제 먹었어요. | 식당에 있어요.',
+      'A: 어디에 가요? B: ( ) | 도서관에 가요. | 내일 가요. | 친구하고 가요.',
+      'A: 누구하고 영화를 봤어요? B: ( ) | 친구하고 봤어요. | 어제 봤어요. | 극장에서 봤어요.',
+      'A: 언제 한국에 왔어요? B: ( ) | 작년에 왔어요. | 비행기로 왔어요. | 친구하고 왔어요.',
+      'A: 주말에 뭐 했어요? B: ( ) | 친구를 만났어요. | 친구를 만날 거예요. | 친구가 있어요.',
+      'A: 내일 뭐 할 거예요? B: ( ) | 집에서 쉴 거예요. | 집에서 쉬었어요. | 집이 커요.',
+      'A: 한국 음식을 좋아해요? B: ( ) | 네, 좋아해요. | 네, 한국 사람이에요. | 아니요, 안 가요.',
+      'A: 왜 안 먹어요? B: ( ) | 배가 안 고파요. | 식당이에요. | 네, 먹어요.',
+      'A: 감사합니다. B: ( ) | 아니에요. | 죄송합니다. | 안녕하세요?',
+      'A: 죄송합니다. B: ( ) | 괜찮아요. | 감사합니다. | 맛있어요.',
+      'A: 맛있게 드세요. B: ( ) | 잘 먹겠습니다. | 잘 먹었습니다. | 안녕히 주무세요.'
+    ].join('\n') }
+  ];
+
+  const PLACEHOLDER_TEXT ='단어형:  가다, to go\n문장형:  저는 어제 학교에 ( ). | 갔어요 | 가요 | 갈 거예요\n\n(비워 두면 아래 기본 단어로 달려요)\n' + DEFAULT_WORDS_TEXT;
+
+  const KEY_WORDS = 'wordrace.words';
+  const KEY_NAME = 'wordrace.name';
+  const KEY_COLOR = 'wordrace.color';
+  const KEY_MUTED = 'wordrace.muted';
+  const KEY_ID = 'wordrace.id';
+  const KEY_SESSION = 'wordrace.session';
+  const KEY_REPEAT = 'wordrace.repeat';
+  const KEY_READ = 'wordrace.read';
+  const READ_LABELS = ['여유 있게', '보통', '빠르게'];
+
+  /* ====================================================================
+   * 2. 상태
+   * ==================================================================== */
+
+  // 저장소 접근이 막힌 환경(사생활 보호 모드 등)에서도 죽지 않게 감쌈
+  function makeStore(getStorage) {
+    return {
+      get: function (key, fallback) {
+        try { const v = getStorage().getItem(key); return v == null ? fallback : JSON.parse(v); } catch (e) { return fallback; }
+      },
+      set: function (key, value) {
+        try { getStorage().setItem(key, JSON.stringify(value)); } catch (e) { /* 무시 */ }
+      },
+      remove: function (key) {
+        try { getStorage().removeItem(key); } catch (e) { /* 무시 */ }
+      }
+    };
+  }
+  const local = makeStore(function () { return window.localStorage; });
+  const session = makeStore(function () { return window.sessionStorage; });
+
+  function randomId(len) {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let s = '';
+    for (let i = 0; i < len; i++) s += chars[Math.floor(Math.random() * chars.length)];
+    return s;
+  }
+
+  function loadMyId() {
+    let id = session.get(KEY_ID, null);
+    if (typeof id !== 'string' || !/^[a-z0-9]{6,16}$/.test(id)) { id = randomId(10); session.set(KEY_ID, id); }
+    return id;
+  }
+
+  const S = {
+    screen: 'home',
+    mode: null,            // 'solo' | 'multi'
+    role: null,            // 'host' | 'player' (같이 달리기)
+    hostPlays: false,      // 방장이 직접 달리는지
+    me: {
+      id: loadMyId(),
+      name: cleanName(local.get(KEY_NAME, '')),
+      color: cleanColor(local.get(KEY_COLOR, null), COLORS[Math.floor(Math.random() * COLORS.length)])
+    },
+    wordsText: String(local.get(KEY_WORDS, '') || ''),
+    repeat: cleanRepeat(local.get(KEY_REPEAT, null)),   // 단어마다 몇 번 나오는지(1~3)
+    readLevel: cleanReadLevel(local.get(KEY_READ, null)),   // 읽는 시간 단계(0~2)
+    host: { phase: 'lobby', raceId: null, words: null, track: 0, startedWall: 0 },  // 방장만 사용
+    race: null,            // 진행 중인 경주(아래 beginRace 참고)
+    racers: new Map(),     // 나 이외의 참가자(같이 달리기: 다른 기기, 혼자 달리기: 컴퓨터 상대)
+    lobbyNote: ''
+  };
+
+  const net = {
+    lib: 'loading',        // 'loading' | 'ready' | 'failed'
+    client: null,
+    ch: null,
+    gen: 0,                // 채널을 새로 만들 때마다 증가. 옛 채널의 콜백을 무시하는 데 씀
+    status: 'idle',        // 'idle' | 'connecting' | 'on' | 'off'
+    code: null,
+    roster: new Map(),     // presence 명단: id -> {id, name, color, role, playing}
+    hostId: null,
+    fresh: false,          // 방을 방금 새로 만들었는지(코드 충돌 검사용)
+    retryTimer: 0,
+    lastPosAt: 0,
+    lastFinishAt: 0,
+    sawStateAt: 0,
+    joinedAt: 0
+  };
+
+  /* ---------- 작은 도구들 ---------- */
+
+  function $(id) { return document.getElementById(id); }
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+
+  function setText(node, text) { if (node.textContent !== text) node.textContent = text; }
+
+  function cleanName(v) {
+    if (typeof v !== 'string') return '';
+    return v.replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 12);
+  }
+
+  // 색은 정해진 팔레트 값만 받음(다른 기기에서 온 값을 그대로 스타일에 넣지 않기 위해)
+  function cleanColor(v, fallback) {
+    return (typeof v === 'string' && COLORS.indexOf(v) >= 0) ? v : fallback;
+  }
+
+  function num(v, min, max) {
+    if (typeof v !== 'number' || !isFinite(v) || v < min || v > max) return null;
+    return v;
+  }
+
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+  function cleanReadLevel(v) { return (v === 0 || v === 1 || v === 2) ? v : clamp(Math.round(CONFIG.readDefault), 0, 2); }
+
+  // 읽는 시간 배수. 다른 기기에서 온 값이 없거나 이상하면 1(보통)
+  function cleanScale(v) { const n = num(v, 0.3, 3); return n == null ? 1 : n; }
+
+  function currentScale() { return cleanScale(CONFIG.readScale[S.readLevel]); }
+
+  function cleanRepeat(v) { return (v === 1 || v === 2 || v === 3) ? v : clamp(Math.round(CONFIG.repeatDefault) || 2, 1, 3); }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  function fmtTime(ms, tenths) {
+    if (!(ms >= 0)) ms = 0;
+    const total = Math.floor(ms / 100);
+    const m = Math.floor(total / 600);
+    const s = Math.floor((total % 600) / 10);
+    const base = m + ':' + (s < 10 ? '0' : '') + s;
+    return tenths ? base + '.' + (total % 10) : base;
+  }
+
+  const reducedMotion = (function () {
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
+  })();
+
+  /* ---------- 소리 ---------- */
+
+  let actx = null;
+  let muted = !!local.get(KEY_MUTED, false);
+
+  // 브라우저 자동재생 정책 때문에 첫 터치/키 입력 뒤에만 소리를 켬
+  function unlockAudio() {
+    try {
+      if (!actx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) actx = new AC();
+      }
+      if (actx && actx.state === 'suspended') actx.resume();
+    } catch (e) { /* 소리 없이 진행 */ }
+  }
+
+  function tone(freq, dur, type, vol, delay, slideTo) {
+    if (muted || !actx || actx.state !== 'running') return;
+    try {
+      const t = actx.currentTime + (delay || 0);
+      const osc = actx.createOscillator();
+      const gain = actx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(vol || 0.14, t + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(gain); gain.connect(actx.destination);
+      osc.start(t); osc.stop(t + dur + 0.03);
+    } catch (e) { /* 무시 */ }
+  }
+
+  const sfx = {
+    correct: function () { tone(660, 0.09, 'sine', 0.14); tone(990, 0.14, 'sine', 0.14, 0.08); },
+    wrong: function () { tone(196, 0.22, 'triangle', 0.18); tone(147, 0.28, 'triangle', 0.18, 0.12); },
+    jump: function () { tone(380, 0.2, 'sine', 0.08, 0, 760); },
+    trip: function () { tone(110, 0.2, 'triangle', 0.2, 0, 60); },
+    count: function () { tone(440, 0.12, 'sine', 0.14); },
+    go: function () { tone(880, 0.3, 'sine', 0.16); },
+    finish: function () { tone(523, 0.12, 'sine', 0.15); tone(659, 0.12, 'sine', 0.15, 0.12); tone(784, 0.12, 'sine', 0.15, 0.24); tone(1047, 0.32, 'sine', 0.15, 0.36); }
+  };
+
+  /* ====================================================================
+   * 3. 단어 처리
+   * ==================================================================== */
+
+  // 문제는 두 종류입니다.
+  //   단어형 {t:'w', w:단어, m:뜻}        — 한 줄에 "단어, 뜻" 또는 "단어<탭>뜻". 오답은 다른 단어형 줄에서 뽑음
+  //   문장형 {t:'s', q:문제, a:정답, d:[오답…]} — 한 줄에 "문제 | 정답 | 오답 | 오답" (오답 1~3개). 오답은 선생님이 준 것만 씀
+  // 줄에 세로줄(| 또는 ｜)이 있으면 문장형, 없으면 단어형. 한 목록에 섞여 있어도 됨.
+  const BLANK_RE = /\(\s*\)|（\s*）|_{2,}/;   // 문장 속 빈칸 표시: ( ), （ ）, __
+
+  function parseItems(text) {
+    const items = [];
+    const seenW = new Set(), seenS = new Set();
+    let bad = 0;
+    const lines = String(text || '').split(/\r?\n/);
+    for (let n = 0; n < lines.length && items.length < CONFIG.maxWords; n++) {
+      const line = lines[n].trim();
+      if (!line) continue;
+      if (/[|｜]/.test(line)) {
+        const cells = line.split(/[|｜]/).map(function (c) { return c.replace(/\s+/g, ' ').trim(); });
+        const q = cells[0].slice(0, 120);
+        const a = (cells[1] || '').slice(0, 60);
+        const d = [];
+        for (let k = 2; k < cells.length && d.length < 3; k++) {
+          const c = cells[k].slice(0, 60);
+          if (c && c !== a && d.indexOf(c) < 0) d.push(c);     // 정답과 같은 오답, 중복 오답은 뺌
+        }
+        if (!q || !a || !d.length) { bad++; continue; }
+        if (seenS.has(q)) continue;
+        seenS.add(q);
+        items.push({ t: 's', q: q, a: a, d: d });
+      } else {
+        let i = line.indexOf('\t');
+        if (i < 0) i = line.search(/[,，]/);
+        if (i <= 0) { bad++; continue; }
+        const w = line.slice(0, i).replace(/^["']|["']$/g, '').trim().slice(0, 40);
+        const m = line.slice(i + 1).replace(/^["'\s]+|["'\s]+$/g, '').replace(/\s+/g, ' ').slice(0, 80);
+        if (!w || !m) { bad++; continue; }
+        if (seenW.has(w)) continue;
+        seenW.add(w);
+        items.push({ t: 'w', w: w, m: m });
+      }
+    }
+    let sentences = 0, words = 0;
+    items.forEach(function (it) { if (it.t === 's') sentences++; else words++; });
+    // 단어형은 오답을 다른 단어형에서 뽑으므로 4개는 있어야 함. 문장형과 섞였는데 1~3개뿐이면 그 줄들은 건너뜀
+    let skippedWords = 0, out = items;
+    if (sentences > 0 && words > 0 && words < 4) {
+      skippedWords = words;
+      words = 0;
+      out = items.filter(function (it) { return it.t === 's'; });
+    }
+    return { items: out, sentences: sentences, wordCount: words, bad: bad, skippedWords: skippedWords };
+  }
+
+  // textarea 내용으로 실제 쓸 목록을 정함. 비어 있으면 기본 예시 목록.
+  function resolveWords(text) {
+    const empty = !String(text || '').trim();
+    const p = parseItems(empty ? DEFAULT_WORDS_TEXT : text);
+    return {
+      words: p.items, sentences: p.sentences, wordCount: p.wordCount, bad: p.bad, skippedWords: p.skippedWords,
+      usingDefault: empty, ok: p.items.length >= CONFIG.minWords
+    };
+  }
+
+  function kindsLabel(sentences, words) {
+    const parts = [];
+    if (sentences) parts.push('문장 ' + sentences + '개');
+    if (words) parts.push('단어 ' + words + '개');
+    return parts.length ? parts.join(' · ') : '0개';
+  }
+
+  function wordCountLabel(info) {
+    if (info.usingDefault) return '비워 두면 기본 예시 단어 ' + info.words.length + '개로 달려요';
+    let text = kindsLabel(info.sentences, info.wordCount) + ' 인식됨';
+    if (info.bad) text += ' (' + info.bad + '줄은 형식이 달라 건너뜀)';
+    if (info.skippedWords) text += ' · 단어형은 4개 이상이어야 해서 ' + info.skippedWords + '줄을 건너뛰었어요';
+    if (!info.ok) text += ' · 문제가 최소 ' + CONFIG.minWords + '개 필요해요';
+    return text;
+  }
+
+  // 받은 문제 목록(다른 기기에서 온 것)을 검사해서 깨끗한 배열로. 이상하면 null
+  function validateWords(v) {
+    if (!Array.isArray(v) || v.length < CONFIG.minWords || v.length > CONFIG.maxWords) return null;
+    const out = [];
+    let words = 0;
+    for (let i = 0; i < v.length; i++) {
+      const it = v[i];
+      if (!it || typeof it !== 'object') return null;
+      if (it.t === 's') {
+        if (typeof it.q !== 'string' || typeof it.a !== 'string' || !Array.isArray(it.d)) return null;
+        const q = it.q.trim().slice(0, 120), a = it.a.trim().slice(0, 60);
+        const d = [];
+        for (let k = 0; k < it.d.length && d.length < 3; k++) {
+          if (typeof it.d[k] !== 'string') return null;
+          const c = it.d[k].trim().slice(0, 60);
+          if (c && c !== a && d.indexOf(c) < 0) d.push(c);
+        }
+        if (!q || !a || !d.length) return null;
+        out.push({ t: 's', q: q, a: a, d: d });
+      } else {
+        if (typeof it.w !== 'string' || typeof it.m !== 'string') return null;
+        const w = it.w.trim().slice(0, 40), m = it.m.trim().slice(0, 80);
+        if (!w || !m) return null;
+        out.push({ t: 'w', w: w, m: m });
+        words++;
+      }
+    }
+    if (words > 0 && words < 4) return null;     // 단어형 오답을 만들 수 없는 목록
+    return out;
+  }
+
+  /* ---------- 문제 길이에 따른 읽는 시간 ---------- */
+
+  // 글자 수(공백·문장부호 제외). 한글 등은 1, 영문자·숫자는 readAsciiWeight
+  function textWeight(str) {
+    let n = 0;
+    for (const ch of String(str)) {
+      const c = ch.codePointAt(0);
+      if (c > 0x2E7F || (c >= 0x1100 && c <= 0x11FF)) n += 1;
+      else if ((c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 0xC0 && c <= 0x24F)) n += CONFIG.readAsciiWeight;
+    }
+    return n;
+  }
+
+  // 읽는 시간(초). scale = 읽는 시간 배수
+  function readSecFor(chars, isSentence, scale) {
+    const base = CONFIG.readBaseSec + CONFIG.readPerCharSec * chars + (isSentence ? CONFIG.readSentenceExtraSec : 0);
+    return clamp(base * scale, 0.5, CONFIG.readMaxSec);
+  }
+
+  function avgWordWeight(items) {
+    let sum = 0, n = 0;
+    items.forEach(function (it) { if (it.t === 'w') { sum += textWeight(it.w); n++; } });
+    return n ? sum / n : 0;
+  }
+
+  // 문제 하나의 읽는 시간 어림값(단어형은 보기가 매번 달라지므로 평균 길이로 계산). 예상 시간과 컴퓨터 상대에 씀
+  function estItemRead(it, avgW, scale) {
+    if (it.t === 's') {
+      let chars = textWeight(it.q) + textWeight(it.a);
+      it.d.forEach(function (c) { chars += textWeight(c); });
+      return readSecFor(chars, true, scale);
+    }
+    return readSecFor(textWeight(it.m) + textWeight(it.w) + 2 * avgW, false, scale);
+  }
+
+  /* ---------- 한 판 길이 ---------- */
+
+  // 문제 목록과 반복 횟수로 문제 수·트랙 길이·예상 시간을 정함.
+  // 문제 하나의 예상 소요 = max(secPerQuestion, 읽는 시간 × estReadFactor + estOverheadSec).
+  // 예상 시간이 minRaceSec~maxRaceSec 를 벗어나면 문제 수를 그 한계로 맞춤.
+  function planRace(items, repeat, scale) {
+    const avgW = avgWordWeight(items);
+    let sum = 0, sentences = 0;
+    items.forEach(function (it) {
+      sum += Math.max(CONFIG.secPerQuestion, estItemRead(it, avgW, scale) * CONFIG.estReadFactor + CONFIG.estOverheadSec);
+      if (it.t === 's') sentences++;
+    });
+    const perQ = items.length ? sum / items.length : CONFIG.secPerQuestion;
+    const wanted = items.length * repeat;
+    const minQ = Math.ceil(CONFIG.minRaceSec / perQ);
+    const maxQ = Math.max(minQ, Math.floor(CONFIG.maxRaceSec / perQ));
+    const questions = clamp(wanted, minQ, maxQ);
+    return {
+      sentences: sentences, wordCount: items.length - sentences, repeat: repeat, wanted: wanted, questions: questions,
+      limit: questions > wanted ? 'min' : (questions < wanted ? 'max' : null),
+      track: questions * CONFIG.gateGap + CONFIG.finishClear,   // 허들은 gateGap 간격으로 정확히 questions 개 놓임
+      estSec: questions * perQ
+    };
+  }
+
+  // 트랙 길이에서 문제 수를 되돌려 계산(같이 달리기에서는 방장이 보낸 트랙 길이만 받으므로)
+  function questionsForTrack(track) {
+    return Math.max(1, Math.round((track - CONFIG.finishClear) / CONFIG.gateGap));
+  }
+
+  function fmtAbout(sec) {
+    const t = Math.max(10, Math.round(sec / 10) * 10);
+    const m = Math.floor(t / 60), s = t % 60;
+    return '약 ' + (m ? m + '분' : '') + (m && s ? ' ' : '') + (s ? s + '초' : '');
+  }
+
+  function planLabel(p) {
+    const unit = p.sentences ? '문제' : '단어';
+    const head = kindsLabel(p.sentences, p.wordCount).replace(' · ', ' + ') + ' × ' + p.repeat + '번';
+    if (p.limit === 'max') return head + '은 너무 길어서 ' + fmtAbout(p.estSec) + '(' + p.questions + '문제)으로 줄였어요. 일부 ' + unit + '는 ' + p.repeat + '번보다 적게 나와요.';
+    if (p.limit === 'min') return head + '은 너무 짧아서 ' + fmtAbout(p.estSec) + '(' + p.questions + '문제)으로 늘렸어요. 일부 ' + unit + '는 ' + p.repeat + '번보다 많이 나와요.';
+    return head + ' = ' + p.questions + '문제 · ' + fmtAbout(p.estSec);
+  }
+
+  /* ---------- 문제 뽑기 ----------
+   * 한 판에 나올 문제 순서를 처음에 통째로 만듭니다: 모든 문제를 섞은 한 바퀴를 이어 붙여 total 개.
+   * 그래서 한 바퀴를 다 돌기 전에는 같은 문제가 새로 나오지 않고, 모든 문제가 고르게 나옵니다.
+   * 틀린 문제는 문제를 추가하지 않고, 그 문제의 "다음 차례"를 몇 문제 뒤로 앞당깁니다(다음 차례가 없으면 그대로).
+   */
+  function makeDeck(words, total) {
+    const deck = { words: words, queue: [], last: -1 };
+    while (deck.queue.length < total) refillDeck(deck);
+    deck.queue.length = total;
+    return deck;
+  }
+
+  function refillDeck(deck) {
+    const idx = [];
+    for (let i = 0; i < deck.words.length; i++) idx.push(i);
+    shuffle(idx);
+    const tail = deck.queue.length ? deck.queue[deck.queue.length - 1] : deck.last;
+    if (idx.length > 1 && idx[0] === tail) { const t = idx[0]; idx[0] = idx[idx.length - 1]; idx[idx.length - 1] = t; }
+    for (let i = 0; i < idx.length; i++) deck.queue.push(idx[i]);
+  }
+
+  // scale = 읽는 시간 배수
+  function nextQuestion(deck, scale) {
+    if (!deck.queue.length) refillDeck(deck);
+    const i = deck.queue.shift();
+    deck.last = i;
+    const it = deck.words[i];
+    let prompt, answer, options;
+    if (it.t === 's') {
+      // 문장형: 선생님이 준 오답만 쓰고, 보기 순서는 매번 섞음
+      prompt = it.q;
+      answer = it.a;
+      options = shuffle([it.a].concat(it.d));
+    } else {
+      // 단어형: 오답은 다른 단어형 줄에서. 뜻이 같은 단어는 정답이 둘이 되므로 피함
+      let pool = [];
+      for (let j = 0; j < deck.words.length; j++) {
+        const o = deck.words[j];
+        if (j !== i && o.t === 'w' && o.w !== it.w && o.m !== it.m) pool.push(j);
+      }
+      if (pool.length < 2) {
+        pool = [];
+        for (let j = 0; j < deck.words.length; j++) if (j !== i && deck.words[j].t === 'w') pool.push(j);
+      }
+      shuffle(pool);
+      prompt = it.m;
+      answer = it.w;
+      options = shuffle([it.w, deck.words[pool[0]].w, deck.words[pool[1]].w]);
+    }
+    let chars = textWeight(prompt);
+    options.forEach(function (o) { chars += textWeight(o); });
+    return {
+      index: i,
+      kind: it.t,          // 's' 문장형 | 'w' 단어형
+      prompt: prompt,      // 화면 위에 보여 줄 문제(문장 또는 뜻)
+      answer: answer,
+      options: options,
+      answerIdx: options.indexOf(answer),
+      readSec: readSecFor(chars, it.t === 's', scale),   // 이 문제에 보장하는 최소 시간
+      picked: null,        // 누른 버튼 번호(안 눌렀으면 null)
+      resolved: false      // 허들에 닿아 판정이 끝났는지
+    };
+  }
+
+  // 틀린 문제: 남은 순서에서 그 문제의 다음 차례를 찾아 retryAfter 문제 뒤로 앞당김(문제 수는 그대로)
+  function requeueWord(deck, i) {
+    const pos = Math.max(0, CONFIG.retryAfter - 1);
+    const at = deck.queue.indexOf(i);
+    if (at > pos) {
+      deck.queue.splice(at, 1);
+      deck.queue.splice(pos, 0, i);
+    }
+  }
+
+  // 문장의 빈칸 자리를 강조해서 node 에 넣음. answer 가 있으면 빈칸에 정답을 채움
+  function fillBlank(node, text, answer) {
+    const m = BLANK_RE.exec(text);
+    if (!m) {
+      node.appendChild(document.createTextNode(text));
+      if (answer != null) {
+        node.appendChild(document.createTextNode(' → '));
+        node.appendChild(el('span', 'blank filled', answer));
+      }
+      return;
+    }
+    const dialog = isDialog(text);
+    appendProse(node, text.slice(0, m.index), dialog);
+    node.appendChild(el('span', answer != null ? 'blank filled' : 'blank', answer != null ? answer : ' '));
+    appendProse(node, text.slice(m.index + m[0].length), dialog);
+  }
+
+  // 대화형("A: ... B: ...")은 말하는 사람이 바뀔 때마다 줄을 바꿔 보여줌.
+  // 문장 첫머리가 화자 표시일 때만 적용해서 일반 문장 속 "시간: 3시" 같은 표기는 건드리지 않음
+  const SPEAKER_RE = /^\s*(?:[A-Za-z]|[가나다라])\s*[:：]/;
+  function isDialog(text) { return SPEAKER_RE.test(text); }
+  function appendProse(node, str, dialog) {
+    if (!dialog) { node.appendChild(document.createTextNode(str)); return; }
+    const parts = str.split(/\s+(?=(?:[A-Za-z]|[가나다라])\s*[:：])/);
+    parts.forEach((part, i) => {
+      if (i > 0) node.appendChild(document.createElement('br'));
+      if (part) node.appendChild(document.createTextNode(part));
+    });
+  }
+
+  /* ====================================================================
+   * 4. 네트워크 (Supabase Realtime: broadcast + presence 만 사용, DB 접근 없음)
+   * ==================================================================== */
+
+  function loadScript(src, cb) {
+    let done = false;
+    const s = document.createElement('script');
+    const timer = setTimeout(function () { finish(false); }, 12000);
+    function finish(ok) { if (done) return; done = true; clearTimeout(timer); cb(ok); }
+    s.src = src; s.async = true;
+    s.onload = function () { finish(true); };
+    s.onerror = function () { finish(false); };
+    document.head.appendChild(s);
+  }
+
+  // supabase-js 를 불러옴. 실패해도 혼자 달리기는 그대로 동작함.
+  function loadNetLib() {
+    if (net.lib === 'ready') return;
+    net.lib = 'loading';
+    updateNetUI();
+    loadScript(CDN_SUPABASE, function (ok) {
+      if (net.lib === 'ready') return;
+      try {
+        if (ok && window.supabase && typeof window.supabase.createClient === 'function') {
+          net.client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'wordrace-noauth' },
+            realtime: { params: { eventsPerSecond: 10 } }
+          });
+          net.lib = 'ready';
+        } else {
+          net.lib = 'failed';
+        }
+      } catch (e) {
+        net.lib = 'failed';
+      }
+      updateNetUI();
+      if (net.lib === 'ready') tryResume();
+    });
+  }
+
+  function setConn(status) {
+    net.status = status;
+    const dot = $('conn');
+    dot.hidden = (S.mode !== 'multi' || status === 'idle');
+    dot.dataset.s = status;
+    dot.title = status === 'on' ? '연결됨' : status === 'connecting' ? '연결하는 중' : '연결 끊김 · 다시 연결하는 중';
+  }
+
+  // presence·pos 메시지의 avatar 칸에는 캐릭터 색(팔레트 값)이 들어감
+  function myPresence() {
+    return {
+      id: S.me.id,
+      name: S.me.name || (S.role === 'host' ? '선생님' : '이름 없음'),
+      avatar: S.me.color,
+      role: S.role === 'host' ? 'host' : 'player',
+      playing: S.role === 'host' ? !!S.hostPlays : true
+    };
+  }
+
+  function trackPresence() {
+    if (!net.ch || net.status !== 'on') return;
+    try { const p = net.ch.track(myPresence()); if (p && p.catch) p.catch(function () {}); } catch (e) { /* 무시 */ }
+  }
+
+  function send(payload) {
+    if (!net.ch || net.status !== 'on') return;
+    try {
+      const p = net.ch.send({ type: 'broadcast', event: 'm', payload: payload });
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) { /* 무시 */ }
+  }
+
+  // 방(채널)에 들어감. 끊기면 자동으로 다시 구독하고 hello 를 다시 보냄.
+  function netJoin(code) {
+    net.code = code;
+    net.roster = new Map();
+    net.hostId = null;
+    net.joinedAt = performance.now();
+    openChannel();
+  }
+
+  async function openChannel() {
+    const gen = ++net.gen;
+    clearTimeout(net.retryTimer);
+    setConn('connecting');
+    const old = net.ch;
+    net.ch = null;
+    if (old) { try { await net.client.removeChannel(old); } catch (e) { /* 무시 */ } }
+    if (gen !== net.gen || !net.code) return;
+    let ch;
+    try {
+      ch = net.client.channel(CHANNEL_PREFIX + net.code, {
+        config: { broadcast: { self: false, ack: false }, presence: { key: S.me.id } }
+      });
+      ch.on('broadcast', { event: 'm' }, function (msg) {
+        if (gen !== net.gen) return;
+        try { onMessage(msg && msg.payload); } catch (e) { /* 이상한 메시지는 무시 */ }
+      });
+      ch.on('presence', { event: 'sync' }, function () {
+        if (gen !== net.gen) return;
+        try { onPresence(ch.presenceState()); } catch (e) { /* 무시 */ }
+      });
+      net.ch = ch;
+      ch.subscribe(function (status) {
+        if (gen !== net.gen) return;
+        if (status === 'SUBSCRIBED') {
+          clearTimeout(net.retryTimer);
+          setConn('on');
+          trackPresence();
+          send({ t: 'hello', id: S.me.id });
+          if (S.role === 'host') sendState();
+        } else {
+          setConn('off');
+          scheduleRetry(gen);
+        }
+      });
+    } catch (e) {
+      setConn('off');
+      scheduleRetry(gen);
+    }
+  }
+
+  function scheduleRetry(gen) {
+    clearTimeout(net.retryTimer);
+    net.retryTimer = setTimeout(function () {
+      if (gen === net.gen && net.code && net.status !== 'on') openChannel();
+    }, 5000);
+  }
+
+  function netLeave() {
+    net.gen++;
+    clearTimeout(net.retryTimer);
+    const old = net.ch;
+    net.ch = null;
+    net.code = null;
+    net.roster = new Map();
+    net.hostId = null;
+    if (old && net.client) { try { const p = net.client.removeChannel(old); if (p && p.catch) p.catch(function () {}); } catch (e) { /* 무시 */ } }
+    setConn('idle');
+  }
+
+  /* ---------- presence: 참가자 명단 ---------- */
+
+  function onPresence(state) {
+    const roster = new Map();
+    let hostId = null;
+    if (state && typeof state === 'object') {
+      Object.keys(state).forEach(function (key) {
+        const metas = state[key];
+        if (!Array.isArray(metas) || !metas.length) return;
+        const m = metas[metas.length - 1];
+        if (!m || typeof m.id !== 'string' || !/^[a-z0-9]{6,16}$/.test(m.id)) return;
+        const entry = {
+          id: m.id,
+          name: cleanName(m.name) || '이름 없음',
+          color: cleanColor(m.avatar, COLORS[0]),
+          role: m.role === 'host' ? 'host' : 'player',
+          playing: m.role === 'host' ? m.playing === true : true
+        };
+        roster.set(entry.id, entry);
+        if (entry.role === 'host' && !hostId) hostId = entry.id;
+        if (entry.role === 'host' && entry.id === S.me.id) hostId = entry.id;
+      });
+    }
+    // 방을 방금 만들었는데 같은 코드를 쓰는 다른 방장이 이미 있으면 코드를 새로 뽑음
+    if (S.role === 'host' && net.fresh && roster.has(S.me.id)) {
+      net.fresh = false;
+      let clash = false;
+      roster.forEach(function (r) { if (r.role === 'host' && r.id !== S.me.id) clash = true; });
+      if (clash) { createRoom(); return; }
+    }
+    net.roster = roster;
+    net.hostId = hostId;
+    // 경주 중에 새로 들어온 사람을 출발선에 세움
+    const R = S.race;
+    if (R && !R.solo) {
+      roster.forEach(function (r) {
+        if (r.id !== S.me.id && r.playing && !S.racers.has(r.id)) addRacer(r.id, r.name, r.color);
+      });
+    }
+    renderLobbies();
+  }
+
+  /* ---------- broadcast: 게임 메시지 ---------- */
+
+  function hostPresent() {
+    let found = false;
+    net.roster.forEach(function (r) { if (r.role === 'host') found = true; });
+    return found;
+  }
+
+  function sendState() {
+    if (S.role !== 'host') return;
+    const R = S.race;
+    const racing = S.host.phase === 'racing' && R;
+    send({
+      t: 'state',
+      phase: S.host.phase,
+      raceId: S.host.raceId,
+      words: racing ? R.words : null,
+      trackLength: racing ? R.track : null,
+      readScale: racing ? R.readScale : 1,
+      elapsedMs: racing ? Math.round(raceClock(R)) : 0
+    });
+  }
+
+  function onMessage(m) {
+    if (!m || typeof m !== 'object' || typeof m.t !== 'string') return;
+    const R = S.race;
+    switch (m.t) {
+      case 'hello': {
+        if (S.role === 'host') { sendState(); return; }
+        // 방장이 없을 때는 달리는 중인 참가자가 대신 알려 줌(새로고침한 학생이 합류할 수 있게)
+        if (R && !R.solo && !R.ended && !hostPresent()) {
+          const asked = performance.now();
+          setTimeout(function () {
+            const now = S.race;
+            if (now !== R || now.ended || hostPresent() || net.sawStateAt > asked) return;
+            send({ t: 'state', peer: true, phase: 'racing', raceId: R.id, words: R.words, trackLength: R.track, readScale: R.readScale, elapsedMs: Math.round(raceClock(R)) });
+          }, 300 + Math.random() * 1200);
+        }
+        return;
+      }
+      case 'state': {
+        net.sawStateAt = performance.now();
+        if (S.role === 'host' || S.mode !== 'multi') return;
+        const phase = m.phase;
+        if (phase === 'racing') {
+          const raceId = typeof m.raceId === 'string' && m.raceId.length <= 24 ? m.raceId : null;
+          const words = validateWords(m.words);
+          const track = num(m.trackLength, 100, 20000);
+          const elapsed = num(m.elapsedMs, 0, 3600000);
+          if (!raceId || !words || track == null || elapsed == null) return;
+          if (R && R.id === raceId) return;           // 이미 이 경주에 있음
+          if (m.peer === true && R) return;           // 참가자가 대신 보낸 상태는 경주가 없을 때만 받음
+          beginRace({ id: raceId, words: words, track: track, readScale: cleanScale(m.readScale), elapsed: elapsed, spectator: false, solo: false });
+        } else if (m.peer === true) {
+          return;
+        } else if (phase === 'lobby') {
+          if (R) { S.race = null; S.racers.clear(); }
+          S.lobbyNote = '';
+          if (S.screen !== 'lobby') show('lobby');
+          renderLobbies();
+        } else if (phase === 'done') {
+          if (R && typeof m.raceId === 'string' && R.id === m.raceId) endRace();
+          else if (!R) { S.lobbyNote = '방금 경주가 끝났어요. 다음 경주를 기다려요.'; renderLobbies(); }
+        }
+        return;
+      }
+      case 'start': {
+        if (S.role === 'host' || S.mode !== 'multi') return;
+        const raceId = typeof m.raceId === 'string' && m.raceId.length <= 24 ? m.raceId : null;
+        const words = validateWords(m.words);
+        const track = num(m.trackLength, 100, 20000);
+        if (!raceId || !words || track == null) return;
+        if (R && R.id === raceId) return;
+        beginRace({ id: raceId, words: words, track: track, readScale: cleanScale(m.readScale), elapsed: 0, spectator: false, solo: false });
+        return;
+      }
+      case 'pos': {
+        if (!R || R.solo || m.raceId !== R.id) return;
+        const id = typeof m.id === 'string' ? m.id : '';
+        if (!/^[a-z0-9]{6,16}$/.test(id) || id === S.me.id) return;
+        const dist = num(m.dist, 0, R.track + 1);
+        const speed = num(m.speed, 0, 200);
+        if (dist == null || speed == null) return;
+        const o = addRacer(id, cleanName(m.name), cleanColor(m.avatar, null));
+        o.dist = Math.min(dist, R.track);
+        o.speed = speed;
+        o.recvAt = performance.now();
+        o.streak = num(m.streak, 0, 100000) || 0;
+        o.correct = num(m.correct, 0, 100000) || 0;
+        o.wrong = num(m.wrong, 0, 100000) || 0;
+        const t = num(m.timeMs, 0, 36000000);
+        o.finished = m.finished === true && t != null;
+        if (o.finished) { o.timeMs = t; o.dist = R.track; }
+        o.dnf = false;
+        return;
+      }
+      case 'finish': {
+        if (!R || R.solo || m.raceId !== R.id) return;
+        const id = typeof m.id === 'string' ? m.id : '';
+        if (!/^[a-z0-9]{6,16}$/.test(id) || id === S.me.id) return;
+        const o = addRacer(id, cleanName(m.name), cleanColor(m.avatar, null));
+        const t = num(m.timeMs, 0, 36000000);
+        o.correct = num(m.correct, 0, 100000) || 0;
+        o.wrong = num(m.wrong, 0, 100000) || 0;
+        o.speed = 0;
+        o.recvAt = performance.now();
+        if (m.dnf === true) {
+          const dist = num(m.dist, 0, R.track + 1);
+          if (dist != null) o.dist = Math.min(dist, R.track);
+          o.finished = false; o.dnf = true;
+        } else if (t != null) {
+          o.finished = true; o.timeMs = t; o.dist = R.track; o.dnf = false;
+        }
+        if (Array.isArray(m.misses)) {
+          // misses = 틀린 문제의 번호(문제 목록에서의 순서) 목록
+          o.misses = m.misses.filter(function (w) { return Number.isInteger(w) && w >= 0 && w < R.words.length; }).slice(0, 300);
+        }
+        if (S.screen === 'result') renderResults();
+        return;
+      }
+      case 'end': {
+        if (S.role === 'host') return;
+        if (R && !R.solo && m.raceId === R.id) endRace();
+        return;
+      }
+      case 'rematch': {
+        if (S.role === 'host' || S.mode !== 'multi') return;
+        S.race = null;
+        S.racers.clear();
+        S.lobbyNote = '';
+        $('countdown').hidden = true;
+        show('lobby');
+        renderLobbies();
+        return;
+      }
+    }
+  }
+
+  function addRacer(id, name, color) {
+    let o = S.racers.get(id);
+    if (!o) {
+      o = { id: id, name: name || '이름 없음', color: color || COLORS[0], dist: 0, speed: 0, shown: 0, recvAt: 0, streak: 0, correct: 0, wrong: 0, finished: false, timeMs: 0, dnf: false, misses: [], bot: null };
+      S.racers.set(id, o);
+    } else {
+      if (name) o.name = name;
+      if (color) o.color = color;
+    }
+    return o;
+  }
+
+  /* ---------- 방 만들기 / 참가 / 나가기 ---------- */
+
+  function saveSession() {
+    if (S.mode !== 'multi' || !net.code) return;
+    session.set(KEY_SESSION, {
+      code: net.code, role: S.role, name: S.me.name, color: S.me.color, hostPlays: S.hostPlays,
+      host: S.role === 'host' ? { phase: S.host.phase, raceId: S.host.raceId, words: S.host.words, track: S.host.track, readScale: S.host.readScale, startedWall: S.host.startedWall } : null
+    });
+  }
+
+  function createRoom() {
+    if (net.lib !== 'ready') return;
+    S.mode = 'multi';
+    S.role = 'host';
+    S.race = null;
+    S.racers.clear();
+    S.host = { phase: 'lobby', raceId: null, words: null, track: 0, startedWall: 0 };
+    net.fresh = true;
+    const code = String(1000 + Math.floor(Math.random() * 9000));
+    netJoin(code);
+    saveSession();
+    show('host');
+    renderHostJoinInfo();
+    renderLobbies();
+  }
+
+  function joinRoom(code, name, color) {
+    if (net.lib !== 'ready') return;
+    S.mode = 'multi';
+    S.role = 'player';
+    S.hostPlays = false;
+    S.me.name = name;
+    S.me.color = color;
+    local.set(KEY_NAME, name);
+    local.set(KEY_COLOR, color);
+    S.race = null;
+    S.racers.clear();
+    S.lobbyNote = '';
+    net.fresh = false;
+    netJoin(code);
+    saveSession();
+    show('lobby');
+    renderLobbies();
+  }
+
+  function leaveRoom() {
+    session.remove(KEY_SESSION);
+    netLeave();
+    S.race = null;
+    S.racers.clear();
+    S.mode = null;
+    S.role = null;
+    $('countdown').hidden = true;
+    show('home');
+  }
+
+  // 새로고침했거나 다시 들어온 경우: 기억해 둔 방으로 돌아감
+  function tryResume() {
+    if (S.mode) return;
+    const s = session.get(KEY_SESSION, null);
+    const urlCode = roomFromUrl();
+    if (!s || typeof s.code !== 'string' || !/^\d{4}$/.test(s.code)) return;
+    if (urlCode && urlCode !== s.code) { session.remove(KEY_SESSION); return; }
+    S.me.name = cleanName(s.name) || S.me.name;
+    S.me.color = cleanColor(s.color, S.me.color);
+    if (s.role === 'host') {
+      S.mode = 'multi';
+      S.role = 'host';
+      S.hostPlays = !!s.hostPlays;
+      net.fresh = false;
+      const h = s.host || {};
+      const words = validateWords(h.words);
+      const elapsed = Date.now() - (Number(h.startedWall) || 0);
+      const racing = h.phase === 'racing' && typeof h.raceId === 'string' && words && num(h.track, 100, 20000) != null && elapsed >= 0 && elapsed < 20 * 60 * 1000;
+      netJoin(s.code);
+      if (racing) {
+        S.host = { phase: 'racing', raceId: h.raceId, words: words, track: h.track, readScale: cleanScale(h.readScale), startedWall: h.startedWall };
+        beginRace({ id: h.raceId, words: words, track: h.track, readScale: cleanScale(h.readScale), elapsed: elapsed, spectator: !S.hostPlays, solo: false, resume: true });
+      } else {
+        S.host = { phase: 'lobby', raceId: null, words: null, track: 0, startedWall: 0 };
+        show('host');
+        renderHostJoinInfo();
+        renderLobbies();
+      }
+      saveSession();
+    } else if (S.me.name) {
+      joinRoom(s.code, S.me.name, S.me.color);
+    }
+  }
+
+  function roomFromUrl() {
+    try {
+      const v = new URLSearchParams(window.location.search).get('room');
+      return v && /^\d{4}$/.test(v) ? v : null;
+    } catch (e) { return null; }
+  }
+
+  /* ---------- 방장이 하는 일: 시작, 끝내기, 다시 하기 ---------- */
+
+  function playingCount() {
+    let n = 0;
+    net.roster.forEach(function (r) { if (r.playing) n++; });
+    return n;
+  }
+
+  function hostStart() {
+    if (S.role !== 'host' || net.status !== 'on') return;
+    const info = resolveWords(S.wordsText);
+    if (!info.ok) return;
+    if (S.hostPlays) {
+      S.me.name = cleanName($('hostName').value) || '선생님';
+      local.set(KEY_NAME, S.me.name);
+      trackPresence();
+    }
+    const raceId = randomId(8);
+    const scale = currentScale();
+    const track = planRace(info.words, S.repeat, scale).track;
+    S.host = { phase: 'racing', raceId: raceId, words: info.words, track: track, readScale: scale, startedWall: Date.now() + CONFIG.countdownSec * 1000 };
+    send({ t: 'start', raceId: raceId, words: info.words, trackLength: track, readScale: scale });
+    beginRace({ id: raceId, words: info.words, track: track, readScale: scale, elapsed: 0, spectator: !S.hostPlays, solo: false });
+    saveSession();
+  }
+
+  function hostEnd() {
+    const R = S.race;
+    if (S.role !== 'host' || !R) return;
+    S.host.phase = 'done';
+    saveSession();
+    send({ t: 'end', raceId: R.id });
+    endRace();
+    sendState();
+  }
+
+  function hostRematch() {
+    if (S.role !== 'host') return;
+    S.race = null;
+    S.racers.clear();
+    S.host = { phase: 'lobby', raceId: null, words: null, track: 0, startedWall: 0 };
+    saveSession();
+    send({ t: 'rematch' });
+    sendState();
+    $('countdown').hidden = true;
+    show('host');
+    renderHostJoinInfo();
+    renderLobbies();
+  }
+
+  /* ====================================================================
+   * 5. 게임 루프
+   * ==================================================================== */
+
+  /* ---------- 달리기 계산(나와 컴퓨터 상대가 같은 규칙을 씀) ----------
+   * 문제 하나 = 허들 하나. 허들은 gateDist 위치에 있고 캐릭터가 거기 닿으면 판정.
+   *  - 닿기 전에 정답을 고름(pending.ok) → 남은 구간을 dashMult 배속으로 당겨 오고, 허들 직전에 점프 → 착지하면 가속
+   *  - 오답을 골랐거나 안 고름 → 허들에 걸려 넘어짐(멈춤 + 후퇴 + 연속 초기화)
+   */
+
+  function newRunner() {
+    return {
+      dist: 0, speed: CONFIG.baseSpeed, stun: 0, kbLeft: 0, gateDist: Infinity,
+      gateCap: Infinity, // 이번 허들에 다가가는 속도의 상한(m/초) = gateGap / 그 문제의 읽는 시간. 가속해도 읽는 시간 밑으로는 안 내려가게
+      gateAge: 0,        // 이번 허들이 놓인 뒤 지난 시간(초)
+      vNow: 0,           // 지금 실제로 나아가는 속도(화면·위치 전송용)
+      lastGate: 0,       // 마지막으로 닿은 허들 위치. 다음 허들은 항상 여기서 gateGap 뒤(넘어져도 허들 개수가 변하지 않게)
+      pending: null,     // 이번 허들에 대해 고른 답: null(아직) | {ok: true/false}
+      jumping: false,    // 점프를 시작했는지
+      landIn: 0,         // 착지까지 남은 시간(초). 0이 되면 가속
+      dashing: false,    // 지금 대시(빨리 감기) 중인지 — 화면 연출용
+      streak: 0, correct: 0, wrong: 0, finished: false,
+      tick: null,        // 매 프레임 불림(컴퓨터 상대가 답을 고르는 데 씀)
+      onGate: null,      // 다음 허들이 놓였을 때
+      onJump: null,      // 점프를 시작할 때
+      onResolve: null,   // 허들에 닿아 판정됐을 때 (r, 맞았는지, 시간 초과인지)
+      onFinish: null
+    };
+  }
+
+  function placeGate(r, at, track) {
+    r.gateDist = at > track - CONFIG.finishClear ? Infinity : at;
+    r.pending = null;
+    r.jumping = false;
+    r.gateCap = Infinity;
+    r.gateAge = 0;
+    if (r.onGate) r.onGate(r);     // 여기서 문제를 뽑고 gateCap 을 정함
+  }
+
+  // 이번 허들에 대한 답을 정함(내 버튼 입력, 컴퓨터 상대의 선택 공통)
+  function setAnswer(r, ok) {
+    r.pending = { ok: ok, v: 0 };
+    if (ok) return;
+    // 오답: 원래 속도로 허들까지 가되, 기다리는 시간은 wrongWaitMaxSec 를 넘지 않게 당겨 옴.
+    // 단, 문제가 나온 지 wrongMinTotalSec 가 되기 전에는 당겨 오지 않음(바로 찍는 게 이득이 되지 않게).
+    const rel = Math.max(0, r.gateDist - r.dist);
+    const natural = rel / Math.max(0.1, Math.min(r.speed, r.gateCap));
+    const wait = Math.min(natural, Math.max(CONFIG.wrongWaitMaxSec, CONFIG.wrongMinTotalSec - r.gateAge));
+    r.pending.v = rel / Math.max(0.05, wait);
+  }
+
+  function stepRunner(r, dt, track) {
+    if (r.finished) return;
+    if (r.stun > 0) {
+      // 넘어짐: 잠깐 뒤로 밀린 다음 멈춰 있음
+      if (r.kbLeft > 0) {
+        const k = Math.min(r.kbLeft, CONFIG.knockback / Math.max(0.05, CONFIG.knockbackSec) * dt);
+        r.dist = Math.max(0, r.dist - k);
+        r.kbLeft -= k;
+      }
+      r.stun -= dt;
+      if (r.stun <= 0) {
+        r.stun = 0;
+        r.dist = Math.max(0, r.dist - Math.max(0, r.kbLeft));
+        r.kbLeft = 0;
+        placeGate(r, r.lastGate + CONFIG.gateGap, track);
+      }
+      return;
+    }
+    if (r.speed > CONFIG.baseSpeed) r.speed = Math.max(CONFIG.baseSpeed, r.speed - CONFIG.speedDecay * dt);
+    if (r.landIn > 0) {
+      r.landIn -= dt;
+      if (r.landIn <= 0) { r.landIn = 0; r.speed = Math.min(MAX_SPEED, r.speed + CONFIG.boostPerCorrect); }   // 착지 후 가속
+    }
+    if (r.tick) r.tick(r, dt);
+
+    let step = r.speed * dt;
+    r.dashing = false;
+    if (r.pending && r.gateDist !== Infinity) {
+      const rel = r.gateDist - r.dist;
+      if (r.pending.ok) {
+        // 점프는 꼭대기에서 허들 위를 지나도록, 닿기 jumpSec/2 전에 시작
+        const lead = r.speed * CONFIG.jumpSec / 2;
+        if (rel > lead + 0.01) {
+          r.dashing = CONFIG.dashMult > 1;
+          step = Math.min(step * CONFIG.dashMult, Math.max(step, rel - lead));
+        } else if (!r.jumping) {
+          r.jumping = true;
+          if (r.onJump) r.onJump(r);
+        }
+      } else {
+        step = r.pending.v * dt;
+      }
+    } else if (r.gateDist !== Infinity) {
+      // 아직 답을 안 고름: 그 문제의 읽는 시간이 지켜지도록 다가가는 속도를 제한(화면의 허들도, 진행 거리도 같이 느려짐)
+      step = Math.min(r.speed, r.gateCap) * dt;
+    }
+    if (r.gateDist !== Infinity) r.gateAge += dt;
+    r.vNow = dt > 0 ? step / dt : r.speed;
+    r.dist += step;
+
+    if (r.dist >= r.gateDist) {
+      const ok = !!(r.pending && r.pending.ok);
+      const timedOut = !r.pending;
+      if (ok) {
+        r.correct++;
+        r.streak++;
+        r.landIn = CONFIG.jumpSec / 2;
+        r.lastGate = r.gateDist;
+        if (r.onResolve) r.onResolve(r, true, false);
+        placeGate(r, r.gateDist + CONFIG.gateGap, track);
+      } else {
+        r.wrong++;
+        r.streak = 0;
+        r.dist = r.gateDist;
+        r.stun = CONFIG.stumbleSec;
+        r.kbLeft = CONFIG.knockback;
+        r.speed = CONFIG.baseSpeed + (r.speed - CONFIG.baseSpeed) * CONFIG.wrongSpeedKeep;
+        r.landIn = 0;
+        r.lastGate = r.gateDist;
+        r.gateDist = Infinity;
+        r.pending = null;
+        r.jumping = false;
+        if (r.onResolve) r.onResolve(r, false, timedOut);
+      }
+    }
+    if (r.dist >= track) {
+      r.dist = track;
+      r.finished = true;
+      r.dashing = false;
+      if (r.onFinish) r.onFinish(r);
+    }
+  }
+
+  // 컴퓨터 상대: 자기 문제 순서를 따로 가지고, 문제의 읽는 시간에 비례해 생각한 뒤 acc 확률로 맞힘.
+  // 생각이 길면 허들에 먼저 닿아 시간 초과. 긴 문제에서는 나와 똑같이 다가가는 속도가 제한됨.
+  function makeBot(profile, items, total, scale) {
+    const r = newRunner();
+    const deck = makeDeck(items, total);
+    const avgW = avgWordWeight(items);
+    let think = 0;
+    r.onGate = function (self) {
+      if (self.gateDist === Infinity) return;
+      if (!deck.queue.length) refillDeck(deck);
+      const it = items[deck.queue.shift()];
+      self.gateCap = CONFIG.gateGap / estItemRead(it, avgW, scale);
+      think = profile.react * (estItemRead(it, avgW, 1) / CONFIG.botRefReadSec) * (0.7 + 0.6 * Math.random());
+    };
+    r.tick = function (self, dt) {
+      if (self.pending || self.gateDist === Infinity) return;
+      think -= dt;
+      if (think <= 0) setAnswer(self, Math.random() < profile.acc);
+    };
+    return r;
+  }
+
+  /* ---------- 경주 시작/끝 ---------- */
+
+  function raceClock(R) { return Math.max(0, performance.now() - R.t0); }
+
+  // opts: {id, words, track, elapsed(이미 지난 시간 ms), spectator, solo, resume}
+  function beginRace(opts) {
+    const now = performance.now();
+    const cd = CONFIG.countdownSec * 1000;
+    const late = opts.elapsed > 0;
+    const R = {
+      id: opts.id,
+      words: opts.words,
+      track: opts.track,
+      solo: !!opts.solo,
+      spectator: !!opts.spectator,
+      // t0 = 경주 시계가 0이었던 시각. 늦게 들어오면 이미 지난 시간만큼 과거로 잡아 기록이 공정하게 됨
+      t0: late ? now - opts.elapsed : now + cd,
+      goAt: (opts.spectator && late) ? now : now + cd,
+      myState: opts.spectator ? 'watch' : 'countdown',   // 'countdown' | 'running' | 'done' | 'watch'
+      started: false,      // 카운트다운이 끝났는지
+      ended: false,        // 경주 전체가 끝났는지
+      myTime: 0,
+      runner: null,
+      deck: null,
+      q: null,
+      misses: [],          // 틀린 문제의 번호 목록
+      readScale: cleanScale(opts.readScale),   // 읽는 시간 배수(같이 달리기에서는 방장이 정한 값)
+      maxOpts: opts.words.reduce(function (mx, it) { return Math.max(mx, it.t === 's' ? it.d.length + 1 : 3); }, 2),
+      hasSentences: opts.words.some(function (it) { return it.t === 's'; }),
+      cdShown: -1,
+      resultAt: 0
+    };
+    S.race = R;
+    S.racers.clear();
+    net.lastPosAt = 0;
+    net.lastFinishAt = 0;
+
+    if (R.solo) {
+      const pool = COLORS.filter(function (c) { return c !== S.me.color; });
+      shuffle(pool);
+      CONFIG.bots.forEach(function (profile, n) {
+        const o = addRacer('bot' + n, BOT_NAMES[n % BOT_NAMES.length], pool[n % pool.length]);
+        o.bot = makeBot(profile, R.words, questionsForTrack(R.track), R.readScale);
+      });
+    } else {
+      net.roster.forEach(function (p) {
+        if (p.id !== S.me.id && p.playing) addRacer(p.id, p.name, p.color);
+      });
+    }
+
+    if (!R.spectator) {
+      const r = newRunner();
+      R.runner = r;
+      R.deck = makeDeck(R.words, questionsForTrack(R.track));
+      r.onGate = onMyGate;
+      r.onJump = onMyJump;
+      r.onResolve = onMyResolve;
+      r.onFinish = onMyFinish;
+      resetGameView();
+      show('game');
+    } else {
+      resetWatchView();
+      show('watch');
+    }
+    $('countdown').hidden = false;
+    updateCountdown(now);
+  }
+
+  function updateCountdown(now) {
+    const R = S.race;
+    const left = R.goAt - now;
+    const box = $('countdown');
+    if (left > 0) {
+      const n = Math.ceil(left / 1000);
+      if (n !== R.cdShown) {
+        R.cdShown = n;
+        box.hidden = false;
+        setText($('cdNum'), String(n));
+        setText($('cdCap'), R.spectator ? '곧 출발해요' : '준비!');
+        sfx.count();
+      }
+      return;
+    }
+    if (!R.started) {
+      R.started = true;
+      S.racers.forEach(function (o) { if (o.bot) placeGate(o.bot, CONFIG.gateGap, R.track); });
+      if (R.cdShown !== -1) sfx.go();
+      R.cdShown = 0;
+      box.hidden = true;
+      if (!R.spectator && R.myState === 'countdown') {
+        R.myState = 'running';
+        setPose(game.rn, 'run');
+        placeGate(R.runner, CONFIG.gateGap, R.track);
+      }
+    }
+  }
+
+  // 단어 버튼을 눌렀을 때: 정답/오답을 바로 보여 주고, 점프·넘어짐은 허들에 닿을 때 일어남
+  function pickAnswer(i) {
+    const R = S.race;
+    if (!R || R.myState !== 'running') return;
+    const q = R.q, r = R.runner;
+    if (!q || q.resolved || q.picked != null || r.stun > 0 || i < 0 || i >= q.options.length) return;
+    q.picked = i;
+    const ok = i === q.answerIdx;
+    setAnswer(r, ok);
+    if (!ok) {
+      R.misses.push(q.index);
+      requeueWord(R.deck, q.index);
+    }
+    showPickFeedback(q, ok);
+  }
+
+  function onMyGate(r) {
+    const R = S.race;
+    if (!R || R.runner !== r) return;
+    if (r.gateDist === Infinity) {
+      R.q = null;
+      showFinalStretch();
+    } else {
+      R.q = nextQuestion(R.deck, R.readScale);
+      r.gateCap = CONFIG.gateGap / R.q.readSec;
+      showQuestion(R.q, r.gateDist);
+    }
+  }
+
+  function onMyJump(r) {
+    startJumpAnim(r.streak + 1);
+    sfx.jump();
+  }
+
+  function onMyResolve(r, ok, timedOut) {
+    const R = S.race, q = R.q;
+    if (q) q.resolved = true;
+    if (ok) return;
+    if (timedOut && q) {
+      R.misses.push(q.index);
+      requeueWord(R.deck, q.index);
+      showTimeoutFeedback(q);
+    }
+    startFallAnim();
+    sfx.trip();
+  }
+
+  function onMyFinish() {
+    const R = S.race;
+    R.myState = 'done';
+    R.myTime = raceClock(R);
+    R.resultAt = performance.now() + CONFIG.resultDelayMs;
+    sfx.finish();
+    setPose(game.rn, 'cheer');
+    showFinished();
+    if (!R.solo) { sendFinish(); net.lastFinishAt = performance.now(); }
+  }
+
+  function sendPos() {
+    const R = S.race, r = R.runner;
+    send({
+      t: 'pos', raceId: R.id, id: S.me.id, name: S.me.name, avatar: S.me.color,
+      dist: Math.round(r.dist * 10) / 10,
+      speed: (R.myState === 'running' && r.stun <= 0) ? Math.round(Math.min(r.speed, r.vNow || r.speed) * 10) / 10 : 0,
+      streak: r.streak, finished: r.finished, timeMs: Math.round(R.myTime), correct: r.correct, wrong: r.wrong
+    });
+  }
+
+  function sendFinish() {
+    const R = S.race, r = R.runner;
+    send({
+      t: 'finish', raceId: R.id, id: S.me.id, name: S.me.name, avatar: S.me.color,
+      timeMs: Math.round(R.myTime), correct: r.correct, wrong: r.wrong,
+      dnf: !r.finished, dist: Math.round(r.dist * 10) / 10,
+      misses: R.misses.slice(0, 300)
+    });
+  }
+
+  // 경주 전체가 끝남(모두 도착했거나 방장이 끝냄)
+  function endRace() {
+    const R = S.race;
+    if (!R || R.ended) return;
+    R.ended = true;
+    $('countdown').hidden = true;
+    if (R.runner && R.myState !== 'done') {
+      R.myState = 'done';
+      R.myTime = raceClock(R);
+      if (!R.solo) { sendFinish(); net.lastFinishAt = performance.now(); }
+    }
+    S.racers.forEach(function (o) { o.speed = 0; });
+    if (S.screen !== 'result') { show('result'); }
+    renderResults();
+  }
+
+  /* ---------- 순위 ---------- */
+
+  // 지금 순위: 도착한 사람은 기록순, 나머지는 앞선 거리순
+  function standings() {
+    const R = S.race;
+    const list = [];
+    if (!R) return list;
+    if (R.runner) {
+      list.push({ id: S.me.id, name: S.me.name || '나', color: S.me.color, dist: R.runner.dist, speed: R.runner.speed, finished: R.runner.finished, timeMs: R.myTime, me: true, present: true, stopped: R.runner.stun > 0 || R.myState !== 'running' });
+    }
+    S.racers.forEach(function (o) {
+      const present = R.solo || net.roster.has(o.id);
+      if (!present && !o.finished && o.dist < 1) return;   // 출발도 안 하고 나간 사람은 빼기
+      list.push({ id: o.id, name: o.name, color: o.color, dist: o.shown, speed: o.speed, finished: o.finished, timeMs: o.timeMs, me: false, present: present, stopped: o.speed <= 0 });
+    });
+    list.sort(function (a, b) {
+      if (a.finished !== b.finished) return a.finished ? -1 : 1;
+      if (a.finished) return a.timeMs - b.timeMs;
+      return b.dist - a.dist;
+    });
+    return list;
+  }
+
+  /* ---------- 매 프레임 ---------- */
+
+  let lastFrame = 0;
+  let lastSlowTick = 0;
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    const dt = Math.min(Math.max(0, (now - lastFrame) / 1000), CONFIG.maxFrameDt);  // 탭이 쉬다 돌아와도 폭주하지 않게 상한
+    lastFrame = now;
+    const R = S.race;
+    if (!R) return;
+
+    if (!R.started) updateCountdown(now);
+
+    // 내 캐릭터
+    if (R.myState === 'running') stepRunner(R.runner, dt, R.track);
+
+    // 다른 참가자
+    S.racers.forEach(function (o) {
+      if (o.bot) {
+        if (R.started && !o.bot.finished) {
+          stepRunner(o.bot, dt, R.track);
+          if (o.bot.finished) { o.finished = true; o.timeMs = raceClock(R); }
+        }
+        o.dist = o.bot.dist; o.shown = o.bot.dist;
+        o.speed = (o.bot.stun > 0 || o.bot.finished || !R.started) ? 0 : o.bot.speed;
+        o.correct = o.bot.correct; o.wrong = o.bot.wrong;
+      } else {
+        // 500ms마다 받은 위치를 속도로 이어 그려서 부드럽게 보이게
+        let target = o.dist;
+        if (!o.finished && !R.ended && o.speed > 0) {
+          target = Math.min(R.track, o.dist + o.speed * Math.min((now - o.recvAt) / 1000, CONFIG.remoteLeadSec));
+        }
+        o.shown += (target - o.shown) * Math.min(1, dt * 7);
+      }
+    });
+
+    // 같이 달리기: 내 위치/기록 알리기
+    if (!R.solo && R.runner) {
+      if (R.myState === 'running' || R.myState === 'countdown') {
+        if (now - net.lastPosAt >= CONFIG.posIntervalMs) { net.lastPosAt = now; sendPos(); }
+      } else if (R.myState === 'done' && now - net.lastFinishAt >= CONFIG.finishResendMs && now - R.resultAt < 180000) {
+        net.lastFinishAt = now; sendFinish();
+      }
+    }
+
+    // 0.5초마다 하는 일: 끝났는지 확인, 결과 화면 새로 그리기
+    if (now - lastSlowTick >= 500) {
+      lastSlowTick = now;
+      checkRaceOver(R);
+      if (S.screen === 'result') renderResults();
+    }
+
+    if (S.screen === 'game') {
+      renderGame();
+      if (R.myState === 'done' && now >= R.resultAt) { show('result'); renderResults(); }
+    } else if (S.screen === 'watch') {
+      renderWatch();
+    }
+  }
+
+  function checkRaceOver(R) {
+    if (R.ended || !R.started) return;
+    if (R.solo) {
+      let all = R.runner.finished;
+      S.racers.forEach(function (o) { if (!o.finished) all = false; });
+      if (all) { R.ended = true; }
+      return;
+    }
+    if (S.role !== 'host') return;
+    // 방장: 지금 방에 있는 참가자가 모두 도착하면 경주를 끝냄
+    let total = 0, done = 0;
+    if (R.runner) { total++; if (R.runner.finished) done++; }
+    S.racers.forEach(function (o) {
+      if (!net.roster.has(o.id)) return;
+      total++; if (o.finished) done++;
+    });
+    if (total > 0 && done === total) hostEnd();
+  }
+
+  /* ====================================================================
+   * 6. 화면 그리기
+   * ==================================================================== */
+
+  /* ---------- 캐릭터 그리기 ----------
+   * 캐릭터 모양은 이 함수 하나에서만 만듭니다. 나중에 스프라이트 그림으로 바꾸려면
+   * renderRunner 가 돌려주는 요소의 안쪽(RUNNER_SVG)만 바꾸고, 바깥 .rn 과 자세 클래스
+   * (still / jump / flip / fall / cheer, 없으면 달리기)를 그대로 쓰면 됩니다.
+   */
+  const RUNNER_SVG =
+    '<svg class="rn-svg" viewBox="0 0 48 62" aria-hidden="true"><g class="rn-bob">' +
+      '<g class="rn-limb rn-arm-b"><rect class="rn-c" x="20" y="24" width="5" height="16" rx="2.5"/><rect x="20" y="24" width="5" height="16" rx="2.5" fill="#1B1917" opacity=".28"/></g>' +
+      '<g class="rn-limb rn-leg-b"><rect x="20" y="40" width="6" height="18" rx="3" fill="#5F564F"/><rect class="rn-c" x="20" y="54.5" width="11" height="5.5" rx="2.75"/><rect x="20" y="54.5" width="11" height="5.5" rx="2.75" fill="#1B1917" opacity=".28"/></g>' +
+      '<rect class="rn-c" x="14" y="22" width="18" height="22" rx="8"/>' +
+      '<g class="rn-limb rn-leg-f"><rect x="20" y="40" width="6" height="18" rx="3" fill="#3F3935"/><rect class="rn-c" x="20" y="54.5" width="11" height="5.5" rx="2.75"/></g>' +
+      '<circle cx="24" cy="13" r="10.5" fill="#FBE9D0"/>' +
+      '<path class="rn-c" d="M13.2 12.5a10.8 10.8 0 0 1 21.6 0z"/><rect class="rn-c" x="30" y="10" width="10" height="3" rx="1.5"/>' +
+      '<circle cx="27.5" cy="16.5" r="1.5" fill="#1B1917"/><circle cx="32.5" cy="16.5" r="1.5" fill="#1B1917"/>' +
+      '<g class="rn-limb rn-arm-f"><rect class="rn-c" x="20" y="24" width="5" height="16" rx="2.5" stroke="#FAF8F5" stroke-width="1"/></g>' +
+    '</g></svg>';
+
+  // color: 팔레트 색, size: 캐릭터 키(px, 생략하면 CSS 크기), pose: 처음 자세
+  function renderRunner(color, size, pose) {
+    const rn = el('div', 'rn');
+    rn.style.setProperty('--c', cleanColor(color, COLORS[0]));
+    if (size) { rn.style.width = (size * 48 / 62).toFixed(1) + 'px'; rn.style.height = size + 'px'; }
+    rn.innerHTML = '<div class="rn-air"><div class="rn-spin">' + RUNNER_SVG + '</div></div>';   // 고정된 문자열만 넣음(사용자 입력 없음)
+    rn._rate = 0;
+    setPose(rn, pose || 'still');
+    return rn;
+  }
+
+  // 자세 바꾸기: 'run' | 'still' | 'jump' | 'fall' | 'cheer' (+ flip 은 jump 와 함께)
+  function setPose(rn, pose, flip) {
+    if (rn._pose === pose && !flip) return;
+    rn._pose = pose;
+    rn.classList.remove('still', 'jump', 'flip', 'fall', 'cheer');
+    if (pose !== 'run') rn.classList.add(pose);
+    if (flip) rn.classList.add('flip');
+    rn._rate = 0;   // 애니메이션이 새로 시작되므로 빠르기를 다시 맞추게 함
+  }
+
+  function setRunnerColor(rn, color) {
+    if (rn._color === color) return;
+    rn._color = color;
+    rn.style.setProperty('--c', color);
+  }
+
+  // 달리기 애니메이션 빠르기를 현재 속도에 맞춤(rate 1 = 기본 속도).
+  // animation-duration 을 직접 바꾸면 동작이 툭툭 끊겨서, 지원되는 브라우저에서는 재생 배속(playbackRate)으로 맞춤.
+  function setRunRate(rn, rate) {
+    if (rn._pose !== 'run') return;
+    rate = clamp(rate, 0.6, 3.2);
+    if (rn._rate && Math.abs(rn._rate - rate) < 0.04) return;
+    rn._rate = rate;
+    const svg = rn.querySelector('.rn-svg');
+    if (svg && svg.getAnimations) {
+      try {
+        svg.getAnimations({ subtree: true }).forEach(function (a) { a.playbackRate = rate; });
+        return;
+      } catch (e) { /* 아래 방법으로 */ }
+    }
+    rn.style.setProperty('--rd', (CONFIG.runCycleSec / 2 / rate).toFixed(3) + 's');
+  }
+
+  function speedToRate(speed, dashing) {
+    return speed / CONFIG.baseSpeed * (dashing ? 1.7 : 1);
+  }
+
+  /* ---------- 달리기 화면 ---------- */
+
+  const game = {
+    scene: $('scene'), far: $('scFar'), mid: $('scMid'), stripes: $('scStripes'),
+    meBox: $('me'), rn: null, tag: null,
+    finish: $('finish'), rivalsBox: $('rivals'), speedlines: $('speedlines'), hint: $('hint'),
+    prompt: $('gPrompt'), pLabel: $('pLabel'), pMain: $('pMain'),
+    btns: Array.prototype.slice.call(document.querySelectorAll('.ans')),
+    hurdles: Array.prototype.slice.call(document.querySelectorAll('.hurdle')).map(function (h) {
+      return { el: h, dist: 0, mode: 'idle' };   // mode: 'idle'(숨김) | 'up'(서 있음) | 'down'(걸려 넘어뜨림)
+    }),
+    cur: 0,
+    W: 0, H: 0, charX: 0, ppm: 1, meSize: 76, meW: 59,
+    rivals: [], dots: new Map(),
+    hinted: false, animToken: 0
+  };
+
+  // 장면 크기를 다시 잼(화면 회전·크기 변경 때도 불림)
+  function measureGame() {
+    if (S.screen !== 'game') return;
+    game.W = game.scene.clientWidth;
+    game.H = game.scene.clientHeight;
+    game.meSize = Math.round(clamp(game.H * 0.36, 50, 96));
+    game.meW = game.meSize * 48 / 62;
+    const feet = 16;
+    const ground = Math.round(game.meSize * 0.7 + feet + 20);
+    game.scene.style.setProperty('--gh', ground + 'px');
+    game.scene.style.setProperty('--feet', feet + 'px');
+    game.charX = game.W * CONFIG.charXRatio;
+    // 허들이 gateGap 만큼 떨어져 있을 때 정확히 화면 오른쪽 끝에 보이도록 축척을 정함
+    game.ppm = Math.max(40, game.W - game.charX - 16) / CONFIG.gateGap;
+    if (game.rn) {
+      game.rn.style.width = game.meW.toFixed(1) + 'px';
+      game.rn.style.height = game.meSize + 'px';
+      game.meBox.style.left = (game.charX - game.meW / 2).toFixed(1) + 'px';
+    }
+    game.rivals.forEach(function (v) { v.id = null; });
+    fitPrompt();
+    game.btns.forEach(function (b) { if (!b.hidden) fitButton(b); });
+  }
+
+  // 글자가 버튼에 들어갈 때까지 글자 크기를 줄임(긴 단어가 잘리지 않게). 그래도 넘치면 줄바꿈.
+  function fitButton(btn) {
+    const span = btn.querySelector('.t');
+    const cs = window.getComputedStyle(btn);
+    const availW = btn.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const availH = btn.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (availW <= 0 || availH <= 0) return;
+    span.style.whiteSpace = 'nowrap';
+    span.style.overflowWrap = 'normal';
+    let size = 22;
+    span.style.fontSize = size + 'px';
+    while (size > 15 && span.scrollWidth > availW + 1) { size -= 1; span.style.fontSize = size + 'px'; }
+    if (span.scrollWidth > availW + 1) {
+      span.style.whiteSpace = 'normal';
+      while (size > 10 && (span.scrollWidth > availW + 1 || span.offsetHeight > availH + 1)) { size -= 1; span.style.fontSize = size + 'px'; }
+      if (span.scrollWidth > availW + 1) {
+        span.style.overflowWrap = 'anywhere';
+        while (size > 8 && span.offsetHeight > availH + 1) { size -= 1; span.style.fontSize = size + 'px'; }
+      }
+    }
+  }
+
+  function fitPrompt() {
+    const main = game.pMain;
+    let size = 30;
+    main.style.fontSize = size + 'px';
+    while (size > 12 && (main.scrollHeight > main.clientHeight + 1 || main.scrollWidth > main.clientWidth + 1)) {
+      size -= 1;
+      main.style.fontSize = size + 'px';
+    }
+  }
+
+  // 문제 영역에 문제를 넣음. 문장형은 빈칸을 강조하고, reveal 이면 빈칸에 정답을 채워 완성된 문장을 보여 줌
+  function setPromptText(q, reveal) {
+    clear(game.pMain);
+    if (q.kind === 's') fillBlank(game.pMain, q.prompt, reveal ? q.answer : null);
+    else game.pMain.textContent = q.prompt;
+    fitPrompt();
+  }
+
+  function setButtons(enabled) {
+    game.btns.forEach(function (b) { b.disabled = !enabled; b.classList.toggle('off', !enabled); });
+  }
+
+  function resetGameView() {
+    game.hurdles.forEach(function (h) { h.mode = 'idle'; h.el.hidden = true; h.el.classList.remove('down'); });
+    game.cur = 0;
+    game.hinted = false;
+    game.animToken++;
+    game.hint.hidden = true;
+    game.finish.hidden = true;
+    game.scene.classList.remove('shake');
+    // 내 캐릭터
+    clear(game.meBox);
+    game.rn = renderRunner(S.me.color, game.meSize, 'still');
+    game.tag = el('span', 'rn-tag mine', S.me.name || '나');
+    game.rn.appendChild(game.tag);
+    game.meBox.appendChild(game.rn);
+    // 같은 트랙에 보일 다른 참가자 자리
+    clear(game.rivalsBox);
+    game.rivals = [];
+    for (let i = 0; i < CONFIG.rivalCount; i++) {
+      const box = el('div', 'rival');
+      const rn = renderRunner(COLORS[0], 40, 'run');
+      const tag = el('span', 'rn-tag');
+      rn.appendChild(tag);
+      box.appendChild(rn);
+      box.hidden = true;
+      game.rivalsBox.appendChild(box);
+      game.rivals.push({ box: box, rn: rn, tag: tag, id: null });
+    }
+    game.prompt.className = 'g-prompt';
+    setText(game.pLabel, '곧 출발해요');
+    setText(game.pMain, '준비!');
+    // 버튼 영역 높이는 이번 판에서 보기가 가장 많은 문제에 맞춰 고정
+    const maxOpts = S.race ? S.race.maxOpts : 3;
+    $('scr-game').style.setProperty('--ah', (maxOpts >= 4 ? 228 : (maxOpts === 3 ? 196 : 148)) + 'px');
+    game.btns.forEach(function (b, i) { b.className = 'ans off'; b.disabled = true; b.hidden = i >= maxOpts; b.querySelector('.t').textContent = ''; });
+    clear($('gMini'));
+    game.dots = new Map();
+    setText($('gStreak'), '연속 0');
+    $('gStreak').className = 'streak';
+    $('gProg').style.width = '0%';
+    setText($('gProgTxt'), '0%');
+    setText($('gOk'), '맞음 0');
+    setText($('gNo'), '틀림 0');
+    setText($('gTime'), '0:00');
+  }
+
+  function showQuestion(q, gateDist) {
+    game.cur = 1 - game.cur;
+    const h = game.hurdles[game.cur];
+    h.dist = gateDist;
+    h.mode = 'up';
+    h.el.classList.remove('down');
+    h.el.hidden = false;
+    game.btns.forEach(function (b, i) {
+      const on = i < q.options.length;
+      b.hidden = !on;
+      b.className = 'ans';
+      b.disabled = !on;
+      b.querySelector('.t').textContent = on ? q.options[i] : '';
+    });
+    game.btns.forEach(function (b) { if (!b.hidden) fitButton(b); });   // 버튼 수가 정해진 뒤에 글자 크기를 맞춤
+    game.prompt.className = 'g-prompt';
+    setText(game.pLabel, q.kind === 's' ? '빈칸에 알맞은 말은?' : '이 뜻의 단어는?');
+    setPromptText(q, false);
+    if (game.rn._pose === 'fall') setPose(game.rn, 'run');
+    if (!game.hinted) game.hint.hidden = false;
+  }
+
+  function showFinalStretch() {
+    game.prompt.className = 'g-prompt';
+    setText(game.pLabel, '문제 끝!');
+    setText(game.pMain, '결승선까지 달려요');
+    fitPrompt();
+    setButtons(false);
+    if (game.rn._pose === 'fall') setPose(game.rn, 'run');
+    game.hint.hidden = true;
+  }
+
+  function showFinished() {
+    game.prompt.className = 'g-prompt good';
+    setText(game.pLabel, '결승선 통과!');
+    setText(game.pMain, fmtTime(S.race.myTime, true));
+    fitPrompt();
+  }
+
+  // 버튼을 누른 직후: 정답은 초록, 고른 오답은 빨강. 정답 버튼은 항상 강조해 알려 줌
+  function showPickFeedback(q, ok) {
+    game.hinted = true;
+    game.hint.hidden = true;
+    game.btns.forEach(function (b, i) {
+      b.disabled = true;
+      b.classList.remove('off');
+      if (i === q.answerIdx) b.classList.add('ok');
+      else if (i === q.picked) b.classList.add('no');
+      else b.classList.add('dim');
+    });
+    if (q.kind === 's') setPromptText(q, true);     // 빈칸에 정답을 채운 완성 문장을 보여 줌
+    if (ok) {
+      sfx.correct();
+      game.prompt.className = 'g-prompt good';
+    } else {
+      sfx.wrong();
+      game.prompt.className = 'g-prompt bad';
+      setText(game.pLabel, '틀렸어요! 정답은 「' + q.answer + '」');
+    }
+  }
+
+  function showTimeoutFeedback(q) {
+    game.hint.hidden = true;
+    game.btns.forEach(function (b, i) {
+      b.disabled = true;
+      b.classList.remove('off');
+      b.classList.add(i === q.answerIdx ? 'ok' : 'dim');
+    });
+    sfx.wrong();
+    game.prompt.className = 'g-prompt bad';
+    setText(game.pLabel, '시간 초과! 정답은 「' + q.answer + '」');
+    if (q.kind === 's') setPromptText(q, true);
+  }
+
+  // ② 점프: 연속 정답이 쌓이면 더 높이, 더 쌓이면 공중제비
+  function startJumpAnim(streak) {
+    const rn = game.rn;
+    const high = streak >= CONFIG.highJumpStreak;
+    const flip = streak >= CONFIG.flipStreak && !reducedMotion;
+    let height = high ? CONFIG.jumpHeightHigh : CONFIG.jumpHeight;
+    height = Math.min(height, Math.max(24, game.H - game.meSize - 40));   // 장면이 낮으면 화면 밖으로 나가지 않게
+    if (reducedMotion) height *= 0.6;
+    const total = CONFIG.jumpSec / 0.87;     // 키프레임의 87% 지점이 착지, 나머지는 눌림
+    rn.style.setProperty('--jh', height.toFixed(0) + 'px');
+    rn.style.setProperty('--jd', total.toFixed(3) + 's');
+    setPose(rn, 'still');                    // 같은 애니메이션을 연달아 다시 시작시키기 위해 한 번 비움
+    void rn.offsetWidth;
+    setPose(rn, 'jump', flip);
+    const token = ++game.animToken;
+    setTimeout(function () {
+      if (token !== game.animToken || rn !== game.rn || rn._pose !== 'jump') return;
+      setPose(rn, 'run');
+    }, total * 1000);
+  }
+
+  // ③ 넘어짐: 허들에 걸려 앞으로 고꾸라졌다가 일어남
+  function startFallAnim() {
+    const rn = game.rn;
+    game.animToken++;
+    rn.style.setProperty('--fd', CONFIG.stumbleSec.toFixed(2) + 's');
+    setPose(rn, 'still');
+    void rn.offsetWidth;
+    setPose(rn, 'fall');
+    const h = game.hurdles[game.cur];
+    if (h.mode === 'up') { h.mode = 'down'; h.el.classList.add('down'); }
+    if (!reducedMotion) {
+      game.scene.classList.remove('shake');
+      void game.scene.offsetWidth;
+      game.scene.classList.add('shake');
+    }
+  }
+
+  function renderGame() {
+    const R = S.race, r = R.runner;
+    if (!game.W) measureGame();
+    const ppm = game.ppm;
+    const off = r.dist * ppm;
+
+    // 배경: 먼 언덕은 느리게, 가까운 덤불은 조금 빠르게, 바닥은 달리는 속도 그대로
+    if (!reducedMotion) {
+      game.far.style.transform = 'translate3d(' + (-((off * 0.12) % 260)).toFixed(1) + 'px,0,0)';
+      game.mid.style.transform = 'translate3d(' + (-((off * 0.35) % 140)).toFixed(1) + 'px,0,0)';
+    }
+    game.stripes.style.transform = 'translate3d(' + (-(((off % 80) + 80) % 80)).toFixed(1) + 'px,0,0)';
+
+    // 허들: 오른쪽 끝에서 나타나 캐릭터 쪽으로 다가옴
+    for (let i = 0; i < game.hurdles.length; i++) {
+      const h = game.hurdles[i];
+      if (h.mode === 'idle') continue;
+      const x = game.charX + (h.dist - r.dist) * ppm + game.meW * 0.22;
+      if (x < -40) { h.mode = 'idle'; h.el.hidden = true; continue; }
+      h.el.style.transform = 'translate3d(' + (x - 10).toFixed(1) + 'px,0,0)';
+    }
+
+    // 결승선
+    const finX = game.charX + (R.track - r.dist) * ppm + game.meW * 0.3;
+    if (finX < game.W + 30) {
+      game.finish.hidden = false;
+      game.finish.style.transform = 'translate3d(' + finX.toFixed(1) + 'px,0,0)';
+    } else if (!game.finish.hidden) {
+      game.finish.hidden = true;
+    }
+
+    // 내 캐릭터: 다리 빠르기를 속도에 맞춤
+    const running = R.myState === 'running' && r.stun <= 0;
+    if (running) setRunRate(game.rn, speedToRate(r.dashing ? r.speed : (r.vNow || r.speed), r.dashing));
+    const fast = running ? Math.max(r.dashing ? 1 : 0, (r.speed - CONFIG.baseSpeed) / Math.max(0.1, MAX_SPEED - CONFIG.baseSpeed) * 0.7) : 0;
+    game.speedlines.style.opacity = fast.toFixed(2);
+
+    // 아래쪽: 연속 정답, 진행률
+    const streakEl = $('gStreak');
+    setText(streakEl, (r.streak >= CONFIG.highJumpStreak ? '🔥 ' : '') + '연속 ' + r.streak);
+    streakEl.classList.toggle('hot', r.streak >= CONFIG.highJumpStreak);
+    const pct = clamp(r.dist / R.track * 100, 0, 100);
+    $('gProg').style.width = pct.toFixed(1) + '%';
+    setText($('gProgTxt'), Math.floor(pct) + '%');
+    setText($('gOk'), '맞음 ' + r.correct);
+    setText($('gNo'), '틀림 ' + r.wrong);
+
+    // 위쪽: 순위, 시간, 미니 트랙
+    const list = standings();
+    let rank = 1;
+    for (let i = 0; i < list.length; i++) if (list[i].me) { rank = i + 1; break; }
+    setText($('gRank'), rank + '위');
+    setText($('gOf'), ' / ' + list.length + '명');
+    setText($('gTime'), fmtTime(R.myState === 'done' ? R.myTime : raceClock(R)));
+    renderMini(list, R.track);
+
+    // 화면 안에 들어오는 다른 참가자: 같은 트랙 위에 조금 작고 반투명하게, 먼 레인처럼 살짝 위로 어긋나게
+    let used = 0;
+    for (let i = 0; i < list.length && used < game.rivals.length; i++) {
+      const o = list[i];
+      if (o.me) continue;
+      const x = game.charX + (o.dist - r.dist) * ppm;
+      if (x < -30 || x > game.W + 30) continue;
+      const v = game.rivals[used++];
+      const slot = o.id.charCodeAt(o.id.length - 1) % 3;
+      if (v.id !== o.id) {
+        v.id = o.id;
+        const size = game.meSize * (0.8 - slot * 0.07);
+        v.rn.style.width = (size * 48 / 62).toFixed(1) + 'px';
+        v.rn.style.height = size.toFixed(1) + 'px';
+        v.w = size * 48 / 62;
+        v.lift = Math.round(game.meSize * (0.16 + slot * 0.13));
+        v.box.style.zIndex = String(3 - slot);
+      }
+      setRunnerColor(v.rn, o.color);
+      setText(v.tag, o.name);
+      setPose(v.rn, o.finished ? 'cheer' : (o.stopped ? 'still' : 'run'));
+      if (!o.stopped) setRunRate(v.rn, speedToRate(o.speed, false));
+      v.box.style.transform = 'translate3d(' + (x - v.w / 2).toFixed(1) + 'px,' + (-v.lift) + 'px,0)';
+      if (v.box.hidden) v.box.hidden = false;
+    }
+    for (let i = used; i < game.rivals.length; i++) {
+      const v = game.rivals[i];
+      if (!v.box.hidden) { v.box.hidden = true; v.id = null; }
+    }
+  }
+
+  function renderMini(list, track) {
+    const box = $('gMini');
+    const seen = new Set();
+    for (let i = 0; i < list.length; i++) {
+      const o = list[i];
+      seen.add(o.id);
+      let dot = game.dots.get(o.id);
+      if (!dot) {
+        dot = el('span', o.me ? 'dot me' : 'dot');
+        game.dots.set(o.id, dot);
+        if (o.me) box.appendChild(dot); else box.insertBefore(dot, box.firstChild);
+      }
+      if (dot._c !== o.color) { dot._c = o.color; dot.style.setProperty('--c', o.color); }
+      dot.style.left = (clamp(o.dist / track, 0, 1) * 100).toFixed(2) + '%';
+    }
+    game.dots.forEach(function (dot, id) {
+      if (!seen.has(id)) { dot.remove(); game.dots.delete(id); }
+    });
+  }
+
+  /* ---------- 관전 화면 ---------- */
+
+  const watch = { lanes: new Map(), count: -1 };
+
+  function resetWatchView() {
+    clear($('wLanes'));
+    clear($('wBoard'));
+    watch.lanes = new Map();
+    watch.count = -1;
+    setText($('wCode'), net.code || '');
+    setText($('wTime'), '0:00');
+  }
+
+  function layoutWatch() {
+    const box = $('wLanes');
+    const n = Math.max(1, watch.lanes.size);
+    const h = clamp((box.clientHeight - 20 - (n - 1) * 4) / n, 18, 96);
+    box.style.fontSize = clamp(h * 0.74, 14, 62).toFixed(1) + 'px';
+  }
+
+  function renderWatch() {
+    const R = S.race;
+    const list = standings();
+    const box = $('wLanes');
+    const seen = new Set();
+    let finished = 0;
+
+    for (let i = 0; i < list.length; i++) {
+      const o = list[i];
+      seen.add(o.id);
+      if (o.finished) finished++;
+      let lane = watch.lanes.get(o.id);
+      if (!lane) {
+        const rowEl = el('div', 'lane');
+        const label = el('div', 'lane-label');
+        const rank = el('span', 'lane-rank');
+        const name = el('span', 'lane-name');
+        label.appendChild(rank); label.appendChild(name);
+        const track = el('div', 'lane-track');
+        const rail = el('div', 'lane-rail');
+        const holder = el('span', 'lane-runner');
+        const rn = renderRunner(o.color, 0, 'still');
+        holder.appendChild(rn); rail.appendChild(holder); track.appendChild(rail);
+        rowEl.appendChild(label); rowEl.appendChild(track);
+        box.appendChild(rowEl);
+        lane = { el: rowEl, rank: rank, name: name, holder: holder, rn: rn };
+        watch.lanes.set(o.id, lane);
+      }
+      setText(lane.rank, String(i + 1));
+      lane.rank.classList.toggle('top', i < 3);
+      setText(lane.name, o.name);
+      setRunnerColor(lane.rn, o.color);
+      const moving = R.started && !o.finished && !o.stopped && !R.ended;
+      setPose(lane.rn, o.finished ? 'cheer' : (moving ? 'run' : 'still'));
+      if (moving) setRunRate(lane.rn, speedToRate(o.speed, false));
+      lane.holder.style.left = (clamp(o.dist / R.track, 0, 1) * 100).toFixed(2) + '%';
+      lane.el.classList.toggle('fin', o.finished);
+      lane.el.classList.toggle('gone', !o.present && !o.finished);
+    }
+    watch.lanes.forEach(function (lane, id) {
+      if (!seen.has(id)) { lane.el.remove(); watch.lanes.delete(id); }
+    });
+
+    const empty = box.querySelector('.w-empty');
+    if (!list.length && !empty) { box.appendChild(el('div', 'w-empty', '참가자를 기다리는 중이에요')); }
+    else if (list.length && empty) { empty.remove(); }
+
+    if (watch.count !== watch.lanes.size) { watch.count = watch.lanes.size; layoutWatch(); }
+
+    setText($('wTime'), fmtTime(raceClock(R)));
+    setText($('wCount'), '결승 ' + finished + ' / ' + list.length + '명');
+
+    // 옆 순위표(상위 8명)
+    const board = $('wBoard');
+    const top = Math.min(8, list.length);
+    while (board.children.length > top) board.removeChild(board.lastChild);
+    while (board.children.length < top) {
+      const li = el('li');
+      li.appendChild(el('span', 'rk')); li.appendChild(el('span', 'sw')); li.appendChild(el('span', 'nm')); li.appendChild(el('span', 'tm'));
+      board.appendChild(li);
+    }
+    for (let i = 0; i < top; i++) {
+      const o = list[i], li = board.children[i];
+      setText(li.children[0], String(i + 1));
+      if (li._c !== o.color) { li._c = o.color; li.children[1].style.setProperty('--c', o.color); }
+      setText(li.children[2], o.name);
+      setText(li.children[3], o.finished ? fmtTime(o.timeMs, true) : Math.floor(o.dist / R.track * 100) + '%');
+    }
+  }
+
+  /* ---------- 결과 화면 ---------- */
+
+  function renderResults() {
+    const R = S.race;
+    if (!R) return;
+    const list = standings();
+    const isHost = S.mode === 'multi' && S.role === 'host';
+    $('scr-result').classList.toggle('wide', isHost);
+
+    // 제목과 내 기록
+    let myRank = 0, me = null;
+    for (let i = 0; i < list.length; i++) if (list[i].me) { myRank = i + 1; me = list[i]; }
+    setText($('resTitle'), R.ended ? '경주 결과' : '결승선 통과!');
+    if (me && me.finished) setText($('resMine'), myRank + '등 · ' + fmtTime(me.timeMs, true));
+    else if (me) setText($('resMine'), myRank + '등 · ' + Math.floor(me.dist / R.track * 100) + '% 지점');
+    else setText($('resMine'), '');
+    let note = '';
+    if (!R.ended) note = '아직 달리는 친구가 있어요. 순위는 바뀔 수 있어요.';
+    else if (S.mode === 'multi' && !isHost) note = hostPresent() ? '선생님이 다시 시작하기를 기다려요.' : '방장이 자리에 없어요. 돌아오면 다시 시작할 수 있어요.';
+    if (me && R.runner) note = '맞음 ' + R.runner.correct + ' · 틀림 ' + R.runner.wrong + (note ? ' — ' + note : '');
+    setText($('resNote'), note);
+
+    // 시상대(2등-1등-3등 순으로 놓음). 내용이 바뀔 때만 다시 그려서 만세 동작이 끊기지 않게 함
+    const podium = $('resPodium');
+    const podKey = [0, 1, 2].map(function (idx) {
+      const o = list[idx];
+      return o ? [o.id, o.color, o.name, o.finished, o.finished ? o.timeMs : Math.floor(o.dist / R.track * 100), R.ended].join('|') : '-';
+    }).join('/') + (isHost ? 'w' : 'n');
+    if (podium._key !== podKey) {
+      podium._key = podKey;
+      clear(podium);
+      [1, 0, 2].forEach(function (idx) {
+        const o = list[idx];
+        const pod = el('div', 'pod p' + (idx + 1));
+        const ph = el('div', 'ph');
+        pod.appendChild(ph);
+        if (o && (o.finished || R.ended)) {
+          const size = (isHost ? 76 : 50) + (idx === 0 ? 12 : 0);
+          ph.style.height = (size + 6) + 'px';
+          ph.appendChild(renderRunner(o.color, size, o.finished ? 'cheer' : 'still'));
+          pod.appendChild(el('span', 'nm', o.name));
+          pod.appendChild(el('span', 'tm', o.finished ? fmtTime(o.timeMs, true) : Math.floor(o.dist / R.track * 100) + '%'));
+        } else {
+          pod.appendChild(el('span', 'nm', ''));
+          pod.appendChild(el('span', 'tm', list.length > idx ? '달리는 중' : ''));
+        }
+        pod.appendChild(el('div', 'blk', String(idx + 1)));
+        podium.appendChild(pod);
+      });
+    }
+
+    // 전체 순위
+    const ranks = $('resRanks');
+    clear(ranks);
+    list.forEach(function (o, i) {
+      const li = el('li', (o.me ? 'me ' : '') + (o.finished ? '' : 'run'));
+      li.appendChild(el('span', 'rk', (i + 1) + '등'));
+      li.appendChild(renderRunner(o.color, 30, 'still'));
+      li.appendChild(el('span', 'nm', o.name + (o.me && o.name !== '나' ? ' (나)' : '')));
+      const pct = Math.floor(o.dist / R.track * 100) + '%';
+      li.appendChild(el('span', 'tm', o.finished ? fmtTime(o.timeMs, true) : (R.ended ? pct + '에서 멈춤' : '달리는 중 ' + pct)));
+      ranks.appendChild(li);
+    });
+
+    // 가장 많이 틀린 문제 상위 5개(문장형은 정답을 채운 완성 문장으로)
+    const counts = new Map();
+    R.misses.forEach(function (i) { counts.set(i, (counts.get(i) || 0) + 1); });
+    S.racers.forEach(function (o) { (o.misses || []).forEach(function (i) { counts.set(i, (counts.get(i) || 0) + 1); }); });
+    const topMiss = Array.from(counts.entries()).filter(function (e) { return !!R.words[e[0]]; })
+      .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 5);
+    const noun = R.hasSentences ? '문제' : '단어';
+    setText($('resMissTitle'), (R.solo ? '내가 많이 틀린 ' : '가장 많이 틀린 ') + noun);
+    const missList = $('resMisses');
+    const missKey = topMiss.map(function (e) { return e[0] + ':' + e[1]; }).join(',') + '|' + R.ended;
+    if (missList._key !== missKey) {
+      missList._key = missKey;
+      clear(missList);
+      if (!topMiss.length) {
+        missList.appendChild(el('li', 'note', R.solo || R.ended ? '틀린 ' + noun + '가 없어요 👏' : '기록을 모으는 중이에요'));
+      } else {
+        topMiss.forEach(function (e) {
+          const it = R.words[e[0]];
+          const li = el('li');
+          if (it.t === 's') {
+            const w = el('span', 'w sent');
+            fillBlank(w, it.q, it.a);
+            li.appendChild(w);
+          } else {
+            li.appendChild(el('span', 'w', it.w));
+            li.appendChild(el('span', 'm', it.m));
+          }
+          li.appendChild(el('span', 'c', e[1] + '번'));
+          missList.appendChild(li);
+        });
+      }
+    }
+
+    // 버튼
+    const again = $('btnAgain');
+    again.hidden = !(R.solo || isHost);
+    setText(again, R.solo ? '다시 달리기' : '다시 하기');
+    $('btnEnd').hidden = !(isHost && !R.ended);
+    $('btnWords').hidden = !R.solo;
+    setText($('btnResLeave'), R.solo ? '처음으로' : (isHost ? '방 닫고 나가기' : '나가기'));
+  }
+
+  /* ---------- 대기실(학생/방장) ---------- */
+
+  function rosterChips(box, includeHost) {
+    const key = [];
+    net.roster.forEach(function (r) { key.push([r.id, r.name, r.color, r.playing].join('|')); });
+    const sig = key.join('/') + (includeHost ? 'h' : '');
+    let n = 0;
+    net.roster.forEach(function (r) { if (r.playing || includeHost) n++; });
+    if (box._sig === sig) return n;
+    box._sig = sig;
+    clear(box);
+    net.roster.forEach(function (r) {
+      if (!r.playing && !includeHost) return;
+      const chip = el('span', 'chip' + (r.id === S.me.id ? ' me' : '') + (r.playing ? '' : ' host'));
+      if (r.playing) chip.appendChild(renderRunner(r.color, 28, 'still'));
+      chip.appendChild(el('span', 'nm', r.playing ? r.name : '선생님 · 관전'));
+      box.appendChild(chip);
+    });
+    return n;
+  }
+
+  function renderLobbies() {
+    if (S.mode !== 'multi') return;
+    if (S.screen === 'lobby') {
+      setText($('lobbyCode'), net.code || '');
+      rosterChips($('lobbyRoster'), true);
+      setText($('lobbyCount'), playingCount() + '명');
+      const lost = net.status === 'on' && !hostPresent() && performance.now() - net.joinedAt > 4000;
+      let status;
+      if (net.status !== 'on') status = '연결하는 중이에요…';
+      else if (S.lobbyNote) status = S.lobbyNote;
+      else if (hostPresent()) status = '선생님이 시작하면 3-2-1 뒤에 출발해요.';
+      else if (lost) status = '이 코드의 방을 찾지 못했어요. 코드를 확인하거나 선생님을 기다려요.';
+      else status = '방을 찾는 중이에요…';
+      setText($('lobbyStatus'), status);
+      $('lobbyStatus').className = 'note' + (lost ? ' warn' : '');
+    } else if (S.screen === 'host') {
+      setText($('hostCode'), net.code || '----');
+      const box = $('hostRoster');
+      const n = rosterChips(box, false);
+      const emptyNote = box.querySelector('.note');
+      if (!n && !emptyNote) box.appendChild(el('span', 'note', '아직 아무도 없어요. 학생들이 코드를 입력하면 여기에 보여요.'));
+      else if (n && emptyNote) emptyNote.remove();
+      setText($('hostCount'), playingCount() + '명');
+      updateHostStart();
+    }
+  }
+
+  function updateHostStart() {
+    const info = resolveWords(S.wordsText);
+    setText($('hostWordCount'), wordCountLabel(info));
+    $('hostWordCount').className = 'note' + (info.ok ? '' : ' bad');
+    setPlanNote($('hostPlan'), info);
+    const players = playingCount();
+    let note = '';
+    if (net.status !== 'on') note = '연결하는 중이에요…';
+    else if (!info.ok) note = '문제가 ' + CONFIG.minWords + '개 이상 있어야 시작할 수 있어요.';
+    else if (players < 1) note = '참가자가 들어오면 시작할 수 있어요.';
+    setText($('hostNote'), note);
+    $('btnHostStart').disabled = !!note;
+    setText($('btnHostStart'), players > 0 ? '시작 (' + players + '명)' : '시작');
+  }
+
+  function renderHostJoinInfo() {
+    const code = net.code || '';
+    const urlBox = $('hostUrl'), noteBox = $('hostUrlNote'), qrBox = $('hostQr');
+    qrBox.hidden = true;
+    clear(qrBox);
+    if (window.location.protocol === 'file:') {
+      setText(urlBox, '');
+      setText(noteBox, '학생 폰에서 열려면 이 파일을 웹 주소로 올려야 해요. (지금은 이 컴퓨터에서만 열려요)');
+      noteBox.className = 'note warn';
+      return;
+    }
+    const url = window.location.origin + window.location.pathname + '?room=' + code;
+    setText(urlBox, url.replace(/^https?:\/\//, ''));
+    const isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+    setText(noteBox, isLocal ? 'localhost 주소는 이 컴퓨터에서만 열려요. 학생 폰에서는 배포된 주소로 열어야 해요.' : '이 주소를 열거나, 단어 달리기에서 코드를 입력하세요.');
+    noteBox.className = 'note' + (isLocal ? ' warn' : '');
+    drawQr(qrBox, url);
+  }
+
+  // QR 코드(라이브러리를 못 불러오면 코드와 주소만 보임)
+  let qrState = 'none';
+  function drawQr(box, url) {
+    if (qrState === 'failed') return;
+    if (qrState !== 'ready') {
+      if (qrState === 'loading') return;
+      qrState = 'loading';
+      loadScript(CDN_QR, function (ok) {
+        qrState = (ok && typeof window.qrcode === 'function') ? 'ready' : 'failed';
+        if (qrState === 'ready' && S.screen === 'host') renderHostJoinInfo();
+      });
+      return;
+    }
+    try {
+      const qr = window.qrcode(0, 'M');
+      qr.addData(url);
+      qr.make();
+      const n = qr.getModuleCount();
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + n + ' ' + n);
+      svg.setAttribute('shape-rendering', 'crispEdges');
+      svg.setAttribute('role', 'img');
+      svg.setAttribute('aria-label', '접속 주소 QR 코드');
+      let d = '';
+      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (qr.isDark(y, x)) d += 'M' + x + ' ' + y + 'h1v1h-1z';
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', '#1B1917');
+      svg.appendChild(path);
+      clear(box);
+      box.appendChild(svg);
+      box.hidden = false;
+    } catch (e) { box.hidden = true; }
+  }
+
+  /* ---------- 그 밖의 작은 화면 요소 ---------- */
+
+  function updateNetUI() {
+    const ready = net.lib === 'ready';
+    $('btnJoinGo').disabled = !ready;
+    $('btnHostGo').disabled = !ready;
+    const text = net.lib === 'failed' ? '인터넷 연결이 필요해요. 혼자 달리기는 지금도 할 수 있어요.' : (ready ? '방 코드로 여러 기기가 함께 달려요.' : '연결을 준비하는 중이에요…');
+    setText($('netNote'), text);
+    $('netNote').className = 'note' + (net.lib === 'failed' ? ' warn' : '');
+    updateJoinButton();
+  }
+
+  function updateJoinButton() {
+    const code = $('joinCode').value;
+    const name = cleanName($('joinName').value);
+    let note = '';
+    if (net.lib === 'failed') note = '인터넷 연결이 필요해요.';
+    else if (net.lib !== 'ready') note = '연결을 준비하는 중이에요…';
+    else if (!/^\d{4}$/.test(code)) note = '선생님 화면에 있는 숫자 4자리를 입력하세요.';
+    else if (!name) note = '이름을 써 주세요.';
+    setText($('joinNote'), note);
+    $('btnJoin').disabled = !!note;
+  }
+
+  function updateSoloCount() {
+    const info = resolveWords(S.wordsText);
+    setText($('soloCount'), wordCountLabel(info));
+    $('soloCount').className = 'note' + (info.ok ? '' : ' bad');
+    $('btnSoloStart').disabled = !info.ok;
+    setPlanNote($('soloPlan'), info);
+  }
+
+  // "15개 × 2번 = 30문제 · 약 1분 30초" 안내
+  function setPlanNote(node, info) {
+    const p = info.ok ? planRace(info.words, S.repeat, currentScale()) : null;
+    setText(node, p ? planLabel(p) : '');
+    node.className = 'note' + (p && p.limit ? ' warn' : '');
+    const label = (info.sentences ? '문제' : '단어') + '마다 몇 번 나올까요?';
+    document.querySelectorAll('.repeat-label').forEach(function (n) { setText(n, label); });
+  }
+
+  // "읽는 시간: 여유 있게 / 보통 / 빠르게" 선택
+  function buildReadPicker(box) {
+    clear(box);
+    READ_LABELS.forEach(function (text, n) {
+      const b = el('button', null, text);
+      b.type = 'button';
+      b.dataset.read = String(n);
+      b.addEventListener('click', function () {
+        S.readLevel = n;
+        local.set(KEY_READ, n);
+        refreshRepeatPickers();
+        updateSoloCount();
+        if (S.screen === 'host') updateHostStart();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  // "문장 문제 예시 넣기": 목록이 비어 있으면 채우고, 있으면 아래에 덧붙임
+  function buildSetPicker(box) {
+    clear(box);
+    BUILTIN_SETS.forEach(function (set) {
+      const b = el('button', 'btn small', set.name);
+      b.type = 'button';
+      b.addEventListener('click', function () { loadBuiltinSet(set.text); });
+      box.appendChild(b);
+    });
+    const c = el('button', 'btn small ghost', '목록 비우기');
+    c.type = 'button';
+    c.addEventListener('click', function () { loadBuiltinSet(null); });
+    box.appendChild(c);
+  }
+
+  // 기본 세트 불러오기: 목록이 비었거나 기본 세트 그대로면 바꿔 넣고, 선생님이 고친 목록이면 아래에 덧붙임.
+  // text 가 null 이면 목록을 비움
+  function loadBuiltinSet(text) {
+    const cur = S.wordsText.replace(/\s+$/, '');
+    const untouched = !cur || BUILTIN_SETS.some(function (s) { return s.text === cur; });
+    S.wordsText = text == null ? '' : (untouched ? text : cur + '\n' + text);
+    local.set(KEY_WORDS, S.wordsText);
+    $('soloWords').value = S.wordsText;
+    $('hostWords').value = S.wordsText;
+    updateSoloCount();
+    if (S.screen === 'host') updateHostStart();
+  }
+
+  // "단어마다 1번 / 2번 / 3번" 선택
+  function buildRepeatPicker(box) {
+    clear(box);
+    [1, 2, 3].forEach(function (n) {
+      const b = el('button', null, n + '번');
+      b.type = 'button';
+      b.dataset.repeat = String(n);
+      b.addEventListener('click', function () {
+        S.repeat = n;
+        local.set(KEY_REPEAT, n);
+        refreshRepeatPickers();
+        updateSoloCount();
+        if (S.screen === 'host') updateHostStart();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function refreshRepeatPickers() {
+    document.querySelectorAll('.seg button[data-repeat]').forEach(function (b) {
+      b.setAttribute('aria-pressed', Number(b.dataset.repeat) === S.repeat ? 'true' : 'false');
+    });
+    document.querySelectorAll('.seg button[data-read]').forEach(function (b) {
+      b.setAttribute('aria-pressed', Number(b.dataset.read) === S.readLevel ? 'true' : 'false');
+    });
+  }
+
+  // 캐릭터 색 고르기
+  function buildColorPicker(box, onPick) {
+    clear(box);
+    COLORS.forEach(function (c, i) {
+      const b = el('button');
+      b.type = 'button';
+      b.dataset.color = c;
+      b.setAttribute('aria-label', COLOR_NAMES[i]);
+      b.appendChild(renderRunner(c, 44, 'still'));
+      b.addEventListener('click', function () {
+        S.me.color = c;
+        local.set(KEY_COLOR, c);
+        refreshColorPickers();
+        if (onPick) onPick();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function refreshColorPickers() {
+    document.querySelectorAll('.colors button').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.dataset.color === S.me.color ? 'true' : 'false');
+    });
+    const hero = $('heroRunner');
+    if (hero._c !== S.me.color) {
+      hero._c = S.me.color;
+      clear(hero);
+      hero.appendChild(renderRunner(S.me.color, 84, 'run'));
+    }
+  }
+
+  function updateMuteButton() { setText($('btnMute'), muted ? '🔇' : '🔊'); }
+
+  /* ====================================================================
+   * 7. 화면 전환
+   * ==================================================================== */
+
+  const SCREENS = ['home', 'solo', 'join', 'lobby', 'host', 'game', 'watch', 'result'];
+
+  function show(name) {
+    S.screen = name;
+    SCREENS.forEach(function (s) { $('scr-' + s).hidden = (s !== name); });
+    document.body.dataset.screen = name;
+    $('btnQuit').hidden = !(name === 'game' || name === 'watch');
+    disarm($('btnQuit'));
+    if (name !== 'game' && name !== 'watch') $('countdown').hidden = true;
+    if (name === 'solo') { $('soloWords').value = S.wordsText; updateSoloCount(); }
+    if (name === 'host') {
+      $('hostWords').value = S.wordsText;
+      $('hostPlays').checked = S.hostPlays;
+      $('hostMe').hidden = !S.hostPlays;
+      $('hostName').value = S.me.name;
+    }
+    if (name === 'join') { $('joinName').value = S.me.name; updateJoinButton(); }
+    if (name === 'game') { game.W = 0; measureGame(); requestAnimationFrame(measureGame); }
+    if (name === 'watch') { watch.count = -1; }
+    if (name === 'result') { $('resPodium')._key = null; $('resMisses')._key = null; }
+    if (name === 'home') updateNetUI();
+    refreshColorPickers();
+    setConn(net.status);
+  }
+
+  // 실수로 누르지 않게 두 번 눌러야 동작하는 버튼
+  function disarm(btn) {
+    if (!btn.classList.contains('armed')) return;
+    btn.classList.remove('armed');
+    btn.textContent = btn.dataset.label || '✕';
+    clearTimeout(Number(btn.dataset.timer) || 0);
+  }
+
+  function armConfirm(btn, askText, action) {
+    btn.addEventListener('click', function () {
+      if (btn.classList.contains('armed')) { disarm(btn); action(); return; }
+      btn.dataset.label = btn.textContent;
+      btn.classList.add('armed');
+      btn.textContent = askText;
+      btn.dataset.timer = String(setTimeout(function () { disarm(btn); }, 3000));
+    });
+  }
+
+  function startSolo() {
+    const info = resolveWords(S.wordsText);
+    if (!info.ok) return;
+    S.mode = 'solo';
+    S.role = null;
+    beginRace({ id: 'solo-' + randomId(6), words: info.words, track: planRace(info.words, S.repeat, currentScale()).track, readScale: currentScale(), elapsed: 0, spectator: false, solo: true });
+  }
+
+  function quitCurrent() {
+    if (S.mode === 'multi') { leaveRoom(); return; }
+    S.race = null;
+    S.racers.clear();
+    S.mode = null;
+    $('countdown').hidden = true;
+    show('home');
+  }
+
+  function onWordsInput(e) {
+    S.wordsText = e.target.value;
+    local.set(KEY_WORDS, S.wordsText);
+    if (e.target.id === 'soloWords') updateSoloCount(); else updateHostStart();
+  }
+
+  function bindEvents() {
+    // 소리: 첫 터치/키 입력 이후에만
+    document.addEventListener('pointerdown', unlockAudio, true);
+    document.addEventListener('keydown', unlockAudio, true);
+    $('btnMute').addEventListener('click', function () {
+      muted = !muted;
+      local.set(KEY_MUTED, muted);
+      updateMuteButton();
+      if (!muted) sfx.count();
+    });
+
+    // 처음 화면
+    $('btnSolo').addEventListener('click', function () { show('solo'); });
+    $('btnJoinGo').addEventListener('click', function () { show('join'); });
+    $('btnHostGo').addEventListener('click', createRoom);
+    document.querySelectorAll('[data-go]').forEach(function (b) {
+      b.addEventListener('click', function () { show(b.dataset.go); });
+    });
+
+    // 단어 목록
+    $('soloWords').placeholder = PLACEHOLDER_TEXT;
+    $('hostWords').placeholder = PLACEHOLDER_TEXT;
+    buildSetPicker($('soloExample'));
+    buildSetPicker($('hostExample'));
+    $('soloWords').addEventListener('input', onWordsInput);
+    $('hostWords').addEventListener('input', onWordsInput);
+    $('btnSoloStart').addEventListener('click', startSolo);
+
+    buildRepeatPicker($('soloRepeat'));
+    buildRepeatPicker($('hostRepeat'));
+    buildReadPicker($('soloRead'));
+    buildReadPicker($('hostRead'));
+    refreshRepeatPickers();
+
+    // 캐릭터 색 고르기
+    buildColorPicker($('soloColors'));
+    buildColorPicker($('joinColors'));
+    buildColorPicker($('lobbyColors'), function () { saveSession(); trackPresence(); });
+    buildColorPicker($('hostColors'), function () { saveSession(); trackPresence(); });
+
+    // 참가
+    $('joinCode').addEventListener('input', function (e) {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+      updateJoinButton();
+    });
+    $('joinName').addEventListener('input', updateJoinButton);
+    $('btnJoin').addEventListener('click', function () {
+      const code = $('joinCode').value, name = cleanName($('joinName').value);
+      if (!/^\d{4}$/.test(code) || !name) return;
+      joinRoom(code, name, S.me.color);
+    });
+    armConfirm($('btnLobbyLeave'), '정말 나갈까요? 한 번 더 누르세요', leaveRoom);
+
+    // 방장 대기실
+    $('hostPlays').addEventListener('change', function (e) {
+      S.hostPlays = e.target.checked;
+      $('hostMe').hidden = !S.hostPlays;
+      if (S.hostPlays && !S.me.name) { S.me.name = '선생님'; $('hostName').value = S.me.name; }
+      saveSession();
+      trackPresence();
+    });
+    $('hostName').addEventListener('change', function (e) {
+      S.me.name = cleanName(e.target.value);
+      local.set(KEY_NAME, S.me.name);
+      saveSession();
+      trackPresence();
+    });
+    $('btnHostStart').addEventListener('click', hostStart);
+    armConfirm($('btnHostClose'), '정말 방을 닫을까요? 한 번 더 누르세요', leaveRoom);
+
+    // 달리기 입력: 단어 버튼을 누르거나 키보드 1/2/3
+    game.btns.forEach(function (b, i) {
+      b.addEventListener('pointerdown', function (e) { e.preventDefault(); pickAnswer(i); });
+      b.addEventListener('click', function (e) { if (e.detail === 0) pickAnswer(i); });   // 보조 기기(스위치, 화면 낭독기)의 클릭
+    });
+    document.addEventListener('keydown', function (e) {
+      if (S.screen !== 'game' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+      if (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4') { e.preventDefault(); pickAnswer(Number(e.key) - 1); }
+    });
+    // 게임 중 더블탭 확대·길게 눌러 메뉴 방지
+    $('scr-game').addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    $('scr-game').addEventListener('dblclick', function (e) { e.preventDefault(); });
+
+    armConfirm($('btnQuit'), '나가기?', quitCurrent);
+    armConfirm($('btnWatchEnd'), '한 번 더 누르면 끝나요', hostEnd);
+
+    // 결과 화면
+    $('btnAgain').addEventListener('click', function () {
+      const R = S.race;
+      if (R && R.solo) startSolo(); else hostRematch();
+    });
+    armConfirm($('btnEnd'), '한 번 더 누르면 끝나요', hostEnd);
+    $('btnWords').addEventListener('click', function () { S.race = null; S.racers.clear(); S.mode = null; show('solo'); });
+    armConfirm($('btnResLeave'), '정말 나갈까요? 한 번 더 누르세요', quitCurrent);
+
+    // 화면 크기·회전
+    let resizeTimer = 0;
+    function onResize() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        if (S.screen === 'game') measureGame();
+        if (S.screen === 'watch') layoutWatch();
+      }, 60);
+    }
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+
+    // 연결이 돌아왔을 때
+    window.addEventListener('online', function () {
+      if (net.lib === 'failed') loadNetLib();
+      else if (net.lib === 'ready' && net.code && net.status !== 'on') openChannel();
+    });
+    // 대기실 안내 문구는 시간에 따라 바뀜("방을 찾지 못했어요")
+    setInterval(function () { if (S.screen === 'lobby' || S.screen === 'host') renderLobbies(); }, 1500);
+  }
+
+  function init() {
+    bindEvents();
+    updateMuteButton();
+    const urlCode = roomFromUrl();
+    if (urlCode) {
+      show('join');
+      $('joinCode').value = urlCode;
+      updateJoinButton();
+    } else {
+      show('home');
+    }
+    loadNetLib();                 // 실패해도 혼자 달리기는 그대로 동작
+    requestAnimationFrame(function (t) { lastFrame = t; requestAnimationFrame(frame); });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
