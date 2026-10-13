@@ -139,8 +139,9 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 /* 뒷모습·앞모습: 다리가 뒤로 접히면 정강이가 짧아 보이고 신발이 올라옴.
  * 팔은 팔꿈치를 굽힌 채 크게 앞뒤로 흔듦. 뒤에서 보면
  *  - 앞으로 갈 때: 화면에서 멀어지므로 위팔·아래팔이 짧아지고 손이 몸통 안쪽(가슴 앞)으로 들어가 몸통에 가려짐
- *  - 뒤로 올 때: 화면 쪽으로 다가오므로 팔꿈치가 뒤·위로 들리고(위팔은 짧게) 아래팔은 아래로 늘어지며, 조금 크게 몸통 앞에 그려짐
- * 그래서 팔을 몸통 뒤(rn-ab)와 앞(rn-af)에 하나씩 그리고, 팔이 몸 옆을 지날 때(40%, 90%) 앞쪽 팔을 켜고 끔 */
+ *  - 뒤로 올 때: 화면 쪽으로 다가오므로 팔꿈치가 몸 바깥·뒤로 빠지고(위팔은 짧게) 아래팔은 아래·조금 바깥으로 늘어짐.
+ *    손은 엉덩이 옆을 지나가므로 몸통 안으로 들어오지 않고, 조금 크게 몸통 앞에 그려짐
+ * 그래서 팔을 몸통 뒤(rn-ab)와 앞(rn-af)에 하나씩 그리고, 팔이 몸통 밖으로 확실히 빠진 동안(50%~85%)만 앞쪽 팔을 보여 줌 */
 .v-fb .rn-sh.rn-l { transform-origin: 20.5px 72px; }
 .v-fb .rn-sh.rn-r { transform-origin: 29.5px 72px; }
 .v-fb .rn-sh { animation-name: rnb-sh; }
@@ -153,11 +154,11 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 @keyframes rnb-sk { 0% { transform: translateY(0); } 35% { transform: translateY(0); } 50% { transform: translateY(-3.7px); } 65% { transform: translateY(-10.5px); } 85% { transform: translateY(-3.4px); } 100% { transform: translateY(0); } }
 .v-fb .rn-af { animation-name: rnb-af; }
 .v-front .rn-af { animation: none; }
-@keyframes rnb-up-l { 0% { transform: rotate(0deg) scale(.92, .7); } 15% { transform: rotate(-12deg) scale(.88, .5); } 40% { transform: rotate(6deg) scale(.96, .95); } 65% { transform: rotate(30deg) scale(1.15, .55); } 90% { transform: rotate(14deg) scale(1.04, .92); } 100% { transform: rotate(0deg) scale(.92, .7); } }
-@keyframes rnb-up-r { 0% { transform: rotate(0deg) scale(.92, .7); } 15% { transform: rotate(12deg) scale(.88, .5); } 40% { transform: rotate(-6deg) scale(.96, .95); } 65% { transform: rotate(-30deg) scale(1.15, .55); } 90% { transform: rotate(-14deg) scale(1.04, .92); } 100% { transform: rotate(0deg) scale(.92, .7); } }
-@keyframes rnb-fo-l { 0% { transform: rotate(-30deg) scaleY(.55); } 15% { transform: rotate(-45deg) scaleY(.2); } 40% { transform: rotate(-12deg) scaleY(.85); } 65% { transform: rotate(-40deg) scaleY(1.2); } 90% { transform: rotate(-16deg) scaleY(.95); } 100% { transform: rotate(-30deg) scaleY(.55); } }
-@keyframes rnb-fo-r { 0% { transform: rotate(30deg) scaleY(.55); } 15% { transform: rotate(45deg) scaleY(.2); } 40% { transform: rotate(12deg) scaleY(.85); } 65% { transform: rotate(40deg) scaleY(1.2); } 90% { transform: rotate(16deg) scaleY(.95); } 100% { transform: rotate(30deg) scaleY(.55); } }
-@keyframes rnb-af { 0% { opacity: 0; } 39.9% { opacity: 0; } 40% { opacity: 1; } 89.9% { opacity: 1; } 90% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes rnb-up-l { 0% { transform: rotate(0deg) scale(.92, .7); } 15% { transform: rotate(-12deg) scale(.88, .5); } 40% { transform: rotate(8deg) scale(.96, .95); } 65% { transform: rotate(30deg) scale(1.12, .6); } 90% { transform: rotate(16deg) scale(1.04, .92); } 100% { transform: rotate(0deg) scale(.92, .7); } }
+@keyframes rnb-up-r { 0% { transform: rotate(0deg) scale(.92, .7); } 15% { transform: rotate(12deg) scale(.88, .5); } 40% { transform: rotate(-8deg) scale(.96, .95); } 65% { transform: rotate(-30deg) scale(1.12, .6); } 90% { transform: rotate(-16deg) scale(1.04, .92); } 100% { transform: rotate(0deg) scale(.92, .7); } }
+@keyframes rnb-fo-l { 0% { transform: rotate(-30deg) scaleY(.55); } 15% { transform: rotate(-45deg) scaleY(.2); } 40% { transform: rotate(-10deg) scaleY(.85); } 65% { transform: rotate(-12deg) scaleY(1.15); } 90% { transform: rotate(-8deg) scaleY(.95); } 100% { transform: rotate(-30deg) scaleY(.55); } }
+@keyframes rnb-fo-r { 0% { transform: rotate(30deg) scaleY(.55); } 15% { transform: rotate(45deg) scaleY(.2); } 40% { transform: rotate(10deg) scaleY(.85); } 65% { transform: rotate(12deg) scaleY(1.15); } 90% { transform: rotate(8deg) scaleY(.95); } 100% { transform: rotate(30deg) scaleY(.55); } }
+@keyframes rnb-af { 0% { opacity: 0; } 49.9% { opacity: 0; } 50% { opacity: 1; } 84.9% { opacity: 1; } 85% { opacity: 0; } 100% { opacity: 0; } }
 
 /* 서 있기 */
 .rn.still .rn-limb, .rn.still .rn-bob, .rn.still .rn-roll { animation: none; }
