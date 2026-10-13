@@ -365,6 +365,14 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .hurdle i { position: absolute; inset: 0; border-left: 4px solid #2A2A2A; border-right: 4px solid #2A2A2A; transform-origin: 50% 100%; transition: transform .16s ease-in, opacity .16s; }
 .hurdle i::before { content: ""; position: absolute; left: -4px; right: -4px; top: 0; height: 30%; box-sizing: border-box; border: 2px solid #2A2A2A; border-radius: 2px; background: repeating-linear-gradient(90deg, #fff 0 22px, #2A2A2A 22px 44px); }
 .hurdle.down i { transform: perspective(300px) rotateX(80deg); opacity: .75; }
+/* 허들 아래 레인 표지판: 보기 번호와 같은 색·숫자 */
+.h-lanes { position: absolute; left: 0; right: 0; top: 34%; height: 58%; display: flex; }
+.h-lanes span { flex: 1; display: flex; align-items: center; justify-content: center; }
+.h-lanes span::before { content: attr(data-n); display: flex; align-items: center; justify-content: center; width: 46%; height: 100%; border-radius: .2em; color: #fff; font-weight: 800; line-height: 1; }
+.h-lanes span[data-n="1"]::before { background: #B9502F; }
+.h-lanes span[data-n="2"]::before { background: #3B6FB6; }
+.h-lanes span[data-n="3"]::before { background: #7A5DB8; }
+.h-lanes span[data-n="4"]::before { background: #23766F; }
 .finish { position: absolute; left: 0; top: 0; width: 100px; height: 16px; transform-origin: 0 0; will-change: transform; background: repeating-conic-gradient(var(--ink) 0% 25%, #fff 0% 50%) 0 0 / 24px 24px; opacity: .9; }
 .rivals { position: absolute; inset: 0; pointer-events: none; }
 .rival { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; line-height: 0; }
@@ -379,6 +387,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 @keyframes sl { from { transform: rotate(var(--a)) translateX(40px); opacity: 0; } 30% { opacity: 1; } to { transform: rotate(var(--a)) translateX(360px); opacity: 0; } }
 .hint { position: absolute; left: 12px; right: 12px; top: 10px; z-index: 600; pointer-events: none; text-align: center; font-size: 14px; font-weight: 600; color: var(--sub); }
 .hint span { background: rgba(255,255,255,.94); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; display: inline-block; }
+#scene, #gPrompt { touch-action: none; }   /* 밀기(스와이프)를 브라우저 스크롤이 가로채지 않게 */
 .scene.shake { animation: shake .3s; }
 @keyframes shake { 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
 
@@ -387,6 +396,8 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .answers { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 2px; height: var(--ah, 196px); flex: none; }
 .ans { position: relative; display: flex; align-items: center; justify-content: center; flex: 1 1 0; min-height: 0; min-width: 0; padding: 2px 44px; border-radius: 12px; border: 1px solid var(--line); border-bottom: 4px solid var(--line-strong); background: #fff; color: var(--ink); text-align: center; overflow: hidden; touch-action: none; transition: background-color 80ms, border-color 80ms; }
 .ans:active:not(:disabled) { border-bottom-width: 2px; }
+/* 화살표·밀기로 옮겨 가는 중인 레인(곧 확정됨) */
+.ans.sel { border: 2px solid var(--ink); border-bottom-width: 4px; background: #FBF9F6; }
 .ans .k { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border-radius: 8px; background: var(--sub); color: #fff; font-size: 13px; font-weight: 800; line-height: 26px; }
 .ans[data-i="0"] .k { background: #B9502F; }
 .ans[data-i="1"] .k { background: #3B6FB6; }
@@ -606,7 +617,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       <p id="netNote" class="note"></p>
     </div>
     <ol class="steps">
-      <li><b>1</b><span>캐릭터는 저절로 달려요. 허들 전에 맞는 단어를 눌러요.</span></li>
+      <li><b>1</b><span>캐릭터는 저절로 달려요. 허들 전에 맞는 단어의 레인으로 옮겨요.</span></li>
       <li><b>2</b><span>맞히면 허들을 넘고 빨라져요.</span></li>
       <li><b>3</b><span>틀리면 넘어지지만 탈락은 없어요.</span></li>
       <li><b>4</b><span>결승선에 먼저 도착한 순서가 순위예요.</span></li>
@@ -724,15 +735,15 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     </div>
     <div id="scene" class="scene">
       <div class="sc-sky" aria-hidden="true"><svg viewBox="0 0 390 152" preserveAspectRatio="xMidYMax slice" focusable="false"><use href="#fieldScene" width="390" height="230"/></svg></div>
-      <div class="sc-ground" aria-hidden="true"><svg class="sc-track" viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false"><polygon id="scRoad" fill="#D46A4C" points="50,0 50,0 120,100 -20,100"/><g id="scLanes" stroke="#fff" stroke-width="2" fill="none" opacity=".95"></g></svg></div>
+      <div class="sc-ground" aria-hidden="true"><svg class="sc-track" viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false"><polygon id="scRoad" fill="#D46A4C" points="50,0 50,0 120,100 -20,100"/><polygon id="scSel" fill="#fff" opacity=".18" points="0,0"/><g id="scLanes" stroke="#fff" stroke-width="2" fill="none" opacity=".95"></g></svg></div>
       <div id="ticks" class="ticks" aria-hidden="true"></div>
       <div id="speedlines" class="speedlines"><i></i><i></i><i></i><i></i><i></i></div>
       <div id="finish" class="finish" hidden></div>
       <div id="rivals" class="rivals"></div>
-      <div class="hurdle" hidden><i></i></div>
-      <div class="hurdle" hidden><i></i></div>
+      <div class="hurdle" hidden><i><b class="h-lanes"></b></i></div>
+      <div class="hurdle" hidden><i><b class="h-lanes"></b></i></div>
       <div id="me" class="mebox"></div>
-      <div id="hint" class="hint" hidden><span>허들이 오기 전에 맞는 단어를 누르세요</span></div>
+      <div id="hint" class="hint" hidden><span>맞는 단어의 레인으로 옮기세요 · 버튼, ← →, 밀기</span></div>
     </div>
     <div class="answers">
       <button class="ans" type="button" data-i="0"><span class="k">1</span><span class="t"></span></button>
@@ -846,6 +857,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     wrongMinTotalSec: 3.6,  // 단, 문제가 나온 지 이 시간(초)이 되기 전에는 당겨 오지 않음. 바로 찍으면 이만큼은 기다려야 해서 찍기가 손해로 남음
     botRefReadSec: 2.0,     // 컴퓨터 상대의 react 는 읽는 시간이 이 값인 문제 기준. 긴 문제는 그만큼 비례해서 오래 걸림
     // --- 정답: 점프 ---
+    laneSettleMs: 600,      // 화살표·밀기로 레인을 옮긴 뒤 이만큼 더 움직이지 않으면 그 레인을 답으로 확정(버튼·숫자 키는 바로 확정)
     jumpSec: 0.6,           // 점프해서 착지하기까지 시간(초). 꼭대기(절반 시점)에서 허들 위를 지나감
     jumpHeight: 46,         // 점프 높이(px)
     jumpHeightHigh: 66,     // 연속 정답이 highJumpStreak 이상일 때 점프 높이(px)
@@ -2259,6 +2271,10 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     const q = R.q, r = R.runner;
     if (!q || q.resolved || q.picked != null || r.stun > 0 || i < 0 || i >= q.options.length) return;
     q.picked = i;
+    game.laneTarget = i;
+    game.pendingLane = null;
+    clearTimeout(game.settleTimer);
+    drawLanes();
     const ok = i === q.answerIdx;
     setAnswer(r, ok);
     if (!ok) {
@@ -2266,6 +2282,40 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       requeueWord(R.deck, q.index);
     }
     showPickFeedback(q, ok);
+  }
+
+  // 화살표·밀기: 레인을 한 칸 옮기고, laneSettleMs 동안 더 움직이지 않으면 그 레인을 답으로 확정
+  function steer(delta) {
+    const R = S.race;
+    if (!R || R.myState !== 'running') return;
+    const q = R.q, r = R.runner;
+    if (!q || q.resolved || q.picked != null || r.stun > 0) return;
+    const n = q.options.length;
+    let lane;
+    const base = game.pendingLane != null ? game.pendingLane : game.laneTarget;
+    if (base != null) lane = base + delta;
+    else {
+      // 아직 레인을 고른 적 없음: 지금 서 있는 자리(가운데)에서 한 칸 옆 레인으로
+      const pos = (game.laneF + 1) * n / 2 - 0.5;
+      lane = delta > 0 ? Math.floor(pos + 1e-6) + 1 : Math.ceil(pos - 1e-6) - 1;
+    }
+    lane = clamp(lane, 0, n - 1);
+    game.pendingLane = lane;
+    game.laneTarget = lane;
+    drawLanes();
+    game.btns.forEach(function (b, i) { b.classList.toggle('sel', i === lane); });
+    game.hinted = true;
+    game.hint.hidden = true;
+    clearTimeout(game.settleTimer);
+    game.settleTimer = setTimeout(commitLane, CONFIG.laneSettleMs);
+  }
+
+  function commitLane() {
+    clearTimeout(game.settleTimer);
+    const lane = game.pendingLane;
+    game.pendingLane = null;
+    game.btns.forEach(function (b) { b.classList.remove('sel'); });
+    if (lane != null) pickAnswer(lane);
   }
 
   function onMyGate(r) {
@@ -2602,14 +2652,15 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     cur: 0,
     W: 0, H: 0, hz: 0, vpY: 0, feetY: 0, halfBottom: 0, zMe: 4, meSize: 100, meW: 50, hurdleH: 36, finishH: 16, rvSize: 90,
     rivals: [], dots: new Map(),
+    nLanes: 3, laneTarget: null, laneF: 0, pendingLane: null, settleTimer: 0, lastT: 0, hb: null, ht: null,
     hinted: false, animToken: 0
   };
 
   // 장면 크기를 다시 잼(화면 회전·크기 변경 때도 불림)
   // 원근: 카메라는 내 캐릭터 바로 뒤. 앞으로 d 미터 떨어진 것은 z = zMe + d 에 있고,
   // 화면 높이 y = 소실점 + (내 발 높이 − 소실점) × zMe / z, 크기는 zMe / z 배로 그림(지평선보다 위로 가면 숨김)
-  const LANE_LINES = [-1, -0.6, -0.2, 0.2, 0.6, 1];   // 레인 경계(트랙 반폭에 대한 비율). 나는 가운데 레인
-  const RIVAL_LANES = [-0.8, -0.4, 0.4, 0.8];
+  // 레인 = 보기. 보기가 n개면 트랙을 n칸으로 나누고, i번째 레인 가운데는 트랙 반폭의 laneCenter(i, n) 배 위치
+  function laneCenter(i, n) { return -1 + (2 * i + 1) / n; }
   const TICK_GAP = 3;                                 // 트랙 눈금 간격(m)
   function measureGame() {
     if (S.screen !== 'game') return;
@@ -2620,7 +2671,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     game.feetY = game.H - 10;
     // 소실점은 학교 건물 뒤(지평선보다 조금 위)에 둠. 그래서 트랙은 학교 앞에서 한 점이 아니라 문 너비쯤으로 끝남
     game.vpY = game.hz - (game.feetY - game.hz) * 0.06;
-    game.halfBottom = game.W * 0.85;
+    game.halfBottom = game.W * 0.5;   // 레인이 모두 화면 안에 들어오게
     game.meSize = Math.round(clamp((game.H - game.hz) * 0.62, 56, 150));
     game.meW = game.meSize * RN_ASPECT;
     game.hurdleH = game.meSize * 0.36;
@@ -2630,20 +2681,14 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     const hb = game.halfBottom / Math.max(1, game.W) * 100;
     const ht = halfAt(game.hz) / Math.max(1, game.W) * 100;
     game.road.setAttribute('points', (50 - ht).toFixed(2) + ',0 ' + (50 + ht).toFixed(2) + ',0 ' + (50 + hb).toFixed(1) + ',100 ' + (50 - hb).toFixed(1) + ',100');
-    if (!game.lanes.firstChild) {
-      LANE_LINES.forEach(function () {
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('vector-effect', 'non-scaling-stroke');
-        game.lanes.appendChild(path);
-      });
-    }
-    LANE_LINES.forEach(function (f, k) { game.lanes.children[k].setAttribute('d', 'M' + (50 + ht * f).toFixed(2) + ' 0L' + (50 + hb * f).toFixed(1) + ' 100'); });
+    game.hb = hb; game.ht = ht;
+    drawLanes();
     // 트랙을 가로지르는 거리 눈금(움직임이 보이게)
     if (!game.ticks.length) {
       for (let k = 0; k < 18; k++) { const t = el('div', 'tick'); game.ticksBox.appendChild(t); game.ticks.push(t); }
     }
     const baseW = 2 * halfAt(game.feetY);
-    game.hurdles.forEach(function (h) { h.el.style.width = baseW.toFixed(1) + 'px'; h.el.style.height = game.hurdleH.toFixed(1) + 'px'; });
+    game.hurdles.forEach(function (h) { h.el.style.width = baseW.toFixed(1) + 'px'; h.el.style.height = game.hurdleH.toFixed(1) + 'px'; h.el.style.fontSize = (game.hurdleH * 0.42).toFixed(1) + 'px'; });
     game.finish.style.width = baseW.toFixed(1) + 'px';
     game.finish.style.height = game.finishH.toFixed(1) + 'px';
     if (game.rn) {
@@ -2659,6 +2704,27 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     });
     fitPrompt();
     game.btns.forEach(function (b) { if (!b.hidden) fitButton(b); });
+  }
+
+  // 레인 경계선과 지금 고른(옮겨 간) 레인의 밝은 띠를 그림. 보기 수가 바뀌거나 레인을 옮길 때 다시 부름
+  function drawLanes() {
+    const n = game.nLanes, hb = game.hb, ht = game.ht;
+    if (hb == null) return;
+    while (game.lanes.children.length < n + 1) {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('vector-effect', 'non-scaling-stroke');
+      game.lanes.appendChild(path);
+    }
+    for (let k = 0; k < game.lanes.children.length; k++) {
+      const path = game.lanes.children[k];
+      if (k > n) { path.setAttribute('d', ''); continue; }
+      const f = -1 + 2 * k / n;
+      path.setAttribute('d', 'M' + (50 + ht * f).toFixed(2) + ' 0L' + (50 + hb * f).toFixed(1) + ' 100');
+    }
+    const sel = $('scSel');
+    if (game.laneTarget == null) { sel.setAttribute('points', '0,0'); return; }
+    const a = -1 + 2 * game.laneTarget / n, b = a + 2 / n;
+    sel.setAttribute('points', (50 + ht * a).toFixed(2) + ',0 ' + (50 + ht * b).toFixed(2) + ',0 ' + (50 + hb * b).toFixed(1) + ',100 ' + (50 + hb * a).toFixed(1) + ',100');
   }
 
   // 화면 높이 y 에서 트랙 반폭(px)
@@ -2726,6 +2792,8 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   }
 
   function resetGameView() {
+    game.laneTarget = null; game.laneF = 0; game.pendingLane = null; game.lastT = 0; game.nLanes = 3;
+    clearTimeout(game.settleTimer);
     game.hurdles.forEach(function (h) { h.mode = 'idle'; h.el.hidden = true; h.el.classList.remove('down'); });
     game.cur = 0;
     game.hinted = false;
@@ -2777,8 +2845,20 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     h.mode = 'up';
     h.el.classList.remove('down');
     h.el.hidden = false;
+    // 보기 수만큼 레인. 허들에는 레인마다 보기 번호 표지판
+    const n = q.options.length;
+    if (game.nLanes !== n) {
+      game.nLanes = n;
+      if (game.laneTarget != null) game.laneTarget = Math.min(game.laneTarget, n - 1);
+    }
+    game.pendingLane = null;
+    clearTimeout(game.settleTimer);
+    drawLanes();
+    const signs = h.el.querySelector('.h-lanes');
+    clear(signs);
+    for (let i = 0; i < n; i++) { const sp = el('span'); sp.dataset.n = String(i + 1); signs.appendChild(sp); }
     game.btns.forEach(function (b, i) {
-      const on = i < q.options.length;
+      const on = i < n;
       b.hidden = !on;
       b.className = 'ans';
       b.disabled = !on;
@@ -2900,6 +2980,19 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     if (!game.W) measureGame();
     const cx = game.W / 2;
 
+    // 내 캐릭터: 고른 레인으로 부드럽게 옮겨 감
+    const nowT = performance.now();
+    const dtR = game.lastT ? Math.min(0.1, (nowT - game.lastT) / 1000) : 0;
+    game.lastT = nowT;
+    const targetF = game.laneTarget == null ? game.laneF : laneCenter(game.laneTarget, game.nLanes);
+    game.laneF += (targetF - game.laneF) * Math.min(1, dtR * 12);
+    game.meBox.style.transform = 'translate3d(' + (game.laneF * halfAt(game.feetY)).toFixed(1) + 'px,0,0)';
+
+    // 화살표·밀기로 옮겨 놓고 아직 확정 안 했는데 허들 바로 앞이면 지금 레인으로 확정
+    const q0 = R.q;
+    if (game.pendingLane != null && q0 && q0.picked == null && r.gateDist !== Infinity &&
+        r.gateDist - r.dist <= r.speed * CONFIG.jumpSec / 2 + 1.5) commitLane();
+
     // 트랙 눈금: TICK_GAP 미터마다 한 줄, 다가올수록 아래로 내려오며 넓고 두꺼워짐
     const base = ((r.dist % TICK_GAP) + TICK_GAP) % TICK_GAP;
     for (let k = 0; k < game.ticks.length; k++) {
@@ -2975,7 +3068,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       const v = game.rivals[used++];
       if (v.id !== o.id) {
         v.id = o.id;
-        v.lane = RIVAL_LANES[o.id.charCodeAt(o.id.length - 1) % RIVAL_LANES.length];
+        v.k = o.id.charCodeAt(o.id.length - 1);
       }
       setRunnerColor(v.rn, o.color);
       setText(v.tag, o.name);
@@ -2985,6 +3078,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
         if (!o.stopped) setRunRate(v.rn, speedToRate(o.speed, false));
       }
       const w = game.rvSize * RN_ASPECT;
+      v.lane = laneCenter(v.k % game.nLanes, game.nLanes) + ((v.k >> 2) % 2 ? 0.3 : -0.3) / game.nLanes;   // 레인 안에서 살짝 비켜 달림
       v.box.style.zIndex = zFor(d);
       v.box.style.transform = 'translate3d(' + (cx + v.lane * halfAt(p.y) - w * p.s / 2).toFixed(1) + 'px,' + (p.y - game.rvSize * p.s).toFixed(1) + 'px,0) scale(' + p.s.toFixed(4) + ')';
       if (v.box.hidden) v.box.hidden = false;
@@ -3677,7 +3771,25 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     document.addEventListener('keydown', function (e) {
       if (S.screen !== 'game' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
       if (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4') { e.preventDefault(); pickAnswer(Number(e.key) - 1); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); steer(-1); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); steer(1); }
     });
+    // 밀기(스와이프): 보기 버튼 밖(달리기 장면·문제 칸)에서 좌우로 밀면 레인을 옮김
+    let swipe = null;
+    $('scr-game').addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' || (e.target.closest && e.target.closest('.answers, .corner, .icon-btn'))) { swipe = null; return; }
+      swipe = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    });
+    $('scr-game').addEventListener('pointermove', function (e) {
+      if (!swipe || e.pointerId !== swipe.id) return;
+      const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+      if (Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        steer(dx > 0 ? 1 : -1);
+        swipe.x = e.clientX; swipe.y = e.clientY;   // 계속 밀면 한 칸 더
+      }
+    });
+    $('scr-game').addEventListener('pointerup', function () { swipe = null; });
+    $('scr-game').addEventListener('pointercancel', function () { swipe = null; });
     // 게임 중 더블탭 확대·길게 눌러 메뉴 방지
     $('scr-game').addEventListener('contextmenu', function (e) { e.preventDefault(); });
     $('scr-game').addEventListener('dblclick', function (e) { e.preventDefault(); });
