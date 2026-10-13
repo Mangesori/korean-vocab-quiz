@@ -164,10 +164,25 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .rn-tag.mine { background: var(--green); border-color: var(--green); color: #fff; }
 
 /* ---------- 처음 화면 ---------- */
-.hero { text-align: center; padding: 10px 0 6px; }
-.hero .rn { margin-bottom: 4px; }
-.hero p { color: var(--sub); margin-top: 6px; }
-.rules { font-size: 14px; color: var(--sub); padding-left: 18px; margin: 0; display: grid; gap: 4px; }
+/* 운동회 배경 그림을 깔고 그 위에 제목과 내 캐릭터 */
+.scene-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hero { position: relative; height: 240px; flex: none; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #DCEFF7; text-align: center; }
+.hero-text { position: relative; padding: 14px 12px 0; text-shadow: 0 0 6px #DCEFF7, 0 0 3px #DCEFF7, 0 0 1px #DCEFF7; }
+.hero p { color: #3F5560; margin-top: 4px; font-size: 14px; font-weight: 600; }
+#heroRunner { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); line-height: 0; }
+.btn-big { justify-content: space-between; text-align: left; min-height: 72px; padding: 12px 18px; border-bottom: 4px solid var(--green-dark); }
+.btn .bt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.btn .bt b { font-size: 19px; font-weight: 800; }
+.btn-big small { color: #CFE6D8; opacity: 1; font-size: 13px; }
+.btn .bt-ic { width: 22px; height: 22px; flex: none; }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.btn.tile { flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; min-height: 78px; padding: 10px 14px; text-align: left; border-bottom: 4px solid var(--line-strong); }
+.btn.tile b { font-size: 17px; font-weight: 800; }
+.btn.tile small { color: var(--sub); opacity: 1; font-size: 12px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.steps li { display: flex; align-items: flex-start; gap: 8px; padding: 10px; border-radius: 10px; background: #F1ECE4; font-size: 13px; font-weight: 600; line-height: 1.4; color: #4A4440; }
+.steps b { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--mint); color: var(--green); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
 
 /* ---------- 방장 대기실 ---------- */
 .host-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
@@ -292,14 +307,24 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .w-count { font-size: clamp(15px, 1.6vw, 22px); font-weight: 600; color: var(--sub); }
 .w-head .btn { width: auto; min-height: 42px; margin-left: auto; font-size: 15px; }
 .w-body { flex: 1; min-height: 0; display: flex; gap: 16px; }
-.w-lanes { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; background: var(--ground); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; overflow: hidden; }
-.w-empty { text-align: center; color: var(--sub); font-size: 20px; }
-.lane { display: flex; align-items: center; gap: 10px; flex: 1 1 0; min-height: 0; max-height: 96px; }
-.lane-label { width: 8em; flex: none; display: flex; align-items: center; gap: .4em; font-size: .4em; font-weight: 700; overflow: hidden; }
+/* 코스: 위는 하늘·학교, 아래는 잔디 위 빨간 트랙 레인 */
+.w-course { flex: 1; min-width: 0; display: flex; flex-direction: column; border: 1px solid var(--line-strong); border-radius: 12px; overflow: hidden; background: #9CCB7C; }
+.w-sky { position: relative; flex: none; height: clamp(52px, 9vh, 84px); background: #DCEFF7; border-bottom: 3px solid #8CC57A;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='26'%3E%3Cpath d='M0 4 Q26 12 52 4' stroke='%238C8077' fill='none'/%3E%3Cpath d='M10 7l7 0-3.5 10z' fill='%23E07A5F'/%3E%3Cpath d='M34 7l7 0-3.5 10z' fill='%233B6FB6'/%3E%3C/svg%3E"),
+    linear-gradient(#DCEFF7 0 32%, #EAF5F9 32%);
+  background-repeat: repeat-x, no-repeat; background-position: 0 4px, 0 0; }
+.w-school { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; display: block; }
+.w-tag { position: absolute; left: 12px; bottom: 8px; padding: 2px 10px; border-radius: 999px; background: rgba(255,255,255,.92); font-size: clamp(12px, 1.3vw, 16px); font-weight: 800; color: #3F5560; }
+.w-tag.end { left: auto; right: 12px; }
+.w-lanes { flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 10px 12px; overflow: hidden; counter-reset: lane; }
+.w-empty { text-align: center; color: #2F4F24; font-size: 20px; font-weight: 700; }
+.lane { display: flex; align-items: center; gap: 10px; flex: 1 1 0; min-height: 0; max-height: 96px; counter-increment: lane; }
+.lane-label { width: 8em; flex: none; display: flex; align-items: center; gap: .4em; font-size: .4em; font-weight: 700; overflow: hidden; padding: .15em .5em .15em .15em; border-radius: 999px; background: rgba(255,255,255,.92); box-sizing: border-box; }
 .lane-rank { flex: none; min-width: 1.9em; height: 1.9em; border-radius: 1em; background: #fff; border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: .9em; }
 .lane-rank.top { background: var(--green); color: #fff; border-color: var(--green); }
 .lane-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lane-track { position: relative; flex: 1; align-self: stretch; border-bottom: 2px dashed var(--ground-edge); }
+.lane-track { position: relative; flex: 1; align-self: stretch; background: #D46A4C; border-top: 2px solid #fff; border-bottom: 2px solid #fff; }
+.lane-track::before { content: counter(lane); position: absolute; left: .3em; top: 50%; transform: translateY(-50%); font-size: .34em; font-weight: 800; color: #fff; opacity: .85; }
 .lane-track::after { content: ""; position: absolute; right: 0; top: 8%; bottom: 0; width: 8px; background: repeating-conic-gradient(var(--ink) 0% 25%, #fff 0% 50%) 0 0 / 8px 8px; opacity: .8; }
 .lane-rail { position: absolute; left: 0; right: 1.3em; top: 0; bottom: 0; }
 .lane-runner { position: absolute; left: 0; bottom: 0; line-height: 0; will-change: left; }
@@ -314,6 +339,10 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .board .sw { width: .8em; height: .8em; border-radius: 50%; flex: none; background: var(--c, var(--sub)); }
 .board .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board .tm { font-size: .7em; color: var(--sub); font-weight: 600; flex: none; }
+.w-miss-h { margin-top: 8px; }
+.w-miss-h small { font-size: 12px; font-weight: 600; color: var(--hint); }
+.board.miss .tm { color: var(--red); font-weight: 800; }
+.board.miss .mn { font-size: .6em; font-weight: 600; color: var(--sub); flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 좁은 창: 순위표를 숨기고, 이름을 트랙 위에 겹쳐 올려 트랙이 가로를 다 쓰게 함 */
 @media (max-width: 800px) {
   #scr-watch { padding-left: 10px; padding-right: 10px; }
@@ -324,18 +353,32 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 }
 
 /* ---------- 결과 화면 ---------- */
-.res-head { text-align: center; }
+/* 결과: 운동회 배경 위 시상대, 그 아래 내 기록 */
+.res-stage { position: relative; flex: none; min-height: 270px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #DCEFF7; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding-top: 12px; }
+.screen.wide .res-stage { min-height: 360px; }
+.res-title { position: relative; margin: 0; padding: 4px 16px; border-radius: 999px; background: #fff; font-size: 18px; font-weight: 800; color: var(--green); box-shadow: 0 1px 3px rgba(26,23,20,.12); }
+.res-stage .podium { position: relative; width: min(100%, 360px); padding: 0 12px; box-sizing: border-box; }
+.screen.wide .res-stage .podium { width: min(100%, 560px); }
+.res-head { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .res-head .mine { font-size: 40px; font-weight: 800; color: var(--green); line-height: 1.2; }
+.res-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 420px; }
+.res-stats div { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.res-stats span { font-size: 12px; font-weight: 700; color: var(--sub); }
+.res-stats b { font-size: 22px; font-weight: 800; }
+.res-stats .ok b { color: var(--ok); } .res-stats .no b { color: var(--red); } .res-stats .st b { color: var(--amber); }
 .res-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .screen.wide .res-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
 @media (max-width: 760px) { .screen.wide .res-grid { grid-template-columns: 1fr; } }
 .podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: end; padding-top: 14px; }
 .pod { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
 .pod .ph { height: 54px; }
-.pod .nm { font-size: 15px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 22px; }
-.pod .tm { font-size: 13px; color: var(--sub); font-weight: 600; min-height: 19px; }
-.pod .blk { width: 100%; border-radius: 10px 10px 0 0; background: var(--mint); color: var(--green); font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-top: 4px; }
-.pod.p1 .blk { height: 92px; background: var(--green); color: #fff; }
+.pod .nm { font-size: 15px; font-weight: 800; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 22px; padding: 0 8px; border-radius: 999px; background: rgba(255,255,255,.92); }
+.pod .nm:empty { background: none; }
+.pod .tm { font-size: 13px; color: var(--ink); font-weight: 700; min-height: 19px; padding: 0 8px; border-radius: 999px; background: rgba(255,255,255,.92); }
+.pod .tm:empty { background: none; }
+.pod .blk { width: 100%; border-radius: 10px 10px 0 0; background: var(--mint); border: 1px solid #B9DCC8; border-bottom: 0; box-sizing: border-box; color: var(--green); font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-top: 4px; }
+.pod.p2 .blk { background: #fff; border-color: var(--line-strong); color: var(--sub); }
+.pod.p1 .blk { height: 92px; background: var(--green); border-color: var(--green); color: #fff; }
 .pod.p2 .blk { height: 64px; } .pod.p3 .blk { height: 44px; }
 .screen.wide .pod .nm { font-size: 22px; min-height: 32px; }
 .ranks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -367,6 +410,39 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 <body>
 <div id="app">
 
+  <!-- 운동회 배경(처음·결과 화면에서 <use>로 가져다 씀). 장식이라 화면 읽기에서는 숨김 -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="fieldScene" viewBox="0 0 390 230">
+        <rect width="390" height="152" fill="#DCEFF7"/>
+        <rect y="96" width="390" height="56" fill="#EAF5F9"/>
+        <path d="M-10 10 Q 100 40 195 28 Q 290 40 400 10" stroke="#8C8077" stroke-width="1" fill="none"/>
+        <g>
+          <path d="M18 16l6 0-3 9z" fill="#E07A5F"/><path d="M44 22l6 0-3 9z" fill="#3B6FB6"/><path d="M70 27l6 0-3 9z" fill="#F2B33D"/><path d="M96 31l6 0-3 9z" fill="#2D7D52"/><path d="M122 33l6 0-3 9z" fill="#DB6F8E"/><path d="M148 32l6 0-3 9z" fill="#3B6FB6"/><path d="M174 30l6 0-3 9z" fill="#E07A5F"/>
+          <path d="M210 30l6 0-3 9z" fill="#F2B33D"/><path d="M236 32l6 0-3 9z" fill="#2D7D52"/><path d="M262 33l6 0-3 9z" fill="#E07A5F"/><path d="M288 31l6 0-3 9z" fill="#3B6FB6"/><path d="M314 27l6 0-3 9z" fill="#DB6F8E"/><path d="M340 22l6 0-3 9z" fill="#F2B33D"/><path d="M366 16l6 0-3 9z" fill="#2D7D52"/>
+        </g>
+        <g transform="translate(195 150) scale(.72) translate(-195 -284)">
+          <rect x="110" y="214" width="170" height="70" fill="#EFE3CF"/>
+          <rect x="110" y="208" width="170" height="8" fill="#D9C7A8"/>
+          <rect x="180" y="190" width="30" height="26" fill="#EFE3CF"/>
+          <rect x="176" y="186" width="38" height="6" fill="#D9C7A8"/>
+          <circle cx="195" cy="202" r="7" fill="#fff" stroke="#8C7A5E" stroke-width="1.2"/>
+          <g fill="#A9C7D8"><rect x="118" y="222" width="12" height="10"/><rect x="136" y="222" width="12" height="10"/><rect x="154" y="222" width="12" height="10"/><rect x="224" y="222" width="12" height="10"/><rect x="242" y="222" width="12" height="10"/><rect x="260" y="222" width="12" height="10"/><rect x="118" y="242" width="12" height="10"/><rect x="136" y="242" width="12" height="10"/><rect x="154" y="242" width="12" height="10"/><rect x="224" y="242" width="12" height="10"/><rect x="242" y="242" width="12" height="10"/><rect x="260" y="242" width="12" height="10"/></g>
+          <rect x="186" y="258" width="18" height="26" fill="#B79E7A"/>
+        </g>
+        <rect x="18" y="116" width="4" height="36" fill="#7A6A58"/><ellipse cx="20" cy="106" rx="13" ry="22" fill="#7FB86B"/>
+        <rect x="64" y="126" width="3" height="26" fill="#7A6A58"/><ellipse cx="65.5" cy="119" rx="9" ry="16" fill="#8CC57A"/>
+        <rect x="323" y="126" width="3" height="26" fill="#7A6A58"/><ellipse cx="324.5" cy="119" rx="9" ry="16" fill="#8CC57A"/>
+        <rect x="368" y="116" width="4" height="36" fill="#7A6A58"/><ellipse cx="370" cy="106" rx="13" ry="22" fill="#7FB86B"/>
+        <rect y="150" width="390" height="80" fill="#9CCB7C"/>
+        <polygon points="180,150 210,150 430,230 -40,230" fill="#D46A4C"/>
+        <g stroke="#fff" stroke-width="2" opacity=".95"><path d="M180 150L-40 230"/><path d="M187.5 150L77.5 230"/><path d="M195 150L195 230"/><path d="M202.5 150L312.5 230"/><path d="M210 150L430 230"/></g>
+        <rect x="4" y="212" width="382" height="4" fill="#fff"/>
+      </symbol>
+    </defs>
+  </svg>
+
+
   <div class="corner">
     <span id="conn" class="conn" hidden title="연결 상태" aria-label="연결 상태"></span>
     <button id="btnMute" class="icon-btn" type="button" aria-label="소리 끄기"></button>
@@ -376,23 +452,31 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   <!-- 처음 화면 -->
   <section id="scr-home" class="screen scroll">
     <div class="hero">
+      <svg class="scene-svg" viewBox="0 0 390 230" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false"><use href="#fieldScene" width="390" height="230"/></svg>
+      <div class="hero-text">
+        <h1 class="title">단어 달리기</h1>
+        <p>뜻을 보고 맞는 단어를 골라 허들을 넘어요</p>
+      </div>
       <div id="heroRunner"></div>
-      <h1 class="title">단어 달리기</h1>
-      <p>뜻을 보고 맞는 단어를 골라 허들을 넘어요</p>
     </div>
-    <button id="btnSolo" class="btn primary" type="button">혼자 달리기 <small>컴퓨터 친구 4명과</small></button>
-    <div class="card">
+    <button id="btnSolo" class="btn primary btn-big" type="button">
+      <span class="bt"><b>혼자 달리기</b><small>컴퓨터 친구 4명과 연습해요</small></span>
+      <svg class="bt-ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <div class="group">
       <span class="label">같이 달리기</span>
-      <button id="btnJoinGo" class="btn" type="button">방 참가하기 <small>학생</small></button>
-      <button id="btnHostGo" class="btn" type="button">방 만들기 <small>선생님</small></button>
+      <div class="duo">
+        <button id="btnJoinGo" class="btn tile" type="button"><b>방 참가하기</b><small>학생 · 방 코드 4자리</small></button>
+        <button id="btnHostGo" class="btn tile" type="button"><b>방 만들기</b><small>선생님 · 큰 화면으로 관전</small></button>
+      </div>
       <p id="netNote" class="note"></p>
     </div>
-    <ul class="rules">
-      <li>캐릭터는 저절로 달려요. 허들이 오기 전에 맞는 단어만 누르면 돼요.</li>
-      <li>맞히면 허들을 넘고 빨라져요. 빨리 맞힐수록 더 앞서가요.</li>
-      <li>틀리면 허들에 걸려 넘어져요. 탈락은 없어요.</li>
-      <li>결승선에 먼저 도착한 순서가 순위예요.</li>
-    </ul>
+    <ol class="steps">
+      <li><b>1</b><span>캐릭터는 저절로 달려요. 허들 전에 맞는 단어를 눌러요.</span></li>
+      <li><b>2</b><span>맞히면 허들을 넘고 빨라져요.</span></li>
+      <li><b>3</b><span>틀리면 넘어지지만 탈락은 없어요.</span></li>
+      <li><b>4</b><span>결승선에 먼저 도착한 순서가 순위예요.</span></li>
+    </ol>
   </section>
 
   <!-- 혼자 달리기 준비 -->
@@ -539,24 +623,37 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       <button id="btnWatchEnd" class="btn warn" type="button">경주 끝내기</button>
     </div>
     <div class="w-body">
-      <div id="wLanes" class="w-lanes"></div>
+      <div class="w-course">
+        <div class="w-sky" aria-hidden="true">
+          <svg class="w-school" viewBox="0 70 390 82" preserveAspectRatio="xMidYMax meet" focusable="false"><use href="#fieldScene" width="390" height="230"/></svg>
+          <span class="w-tag">출발</span><span class="w-tag end">결승</span>
+        </div>
+        <div id="wLanes" class="w-lanes"></div>
+      </div>
       <aside class="w-side">
         <h3>지금 순위</h3>
         <ol id="wBoard" class="board"></ol>
+        <h3 class="w-miss-h">많이 틀린 단어 <small>도착한 학생 기준</small></h3>
+        <ol id="wMiss" class="board miss"></ol>
       </aside>
     </div>
   </section>
 
   <!-- 결과 -->
   <section id="scr-result" class="screen scroll" hidden>
+    <div class="res-stage">
+      <svg class="scene-svg" viewBox="0 0 390 230" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false"><use href="#fieldScene" width="390" height="230"/></svg>
+      <h2 class="res-title" id="resTitle">결과</h2>
+      <div id="resPodium" class="podium"></div>
+    </div>
     <div class="res-head">
-      <h2 class="h2" id="resTitle">결과</h2>
       <div id="resMine" class="mine"></div>
+      <div id="resStats" class="res-stats" hidden></div>
       <p id="resNote" class="note"></p>
     </div>
     <div class="res-grid">
       <div class="card">
-        <div id="resPodium" class="podium"></div>
+        <span class="label">전체 순위</span>
         <ol id="resRanks" class="ranks"></ol>
       </div>
       <div class="stack">
@@ -1875,6 +1972,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       if (ok) {
         r.correct++;
         r.streak++;
+        if (r.streak > (r.best || 0)) r.best = r.streak;
         r.landIn = CONFIG.jumpSec / 2;
         r.lastGate = r.gateDist;
         if (r.onResolve) r.onResolve(r, true, false);
@@ -2643,6 +2741,8 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   function resetWatchView() {
     clear($('wLanes'));
     clear($('wBoard'));
+    clear($('wMiss'));
+    $('wMiss')._key = null;
     watch.lanes = new Map();
     watch.count = -1;
     setText($('wCode'), net.code || '');
@@ -2724,6 +2824,33 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       setText(li.children[2], o.name);
       setText(li.children[3], o.finished ? fmtTime(o.timeMs, true) : Math.floor(o.dist / R.track * 100) + '%');
     }
+
+    // 많이 틀린 단어(도착한 학생 기록 기준, 상위 5개)
+    const missBox = $('wMiss');
+    const tops = topMisses(R, 5);
+    const missKey = tops.map(function (e) { return e[0] + ':' + e[1]; }).join(',');
+    if (missBox._key !== missKey) {
+      missBox._key = missKey;
+      clear(missBox);
+      if (!tops.length) missBox.appendChild(el('li', 'note', '아직 기록이 없어요'));
+      tops.forEach(function (e) {
+        const it = R.words[e[0]];
+        const li = el('li');
+        li.appendChild(el('span', 'nm', it.t === 's' ? it.a : it.w));
+        if (it.t !== 's' && it.m) li.appendChild(el('span', 'mn', it.m));
+        li.appendChild(el('span', 'tm', e[1] + '번'));
+        missBox.appendChild(li);
+      });
+    }
+  }
+
+  // 틀린 횟수가 많은 문제 [번호, 횟수] 목록. 다른 사람 기록은 결승(또는 중도 종료) 때 받은 것만 있음
+  function topMisses(R, n) {
+    const counts = new Map();
+    R.misses.forEach(function (i) { counts.set(i, (counts.get(i) || 0) + 1); });
+    S.racers.forEach(function (o) { (o.misses || []).forEach(function (i) { counts.set(i, (counts.get(i) || 0) + 1); }); });
+    return Array.from(counts.entries()).filter(function (e) { return !!R.words[e[0]]; })
+      .sort(function (a, b) { return b[1] - a[1]; }).slice(0, n);
   }
 
   /* ---------- 결과 화면 ---------- */
@@ -2745,8 +2872,25 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     let note = '';
     if (!R.ended) note = '아직 달리는 친구가 있어요. 순위는 바뀔 수 있어요.';
     else if (S.mode === 'multi' && !isHost) note = hostPresent() ? '선생님이 다시 시작하기를 기다려요.' : '방장이 자리에 없어요. 돌아오면 다시 시작할 수 있어요.';
-    if (me && R.runner) note = '맞음 ' + R.runner.correct + ' · 틀림 ' + R.runner.wrong + (note ? ' — ' + note : '');
     setText($('resNote'), note);
+
+    // 내 기록 칸(맞힘·틀림·최고 연속)
+    const stats = $('resStats');
+    stats.hidden = !(me && R.runner);
+    if (me && R.runner) {
+      const vals = [['ok', '맞힘', R.runner.correct], ['no', '틀림', R.runner.wrong], ['st', '최고 연속', R.runner.best || 0]];
+      const key = vals.map(function (v) { return v[2]; }).join('|');
+      if (stats._key !== key) {
+        stats._key = key;
+        clear(stats);
+        vals.forEach(function (v) {
+          const d = el('div', v[0]);
+          d.appendChild(el('span', '', v[1]));
+          d.appendChild(el('b', '', String(v[2])));
+          stats.appendChild(d);
+        });
+      }
+    }
 
     // 시상대(2등-1등-3등 순으로 놓음). 내용이 바뀔 때만 다시 그려서 만세 동작이 끊기지 않게 함
     const podium = $('resPodium');
@@ -2791,11 +2935,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     });
 
     // 가장 많이 틀린 문제 상위 5개(문장형은 정답을 채운 완성 문장으로)
-    const counts = new Map();
-    R.misses.forEach(function (i) { counts.set(i, (counts.get(i) || 0) + 1); });
-    S.racers.forEach(function (o) { (o.misses || []).forEach(function (i) { counts.set(i, (counts.get(i) || 0) + 1); }); });
-    const topMiss = Array.from(counts.entries()).filter(function (e) { return !!R.words[e[0]]; })
-      .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 5);
+    const topMiss = topMisses(R, 5);
     const noun = R.hasSentences ? '문제' : '단어';
     setText($('resMissTitle'), (R.solo ? '내가 많이 틀린 ' : '가장 많이 틀린 ') + noun);
     const missList = $('resMisses');
@@ -3091,7 +3231,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     if (hero._c !== S.me.color) {
       hero._c = S.me.color;
       clear(hero);
-      hero.appendChild(renderRunner(S.me.color, 84, 'run'));
+      hero.appendChild(renderRunner(S.me.color, 72, 'run'));
     }
   }
 
