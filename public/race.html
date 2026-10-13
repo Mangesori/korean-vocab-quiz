@@ -174,6 +174,11 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 
 /* 서 있기 */
 .rn.still .rn-limb, .rn.still .rn-bob, .rn.still .rn-roll { animation: none; }
+/* 서 있을 때 팔은 몸통에 겹치지 않게 살짝 벌리고 팔꿈치를 조금 굽혀 내림 */
+.rn.still.v-fb .rn-up.rn-l { transform: rotate(9deg); }
+.rn.still.v-fb .rn-up.rn-r { transform: rotate(-9deg); }
+.rn.still.v-fb .rn-fo.rn-l { transform: rotate(-5deg); }
+.rn.still.v-fb .rn-fo.rn-r { transform: rotate(5deg); }
 
 /* 점프: 포물선으로 뛰었다가 착지할 때 살짝 눌림. 공중에서는 무릎을 접고 팔을 듦 */
 .rn.jump .rn-air { animation: rn-jump var(--jd) linear 1; }
@@ -186,24 +191,61 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .rn.jump.v-side .rn-fo.rn-1 { transform: rotate(-20deg); }
 .rn.jump.v-side .rn-up.rn-2 { transform: rotate(60deg); }
 .rn.jump.v-side .rn-fo.rn-2 { transform: rotate(-60deg); }
-.rn.jump.v-fb .rn-th { transform: scaleY(.85); }
-.rn.jump.v-fb .rn-sh { transform: translateY(-2.4px) scaleY(.45); }
-.rn.jump.v-fb .rn-sk { transform: translateY(-11px); }
-.rn.jump.v-fb .rn-up.rn-l { transform: rotate(145deg); }
-.rn.jump.v-fb .rn-up.rn-r { transform: rotate(-145deg); }
-.rn.jump.v-fb .rn-fo.rn-l { transform: rotate(-15deg); }
-.rn.jump.v-fb .rn-fo.rn-r { transform: rotate(15deg); }
+/* 점프(뒷모습·앞모습): 살짝 웅크렸다(6%) 팔을 휘둘러 올리며 뛰어오르고, 공중에서 무릎을 당겼다가(30~60%),
+ * 다리를 뻗어 내려와(80%) 무릎을 굽혀 착지(90%). 길이는 점프 시간(--jd)과 같고, 87% 지점이 착지 */
+.rn.jump.v-fb .rn-limb, .rn.jump.v-fb .rn-af { animation-duration: var(--jd); animation-timing-function: ease-in-out; animation-iteration-count: 1; animation-fill-mode: both; animation-delay: 0s; }
+.rn.jump.v-fb .rn-af { animation-name: none; }
+.rn.jump.v-fb .rn-th { animation-name: rnbj-th; }
+.rn.jump.v-fb .rn-sh.rn-l { animation-name: rnbj-sh-l; }
+.rn.jump.v-fb .rn-sh.rn-r { animation-name: rnbj-sh-r; }
+.rn.jump.v-fb .rn-sk.rn-l { animation-name: rnbj-sk-l; }
+.rn.jump.v-fb .rn-sk.rn-r { animation-name: rnbj-sk-r; }
+.rn.jump.v-fb .rn-so { animation-name: rnbj-so; }
+.rn.jump.v-fb .rn-up.rn-l { animation-name: rnbj-up-l; }
+.rn.jump.v-fb .rn-up.rn-r { animation-name: rnbj-up-r; }
+.rn.jump.v-fb .rn-fo.rn-l { animation-name: rnbj-fo-l; }
+.rn.jump.v-fb .rn-fo.rn-r { animation-name: rnbj-fo-r; }
+@keyframes rnbj-th { 0% { transform: scaleY(1); } 6% { transform: scaleY(.92); } 14% { transform: scaleY(1); } 30% { transform: scaleY(.8); } 60% { transform: scaleY(.8); } 80% { transform: scaleY(.98); } 90% { transform: scaleY(.92); } 100% { transform: scaleY(1); } }
+@keyframes rnbj-sh-l { 0% { transform: translate(0px, 0px) scaleY(1); } 6% { transform: translate(0px, -1.3px) scaleY(.9); } 14% { transform: translate(0px, 0px) scaleY(1); } 30% { transform: translate(-1px, -3.2px) scaleY(.4); } 60% { transform: translate(-1px, -3.2px) scaleY(.42); } 80% { transform: translate(0px, -.3px) scaleY(.96); } 90% { transform: translate(0px, -1.3px) scaleY(.9); } 100% { transform: translate(0px, 0px) scaleY(1); } }
+@keyframes rnbj-sh-r { 0% { transform: translate(0px, 0px) scaleY(1); } 6% { transform: translate(0px, -1.3px) scaleY(.9); } 14% { transform: translate(0px, 0px) scaleY(1); } 30% { transform: translate(1px, -3.2px) scaleY(.4); } 60% { transform: translate(1px, -3.2px) scaleY(.42); } 80% { transform: translate(0px, -.3px) scaleY(.96); } 90% { transform: translate(0px, -1.3px) scaleY(.9); } 100% { transform: translate(0px, 0px) scaleY(1); } }
+@keyframes rnbj-sk-l { 0% { transform: translate(0px, 0px); } 6% { transform: translate(0px, -2.9px); } 14% { transform: translate(0px, 0px); } 30% { transform: translate(-1px, -12.8px); } 60% { transform: translate(-1px, -12.5px); } 80% { transform: translate(0px, -.9px); } 90% { transform: translate(0px, -2.9px); } 100% { transform: translate(0px, 0px); } }
+@keyframes rnbj-sk-r { 0% { transform: translate(0px, 0px); } 6% { transform: translate(0px, -2.9px); } 14% { transform: translate(0px, 0px); } 30% { transform: translate(1px, -12.8px); } 60% { transform: translate(1px, -12.5px); } 80% { transform: translate(0px, -.9px); } 90% { transform: translate(0px, -2.9px); } 100% { transform: translate(0px, 0px); } }
+@keyframes rnbj-so { 0% { opacity: 0; } 22% { opacity: 0; } 30% { opacity: 1; } 62% { opacity: 1; } 72% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes rnbj-up-l { 0% { transform: rotate(20deg) scale(1, .8); } 6% { transform: rotate(30deg) scale(1.05, .7); } 16% { transform: rotate(90deg) scale(1, .95); } 30% { transform: rotate(150deg) scale(1, 1); } 60% { transform: rotate(140deg) scale(1, 1); } 80% { transform: rotate(60deg) scale(1, .95); } 92% { transform: rotate(22deg) scale(1, .9); } 100% { transform: rotate(0deg) scale(1, 1); } }
+@keyframes rnbj-up-r { 0% { transform: rotate(-20deg) scale(1, .8); } 6% { transform: rotate(-30deg) scale(1.05, .7); } 16% { transform: rotate(-90deg) scale(1, .95); } 30% { transform: rotate(-150deg) scale(1, 1); } 60% { transform: rotate(-140deg) scale(1, 1); } 80% { transform: rotate(-60deg) scale(1, .95); } 92% { transform: rotate(-22deg) scale(1, .9); } 100% { transform: rotate(0deg) scale(1, 1); } }
+@keyframes rnbj-fo-l { 0% { transform: rotate(-20deg) scaleY(.9); } 30% { transform: rotate(-12deg) scaleY(1); } 60% { transform: rotate(-12deg) scaleY(1); } 92% { transform: rotate(-10deg) scaleY(.9); } 100% { transform: rotate(0deg) scaleY(1); } }
+@keyframes rnbj-fo-r { 0% { transform: rotate(20deg) scaleY(.9); } 30% { transform: rotate(12deg) scaleY(1); } 60% { transform: rotate(12deg) scaleY(1); } 92% { transform: rotate(10deg) scaleY(.9); } 100% { transform: rotate(0deg) scaleY(1); } }
 @keyframes rn-jump {
-  0% { transform: translateY(0); animation-timing-function: cubic-bezier(.5, 1, .89, 1); }
+  0% { transform: translateY(0) scale(1, 1); }
+  6% { transform: translateY(0) scale(1.05, .92); animation-timing-function: cubic-bezier(.5, 1, .89, 1); }
   43.5% { transform: translateY(calc(-1 * var(--jh))); animation-timing-function: cubic-bezier(.11, 0, .5, 0); }
   87% { transform: translateY(0) scale(1, 1); }
   93% { transform: translateY(0) scale(1.1, .86); }
   100% { transform: translateY(0) scale(1, 1); }
 }
 /* 연속 정답이 많으면 공중에서 한 바퀴 */
-.rn-spin { transform-origin: 50% 55%; }
-.rn.flip .rn-spin { animation: rn-flip calc(var(--jd) * .87) ease-in-out 1; }
-@keyframes rn-flip { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+/* 공중 묘기(연속 정답이 많을 때). 뒷모습 캐릭터에는 앞모습 그림(rn-alt)을 뒷면에 붙여 두어서,
+ * 앞으로 돌거나 제자리에서 돌 때 몸 앞쪽(얼굴)이 보임 */
+.rn-spin { transform-origin: 50% 55%; transform-style: preserve-3d; }
+.rn-svg { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.rn-alt { position: absolute; left: 0; top: 0; transform: rotateY(180deg); }
+.rn.v-back .rn-alt .rn-face { display: inline; }
+.rn.v-back .rn-alt .rn-backhead, .rn-alt .rn-so { display: none; }
+.rn.flip .rn-spin { animation-duration: calc(var(--jd) * .87); animation-timing-function: ease-in-out; animation-iteration-count: 1; }
+.rn.flip.fx-cart-r .rn-spin { animation-name: rnx-cart-r; }     /* 옆돌기(오른쪽) */
+.rn.flip.fx-cart-l .rn-spin { animation-name: rnx-cart-l; }     /* 옆돌기(왼쪽) */
+.rn.flip.fx-front .rn-spin { animation-name: rnx-front; }       /* 앞으로 공중제비 */
+.rn.flip.fx-spin-r2 .rn-spin { animation-name: rnx-spin-r2; }   /* 제자리 두 바퀴(오른쪽) */
+.rn.flip.fx-spin-l2 .rn-spin { animation-name: rnx-spin-l2; }
+.rn.flip.fx-spin-r3 .rn-spin { animation-name: rnx-spin-r3; }   /* 제자리 세 바퀴 */
+.rn.flip.fx-spin-l3 .rn-spin { animation-name: rnx-spin-l3; }
+@keyframes rnx-cart-r { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@keyframes rnx-cart-l { from { transform: rotate(0); } to { transform: rotate(-360deg); } }
+@keyframes rnx-front { from { transform: perspective(500px) rotateX(0); } to { transform: perspective(500px) rotateX(360deg); } }
+@keyframes rnx-spin-r2 { from { transform: perspective(500px) rotateY(0); } to { transform: perspective(500px) rotateY(720deg); } }
+@keyframes rnx-spin-l2 { from { transform: perspective(500px) rotateY(0); } to { transform: perspective(500px) rotateY(-720deg); } }
+@keyframes rnx-spin-r3 { from { transform: perspective(500px) rotateY(0); } to { transform: perspective(500px) rotateY(1080deg); } }
+@keyframes rnx-spin-l3 { from { transform: perspective(500px) rotateY(0); } to { transform: perspective(500px) rotateY(-1080deg); } }
 
 /* 넘어짐: 옆모습은 앞으로 고꾸라지고, 뒷모습은 화면 안쪽으로 엎어졌다가 일어남 */
 .rn.fall .rn-limb, .rn.fall .rn-bob, .rn.fall .rn-roll { animation: none; }
@@ -796,7 +838,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     jumpHeight: 46,         // 점프 높이(px)
     jumpHeightHigh: 66,     // 연속 정답이 highJumpStreak 이상일 때 점프 높이(px)
     highJumpStreak: 3,      // 이 연속 정답부터 높은 점프
-    flipStreak: 5,          // 이 연속 정답부터 공중제비(1회전)
+    flipStreak: 5,          // 이 연속 정답부터 공중 묘기(옆돌기·앞 공중제비 → 더 이어지면 제자리 두세 바퀴)
     // --- 오답: 넘어짐 ---
     stumbleSec: 1.6,        // 허들에 걸려 넘어져 멈춰 있는 시간(초)
     knockback: 8,           // 넘어질 때 뒤로 밀리는 거리(m)
@@ -2460,19 +2502,24 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     rn._color = cleanColor(color, COLORS[0]);
     applyLook(rn, rn._color);
     if (size) { rn.style.width = (size * RN_ASPECT).toFixed(1) + 'px'; rn.style.height = size + 'px'; }
-    rn.innerHTML = '<div class="rn-air"><div class="rn-spin">' + (view === 'side' ? RUNNER_SIDE : RUNNER_FB) + '</div></div>';   // 고정된 문자열만 넣음(사용자 입력 없음)
+    // 뒷모습은 묘기 때 몸 앞쪽이 보이도록 앞모습 그림(rn-alt)을 뒷면에 하나 더 붙임
+    const body = view === 'side' ? RUNNER_SIDE : RUNNER_FB + (view === 'back' ? RUNNER_FB.replace('class="rn-svg"', 'class="rn-svg rn-alt"') : '');
+    rn.innerHTML = '<div class="rn-air"><div class="rn-spin">' + body + '</div></div>';   // 고정된 문자열만 넣음(사용자 입력 없음)
     rn._rate = 0;
     setPose(rn, pose || 'still');
     return rn;
   }
 
   // 자세 바꾸기: 'run' | 'still' | 'jump' | 'fall' | 'cheer' (+ flip 은 jump 와 함께)
+  // flip: 점프와 함께 할 묘기 이름(TRICKS 중 하나). true 면 오른쪽 옆돌기
+  const TRICKS = ['cart-r', 'cart-l', 'front', 'spin-r2', 'spin-l2', 'spin-r3', 'spin-l3'];
   function setPose(rn, pose, flip) {
     if (rn._pose === pose && !flip) return;
     rn._pose = pose;
     rn.classList.remove('still', 'jump', 'flip', 'fall', 'cheer');
+    TRICKS.forEach(function (t) { rn.classList.remove('fx-' + t); });
     if (pose !== 'run') rn.classList.add(pose);
-    if (flip) rn.classList.add('flip');
+    if (flip) { rn.classList.add('flip'); rn.classList.add('fx-' + (typeof flip === 'string' ? flip : 'cart-r')); }
     rn._rate = 0;   // 애니메이션이 새로 시작되므로 빠르기를 다시 맞추게 함
   }
 
@@ -2489,7 +2536,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     rate = clamp(rate, 0.6, 3.2);
     if (rn._rate && Math.abs(rn._rate - rate) < 0.04) return;
     rn._rate = rate;
-    const svg = rn.querySelector('.rn-svg');
+    const svg = rn.querySelector('.rn-spin');   // 뒷면 그림(rn-alt)까지 함께
     if (svg && svg.getAnimations) {
       try {
         svg.getAnimations({ subtree: true }).forEach(function (a) { a.playbackRate = rate; });
@@ -2763,7 +2810,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   function startJumpAnim(streak) {
     const rn = game.rn;
     const high = streak >= CONFIG.highJumpStreak;
-    const flip = streak >= CONFIG.flipStreak && !reducedMotion;
+    const flip = streak >= CONFIG.flipStreak && !reducedMotion ? pickTrick(streak) : null;
     let height = high ? CONFIG.jumpHeightHigh : CONFIG.jumpHeight;
     height = Math.max(height, game.hurdleH * 1.25);                       // 허들보다 확실히 높게
     height = Math.min(height, Math.max(24, game.H - game.meSize - 40));   // 장면이 낮으면 화면 밖으로 나가지 않게
@@ -2779,6 +2826,18 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       if (token !== game.animToken || rn !== game.rn || rn._pose !== 'jump') return;
       setPose(rn, 'run');
     }, total * 1000);
+  }
+
+  // 연속 정답이 이어질수록 화려한 묘기. 바로 앞과 같은 묘기는 피함
+  function pickTrick(streak) {
+    const lvl = streak - CONFIG.flipStreak;
+    const pool = lvl < 3 ? ['cart-r', 'cart-l', 'front']
+      : lvl < 6 ? ['front', 'spin-r2', 'spin-l2', 'cart-r', 'cart-l']
+      : ['spin-r3', 'spin-l3', 'spin-r2', 'spin-l2', 'front'];
+    let t = pool[Math.floor(Math.random() * pool.length)];
+    if (t === game.lastTrick) t = pool[(pool.indexOf(t) + 1) % pool.length];
+    game.lastTrick = t;
+    return t;
   }
 
   // ③ 넘어짐: 허들에 걸려 앞으로 고꾸라졌다가 일어남
