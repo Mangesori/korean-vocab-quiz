@@ -3,23 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#F9F7F4">
+<meta name="theme-color" content="#F8F5F0">
 <title>단어 달리기</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" media="print" onload="this.media='all'">
 <style>
 :root {
-  --green: #1F6B48;
-  --green-dark: #17523A;
-  --bg: #F9F7F4;
-  --line: #E5DFDA;
-  --mint: #DCF0E4;
-  --panel: #FAF8F5;
-  --ink: #1B1917;
-  --sub: #6B635E;
-  --amber: #B4831C;
-  --amber-soft: #F5EAD0;
-  --red: #C0452B;
-  --red-soft: #F6E1DB;
+  /* 색 값은 DESIGN.md 기준 */
+  --green: #1E6B47;
+  --green-dark: #155237;
+  --bg: #F8F5F0;
+  --line: #E2DDD8;
+  --line-strong: #D3CCC4;
+  --mint: #E8F5EE;
+  --panel: #FFFFFF;
+  --ink: #1A1714;
+  --sub: #6B6460;
+  --hint: #9E9894;
+  --ok: #2D7D52;
+  --material: #F8FAFC;
+  --amber: #A9641A;
+  --amber-soft: #FDF0DC;
+  --red: #C13B2E;
+  --red-dark: #9E2F25;
+  --red-soft: #FBEDEA;
   --sky: #F4F0EA;
   --ground: #E9E1D6;
   --ground-edge: #D5CABD;
@@ -50,7 +56,8 @@ h1, h2, h3, p { margin: 0; }
 
 /* ---------- 공통 부품 ---------- */
 .corner { position: fixed; top: calc(8px + env(safe-area-inset-top)); right: 10px; z-index: 50; display: flex; align-items: center; gap: 6px; }
-.icon-btn { height: 36px; min-width: 36px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); font-size: 16px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+.icon-btn { height: 44px; min-width: 44px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--sub); font-size: 16px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+.icon-btn svg { width: 20px; height: 20px; display: block; }
 .icon-btn.armed { background: var(--red-soft); border-color: var(--red); color: var(--red); font-size: 13px; font-weight: 600; }
 .conn { width: 10px; height: 10px; border-radius: 50%; background: var(--line); margin-right: 2px; }
 .conn[data-s="on"] { background: var(--green); }
@@ -58,7 +65,7 @@ h1, h2, h3, p { margin: 0; }
 .conn[data-s="off"] { background: var(--red); }
 @keyframes blink { 50% { opacity: .35; } }
 
-.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; padding: 12px 18px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); font-size: 17px; font-weight: 600; }
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; padding: 12px 18px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); font-size: 17px; font-weight: 600; }
 .btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
 .btn.primary:active { background: var(--green-dark); }
 .btn.quiet { background: transparent; color: var(--sub); font-weight: 500; min-height: 44px; }
@@ -67,12 +74,12 @@ h1, h2, h3, p { margin: 0; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn small { font-weight: 500; opacity: .8; font-size: 13px; }
 .btn.small { width: auto; align-self: flex-start; min-height: 40px; padding: 6px 14px; font-size: 14px; border-radius: 10px; background: #fff; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
 .label { font-size: 13px; font-weight: 600; color: var(--sub); }
 .note { font-size: 13px; color: var(--sub); }
 .note.warn { color: var(--amber); }
 .note.bad { color: var(--red); }
-.field { width: 100%; min-height: 48px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font-size: 17px; outline: none; }
+.field { width: 100%; min-height: 48px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-size: 17px; outline: none; }
 .field:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--mint); }
 textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-size: 16px; }
 .code-input { text-align: center; font-size: 32px; font-weight: 700; letter-spacing: .3em; padding-left: .3em; }
@@ -81,14 +88,14 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .back { align-self: flex-start; border: 0; background: none; color: var(--sub); font-size: 15px; padding: 8px 4px; }
 
 .colors { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-.colors button { height: 60px; border-radius: 12px; border: 2px solid transparent; background: #fff; padding: 0; display: flex; align-items: center; justify-content: center; }
+.colors button { height: 60px; border-radius: 10px; border: 2px solid transparent; background: #fff; padding: 0; display: flex; align-items: center; justify-content: center; }
 .colors button[aria-pressed="true"] { border-color: var(--green); background: var(--mint); }
 
 .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .sets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .sets .btn.small { align-self: auto; }
 .sets .btn.small.ghost { color: var(--sub, #6B635E); border-style: dashed; }
-.seg button { min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font-size: 16px; font-weight: 600; }
+.seg button { min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-size: 16px; font-weight: 600; }
 .seg button[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: #fff; }
 
 .roster { display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; }
@@ -97,34 +104,54 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .chip.me { border-color: var(--green); background: var(--mint); }
 .chip.host { color: var(--sub); padding-left: 12px; }
 
-/* ---------- 캐릭터(코드로 그린 SVG). 동작은 전부 CSS 키프레임 ---------- */
-.rn { position: relative; display: inline-block; flex: none; width: 31px; height: 40px; --c: #1F6B48; --rd: .26s; --jh: 46px; --jd: .69s; --fd: 1.6s; }
+/* ---------- 캐릭터(코드로 그린 사람 SVG). 동작은 전부 CSS 키프레임 ----------
+ * 보는 방향 3가지: v-back(달리기 화면, 뒤에서), v-front(시상대·고르기 등, 앞에서), v-side(관전 레인, 옆에서)
+ * 뒤/앞은 같은 그림을 쓰고(v-fb), 얼굴(rn-face)과 뒤통수(rn-backhead) 중 하나만 보여 줌 */
+.rn { position: relative; display: inline-block; flex: none; width: 30px; height: 60px; --c: #1E6B47; --hair: #3B2A22; --skin: #F2C9A5; --rd: .26s; --jh: 46px; --jd: .69s; --fd: 1.6s; }
 .rn-air, .rn-spin { width: 100%; height: 100%; }
 .rn-air { transform-origin: 50% 100%; }
 .rn-svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .rn-c { fill: var(--c); }
-.rn-arm-f, .rn-arm-b { transform-origin: 22.5px 26px; }
-.rn-leg-f, .rn-leg-b { transform-origin: 23px 42px; }
-/* ① 달리기: 팔다리가 번갈아 앞뒤로, 몸은 살짝 위아래로 */
-.rn-leg-f { animation: rn-leg-a var(--rd) ease-in-out infinite alternate; }
-.rn-leg-b { animation: rn-leg-b var(--rd) ease-in-out infinite alternate; }
-.rn-arm-f { animation: rn-arm-a var(--rd) ease-in-out infinite alternate; }
-.rn-arm-b { animation: rn-arm-b var(--rd) ease-in-out infinite alternate; }
+.rn-h { fill: var(--hair); }
+.rn-k { fill: var(--skin); }
+.rn.v-back .rn-face, .rn.v-front .rn-backhead { display: none; }
 .rn-bob { animation: rn-bob calc(var(--rd) / 2) ease-in-out infinite alternate; }
-@keyframes rn-leg-a { from { transform: rotate(-44deg); } to { transform: rotate(40deg); } }
-@keyframes rn-leg-b { from { transform: rotate(40deg); } to { transform: rotate(-44deg); } }
-@keyframes rn-arm-a { from { transform: rotate(52deg); } to { transform: rotate(-56deg); } }
-@keyframes rn-arm-b { from { transform: rotate(-56deg); } to { transform: rotate(52deg); } }
 @keyframes rn-bob { from { transform: translateY(0); } to { transform: translateY(-2px); } }
+
+/* 옆모습: 팔다리가 어깨·엉덩이를 축으로 앞뒤로 흔들림 */
+.v-side .rn-arm-f, .v-side .rn-arm-b { transform-origin: 25px 30px; }
+.v-side .rn-leg-f, .v-side .rn-leg-b { transform-origin: 25px 60px; }
+.v-side .rn-leg-f { animation: rn-leg-a var(--rd) ease-in-out infinite alternate; }
+.v-side .rn-leg-b { animation: rn-leg-b var(--rd) ease-in-out infinite alternate; }
+.v-side .rn-arm-f { animation: rn-arm-a var(--rd) ease-in-out infinite alternate; }
+.v-side .rn-arm-b { animation: rn-arm-b var(--rd) ease-in-out infinite alternate; }
+@keyframes rn-leg-a { from { transform: rotate(-40deg); } to { transform: rotate(36deg); } }
+@keyframes rn-leg-b { from { transform: rotate(36deg); } to { transform: rotate(-40deg); } }
+@keyframes rn-arm-a { from { transform: rotate(48deg); } to { transform: rotate(-52deg); } }
+@keyframes rn-arm-b { from { transform: rotate(-52deg); } to { transform: rotate(48deg); } }
+
+/* 뒷모습·앞모습: 한쪽 다리가 들릴 때 짧아 보이고, 팔은 작게 흔들림 */
+.v-fb .rn-leg-l { transform-origin: 20.5px 60px; animation: rnb-leg var(--rd) ease-in-out infinite alternate; }
+.v-fb .rn-leg-r { transform-origin: 29.5px 60px; animation: rnb-leg var(--rd) ease-in-out infinite alternate-reverse; }
+.v-fb .rn-arm-l { transform-origin: 15px 30px; animation: rnb-arm-l var(--rd) ease-in-out infinite alternate; }
+.v-fb .rn-arm-r { transform-origin: 35px 30px; animation: rnb-arm-r var(--rd) ease-in-out infinite alternate; }
+@keyframes rnb-leg { from { transform: scaleY(1); } to { transform: translateY(-3px) scaleY(.62); } }
+@keyframes rnb-arm-l { from { transform: rotate(12deg); } to { transform: rotate(-24deg); } }
+@keyframes rnb-arm-r { from { transform: rotate(24deg); } to { transform: rotate(-12deg); } }
+
 /* 서 있기 */
 .rn.still .rn-limb, .rn.still .rn-bob { animation: none; }
-/* ② 점프: 허들 넘는 자세로 포물선, 착지 때 살짝 눌림 */
+
+/* 점프: 포물선으로 뛰었다가 착지할 때 살짝 눌림 */
 .rn.jump .rn-air { animation: rn-jump var(--jd) linear 1; }
 .rn.jump .rn-limb, .rn.jump .rn-bob { animation: none; }
-.rn.jump .rn-leg-f { transform: rotate(-80deg); }
-.rn.jump .rn-leg-b { transform: rotate(58deg); }
-.rn.jump .rn-arm-f { transform: rotate(72deg); }
-.rn.jump .rn-arm-b { transform: rotate(-112deg); }
+.rn.jump.v-side .rn-leg-f { transform: rotate(-80deg); }
+.rn.jump.v-side .rn-leg-b { transform: rotate(58deg); }
+.rn.jump.v-side .rn-arm-f { transform: rotate(72deg); }
+.rn.jump.v-side .rn-arm-b { transform: rotate(-112deg); }
+.rn.jump.v-fb .rn-leg-l, .rn.jump.v-fb .rn-leg-r { transform: translateY(-4px) scaleY(.6); }
+.rn.jump.v-fb .rn-arm-l { transform: rotate(140deg); }
+.rn.jump.v-fb .rn-arm-r { transform: rotate(-140deg); }
 @keyframes rn-jump {
   0% { transform: translateY(0); animation-timing-function: cubic-bezier(.5, 1, .89, 1); }
   43.5% { transform: translateY(calc(-1 * var(--jh))); animation-timing-function: cubic-bezier(.11, 0, .5, 0); }
@@ -132,14 +159,18 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   93% { transform: translateY(0) scale(1.1, .86); }
   100% { transform: translateY(0) scale(1, 1); }
 }
-/* 연속 정답이 많으면 공중제비 */
+/* 연속 정답이 많으면 공중에서 한 바퀴 */
 .rn-spin { transform-origin: 50% 55%; }
 .rn.flip .rn-spin { animation: rn-flip calc(var(--jd) * .87) ease-in-out 1; }
 @keyframes rn-flip { from { transform: rotate(0); } to { transform: rotate(360deg); } }
-/* ③ 넘어짐: 앞으로 고꾸라졌다가 일어남 */
-.rn.fall .rn-spin { transform-origin: 82% 100%; animation: rn-fall var(--fd) ease-out 1 forwards; }
+
+/* 넘어짐: 옆모습은 앞으로 고꾸라지고, 뒷모습은 화면 안쪽으로 엎어졌다가 일어남 */
 .rn.fall .rn-limb, .rn.fall .rn-bob { animation: none; }
-.rn.fall .rn-arm-f, .rn.fall .rn-arm-b { transform: rotate(-150deg); }
+.rn.fall.v-side .rn-spin { transform-origin: 82% 100%; animation: rn-fall var(--fd) ease-out 1 forwards; }
+.rn.fall.v-side .rn-arm-f, .rn.fall.v-side .rn-arm-b { transform: rotate(-150deg); }
+.rn.fall.v-fb .rn-spin { transform-origin: 50% 100%; animation: rnb-fall var(--fd) ease-out 1 forwards; }
+.rn.fall.v-fb .rn-arm-l { transform: rotate(120deg); }
+.rn.fall.v-fb .rn-arm-r { transform: rotate(-120deg); }
 @keyframes rn-fall {
   0% { transform: rotate(0); }
   16% { transform: rotate(96deg) translateY(3px); }
@@ -147,20 +178,44 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   68% { transform: rotate(88deg); }
   100% { transform: rotate(0); }
 }
-/* ④ 만세 */
+@keyframes rnb-fall {
+  0% { transform: perspective(420px) rotateX(0); }
+  16% { transform: perspective(420px) rotateX(64deg) translateY(4%); }
+  22% { transform: perspective(420px) rotateX(56deg) translateY(4%); }
+  68% { transform: perspective(420px) rotateX(58deg) translateY(4%); }
+  100% { transform: perspective(420px) rotateX(0); }
+}
+/* 만세 */
 .rn.cheer .rn-limb, .rn.cheer .rn-bob { animation: none; }
-.rn.cheer .rn-arm-f { transform: rotate(-112deg); }
-.rn.cheer .rn-arm-b { transform: rotate(112deg); }
+.rn.cheer.v-side .rn-arm-f { transform: rotate(-112deg); }
+.rn.cheer.v-side .rn-arm-b { transform: rotate(112deg); }
+.rn.cheer.v-fb .rn-arm-l { transform: rotate(150deg); }
+.rn.cheer.v-fb .rn-arm-r { transform: rotate(-150deg); }
 .rn.cheer .rn-air { animation: rn-hop .3s ease-out infinite alternate; }
-@keyframes rn-hop { from { transform: translateY(0); } to { transform: translateY(-14%); } }
-.rn-tag { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 1px; max-width: 96px; padding: 0 6px; border-radius: 999px; background: rgba(250,248,245,.92); border: 1px solid var(--line); font-size: 11px; font-weight: 700; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@keyframes rn-hop { from { transform: translateY(0); } to { transform: translateY(-8%); } }
+.rn-tag { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 2px; max-width: 96px; padding: 0 6px; border-radius: 999px; background: rgba(255,255,255,.92); border: 1px solid var(--line); font-size: 11px; font-weight: 700; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rn-tag.mine { background: var(--green); border-color: var(--green); color: #fff; }
 
 /* ---------- 처음 화면 ---------- */
-.hero { text-align: center; padding: 10px 0 6px; }
-.hero .rn { margin-bottom: 4px; }
-.hero p { color: var(--sub); margin-top: 6px; }
-.rules { font-size: 14px; color: var(--sub); padding-left: 18px; margin: 0; display: grid; gap: 4px; }
+/* 운동회 배경 그림을 깔고 그 위에 제목과 내 캐릭터 */
+.scene-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hero { position: relative; height: 240px; flex: none; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #DCEFF7; text-align: center; }
+.hero-text { position: relative; padding: 14px 12px 0; text-shadow: 0 0 6px #DCEFF7, 0 0 3px #DCEFF7, 0 0 1px #DCEFF7; }
+.hero p { color: #3F5560; margin-top: 4px; font-size: 14px; font-weight: 600; }
+#heroRunner { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); line-height: 0; }
+.btn-big { justify-content: space-between; text-align: left; min-height: 72px; padding: 12px 18px; border-bottom: 4px solid var(--green-dark); }
+.btn .bt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.btn .bt b { font-size: 19px; font-weight: 800; }
+.btn-big small { color: #CFE6D8; opacity: 1; font-size: 13px; }
+.btn .bt-ic { width: 22px; height: 22px; flex: none; }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.btn.tile { flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; min-height: 78px; padding: 10px 14px; text-align: left; border-bottom: 4px solid var(--line-strong); }
+.btn.tile b { font-size: 17px; font-weight: 800; }
+.btn.tile small { color: var(--sub); opacity: 1; font-size: 12px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.steps li { display: flex; align-items: flex-start; gap: 8px; padding: 10px; border-radius: 10px; background: #F1ECE4; font-size: 13px; font-weight: 600; line-height: 1.4; color: #4A4440; }
+.steps b { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--mint); color: var(--green); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
 
 /* ---------- 방장 대기실 ---------- */
 .host-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
@@ -187,57 +242,70 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .mini .dot { position: absolute; top: 10px; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--c, var(--sub)); opacity: .75; will-change: left; }
 .mini .dot.me { width: 16px; height: 16px; margin: -8px 0 0 -8px; opacity: 1; z-index: 2; border: 2px solid #fff; box-shadow: 0 0 0 2px var(--ink); }
 
-.g-prompt { margin: 0 12px 8px; padding: 6px 14px; height: 108px; flex: none; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transition: background-color .15s, border-color .15s; }
-.g-prompt .p-label { font-size: 12px; font-weight: 600; color: var(--sub); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.g-prompt .p-main { width: 100%; max-height: 82px; overflow: hidden; font-size: 30px; font-weight: 800; letter-spacing: -.01em; line-height: 1.15; word-break: keep-all; overflow-wrap: anywhere; }
-.g-prompt.bad { background: var(--red-soft); border-color: var(--red); }
-.g-prompt.bad .p-label { color: var(--red); font-size: 14px; font-weight: 700; }
-.g-prompt.good { background: var(--mint); border-color: var(--green); }
+/* 흰 카드: 위는 안내문구, 아래 회색 칸은 문제 재료(뜻·문장)만 */
+.g-prompt { margin: 0 12px 8px; padding: 6px 8px 8px; height: 116px; box-sizing: border-box; flex: none; border-radius: 12px; background: var(--panel); border: 2px solid var(--line); display: flex; flex-direction: column; align-items: stretch; gap: 4px; text-align: center; transition: border-color .15s; }
+.g-prompt .p-label { flex: none; min-height: 18px; font-size: 13px; font-weight: 600; color: var(--sub); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-prompt .p-box { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0 10px; border-radius: 10px; background: var(--material); overflow: hidden; }
+.g-prompt .p-main { width: 100%; max-height: 68px; overflow: hidden; font-size: 28px; font-weight: 800; letter-spacing: -.01em; line-height: 1.15; word-break: keep-all; overflow-wrap: anywhere; }
+.g-prompt.bad { border-color: var(--red); }
+.g-prompt.bad .p-label { color: var(--red); font-weight: 700; }
+.g-prompt.good { border-color: var(--ok); }
+.g-prompt.good .p-label { color: var(--ok); font-weight: 700; }
 /* 문장형 문제의 빈칸 */
 .blank { display: inline-block; min-width: 2.4em; padding: 0 .25em; margin: 0 .12em; border-bottom: 3px solid var(--amber); background: var(--amber-soft); border-radius: 6px 6px 0 0; line-height: 1.12; }
 .blank.filled { color: var(--green); border-bottom-color: var(--green); background: var(--mint); }
-.g-prompt.good .blank.filled { background: #fff; }
 
-/* 옆에서 본 트랙. 배경 2겹 + 바닥이 서로 다른 빠르기로 흐름(패럴랙스) */
-.scene { position: relative; flex: 1; min-height: 120px; overflow: hidden; background: var(--sky); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); --gh: 100px; --feet: 16px; }
-.sc-far { position: absolute; left: 0; bottom: var(--gh); width: calc(100% + 260px); height: 96px; will-change: transform;
-  background: radial-gradient(ellipse 130px 84px at 50% 100%, #E6EFE4 99%, transparent 100%) 0 100% / 260px 96px repeat-x; }
-.sc-mid { position: absolute; left: 0; bottom: var(--gh); width: calc(100% + 140px); height: 44px; will-change: transform;
-  background: radial-gradient(ellipse 52px 34px at 35% 100%, #CFE5D6 99%, transparent 100%) 0 100% / 140px 44px repeat-x; }
-.sc-ground { position: absolute; left: 0; right: 0; bottom: 0; height: var(--gh); background: var(--ground); border-top: 3px solid var(--ground-edge); overflow: hidden; }
-.sc-stripes { position: absolute; left: 0; top: 0; bottom: 0; width: calc(100% + 80px); will-change: transform;
-  background: repeating-linear-gradient(90deg, rgba(27,25,23,.05) 0 40px, transparent 40px 80px); }
-.hurdle { position: absolute; left: 0; bottom: var(--feet); width: 20px; height: 34px; z-index: 3; will-change: transform; }
-.hurdle i { position: absolute; inset: 0; border: 3px solid #3F3935; border-bottom: 0; border-top: 9px solid var(--amber); border-radius: 3px 3px 0 0; transform-origin: 100% 100%; transition: transform .16s ease-in, opacity .16s; }
-.hurdle.down i { transform: rotate(84deg); opacity: .5; }
-.finish { position: absolute; left: 0; bottom: 0; width: 16px; height: calc(var(--gh) + 34px); z-index: 2; will-change: transform; background: repeating-conic-gradient(var(--ink) 0% 25%, #fff 0% 50%) 0 0 / 16px 16px; opacity: .85; }
-.rivals { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-.rival { position: absolute; left: 0; bottom: var(--feet); opacity: .55; will-change: transform; transform-origin: 50% 100%; line-height: 0; }
-.mebox { position: absolute; left: 0; bottom: var(--feet); z-index: 4; line-height: 0; }
-.mebox::before { content: ""; position: absolute; left: 12%; right: 12%; bottom: -4px; height: 9px; border-radius: 50%; background: rgba(27,25,23,.14); }
-.speedlines { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; }
-.speedlines i { position: absolute; right: -24%; width: 22%; height: 2px; border-radius: 2px; background: rgba(27,25,23,.2); animation: sl .42s linear infinite; }
-.speedlines i:nth-child(1) { top: 14%; } .speedlines i:nth-child(2) { top: 31%; animation-delay: -.2s; }
-.speedlines i:nth-child(3) { top: 47%; animation-delay: -.33s; } .speedlines i:nth-child(4) { top: 22%; animation-delay: -.1s; }
-.speedlines i:nth-child(5) { top: 39%; animation-delay: -.27s; }
-@keyframes sl { to { transform: translateX(-580%); } }
-.hint { position: absolute; left: 12px; right: 12px; top: 10px; z-index: 5; pointer-events: none; text-align: center; font-size: 14px; font-weight: 600; color: var(--sub); }
-.hint span { background: rgba(250,248,245,.94); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; display: inline-block; }
+/* 뒤에서 본 트랙(원근). 하늘·학교는 고정, 트랙 위 눈금·허들·친구·결승선은 거리에 따라 크기와 높이가 바뀜 */
+.scene { position: relative; flex: 1; min-height: 140px; overflow: hidden; background: #9CCB7C; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); --hz: 30%; }
+.sc-sky { position: absolute; left: 0; right: 0; top: 0; height: var(--hz); background: #DCEFF7; }
+.sc-sky svg, .sc-track { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sc-ground { position: absolute; left: 0; right: 0; bottom: 0; top: var(--hz); }
+.ticks { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.tick { position: absolute; left: 0; top: 0; width: 100px; height: 2px; background: rgba(255,255,255,.5); transform-origin: 0 0; will-change: transform; }
+.hurdle { position: absolute; left: 0; top: 0; width: 100px; height: 30px; transform-origin: 0 0; will-change: transform; }
+.hurdle i { position: absolute; inset: 0; border-left: 4px solid #2A2A2A; border-right: 4px solid #2A2A2A; transform-origin: 50% 100%; transition: transform .16s ease-in, opacity .16s; }
+.hurdle i::before { content: ""; position: absolute; left: -4px; right: -4px; top: 0; height: 30%; box-sizing: border-box; border: 2px solid #2A2A2A; border-radius: 2px; background: repeating-linear-gradient(90deg, #fff 0 22px, #2A2A2A 22px 44px); }
+.hurdle.down i { transform: perspective(300px) rotateX(80deg); opacity: .75; }
+.finish { position: absolute; left: 0; top: 0; width: 100px; height: 16px; transform-origin: 0 0; will-change: transform; background: repeating-conic-gradient(var(--ink) 0% 25%, #fff 0% 50%) 0 0 / 24px 24px; opacity: .9; }
+.rivals { position: absolute; inset: 0; pointer-events: none; }
+.rival { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; line-height: 0; }
+.mebox { position: absolute; left: 0; bottom: 8px; z-index: 500; line-height: 0; }
+.mebox::before { content: ""; position: absolute; left: 6%; right: 6%; bottom: -5px; height: 10px; border-radius: 50%; background: rgba(27,25,23,.16); }
+/* 빨라지면 소실점에서 바깥으로 흩어지는 선 */
+.speedlines { position: absolute; left: 50%; top: var(--hz); width: 0; height: 0; z-index: 2; pointer-events: none; opacity: 0; }
+.speedlines i { position: absolute; left: 0; top: -1px; width: 90px; height: 2px; border-radius: 2px; background: rgba(255,255,255,.85); transform-origin: 0 50%; animation: sl .5s linear infinite; }
+.speedlines i:nth-child(1) { --a: 16deg; } .speedlines i:nth-child(2) { --a: 34deg; animation-delay: -.2s; }
+.speedlines i:nth-child(3) { --a: 146deg; animation-delay: -.33s; } .speedlines i:nth-child(4) { --a: 164deg; animation-delay: -.1s; }
+.speedlines i:nth-child(5) { --a: 124deg; animation-delay: -.27s; }
+@keyframes sl { from { transform: rotate(var(--a)) translateX(40px); opacity: 0; } 30% { opacity: 1; } to { transform: rotate(var(--a)) translateX(360px); opacity: 0; } }
+.hint { position: absolute; left: 12px; right: 12px; top: 10px; z-index: 600; pointer-events: none; text-align: center; font-size: 14px; font-weight: 600; color: var(--sub); }
+.hint span { background: rgba(255,255,255,.94); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; display: inline-block; }
 .scene.shake { animation: shake .3s; }
 @keyframes shake { 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
 
 /* 단어 버튼 3개 */
 /* 영역 높이는 한 판 동안 고정(보기 수가 문제마다 달라도 장면이 출렁이지 않게). 버튼이 그 안을 나눠 가짐 */
 .answers { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 2px; height: var(--ah, 196px); flex: none; }
-.ans { position: relative; display: flex; align-items: center; justify-content: center; flex: 1 1 0; min-height: 0; min-width: 0; padding: 2px 40px; border-radius: 14px; border: 2px solid var(--ink); border-bottom-width: 4px; background: #fff; text-align: center; overflow: hidden; touch-action: none; }
-.ans .k { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); color: var(--sub); font-size: 12px; font-weight: 700; line-height: 20px; }
+.ans { position: relative; display: flex; align-items: center; justify-content: center; flex: 1 1 0; min-height: 0; min-width: 0; padding: 2px 44px; border-radius: 12px; border: 1px solid var(--line); border-bottom: 4px solid var(--line-strong); background: #fff; color: var(--ink); text-align: center; overflow: hidden; touch-action: none; transition: background-color 80ms, border-color 80ms; }
+.ans:active:not(:disabled) { border-bottom-width: 2px; }
+.ans .k { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border-radius: 8px; background: var(--sub); color: #fff; font-size: 13px; font-weight: 800; line-height: 26px; }
+.ans[data-i="0"] .k { background: #B9502F; }
+.ans[data-i="1"] .k { background: #3B6FB6; }
+.ans[data-i="2"] .k { background: #7A5DB8; }
+.ans[data-i="3"] .k { background: #23766F; }
 .ans .t { display: block; width: 100%; font-size: 22px; font-weight: 700; line-height: 1.15; word-break: keep-all; }
 .ans:disabled { cursor: default; }
 .ans.off { opacity: .5; }
-.ans.dim { opacity: .4; }
-.ans.ok { background: var(--green); border-color: var(--green-dark); color: #fff; opacity: 1; }
-.ans.no { background: var(--red); border-color: #96351F; color: #fff; opacity: 1; }
-.ans.ok .k, .ans.no .k { background: rgba(255,255,255,.2); border-color: transparent; color: #fff; }
+.ans.dim { opacity: 1; color: var(--hint); border-bottom-color: var(--line); }
+.ans.dim .k { background: #EFEAE3; color: var(--hint); }
+/* 정답·오답은 색과 함께 ✓/✕ 표시로도 구분 */
+.ans.ok { background: var(--mint); border: 2px solid var(--ok); border-bottom: 4px solid var(--green); opacity: 1; }
+.ans.no { background: var(--red-soft); border: 2px solid var(--red); border-bottom: 4px solid var(--red-dark); opacity: 1; }
+.ans.ok .k, .ans.no .k { font-size: 0; }
+.ans.ok .k { background: var(--ok); }
+.ans.no .k { background: var(--red); }
+.ans.ok .k::before { content: "\2713"; font-size: 15px; }
+.ans.no .k::before { content: "\2715"; font-size: 13px; }
 
 .g-hud { display: flex; align-items: center; gap: 10px; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); min-height: 46px; }
 .streak { font-size: 14px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--sub); white-space: nowrap; }
@@ -248,17 +316,18 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .tally { font-size: 13px; font-weight: 600; color: var(--sub); white-space: nowrap; }
 .tally b { color: var(--green); } .tally em { color: var(--red); font-style: normal; font-weight: 700; }
 
-.countdown { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: rgba(249,247,244,.82); pointer-events: none; }
+.countdown { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: rgba(248,245,240,.85); pointer-events: none; }
 .countdown .num { font-size: 120px; font-weight: 800; color: var(--green); line-height: 1; }
 .countdown .cap { font-size: 18px; font-weight: 600; color: var(--sub); }
 
 /* 낮은 화면(폰 가로): 버튼을 한 줄로 */
 @media (max-height: 520px) {
-  .g-prompt { height: 62px; padding: 4px 12px; margin-bottom: 4px; }
-  .g-prompt .p-main { font-size: 22px; max-height: 40px; }
+  .g-prompt { height: 70px; padding: 3px 6px 6px; margin-bottom: 4px; gap: 2px; }
+  .g-prompt .p-label { min-height: 16px; font-size: 12px; }
+  .g-prompt .p-main { font-size: 22px; max-height: 34px; }
   .answers { flex-direction: row; height: 58px !important; padding-top: 6px; }
-  .ans { padding: 2px 8px 2px 30px; }
-  .ans .k { left: 6px; }
+  .ans { padding: 2px 8px 2px 36px; }
+  .ans .k { left: 6px; width: 24px; height: 24px; line-height: 24px; }
   .hint { display: none; }
 }
 
@@ -271,21 +340,31 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .w-count { font-size: clamp(15px, 1.6vw, 22px); font-weight: 600; color: var(--sub); }
 .w-head .btn { width: auto; min-height: 42px; margin-left: auto; font-size: 15px; }
 .w-body { flex: 1; min-height: 0; display: flex; gap: 16px; }
-.w-lanes { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; background: var(--ground); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; overflow: hidden; }
-.w-empty { text-align: center; color: var(--sub); font-size: 20px; }
-.lane { display: flex; align-items: center; gap: 10px; flex: 1 1 0; min-height: 0; max-height: 96px; }
-.lane-label { width: 8em; flex: none; display: flex; align-items: center; gap: .4em; font-size: .4em; font-weight: 700; overflow: hidden; }
+/* 코스: 위는 하늘·학교, 아래는 잔디 위 빨간 트랙 레인 */
+.w-course { flex: 1; min-width: 0; display: flex; flex-direction: column; border: 1px solid var(--line-strong); border-radius: 12px; overflow: hidden; background: #9CCB7C; }
+.w-sky { position: relative; flex: none; height: clamp(52px, 9vh, 84px); background: #DCEFF7; border-bottom: 3px solid #8CC57A;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='26'%3E%3Cpath d='M0 4 Q26 12 52 4' stroke='%238C8077' fill='none'/%3E%3Cpath d='M10 7l7 0-3.5 10z' fill='%23E07A5F'/%3E%3Cpath d='M34 7l7 0-3.5 10z' fill='%233B6FB6'/%3E%3C/svg%3E"),
+    linear-gradient(#DCEFF7 0 32%, #EAF5F9 32%);
+  background-repeat: repeat-x, no-repeat; background-position: 0 4px, 0 0; }
+.w-school { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; display: block; }
+.w-tag { position: absolute; left: 12px; bottom: 8px; padding: 2px 10px; border-radius: 999px; background: rgba(255,255,255,.92); font-size: clamp(12px, 1.3vw, 16px); font-weight: 800; color: #3F5560; }
+.w-tag.end { left: auto; right: 12px; }
+.w-lanes { flex: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 10px 12px; overflow: hidden; counter-reset: lane; }
+.w-empty { text-align: center; color: #2F4F24; font-size: 20px; font-weight: 700; }
+.lane { display: flex; align-items: center; gap: 10px; flex: 1 1 0; min-height: 0; max-height: 96px; counter-increment: lane; }
+.lane-label { width: 8em; flex: none; display: flex; align-items: center; gap: .4em; font-size: .4em; font-weight: 700; overflow: hidden; padding: .15em .5em .15em .15em; border-radius: 999px; background: rgba(255,255,255,.92); box-sizing: border-box; }
 .lane-rank { flex: none; min-width: 1.9em; height: 1.9em; border-radius: 1em; background: #fff; border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: .9em; }
 .lane-rank.top { background: var(--green); color: #fff; border-color: var(--green); }
 .lane-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lane-track { position: relative; flex: 1; align-self: stretch; border-bottom: 2px dashed var(--ground-edge); }
+.lane-track { position: relative; flex: 1; align-self: stretch; background: #D46A4C; border-top: 2px solid #fff; border-bottom: 2px solid #fff; }
+.lane-track::before { content: counter(lane); position: absolute; left: .3em; top: 50%; transform: translateY(-50%); font-size: .34em; font-weight: 800; color: #fff; opacity: .85; }
 .lane-track::after { content: ""; position: absolute; right: 0; top: 8%; bottom: 0; width: 8px; background: repeating-conic-gradient(var(--ink) 0% 25%, #fff 0% 50%) 0 0 / 8px 8px; opacity: .8; }
 .lane-rail { position: absolute; left: 0; right: 1.3em; top: 0; bottom: 0; }
 .lane-runner { position: absolute; left: 0; bottom: 0; line-height: 0; will-change: left; }
-.lane-runner .rn { width: .93em; height: 1.2em; }
+.lane-runner .rn { width: .6em; height: 1.2em; }
 .lane.fin .lane-name { color: var(--green); }
 .lane.gone { opacity: .45; }
-.w-side { width: clamp(220px, 22vw, 320px); flex: none; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.w-side { width: clamp(220px, 22vw, 320px); flex: none; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
 .w-side h3 { font-size: 16px; color: var(--sub); }
 .board { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .board li { display: flex; align-items: center; gap: 8px; font-size: clamp(16px, 1.7vw, 24px); font-weight: 700; }
@@ -293,6 +372,10 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .board .sw { width: .8em; height: .8em; border-radius: 50%; flex: none; background: var(--c, var(--sub)); }
 .board .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board .tm { font-size: .7em; color: var(--sub); font-weight: 600; flex: none; }
+.w-miss-h { margin-top: 8px; }
+.w-miss-h small { font-size: 12px; font-weight: 600; color: var(--hint); }
+.board.miss .tm { color: var(--red); font-weight: 800; }
+.board.miss .mn { font-size: .6em; font-weight: 600; color: var(--sub); flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 좁은 창: 순위표를 숨기고, 이름을 트랙 위에 겹쳐 올려 트랙이 가로를 다 쓰게 함 */
 @media (max-width: 800px) {
   #scr-watch { padding-left: 10px; padding-right: 10px; }
@@ -303,18 +386,32 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 }
 
 /* ---------- 결과 화면 ---------- */
-.res-head { text-align: center; }
+/* 결과: 운동회 배경 위 시상대, 그 아래 내 기록 */
+.res-stage { position: relative; flex: none; min-height: 270px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #DCEFF7; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding-top: 12px; }
+.screen.wide .res-stage { min-height: 360px; }
+.res-title { position: relative; margin: 0; padding: 4px 16px; border-radius: 999px; background: #fff; font-size: 18px; font-weight: 800; color: var(--green); box-shadow: 0 1px 3px rgba(26,23,20,.12); }
+.res-stage .podium { position: relative; width: min(100%, 360px); padding: 0 12px; box-sizing: border-box; }
+.screen.wide .res-stage .podium { width: min(100%, 560px); }
+.res-head { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .res-head .mine { font-size: 40px; font-weight: 800; color: var(--green); line-height: 1.2; }
+.res-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 420px; }
+.res-stats div { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.res-stats span { font-size: 12px; font-weight: 700; color: var(--sub); }
+.res-stats b { font-size: 22px; font-weight: 800; }
+.res-stats .ok b { color: var(--ok); } .res-stats .no b { color: var(--red); } .res-stats .st b { color: var(--amber); }
 .res-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .screen.wide .res-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
 @media (max-width: 760px) { .screen.wide .res-grid { grid-template-columns: 1fr; } }
 .podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: end; padding-top: 14px; }
 .pod { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
 .pod .ph { height: 54px; }
-.pod .nm { font-size: 15px; font-weight: 700; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 22px; }
-.pod .tm { font-size: 13px; color: var(--sub); font-weight: 600; min-height: 19px; }
-.pod .blk { width: 100%; border-radius: 10px 10px 0 0; background: var(--mint); color: var(--green); font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-top: 4px; }
-.pod.p1 .blk { height: 92px; background: var(--green); color: #fff; }
+.pod .nm { font-size: 15px; font-weight: 800; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 22px; padding: 0 8px; border-radius: 999px; background: rgba(255,255,255,.92); }
+.pod .nm:empty { background: none; }
+.pod .tm { font-size: 13px; color: var(--ink); font-weight: 700; min-height: 19px; padding: 0 8px; border-radius: 999px; background: rgba(255,255,255,.92); }
+.pod .tm:empty { background: none; }
+.pod .blk { width: 100%; border-radius: 10px 10px 0 0; background: var(--mint); border: 1px solid #B9DCC8; border-bottom: 0; box-sizing: border-box; color: var(--green); font-size: 22px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-top: 4px; }
+.pod.p2 .blk { background: #fff; border-color: var(--line-strong); color: var(--sub); }
+.pod.p1 .blk { height: 92px; background: var(--green); border-color: var(--green); color: #fff; }
 .pod.p2 .blk { height: 64px; } .pod.p3 .blk { height: 44px; }
 .screen.wide .pod .nm { font-size: 22px; min-height: 32px; }
 .ranks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -334,44 +431,87 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 /* 움직임 줄이기: 패럴랙스·공중제비·흔들림을 끄고, 점프·넘어짐은 짧게 */
 @media (prefers-reduced-motion: reduce) {
   .rn.flip .rn-spin { animation: none; }
-  .rn.fall .rn-spin { animation: rn-fall-lite var(--fd) ease-out 1 forwards; }
+  .rn.fall.v-side .rn-spin { animation: rn-fall-lite var(--fd) ease-out 1 forwards; }
+  .rn.fall.v-fb .rn-spin { animation: rnb-fall-lite var(--fd) ease-out 1 forwards; }
   .rn.cheer .rn-air { animation: none; }
   .scene.shake { animation: none; }
   .speedlines { display: none; }
   .conn[data-s="connecting"] { animation: none; }
 }
 @keyframes rn-fall-lite { 0% { transform: rotate(0); } 12% { transform: rotate(28deg); } 60% { transform: rotate(28deg); } 100% { transform: rotate(0); } }
+@keyframes rnb-fall-lite { 0% { transform: perspective(420px) rotateX(0); } 12% { transform: perspective(420px) rotateX(28deg); } 60% { transform: perspective(420px) rotateX(28deg); } 100% { transform: perspective(420px) rotateX(0); } }
 </style>
 </head>
 <body>
 <div id="app">
 
+  <!-- 운동회 배경(처음·결과 화면에서 <use>로 가져다 씀). 장식이라 화면 읽기에서는 숨김 -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="fieldScene" viewBox="0 0 390 230">
+        <rect width="390" height="152" fill="#DCEFF7"/>
+        <rect y="96" width="390" height="56" fill="#EAF5F9"/>
+        <path d="M-10 10 Q 100 40 195 28 Q 290 40 400 10" stroke="#8C8077" stroke-width="1" fill="none"/>
+        <g>
+          <path d="M18 16l6 0-3 9z" fill="#E07A5F"/><path d="M44 22l6 0-3 9z" fill="#3B6FB6"/><path d="M70 27l6 0-3 9z" fill="#F2B33D"/><path d="M96 31l6 0-3 9z" fill="#2D7D52"/><path d="M122 33l6 0-3 9z" fill="#DB6F8E"/><path d="M148 32l6 0-3 9z" fill="#3B6FB6"/><path d="M174 30l6 0-3 9z" fill="#E07A5F"/>
+          <path d="M210 30l6 0-3 9z" fill="#F2B33D"/><path d="M236 32l6 0-3 9z" fill="#2D7D52"/><path d="M262 33l6 0-3 9z" fill="#E07A5F"/><path d="M288 31l6 0-3 9z" fill="#3B6FB6"/><path d="M314 27l6 0-3 9z" fill="#DB6F8E"/><path d="M340 22l6 0-3 9z" fill="#F2B33D"/><path d="M366 16l6 0-3 9z" fill="#2D7D52"/>
+        </g>
+        <g transform="translate(195 150) scale(.72) translate(-195 -284)">
+          <rect x="110" y="214" width="170" height="70" fill="#EFE3CF"/>
+          <rect x="110" y="208" width="170" height="8" fill="#D9C7A8"/>
+          <rect x="180" y="190" width="30" height="26" fill="#EFE3CF"/>
+          <rect x="176" y="186" width="38" height="6" fill="#D9C7A8"/>
+          <circle cx="195" cy="202" r="7" fill="#fff" stroke="#8C7A5E" stroke-width="1.2"/>
+          <g fill="#A9C7D8"><rect x="118" y="222" width="12" height="10"/><rect x="136" y="222" width="12" height="10"/><rect x="154" y="222" width="12" height="10"/><rect x="224" y="222" width="12" height="10"/><rect x="242" y="222" width="12" height="10"/><rect x="260" y="222" width="12" height="10"/><rect x="118" y="242" width="12" height="10"/><rect x="136" y="242" width="12" height="10"/><rect x="154" y="242" width="12" height="10"/><rect x="224" y="242" width="12" height="10"/><rect x="242" y="242" width="12" height="10"/><rect x="260" y="242" width="12" height="10"/></g>
+          <rect x="186" y="258" width="18" height="26" fill="#B79E7A"/>
+        </g>
+        <rect x="18" y="116" width="4" height="36" fill="#7A6A58"/><ellipse cx="20" cy="106" rx="13" ry="22" fill="#7FB86B"/>
+        <rect x="64" y="126" width="3" height="26" fill="#7A6A58"/><ellipse cx="65.5" cy="119" rx="9" ry="16" fill="#8CC57A"/>
+        <rect x="323" y="126" width="3" height="26" fill="#7A6A58"/><ellipse cx="324.5" cy="119" rx="9" ry="16" fill="#8CC57A"/>
+        <rect x="368" y="116" width="4" height="36" fill="#7A6A58"/><ellipse cx="370" cy="106" rx="13" ry="22" fill="#7FB86B"/>
+        <rect y="150" width="390" height="80" fill="#9CCB7C"/>
+        <polygon points="180,150 210,150 430,230 -40,230" fill="#D46A4C"/>
+        <g stroke="#fff" stroke-width="2" opacity=".95"><path d="M180 150L-40 230"/><path d="M187.5 150L77.5 230"/><path d="M195 150L195 230"/><path d="M202.5 150L312.5 230"/><path d="M210 150L430 230"/></g>
+        <rect x="4" y="212" width="382" height="4" fill="#fff"/>
+      </symbol>
+    </defs>
+  </svg>
+
+
   <div class="corner">
     <span id="conn" class="conn" hidden title="연결 상태" aria-label="연결 상태"></span>
-    <button id="btnMute" class="icon-btn" type="button" aria-label="소리 켜기/끄기">🔊</button>
-    <button id="btnQuit" class="icon-btn" type="button" aria-label="나가기" hidden>✕</button>
+    <button id="btnMute" class="icon-btn" type="button" aria-label="소리 끄기"></button>
+    <button id="btnQuit" class="icon-btn" type="button" aria-label="나가기" hidden></button>
   </div>
 
   <!-- 처음 화면 -->
   <section id="scr-home" class="screen scroll">
     <div class="hero">
+      <svg class="scene-svg" viewBox="0 0 390 230" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false"><use href="#fieldScene" width="390" height="230"/></svg>
+      <div class="hero-text">
+        <h1 class="title">단어 달리기</h1>
+        <p>뜻을 보고 맞는 단어를 골라 허들을 넘어요</p>
+      </div>
       <div id="heroRunner"></div>
-      <h1 class="title">단어 달리기</h1>
-      <p>뜻을 보고 맞는 단어를 골라 허들을 넘어요</p>
     </div>
-    <button id="btnSolo" class="btn primary" type="button">혼자 달리기 <small>컴퓨터 친구 4명과</small></button>
-    <div class="card">
+    <button id="btnSolo" class="btn primary btn-big" type="button">
+      <span class="bt"><b>혼자 달리기</b><small>컴퓨터 친구 4명과 연습해요</small></span>
+      <svg class="bt-ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <div class="group">
       <span class="label">같이 달리기</span>
-      <button id="btnJoinGo" class="btn" type="button">방 참가하기 <small>학생</small></button>
-      <button id="btnHostGo" class="btn" type="button">방 만들기 <small>선생님</small></button>
+      <div class="duo">
+        <button id="btnJoinGo" class="btn tile" type="button"><b>방 참가하기</b><small>학생 · 방 코드 4자리</small></button>
+        <button id="btnHostGo" class="btn tile" type="button"><b>방 만들기</b><small>선생님 · 큰 화면으로 관전</small></button>
+      </div>
       <p id="netNote" class="note"></p>
     </div>
-    <ul class="rules">
-      <li>캐릭터는 저절로 달려요. 허들이 오기 전에 맞는 단어만 누르면 돼요.</li>
-      <li>맞히면 허들을 넘고 빨라져요. 빨리 맞힐수록 더 앞서가요.</li>
-      <li>틀리면 허들에 걸려 넘어져요. 탈락은 없어요.</li>
-      <li>결승선에 먼저 도착한 순서가 순위예요.</li>
-    </ul>
+    <ol class="steps">
+      <li><b>1</b><span>캐릭터는 저절로 달려요. 허들 전에 맞는 단어를 눌러요.</span></li>
+      <li><b>2</b><span>맞히면 허들을 넘고 빨라져요.</span></li>
+      <li><b>3</b><span>틀리면 넘어지지만 탈락은 없어요.</span></li>
+      <li><b>4</b><span>결승선에 먼저 도착한 순서가 순위예요.</span></li>
+    </ol>
   </section>
 
   <!-- 혼자 달리기 준비 -->
@@ -481,12 +621,12 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     </div>
     <div id="gPrompt" class="g-prompt">
       <span id="pLabel" class="p-label">이 뜻의 단어는?</span>
-      <div id="pMain" class="p-main"></div>
+      <div class="p-box"><div id="pMain" class="p-main"></div></div>
     </div>
     <div id="scene" class="scene">
-      <div id="scFar" class="sc-far"></div>
-      <div id="scMid" class="sc-mid"></div>
-      <div class="sc-ground"><div id="scStripes" class="sc-stripes"></div></div>
+      <div class="sc-sky" aria-hidden="true"><svg viewBox="0 0 390 152" preserveAspectRatio="xMidYMax slice" focusable="false"><use href="#fieldScene" width="390" height="230"/></svg></div>
+      <div class="sc-ground" aria-hidden="true"><svg class="sc-track" viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false"><polygon id="scRoad" fill="#D46A4C" points="50,0 50,0 120,100 -20,100"/><g id="scLanes" stroke="#fff" stroke-width="2" fill="none" opacity=".95"></g></svg></div>
+      <div id="ticks" class="ticks" aria-hidden="true"></div>
       <div id="speedlines" class="speedlines"><i></i><i></i><i></i><i></i><i></i></div>
       <div id="finish" class="finish" hidden></div>
       <div id="rivals" class="rivals"></div>
@@ -518,24 +658,37 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       <button id="btnWatchEnd" class="btn warn" type="button">경주 끝내기</button>
     </div>
     <div class="w-body">
-      <div id="wLanes" class="w-lanes"></div>
+      <div class="w-course">
+        <div class="w-sky" aria-hidden="true">
+          <svg class="w-school" viewBox="0 70 390 82" preserveAspectRatio="xMidYMax meet" focusable="false"><use href="#fieldScene" width="390" height="230"/></svg>
+          <span class="w-tag">출발</span><span class="w-tag end">결승</span>
+        </div>
+        <div id="wLanes" class="w-lanes"></div>
+      </div>
       <aside class="w-side">
         <h3>지금 순위</h3>
         <ol id="wBoard" class="board"></ol>
+        <h3 class="w-miss-h">많이 틀린 단어 <small>도착한 학생 기준</small></h3>
+        <ol id="wMiss" class="board miss"></ol>
       </aside>
     </div>
   </section>
 
   <!-- 결과 -->
   <section id="scr-result" class="screen scroll" hidden>
+    <div class="res-stage">
+      <svg class="scene-svg" viewBox="0 0 390 230" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false"><use href="#fieldScene" width="390" height="230"/></svg>
+      <h2 class="res-title" id="resTitle">결과</h2>
+      <div id="resPodium" class="podium"></div>
+    </div>
     <div class="res-head">
-      <h2 class="h2" id="resTitle">결과</h2>
       <div id="resMine" class="mine"></div>
+      <div id="resStats" class="res-stats" hidden></div>
       <p id="resNote" class="note"></p>
     </div>
     <div class="res-grid">
       <div class="card">
-        <div id="resPodium" class="podium"></div>
+        <span class="label">전체 순위</span>
         <ol id="resRanks" class="ranks"></ol>
       </div>
       <div class="stack">
@@ -606,7 +759,6 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     wrongSpeedKeep: 0,      // 틀린 뒤에 남는 가속분의 비율(0 = 기본 속도로 돌아감, 1 = 속도 유지)
     retryAfter: 3,          // 틀린 단어가 몇 문제 뒤에 다시 나오는지
     // --- 화면 ---
-    charXRatio: 0.25,       // 내 캐릭터가 서 있는 가로 위치(장면 폭에 대한 비율, 왼쪽에서)
     runCycleSec: 0.52,      // 기본 속도일 때 두 걸음(한 주기)에 걸리는 시간(초). 속도가 오르면 비례해서 빨라짐
     rivalCount: 6,          // 같은 트랙에 함께 그려 줄 다른 참가자 최대 수
     countdownSec: 3,        // 출발 전 카운트다운(초)
@@ -1854,6 +2006,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       if (ok) {
         r.correct++;
         r.streak++;
+        if (r.streak > (r.best || 0)) r.best = r.streak;
         r.landIn = CONFIG.jumpSec / 2;
         r.lastGate = r.gateDist;
         if (r.onResolve) r.onResolve(r, true, false);
@@ -2206,24 +2359,59 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
    * renderRunner 가 돌려주는 요소의 안쪽(RUNNER_SVG)만 바꾸고, 바깥 .rn 과 자세 클래스
    * (still / jump / flip / fall / cheer, 없으면 달리기)를 그대로 쓰면 됩니다.
    */
-  const RUNNER_SVG =
-    '<svg class="rn-svg" viewBox="0 0 48 62" aria-hidden="true"><g class="rn-bob">' +
-      '<g class="rn-limb rn-arm-b"><rect class="rn-c" x="20" y="24" width="5" height="16" rx="2.5"/><rect x="20" y="24" width="5" height="16" rx="2.5" fill="#1B1917" opacity=".28"/></g>' +
-      '<g class="rn-limb rn-leg-b"><rect x="20" y="40" width="6" height="18" rx="3" fill="#5F564F"/><rect class="rn-c" x="20" y="54.5" width="11" height="5.5" rx="2.75"/><rect x="20" y="54.5" width="11" height="5.5" rx="2.75" fill="#1B1917" opacity=".28"/></g>' +
-      '<rect class="rn-c" x="14" y="22" width="18" height="22" rx="8"/>' +
-      '<g class="rn-limb rn-leg-f"><rect x="20" y="40" width="6" height="18" rx="3" fill="#3F3935"/><rect class="rn-c" x="20" y="54.5" width="11" height="5.5" rx="2.75"/></g>' +
-      '<circle cx="24" cy="13" r="10.5" fill="#FBE9D0"/>' +
-      '<path class="rn-c" d="M13.2 12.5a10.8 10.8 0 0 1 21.6 0z"/><rect class="rn-c" x="30" y="10" width="10" height="3" rx="1.5"/>' +
-      '<circle cx="27.5" cy="16.5" r="1.5" fill="#1B1917"/><circle cx="32.5" cy="16.5" r="1.5" fill="#1B1917"/>' +
-      '<g class="rn-limb rn-arm-f"><rect class="rn-c" x="20" y="24" width="5" height="16" rx="2.5" stroke="#FAF8F5" stroke-width="1"/></g>' +
+  // 뒤/앞에서 본 사람(viewBox 50×100). 얼굴은 앞모습에서만, 뒤통수 머리카락은 뒷모습에서만 보임
+  const RUNNER_FB =
+    '<svg class="rn-svg" viewBox="0 0 50 100" aria-hidden="true"><g class="rn-bob">' +
+      '<g class="rn-limb rn-leg-l"><rect class="rn-k" x="17" y="57" width="7" height="31" rx="3.5"/><rect x="15.5" y="86" width="10" height="7" rx="3" fill="#fff" stroke="#BDB5AC"/></g>' +
+      '<g class="rn-limb rn-leg-r"><rect class="rn-k" x="26" y="57" width="7" height="31" rx="3.5"/><rect x="24.5" y="86" width="10" height="7" rx="3" fill="#fff" stroke="#BDB5AC"/></g>' +
+      '<path d="M15 50L35 50L36 63L26.5 63L25 59L23.5 63L14 63Z" fill="#33405A"/>' +
+      '<g class="rn-limb rn-arm-l"><rect class="rn-k" x="12" y="29" width="5" height="20" rx="2.5"/><rect class="rn-c" x="11.5" y="28" width="6" height="8" rx="3"/></g>' +
+      '<g class="rn-limb rn-arm-r"><rect class="rn-k" x="33" y="29" width="5" height="20" rx="2.5"/><rect class="rn-c" x="32.5" y="28" width="6" height="8" rx="3"/></g>' +
+      '<path class="rn-c" d="M15 28Q25 24.5 35 28L36 52L14 52Z"/>' +
+      '<rect x="19" y="34" width="12" height="9" rx="1.5" fill="#fff" opacity=".95"/>' +
+      '<rect class="rn-k" x="22" y="20" width="6" height="7" rx="2"/>' +
+      '<ellipse class="rn-k" cx="16.6" cy="15" rx="1.7" ry="2.5"/><ellipse class="rn-k" cx="33.4" cy="15" rx="1.7" ry="2.5"/>' +
+      '<ellipse class="rn-h rn-backhead" cx="25" cy="13.5" rx="8.5" ry="9.5"/>' +
+      '<g class="rn-face"><ellipse class="rn-k" cx="25" cy="13.5" rx="8.5" ry="9.5"/><path class="rn-h" d="M16.5 12Q16.5 3.5 25 3.8Q33.5 3.5 33.5 12Q30 7.5 25 8.2Q20 7.5 16.5 12Z"/>' +
+        '<circle cx="21.8" cy="14.5" r="1.2" fill="#1A1714"/><circle cx="28.2" cy="14.5" r="1.2" fill="#1A1714"/><path d="M21.8 18Q25 20.6 28.2 18" stroke="#A8462F" stroke-width="1.2" fill="none" stroke-linecap="round"/></g>' +
+      '<path d="M16.7 10Q25 5.6 33.3 10" stroke="#fff" stroke-width="2.6" fill="none"/>' +
     '</g></svg>';
+  // 옆에서 본 사람(오른쪽을 봄, viewBox 50×100). 팔다리는 어깨(25,30)·엉덩이(25,60)를 축으로 흔들림
+  const RUNNER_SIDE =
+    '<svg class="rn-svg" viewBox="0 0 50 100" aria-hidden="true"><g class="rn-bob">' +
+      '<g class="rn-limb rn-arm-b"><rect class="rn-k" x="22.5" y="29" width="5" height="20" rx="2.5"/><rect x="22.5" y="29" width="5" height="20" rx="2.5" fill="#1A1714" opacity=".18"/><rect class="rn-c" x="22" y="28" width="6" height="8" rx="3"/></g>' +
+      '<g class="rn-limb rn-leg-b"><rect class="rn-k" x="21.5" y="57" width="7" height="31" rx="3.5"/><rect x="21.5" y="57" width="7" height="31" rx="3.5" fill="#1A1714" opacity=".18"/><rect x="20" y="86" width="13" height="6" rx="3" fill="#fff" stroke="#BDB5AC"/></g>' +
+      '<rect x="18" y="50" width="14" height="13" rx="3" fill="#33405A"/>' +
+      '<rect class="rn-c" x="18" y="26" width="14" height="26" rx="6"/>' +
+      '<g class="rn-limb rn-leg-f"><rect class="rn-k" x="21.5" y="57" width="7" height="31" rx="3.5"/><rect x="20" y="86" width="13" height="6" rx="3" fill="#fff" stroke="#BDB5AC"/></g>' +
+      '<rect class="rn-k" x="23" y="20" width="5" height="8"/>' +
+      '<circle class="rn-k" cx="26" cy="14" r="8.5"/>' +
+      '<path class="rn-h" d="M17.5 15Q16 4.5 26 5.5Q34 5.5 34.5 10Q29 8 27 10L25 17Q20 19 17.5 15Z"/>' +
+      '<circle cx="31" cy="14" r="1.1" fill="#1A1714"/>' +
+      '<path d="M17.6 10.5Q26 5 34.3 9.5" stroke="#fff" stroke-width="2.4" fill="none"/>' +
+      '<g class="rn-limb rn-arm-f"><rect class="rn-k" x="22.5" y="29" width="5" height="20" rx="2.5"/><rect class="rn-c" x="22" y="28" width="6" height="8" rx="3" stroke="#fff" stroke-width=".8"/></g>' +
+    '</g></svg>';
+  const RN_ASPECT = 0.5;   // 캐릭터 가로 = 키 × 0.5
+  const HAIRS = ['#3B2A22', '#5A3A28', '#2B211C'];
+  const SKINS = ['#F2C9A5', '#E8B48C'];
 
-  // color: 팔레트 색, size: 캐릭터 키(px, 생략하면 CSS 크기), pose: 처음 자세
-  function renderRunner(color, size, pose) {
-    const rn = el('div', 'rn');
-    rn.style.setProperty('--c', cleanColor(color, COLORS[0]));
-    if (size) { rn.style.width = (size * 48 / 62).toFixed(1) + 'px'; rn.style.height = size + 'px'; }
-    rn.innerHTML = '<div class="rn-air"><div class="rn-spin">' + RUNNER_SVG + '</div></div>';   // 고정된 문자열만 넣음(사용자 입력 없음)
+  // 몸 색에 따라 머리·피부 색을 정함(같은 색이면 어느 화면에서나 같은 모습)
+  function applyLook(rn, color) {
+    const i = Math.max(0, COLORS.indexOf(color));
+    rn.style.setProperty('--c', color);
+    rn.style.setProperty('--hair', HAIRS[i % HAIRS.length]);
+    rn.style.setProperty('--skin', SKINS[(i >> 1) % SKINS.length]);
+  }
+
+  // color: 팔레트 색, size: 캐릭터 키(px, 생략하면 CSS 크기), pose: 처음 자세,
+  // view: 'front'(기본) | 'back'(달리기 화면) | 'side'(관전 레인)
+  function renderRunner(color, size, pose, view) {
+    view = view || 'front';
+    const rn = el('div', 'rn v-' + view + (view === 'side' ? '' : ' v-fb'));
+    rn._color = cleanColor(color, COLORS[0]);
+    applyLook(rn, rn._color);
+    if (size) { rn.style.width = (size * RN_ASPECT).toFixed(1) + 'px'; rn.style.height = size + 'px'; }
+    rn.innerHTML = '<div class="rn-air"><div class="rn-spin">' + (view === 'side' ? RUNNER_SIDE : RUNNER_FB) + '</div></div>';   // 고정된 문자열만 넣음(사용자 입력 없음)
     rn._rate = 0;
     setPose(rn, pose || 'still');
     return rn;
@@ -2242,7 +2430,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   function setRunnerColor(rn, color) {
     if (rn._color === color) return;
     rn._color = color;
-    rn.style.setProperty('--c', color);
+    applyLook(rn, color);
   }
 
   // 달리기 애니메이션 빠르기를 현재 속도에 맞춤(rate 1 = 기본 속도).
@@ -2269,7 +2457,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   /* ---------- 달리기 화면 ---------- */
 
   const game = {
-    scene: $('scene'), far: $('scFar'), mid: $('scMid'), stripes: $('scStripes'),
+    scene: $('scene'), road: $('scRoad'), lanes: $('scLanes'), ticksBox: $('ticks'), ticks: [],
     meBox: $('me'), rn: null, tag: null,
     finish: $('finish'), rivalsBox: $('rivals'), speedlines: $('speedlines'), hint: $('hint'),
     prompt: $('gPrompt'), pLabel: $('pLabel'), pMain: $('pMain'),
@@ -2278,33 +2466,80 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       return { el: h, dist: 0, mode: 'idle' };   // mode: 'idle'(숨김) | 'up'(서 있음) | 'down'(걸려 넘어뜨림)
     }),
     cur: 0,
-    W: 0, H: 0, charX: 0, ppm: 1, meSize: 76, meW: 59,
+    W: 0, H: 0, hz: 0, feetY: 0, halfBottom: 0, zMe: 4, meSize: 100, meW: 50, hurdleH: 36, finishH: 16, rvSize: 90,
     rivals: [], dots: new Map(),
     hinted: false, animToken: 0
   };
 
   // 장면 크기를 다시 잼(화면 회전·크기 변경 때도 불림)
+  // 원근: 카메라는 내 캐릭터 바로 뒤. 앞으로 d 미터 떨어진 것은 z = zMe + d 에 있고,
+  // 화면 높이 y = 지평선 + (내 발 높이 − 지평선) × zMe / z, 크기는 zMe / z 배로 그림
+  const LANE_LINES = [-1, -0.6, -0.2, 0.2, 0.6, 1];   // 레인 경계(트랙 반폭에 대한 비율). 나는 가운데 레인
+  const RIVAL_LANES = [-0.8, -0.4, 0.4, 0.8];
+  const TICK_GAP = 3;                                 // 트랙 눈금 간격(m)
   function measureGame() {
     if (S.screen !== 'game') return;
     game.W = game.scene.clientWidth;
     game.H = game.scene.clientHeight;
-    game.meSize = Math.round(clamp(game.H * 0.36, 50, 96));
-    game.meW = game.meSize * 48 / 62;
-    const feet = 16;
-    const ground = Math.round(game.meSize * 0.7 + feet + 20);
-    game.scene.style.setProperty('--gh', ground + 'px');
-    game.scene.style.setProperty('--feet', feet + 'px');
-    game.charX = game.W * CONFIG.charXRatio;
-    // 허들이 gateGap 만큼 떨어져 있을 때 정확히 화면 오른쪽 끝에 보이도록 축척을 정함
-    game.ppm = Math.max(40, game.W - game.charX - 16) / CONFIG.gateGap;
+    game.hz = Math.round(game.H * 0.3);
+    game.scene.style.setProperty('--hz', game.hz + 'px');
+    game.feetY = game.H - 10;
+    game.halfBottom = game.W * 0.85;
+    game.meSize = Math.round(clamp((game.H - game.hz) * 0.62, 56, 150));
+    game.meW = game.meSize * RN_ASPECT;
+    game.hurdleH = game.meSize * 0.36;
+    game.finishH = game.meSize * 0.16;
+    game.rvSize = game.meSize * 0.92;
+    // 트랙 그림(지평선~아래 끝을 0~100으로 늘려 그린 SVG)
+    const hb = game.halfBottom / Math.max(1, game.W) * 100;
+    game.road.setAttribute('points', '50,0 50,0 ' + (50 + hb).toFixed(1) + ',100 ' + (50 - hb).toFixed(1) + ',100');
+    if (!game.lanes.firstChild) {
+      LANE_LINES.forEach(function () {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('vector-effect', 'non-scaling-stroke');
+        game.lanes.appendChild(path);
+      });
+    }
+    LANE_LINES.forEach(function (f, k) { game.lanes.children[k].setAttribute('d', 'M50 0L' + (50 + hb * f).toFixed(1) + ' 100'); });
+    // 트랙을 가로지르는 거리 눈금(움직임이 보이게)
+    if (!game.ticks.length) {
+      for (let k = 0; k < 18; k++) { const t = el('div', 'tick'); game.ticksBox.appendChild(t); game.ticks.push(t); }
+    }
+    const baseW = 2 * halfAt(game.feetY);
+    game.hurdles.forEach(function (h) { h.el.style.width = baseW.toFixed(1) + 'px'; h.el.style.height = game.hurdleH.toFixed(1) + 'px'; });
+    game.finish.style.width = baseW.toFixed(1) + 'px';
+    game.finish.style.height = game.finishH.toFixed(1) + 'px';
     if (game.rn) {
       game.rn.style.width = game.meW.toFixed(1) + 'px';
       game.rn.style.height = game.meSize + 'px';
-      game.meBox.style.left = (game.charX - game.meW / 2).toFixed(1) + 'px';
+      game.meBox.style.left = (game.W / 2 - game.meW / 2).toFixed(1) + 'px';
+      game.meBox.style.bottom = (game.H - game.feetY) + 'px';
     }
-    game.rivals.forEach(function (v) { v.id = null; });
+    game.rivals.forEach(function (v) {
+      v.id = null;
+      v.rn.style.width = (game.rvSize * RN_ASPECT).toFixed(1) + 'px';
+      v.rn.style.height = game.rvSize.toFixed(1) + 'px';
+    });
     fitPrompt();
     game.btns.forEach(function (b) { if (!b.hidden) fitButton(b); });
+  }
+
+  // 화면 높이 y 에서 트랙 반폭(px)
+  function halfAt(y) {
+    return (y - game.hz) / Math.max(1, game.H - game.hz) * game.halfBottom;
+  }
+
+  // 앞쪽 거리 d(m) → 화면 높이 y 와 크기 배율 s. 카메라 뒤(보이지 않음)면 null
+  function project(d) {
+    const z = game.zMe + d;
+    if (z <= 0.4) return null;
+    const sc = game.zMe / z;
+    return { y: game.hz + (game.feetY - game.hz) * sc, s: sc };
+  }
+
+  // 내 캐릭터보다 앞(d>0)은 뒤에, 뒤(d<0)는 앞에 겹치도록
+  function zFor(d) {
+    return String(clamp(Math.round(500 - d * 10), 1, 999));
   }
 
   // 글자가 버튼에 들어갈 때까지 글자 크기를 줄임(긴 단어가 잘리지 않게). 그래도 넘치면 줄바꿈.
@@ -2361,7 +2596,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     game.scene.classList.remove('shake');
     // 내 캐릭터
     clear(game.meBox);
-    game.rn = renderRunner(S.me.color, game.meSize, 'still');
+    game.rn = renderRunner(S.me.color, game.meSize, 'still', 'back');
     game.tag = el('span', 'rn-tag mine', S.me.name || '나');
     game.rn.appendChild(game.tag);
     game.meBox.appendChild(game.rn);
@@ -2370,7 +2605,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     game.rivals = [];
     for (let i = 0; i < CONFIG.rivalCount; i++) {
       const box = el('div', 'rival');
-      const rn = renderRunner(COLORS[0], 40, 'run');
+      const rn = renderRunner(COLORS[0], game.rvSize, 'run', 'back');
       const tag = el('span', 'rn-tag');
       rn.appendChild(tag);
       box.appendChild(rn);
@@ -2453,7 +2688,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     } else {
       sfx.wrong();
       game.prompt.className = 'g-prompt bad';
-      setText(game.pLabel, '틀렸어요! 정답은 「' + q.answer + '」');
+      setText(game.pLabel, '아쉬워요 · 정답은 「' + q.answer + '」');
     }
   }
 
@@ -2466,7 +2701,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     });
     sfx.wrong();
     game.prompt.className = 'g-prompt bad';
-    setText(game.pLabel, '시간 초과! 정답은 「' + q.answer + '」');
+    setText(game.pLabel, '시간 초과 · 정답은 「' + q.answer + '」');
     if (q.kind === 's') setPromptText(q, true);
   }
 
@@ -2476,6 +2711,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     const high = streak >= CONFIG.highJumpStreak;
     const flip = streak >= CONFIG.flipStreak && !reducedMotion;
     let height = high ? CONFIG.jumpHeightHigh : CONFIG.jumpHeight;
+    height = Math.max(height, game.hurdleH * 1.25);                       // 허들보다 확실히 높게
     height = Math.min(height, Math.max(24, game.H - game.meSize - 40));   // 장면이 낮으면 화면 밖으로 나가지 않게
     if (reducedMotion) height *= 0.6;
     const total = CONFIG.jumpSec / 0.87;     // 키프레임의 87% 지점이 착지, 나머지는 눌림
@@ -2511,30 +2747,42 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   function renderGame() {
     const R = S.race, r = R.runner;
     if (!game.W) measureGame();
-    const ppm = game.ppm;
-    const off = r.dist * ppm;
+    const cx = game.W / 2;
 
-    // 배경: 먼 언덕은 느리게, 가까운 덤불은 조금 빠르게, 바닥은 달리는 속도 그대로
-    if (!reducedMotion) {
-      game.far.style.transform = 'translate3d(' + (-((off * 0.12) % 260)).toFixed(1) + 'px,0,0)';
-      game.mid.style.transform = 'translate3d(' + (-((off * 0.35) % 140)).toFixed(1) + 'px,0,0)';
+    // 트랙 눈금: TICK_GAP 미터마다 한 줄, 다가올수록 아래로 내려오며 넓고 두꺼워짐
+    const base = ((r.dist % TICK_GAP) + TICK_GAP) % TICK_GAP;
+    for (let k = 0; k < game.ticks.length; k++) {
+      const t = game.ticks[k];
+      const p = project((k - 1) * TICK_GAP - base);
+      if (!p || p.y > game.H + 4) { if (t._on !== false) { t._on = false; t.style.display = 'none'; } continue; }
+      if (t._on !== true) { t._on = true; t.style.display = ''; }
+      const half = halfAt(p.y);
+      t.style.transform = 'translate3d(' + (cx - half).toFixed(1) + 'px,' + p.y.toFixed(1) + 'px,0) scale(' + (half * 2 / 100).toFixed(3) + ',' + Math.max(0.5, 2.2 * p.s).toFixed(2) + ')';
     }
-    game.stripes.style.transform = 'translate3d(' + (-(((off % 80) + 80) % 80)).toFixed(1) + 'px,0,0)';
 
-    // 허들: 오른쪽 끝에서 나타나 캐릭터 쪽으로 다가옴
+    // 허들: 멀리 지평선 근처에서 작게 나타나 내 발밑까지 커지며 다가옴
     for (let i = 0; i < game.hurdles.length; i++) {
       const h = game.hurdles[i];
       if (h.mode === 'idle') continue;
-      const x = game.charX + (h.dist - r.dist) * ppm + game.meW * 0.22;
-      if (x < -40) { h.mode = 'idle'; h.el.hidden = true; continue; }
-      h.el.style.transform = 'translate3d(' + (x - 10).toFixed(1) + 'px,0,0)';
+      const d = h.dist - r.dist;
+      const p = project(d);
+      if (!p || p.y - game.hurdleH * p.s > game.H) {
+        if (d < 0) h.mode = 'idle';
+        h.el.hidden = true;
+        continue;
+      }
+      if (h.el.hidden) h.el.hidden = false;
+      h.el.style.zIndex = zFor(d);
+      h.el.style.transform = 'translate3d(' + (cx - halfAt(p.y)).toFixed(1) + 'px,' + (p.y - game.hurdleH * p.s).toFixed(1) + 'px,0) scale(' + p.s.toFixed(4) + ')';
     }
 
     // 결승선
-    const finX = game.charX + (R.track - r.dist) * ppm + game.meW * 0.3;
-    if (finX < game.W + 30) {
-      game.finish.hidden = false;
-      game.finish.style.transform = 'translate3d(' + finX.toFixed(1) + 'px,0,0)';
+    const fd = R.track - r.dist;
+    const fp = fd < CONFIG.gateGap * 1.5 ? project(fd) : null;
+    if (fp && fp.y < game.H + game.finishH) {
+      if (game.finish.hidden) game.finish.hidden = false;
+      game.finish.style.zIndex = zFor(fd);
+      game.finish.style.transform = 'translate3d(' + (cx - halfAt(fp.y)).toFixed(1) + 'px,' + (fp.y - game.finishH * fp.s).toFixed(1) + 'px,0) scale(' + fp.s.toFixed(4) + ')';
     } else if (!game.finish.hidden) {
       game.finish.hidden = true;
     }
@@ -2564,29 +2812,28 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     setText($('gTime'), fmtTime(R.myState === 'done' ? R.myTime : raceClock(R)));
     renderMini(list, R.track);
 
-    // 화면 안에 들어오는 다른 참가자: 같은 트랙 위에 조금 작고 반투명하게, 먼 레인처럼 살짝 위로 어긋나게
+    // 다른 참가자: 내 양옆 레인에서 달림. 앞서 있으면 작게 멀리, 뒤처지면 크게 가까이(곧 화면 아래로 사라짐)
     let used = 0;
     for (let i = 0; i < list.length && used < game.rivals.length; i++) {
       const o = list[i];
       if (o.me) continue;
-      const x = game.charX + (o.dist - r.dist) * ppm;
-      if (x < -30 || x > game.W + 30) continue;
+      const d = o.dist - r.dist;
+      if (d > CONFIG.gateGap * 1.5) continue;
+      const p = project(d);
+      if (!p || p.y - game.rvSize * p.s > game.H) continue;
       const v = game.rivals[used++];
-      const slot = o.id.charCodeAt(o.id.length - 1) % 3;
       if (v.id !== o.id) {
         v.id = o.id;
-        const size = game.meSize * (0.8 - slot * 0.07);
-        v.rn.style.width = (size * 48 / 62).toFixed(1) + 'px';
-        v.rn.style.height = size.toFixed(1) + 'px';
-        v.w = size * 48 / 62;
-        v.lift = Math.round(game.meSize * (0.16 + slot * 0.13));
-        v.box.style.zIndex = String(3 - slot);
+        v.lane = RIVAL_LANES[o.id.charCodeAt(o.id.length - 1) % RIVAL_LANES.length];
       }
       setRunnerColor(v.rn, o.color);
       setText(v.tag, o.name);
+      v.tag.hidden = p.s < 0.4;
       setPose(v.rn, o.finished ? 'cheer' : (o.stopped ? 'still' : 'run'));
       if (!o.stopped) setRunRate(v.rn, speedToRate(o.speed, false));
-      v.box.style.transform = 'translate3d(' + (x - v.w / 2).toFixed(1) + 'px,' + (-v.lift) + 'px,0)';
+      const w = game.rvSize * RN_ASPECT;
+      v.box.style.zIndex = zFor(d);
+      v.box.style.transform = 'translate3d(' + (cx + v.lane * halfAt(p.y) - w * p.s / 2).toFixed(1) + 'px,' + (p.y - game.rvSize * p.s).toFixed(1) + 'px,0) scale(' + p.s.toFixed(4) + ')';
       if (v.box.hidden) v.box.hidden = false;
     }
     for (let i = used; i < game.rivals.length; i++) {
@@ -2622,6 +2869,8 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   function resetWatchView() {
     clear($('wLanes'));
     clear($('wBoard'));
+    clear($('wMiss'));
+    $('wMiss')._key = null;
     watch.lanes = new Map();
     watch.count = -1;
     setText($('wCode'), net.code || '');
@@ -2656,7 +2905,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
         const track = el('div', 'lane-track');
         const rail = el('div', 'lane-rail');
         const holder = el('span', 'lane-runner');
-        const rn = renderRunner(o.color, 0, 'still');
+        const rn = renderRunner(o.color, 0, 'still', 'side');
         holder.appendChild(rn); rail.appendChild(holder); track.appendChild(rail);
         rowEl.appendChild(label); rowEl.appendChild(track);
         box.appendChild(rowEl);
@@ -2703,6 +2952,33 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       setText(li.children[2], o.name);
       setText(li.children[3], o.finished ? fmtTime(o.timeMs, true) : Math.floor(o.dist / R.track * 100) + '%');
     }
+
+    // 많이 틀린 단어(도착한 학생 기록 기준, 상위 5개)
+    const missBox = $('wMiss');
+    const tops = topMisses(R, 5);
+    const missKey = tops.map(function (e) { return e[0] + ':' + e[1]; }).join(',');
+    if (missBox._key !== missKey) {
+      missBox._key = missKey;
+      clear(missBox);
+      if (!tops.length) missBox.appendChild(el('li', 'note', '아직 기록이 없어요'));
+      tops.forEach(function (e) {
+        const it = R.words[e[0]];
+        const li = el('li');
+        li.appendChild(el('span', 'nm', it.t === 's' ? it.a : it.w));
+        if (it.t !== 's' && it.m) li.appendChild(el('span', 'mn', it.m));
+        li.appendChild(el('span', 'tm', e[1] + '번'));
+        missBox.appendChild(li);
+      });
+    }
+  }
+
+  // 틀린 횟수가 많은 문제 [번호, 횟수] 목록. 다른 사람 기록은 결승(또는 중도 종료) 때 받은 것만 있음
+  function topMisses(R, n) {
+    const counts = new Map();
+    R.misses.forEach(function (i) { counts.set(i, (counts.get(i) || 0) + 1); });
+    S.racers.forEach(function (o) { (o.misses || []).forEach(function (i) { counts.set(i, (counts.get(i) || 0) + 1); }); });
+    return Array.from(counts.entries()).filter(function (e) { return !!R.words[e[0]]; })
+      .sort(function (a, b) { return b[1] - a[1]; }).slice(0, n);
   }
 
   /* ---------- 결과 화면 ---------- */
@@ -2724,8 +3000,25 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     let note = '';
     if (!R.ended) note = '아직 달리는 친구가 있어요. 순위는 바뀔 수 있어요.';
     else if (S.mode === 'multi' && !isHost) note = hostPresent() ? '선생님이 다시 시작하기를 기다려요.' : '방장이 자리에 없어요. 돌아오면 다시 시작할 수 있어요.';
-    if (me && R.runner) note = '맞음 ' + R.runner.correct + ' · 틀림 ' + R.runner.wrong + (note ? ' — ' + note : '');
     setText($('resNote'), note);
+
+    // 내 기록 칸(맞힘·틀림·최고 연속)
+    const stats = $('resStats');
+    stats.hidden = !(me && R.runner);
+    if (me && R.runner) {
+      const vals = [['ok', '맞힘', R.runner.correct], ['no', '틀림', R.runner.wrong], ['st', '최고 연속', R.runner.best || 0]];
+      const key = vals.map(function (v) { return v[2]; }).join('|');
+      if (stats._key !== key) {
+        stats._key = key;
+        clear(stats);
+        vals.forEach(function (v) {
+          const d = el('div', v[0]);
+          d.appendChild(el('span', '', v[1]));
+          d.appendChild(el('b', '', String(v[2])));
+          stats.appendChild(d);
+        });
+      }
+    }
 
     // 시상대(2등-1등-3등 순으로 놓음). 내용이 바뀔 때만 다시 그려서 만세 동작이 끊기지 않게 함
     const podium = $('resPodium');
@@ -2770,11 +3063,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     });
 
     // 가장 많이 틀린 문제 상위 5개(문장형은 정답을 채운 완성 문장으로)
-    const counts = new Map();
-    R.misses.forEach(function (i) { counts.set(i, (counts.get(i) || 0) + 1); });
-    S.racers.forEach(function (o) { (o.misses || []).forEach(function (i) { counts.set(i, (counts.get(i) || 0) + 1); }); });
-    const topMiss = Array.from(counts.entries()).filter(function (e) { return !!R.words[e[0]]; })
-      .sort(function (a, b) { return b[1] - a[1]; }).slice(0, 5);
+    const topMiss = topMisses(R, 5);
     const noun = R.hasSentences ? '문제' : '단어';
     setText($('resMissTitle'), (R.solo ? '내가 많이 틀린 ' : '가장 많이 틀린 ') + noun);
     const missList = $('resMisses');
@@ -3070,11 +3359,20 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     if (hero._c !== S.me.color) {
       hero._c = S.me.color;
       clear(hero);
-      hero.appendChild(renderRunner(S.me.color, 84, 'run'));
+      hero.appendChild(renderRunner(S.me.color, 96, 'run', 'back'));
     }
   }
 
-  function updateMuteButton() { setText($('btnMute'), muted ? '🔇' : '🔊'); }
+  // 아이콘은 고정된 문자열만 넣음(사용자 입력 없음)
+  const ICON_SOUND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>';
+  const ICON_MUTED = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M22 9l-6 6M16 9l6 6"/></svg>';
+  const ICON_CLOSE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+
+  function updateMuteButton() {
+    const b = $('btnMute');
+    b.innerHTML = muted ? ICON_MUTED : ICON_SOUND;
+    b.setAttribute('aria-label', muted ? '소리 켜기' : '소리 끄기');
+  }
 
   /* ====================================================================
    * 7. 화면 전환
@@ -3109,14 +3407,14 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   function disarm(btn) {
     if (!btn.classList.contains('armed')) return;
     btn.classList.remove('armed');
-    btn.textContent = btn.dataset.label || '✕';
+    btn.innerHTML = btn.dataset.label || ICON_CLOSE;   // armConfirm 이 저장해 둔 원래 내용(고정 문자열)
     clearTimeout(Number(btn.dataset.timer) || 0);
   }
 
   function armConfirm(btn, askText, action) {
     btn.addEventListener('click', function () {
       if (btn.classList.contains('armed')) { disarm(btn); action(); return; }
-      btn.dataset.label = btn.textContent;
+      btn.dataset.label = btn.innerHTML;
       btn.classList.add('armed');
       btn.textContent = askText;
       btn.dataset.timer = String(setTimeout(function () { disarm(btn); }, 3000));
@@ -3265,6 +3563,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   function init() {
     bindEvents();
     updateMuteButton();
+    $('btnQuit').innerHTML = ICON_CLOSE;
     const urlCode = roomFromUrl();
     if (urlCode) {
       show('join');
