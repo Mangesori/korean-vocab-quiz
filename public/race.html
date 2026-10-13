@@ -127,6 +127,8 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .rn-limb.rn-2 { animation-delay: calc(var(--rd) * -1); }
 
 /* 옆모습: 허벅지·정강이, 위팔·아래팔이 각각 엉덩이·무릎, 어깨·팔꿈치를 축으로 돎(오른쪽이 앞) */
+.v-side .rn-roll { animation: none; transform: rotate(5deg); }   /* 옆모습은 좌우로 기울지 않고 앞으로 살짝 숙임 */
+.rn.still.v-side .rn-roll, .rn.cheer.v-side .rn-roll, .rn.fall.v-side .rn-roll { transform: none; }
 .v-side .rn-th { transform-origin: 25px 58px; animation-name: rns-th; }
 .v-side .rn-sh { transform-origin: 25px 72px; animation-name: rns-sh; }
 .v-side .rn-up { transform-origin: 25px 30px; animation-name: rns-up; }
@@ -183,14 +185,24 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 /* 점프: 포물선으로 뛰었다가 착지할 때 살짝 눌림. 공중에서는 무릎을 접고 팔을 듦 */
 .rn.jump .rn-air { animation: rn-jump var(--jd) linear 1; }
 .rn.jump .rn-limb, .rn.jump .rn-bob, .rn.jump .rn-roll { animation: none; }
-.rn.jump.v-side .rn-th.rn-1 { transform: rotate(-70deg); }
-.rn.jump.v-side .rn-sh.rn-1 { transform: rotate(70deg); }
-.rn.jump.v-side .rn-th.rn-2 { transform: rotate(35deg); }
-.rn.jump.v-side .rn-sh.rn-2 { transform: rotate(80deg); }
-.rn.jump.v-side .rn-up.rn-1 { transform: rotate(-120deg); }
-.rn.jump.v-side .rn-fo.rn-1 { transform: rotate(-20deg); }
-.rn.jump.v-side .rn-up.rn-2 { transform: rotate(60deg); }
-.rn.jump.v-side .rn-fo.rn-2 { transform: rotate(-60deg); }
+/* 점프(옆모습): 살짝 웅크렸다 도약 → 가까운 다리는 앞으로 뻗고 먼 다리는 접어 허들을 넘음(팔은 반대로) → 착지 */
+.rn.jump.v-side .rn-limb { animation-duration: var(--jd); animation-timing-function: ease-in-out; animation-iteration-count: 1; animation-fill-mode: both; animation-delay: 0s; }
+.rn.jump.v-side .rn-th.rn-1 { animation-name: rnsj-th-1; }
+.rn.jump.v-side .rn-sh.rn-1 { animation-name: rnsj-sh-1; }
+.rn.jump.v-side .rn-th.rn-2 { animation-name: rnsj-th-2; }
+.rn.jump.v-side .rn-sh.rn-2 { animation-name: rnsj-sh-2; }
+.rn.jump.v-side .rn-up.rn-1 { animation-name: rnsj-up-1; }
+.rn.jump.v-side .rn-fo.rn-1 { animation-name: rnsj-fo-1; }
+.rn.jump.v-side .rn-up.rn-2 { animation-name: rnsj-up-2; }
+.rn.jump.v-side .rn-fo.rn-2 { animation-name: rnsj-fo-2; }
+@keyframes rnsj-th-1 { 0% { transform: rotate(-20deg); } 6% { transform: rotate(-10deg); } 25% { transform: rotate(-75deg); } 60% { transform: rotate(-80deg); } 80% { transform: rotate(-30deg); } 90% { transform: rotate(-10deg); } 100% { transform: rotate(0deg); } }
+@keyframes rnsj-sh-1 { 0% { transform: rotate(10deg); } 6% { transform: rotate(30deg); } 25% { transform: rotate(20deg); } 60% { transform: rotate(10deg); } 80% { transform: rotate(15deg); } 90% { transform: rotate(25deg); } 100% { transform: rotate(0deg); } }
+@keyframes rnsj-th-2 { 0% { transform: rotate(25deg); } 6% { transform: rotate(30deg); } 25% { transform: rotate(45deg); } 60% { transform: rotate(30deg); } 80% { transform: rotate(10deg); } 90% { transform: rotate(5deg); } 100% { transform: rotate(0deg); } }
+@keyframes rnsj-sh-2 { 0% { transform: rotate(20deg); } 6% { transform: rotate(30deg); } 25% { transform: rotate(100deg); } 60% { transform: rotate(95deg); } 80% { transform: rotate(40deg); } 90% { transform: rotate(25deg); } 100% { transform: rotate(0deg); } }
+@keyframes rnsj-up-1 { 0% { transform: rotate(30deg); } 25% { transform: rotate(60deg); } 60% { transform: rotate(55deg); } 90% { transform: rotate(20deg); } 100% { transform: rotate(0deg); } }
+@keyframes rnsj-fo-1 { 0% { transform: rotate(-60deg); } 25% { transform: rotate(-70deg); } 60% { transform: rotate(-60deg); } 90% { transform: rotate(-40deg); } 100% { transform: rotate(0deg); } }
+@keyframes rnsj-up-2 { 0% { transform: rotate(-30deg); } 25% { transform: rotate(-110deg); } 60% { transform: rotate(-100deg); } 90% { transform: rotate(-20deg); } 100% { transform: rotate(0deg); } }
+@keyframes rnsj-fo-2 { 0% { transform: rotate(-60deg); } 25% { transform: rotate(-20deg); } 60% { transform: rotate(-30deg); } 90% { transform: rotate(-40deg); } 100% { transform: rotate(0deg); } }
 /* 점프(뒷모습·앞모습): 살짝 웅크렸다(6%) 팔을 휘둘러 올리며 뛰어오르고, 공중에서 무릎을 당겼다가(30~60%),
  * 다리를 뻗어 내려와(80%) 무릎을 굽혀 착지(90%). 길이는 점프 시간(--jd)과 같고, 87% 지점이 착지 */
 .rn.jump.v-fb .rn-limb, .rn.jump.v-fb .rn-af { animation-duration: var(--jd); animation-timing-function: ease-in-out; animation-iteration-count: 1; animation-fill-mode: both; animation-delay: 0s; }
@@ -2523,6 +2535,32 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     rn._rate = 0;   // 애니메이션이 새로 시작되므로 빠르기를 다시 맞추게 함
   }
 
+  // 다른 참가자(관전 레인·같은 트랙의 친구)가 허들을 넘거나 걸렸을 때 한 번 보여 주는 동작.
+  // 동작이 끝날 때까지(rn._busyUntil) 달리기 자세로 덮어쓰지 않음
+  function playOnce(rn, pose) {
+    if (pose === 'jump') {
+      const sec = CONFIG.jumpSec / 0.87;
+      rn.style.setProperty('--jd', sec.toFixed(3) + 's');
+      rn.style.setProperty('--jh', Math.round((rn.offsetHeight || 40) * 0.45) + 'px');
+      rn._busyUntil = performance.now() + sec * 1000;
+    } else {
+      rn.style.setProperty('--fd', CONFIG.stumbleSec.toFixed(2) + 's');
+      rn._busyUntil = performance.now() + CONFIG.stumbleSec * 1000;
+    }
+    setPose(rn, 'still');
+    void rn.offsetWidth;
+    setPose(rn, pose);
+  }
+
+  // 맞힘·틀림 수가 늘었으면 점프·넘어짐을 시작. 동작 중이면 true(그동안 자세를 바꾸지 않음)
+  function reactToCounts(holder, rn, o, moving) {
+    if (holder.c == null || holder.cid !== o.id) { holder.cid = o.id; holder.c = o.correct; holder.w = o.wrong; }
+    if (moving && o.wrong > holder.w) playOnce(rn, 'fall');
+    else if (moving && o.correct > holder.c) playOnce(rn, 'jump');
+    holder.c = o.correct; holder.w = o.wrong;
+    return performance.now() < (rn._busyUntil || 0);
+  }
+
   function setRunnerColor(rn, color) {
     if (rn._color === color) return;
     rn._color = color;
@@ -2942,8 +2980,10 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       setRunnerColor(v.rn, o.color);
       setText(v.tag, o.name);
       v.tag.hidden = p.s < 0.4;
-      setPose(v.rn, o.finished ? 'cheer' : (o.stopped ? 'still' : 'run'));
-      if (!o.stopped) setRunRate(v.rn, speedToRate(o.speed, false));
+      if (!reactToCounts(v, v.rn, o, !o.finished)) {
+        setPose(v.rn, o.finished ? 'cheer' : (o.stopped ? 'still' : 'run'));
+        if (!o.stopped) setRunRate(v.rn, speedToRate(o.speed, false));
+      }
       const w = game.rvSize * RN_ASPECT;
       v.box.style.zIndex = zFor(d);
       v.box.style.transform = 'translate3d(' + (cx + v.lane * halfAt(p.y) - w * p.s / 2).toFixed(1) + 'px,' + (p.y - game.rvSize * p.s).toFixed(1) + 'px,0) scale(' + p.s.toFixed(4) + ')';
@@ -3030,8 +3070,10 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       setText(lane.name, o.name);
       setRunnerColor(lane.rn, o.color);
       const moving = R.started && !o.finished && !o.stopped && !R.ended;
-      setPose(lane.rn, o.finished ? 'cheer' : (moving ? 'run' : 'still'));
-      if (moving) setRunRate(lane.rn, speedToRate(o.speed, false));
+      if (!reactToCounts(lane, lane.rn, o, moving)) {
+        setPose(lane.rn, o.finished ? 'cheer' : (moving ? 'run' : 'still'));
+        if (moving) setRunRate(lane.rn, speedToRate(o.speed, false));
+      }
       lane.holder.style.left = (clamp(o.dist / R.track, 0, 1) * 100).toFixed(2) + '%';
       lane.el.classList.toggle('fin', o.finished);
       lane.el.classList.toggle('gone', !o.present && !o.finished);
