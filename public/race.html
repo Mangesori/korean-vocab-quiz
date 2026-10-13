@@ -2466,14 +2466,14 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       return { el: h, dist: 0, mode: 'idle' };   // mode: 'idle'(숨김) | 'up'(서 있음) | 'down'(걸려 넘어뜨림)
     }),
     cur: 0,
-    W: 0, H: 0, hz: 0, feetY: 0, halfBottom: 0, zMe: 4, meSize: 100, meW: 50, hurdleH: 36, finishH: 16, rvSize: 90,
+    W: 0, H: 0, hz: 0, vpY: 0, feetY: 0, halfBottom: 0, zMe: 4, meSize: 100, meW: 50, hurdleH: 36, finishH: 16, rvSize: 90,
     rivals: [], dots: new Map(),
     hinted: false, animToken: 0
   };
 
   // 장면 크기를 다시 잼(화면 회전·크기 변경 때도 불림)
   // 원근: 카메라는 내 캐릭터 바로 뒤. 앞으로 d 미터 떨어진 것은 z = zMe + d 에 있고,
-  // 화면 높이 y = 지평선 + (내 발 높이 − 지평선) × zMe / z, 크기는 zMe / z 배로 그림
+  // 화면 높이 y = 소실점 + (내 발 높이 − 소실점) × zMe / z, 크기는 zMe / z 배로 그림(지평선보다 위로 가면 숨김)
   const LANE_LINES = [-1, -0.6, -0.2, 0.2, 0.6, 1];   // 레인 경계(트랙 반폭에 대한 비율). 나는 가운데 레인
   const RIVAL_LANES = [-0.8, -0.4, 0.4, 0.8];
   const TICK_GAP = 3;                                 // 트랙 눈금 간격(m)
@@ -2484,6 +2484,8 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     game.hz = Math.round(game.H * 0.3);
     game.scene.style.setProperty('--hz', game.hz + 'px');
     game.feetY = game.H - 10;
+    // 소실점은 학교 건물 뒤(지평선보다 조금 위)에 둠. 그래서 트랙은 학교 앞에서 한 점이 아니라 문 너비쯤으로 끝남
+    game.vpY = game.hz - (game.feetY - game.hz) * 0.06;
     game.halfBottom = game.W * 0.85;
     game.meSize = Math.round(clamp((game.H - game.hz) * 0.62, 56, 150));
     game.meW = game.meSize * RN_ASPECT;
@@ -2492,7 +2494,8 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     game.rvSize = game.meSize * 0.92;
     // 트랙 그림(지평선~아래 끝을 0~100으로 늘려 그린 SVG)
     const hb = game.halfBottom / Math.max(1, game.W) * 100;
-    game.road.setAttribute('points', '50,0 50,0 ' + (50 + hb).toFixed(1) + ',100 ' + (50 - hb).toFixed(1) + ',100');
+    const ht = halfAt(game.hz) / Math.max(1, game.W) * 100;
+    game.road.setAttribute('points', (50 - ht).toFixed(2) + ',0 ' + (50 + ht).toFixed(2) + ',0 ' + (50 + hb).toFixed(1) + ',100 ' + (50 - hb).toFixed(1) + ',100');
     if (!game.lanes.firstChild) {
       LANE_LINES.forEach(function () {
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -2500,7 +2503,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
         game.lanes.appendChild(path);
       });
     }
-    LANE_LINES.forEach(function (f, k) { game.lanes.children[k].setAttribute('d', 'M50 0L' + (50 + hb * f).toFixed(1) + ' 100'); });
+    LANE_LINES.forEach(function (f, k) { game.lanes.children[k].setAttribute('d', 'M' + (50 + ht * f).toFixed(2) + ' 0L' + (50 + hb * f).toFixed(1) + ' 100'); });
     // 트랙을 가로지르는 거리 눈금(움직임이 보이게)
     if (!game.ticks.length) {
       for (let k = 0; k < 18; k++) { const t = el('div', 'tick'); game.ticksBox.appendChild(t); game.ticks.push(t); }
@@ -2526,15 +2529,17 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 
   // 화면 높이 y 에서 트랙 반폭(px)
   function halfAt(y) {
-    return (y - game.hz) / Math.max(1, game.H - game.hz) * game.halfBottom;
+    return (y - game.vpY) / Math.max(1, game.H - game.vpY) * game.halfBottom;
   }
 
-  // 앞쪽 거리 d(m) → 화면 높이 y 와 크기 배율 s. 카메라 뒤(보이지 않음)면 null
+  // 앞쪽 거리 d(m) → 화면 높이 y 와 크기 배율 s. 카메라 뒤이거나 트랙 끝보다 멀면 null
   function project(d) {
     const z = game.zMe + d;
     if (z <= 0.4) return null;
     const sc = game.zMe / z;
-    return { y: game.hz + (game.feetY - game.hz) * sc, s: sc };
+    const y = game.vpY + (game.feetY - game.vpY) * sc;
+    if (y < game.hz + 0.5) return null;   // 트랙 끝(학교 건물)보다 멀면 안 보임
+    return { y: y, s: sc };
   }
 
   // 내 캐릭터보다 앞(d>0)은 뒤에, 뒤(d<0)는 앞에 겹치도록
