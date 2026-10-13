@@ -115,43 +115,64 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .rn-h { fill: var(--hair); }
 .rn-k { fill: var(--skin); }
 .rn.v-back .rn-face, .rn.v-front .rn-backhead { display: none; }
-.rn-bob { animation: rn-bob calc(var(--rd) / 2) ease-in-out infinite alternate; }
-@keyframes rn-bob { from { transform: translateY(0); } to { transform: translateY(-2px); } }
+/* 몸 전체: 한 걸음마다 내려앉았다 떠오르고(bob), 한 주기 동안 좌우로 살짝 기욺(roll) */
+.rn-bob { animation: rn-bob var(--rd) ease-in-out infinite; }
+.rn-roll { transform-origin: 25px 58px; animation: rn-roll calc(var(--rd) * 2) ease-in-out infinite; }
+@keyframes rn-bob { 0% { transform: translateY(0); } 40% { transform: translateY(1.6px); } 80% { transform: translateY(-1.4px); } 100% { transform: translateY(0); } }
+@keyframes rn-roll { 0% { transform: rotate(0); } 25% { transform: rotate(2deg); } 75% { transform: rotate(-2deg); } 100% { transform: rotate(0); } }
 
-/* 옆모습: 팔다리가 어깨·엉덩이를 축으로 앞뒤로 흔들림 */
-.v-side .rn-arm-f, .v-side .rn-arm-b { transform-origin: 25px 30px; }
-.v-side .rn-leg-f, .v-side .rn-leg-b { transform-origin: 25px 60px; }
-.v-side .rn-leg-f { animation: rn-leg-a var(--rd) ease-in-out infinite alternate; }
-.v-side .rn-leg-b { animation: rn-leg-b var(--rd) ease-in-out infinite alternate; }
-.v-side .rn-arm-f { animation: rn-arm-a var(--rd) ease-in-out infinite alternate; }
-.v-side .rn-arm-b { animation: rn-arm-b var(--rd) ease-in-out infinite alternate; }
-@keyframes rn-leg-a { from { transform: rotate(-40deg); } to { transform: rotate(36deg); } }
-@keyframes rn-leg-b { from { transform: rotate(36deg); } to { transform: rotate(-40deg); } }
-@keyframes rn-arm-a { from { transform: rotate(48deg); } to { transform: rotate(-52deg); } }
-@keyframes rn-arm-b { from { transform: rotate(-52deg); } to { transform: rotate(48deg); } }
+/* 한 걸음 주기(두 걸음 = --rd × 2). 0% 발 디딤 → 25% 몸 아래 → 50% 차고 나감 → 65% 뒤꿈치가 엉덩이 쪽으로 → 85% 다리가 앞으로 → 100% 다시 디딤.
+ * rn-2(먼 쪽·오른쪽) 팔다리는 같은 동작을 반 주기 늦게 함. 팔은 반대쪽 다리와 함께 앞뒤로 */
+.rn-limb { animation-duration: calc(var(--rd) * 2); animation-timing-function: linear; animation-iteration-count: infinite; }
+.rn-limb.rn-2 { animation-delay: calc(var(--rd) * -1); }
 
-/* 뒷모습·앞모습: 한쪽 다리가 들릴 때 짧아 보이고, 팔은 작게 흔들림 */
-.v-fb .rn-leg-l { transform-origin: 20.5px 60px; animation: rnb-leg var(--rd) ease-in-out infinite alternate; }
-.v-fb .rn-leg-r { transform-origin: 29.5px 60px; animation: rnb-leg var(--rd) ease-in-out infinite alternate-reverse; }
-.v-fb .rn-arm-l { transform-origin: 15px 30px; animation: rnb-arm-l var(--rd) ease-in-out infinite alternate; }
-.v-fb .rn-arm-r { transform-origin: 35px 30px; animation: rnb-arm-r var(--rd) ease-in-out infinite alternate; }
-@keyframes rnb-leg { from { transform: scaleY(1); } to { transform: translateY(-3px) scaleY(.62); } }
-@keyframes rnb-arm-l { from { transform: rotate(12deg); } to { transform: rotate(-24deg); } }
-@keyframes rnb-arm-r { from { transform: rotate(24deg); } to { transform: rotate(-12deg); } }
+/* 옆모습: 허벅지·정강이, 위팔·아래팔이 각각 엉덩이·무릎, 어깨·팔꿈치를 축으로 돎(오른쪽이 앞) */
+.v-side .rn-th { transform-origin: 25px 58px; animation-name: rns-th; }
+.v-side .rn-sh { transform-origin: 25px 72px; animation-name: rns-sh; }
+.v-side .rn-up { transform-origin: 25px 30px; animation-name: rns-up; }
+.v-side .rn-fo { transform-origin: 25px 40px; animation-name: rns-fo; }
+@keyframes rns-th { 0% { transform: rotate(-26deg); } 25% { transform: rotate(0); } 50% { transform: rotate(30deg); } 65% { transform: rotate(12deg); } 85% { transform: rotate(-36deg); } 100% { transform: rotate(-26deg); } }
+@keyframes rns-sh { 0% { transform: rotate(6deg); } 25% { transform: rotate(14deg); } 50% { transform: rotate(18deg); } 65% { transform: rotate(100deg); } 85% { transform: rotate(40deg); } 100% { transform: rotate(6deg); } }
+@keyframes rns-up { 0% { transform: rotate(38deg); } 50% { transform: rotate(-38deg); } 100% { transform: rotate(38deg); } }
+@keyframes rns-fo { 0% { transform: rotate(-55deg); } 50% { transform: rotate(-100deg); } 100% { transform: rotate(-55deg); } }
+
+/* 뒷모습·앞모습: 다리가 뒤로 접히면 정강이가 짧아 보이고 신발이 올라옴.
+ * 팔은 팔꿈치를 굽힌 채, 뒤로 갈 때 팔꿈치가 바깥·위로, 앞으로 갈 때 아래팔이 짧아 보임 */
+.v-fb .rn-sh.rn-l { transform-origin: 20.5px 72px; }
+.v-fb .rn-sh.rn-r { transform-origin: 29.5px 72px; }
+.v-fb .rn-sh { animation-name: rnb-sh; }
+.v-fb .rn-sk { animation-name: rnb-sk; }
+.v-fb .rn-up.rn-l { transform-origin: 15px 29.5px; animation-name: rnb-up-l; }
+.v-fb .rn-up.rn-r { transform-origin: 35px 29.5px; animation-name: rnb-up-r; }
+.v-fb .rn-fo.rn-l { transform-origin: 14.5px 40px; animation-name: rnb-fo-l; }
+.v-fb .rn-fo.rn-r { transform-origin: 35.5px 40px; animation-name: rnb-fo-r; }
+@keyframes rnb-sh { 0% { transform: scaleY(1); } 35% { transform: scaleY(.98); } 50% { transform: scaleY(.78); } 65% { transform: scaleY(.38); } 85% { transform: scaleY(.8); } 100% { transform: scaleY(1); } }
+@keyframes rnb-sk { 0% { transform: translateY(0); } 35% { transform: translateY(0); } 50% { transform: translateY(-3.7px); } 65% { transform: translateY(-10.5px); } 85% { transform: translateY(-3.4px); } 100% { transform: translateY(0); } }
+@keyframes rnb-up-l { 0% { transform: rotate(18deg) scaleY(.9); } 15% { transform: rotate(6deg) scaleY(1); } 65% { transform: rotate(32deg) scaleY(.8); } 100% { transform: rotate(18deg) scaleY(.9); } }
+@keyframes rnb-up-r { 0% { transform: rotate(-18deg) scaleY(.9); } 15% { transform: rotate(-6deg) scaleY(1); } 65% { transform: rotate(-32deg) scaleY(.8); } 100% { transform: rotate(-18deg) scaleY(.9); } }
+@keyframes rnb-fo-l { 0% { transform: rotate(-18deg) scaleY(.7); } 15% { transform: rotate(-30deg) scaleY(.45); } 65% { transform: rotate(-6deg) scaleY(.95); } 100% { transform: rotate(-18deg) scaleY(.7); } }
+@keyframes rnb-fo-r { 0% { transform: rotate(18deg) scaleY(.7); } 15% { transform: rotate(30deg) scaleY(.45); } 65% { transform: rotate(6deg) scaleY(.95); } 100% { transform: rotate(18deg) scaleY(.7); } }
 
 /* 서 있기 */
-.rn.still .rn-limb, .rn.still .rn-bob { animation: none; }
+.rn.still .rn-limb, .rn.still .rn-bob, .rn.still .rn-roll { animation: none; }
 
-/* 점프: 포물선으로 뛰었다가 착지할 때 살짝 눌림 */
+/* 점프: 포물선으로 뛰었다가 착지할 때 살짝 눌림. 공중에서는 무릎을 접고 팔을 듦 */
 .rn.jump .rn-air { animation: rn-jump var(--jd) linear 1; }
-.rn.jump .rn-limb, .rn.jump .rn-bob { animation: none; }
-.rn.jump.v-side .rn-leg-f { transform: rotate(-80deg); }
-.rn.jump.v-side .rn-leg-b { transform: rotate(58deg); }
-.rn.jump.v-side .rn-arm-f { transform: rotate(72deg); }
-.rn.jump.v-side .rn-arm-b { transform: rotate(-112deg); }
-.rn.jump.v-fb .rn-leg-l, .rn.jump.v-fb .rn-leg-r { transform: translateY(-4px) scaleY(.6); }
-.rn.jump.v-fb .rn-arm-l { transform: rotate(140deg); }
-.rn.jump.v-fb .rn-arm-r { transform: rotate(-140deg); }
+.rn.jump .rn-limb, .rn.jump .rn-bob, .rn.jump .rn-roll { animation: none; }
+.rn.jump.v-side .rn-th.rn-1 { transform: rotate(-70deg); }
+.rn.jump.v-side .rn-sh.rn-1 { transform: rotate(70deg); }
+.rn.jump.v-side .rn-th.rn-2 { transform: rotate(35deg); }
+.rn.jump.v-side .rn-sh.rn-2 { transform: rotate(80deg); }
+.rn.jump.v-side .rn-up.rn-1 { transform: rotate(-120deg); }
+.rn.jump.v-side .rn-fo.rn-1 { transform: rotate(-20deg); }
+.rn.jump.v-side .rn-up.rn-2 { transform: rotate(60deg); }
+.rn.jump.v-side .rn-fo.rn-2 { transform: rotate(-60deg); }
+.rn.jump.v-fb .rn-sh { transform: scaleY(.45); }
+.rn.jump.v-fb .rn-sk { transform: translateY(-9px); }
+.rn.jump.v-fb .rn-up.rn-l { transform: rotate(145deg); }
+.rn.jump.v-fb .rn-up.rn-r { transform: rotate(-145deg); }
+.rn.jump.v-fb .rn-fo.rn-l { transform: rotate(-15deg); }
+.rn.jump.v-fb .rn-fo.rn-r { transform: rotate(15deg); }
 @keyframes rn-jump {
   0% { transform: translateY(0); animation-timing-function: cubic-bezier(.5, 1, .89, 1); }
   43.5% { transform: translateY(calc(-1 * var(--jh))); animation-timing-function: cubic-bezier(.11, 0, .5, 0); }
@@ -165,12 +186,13 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 @keyframes rn-flip { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 
 /* 넘어짐: 옆모습은 앞으로 고꾸라지고, 뒷모습은 화면 안쪽으로 엎어졌다가 일어남 */
-.rn.fall .rn-limb, .rn.fall .rn-bob { animation: none; }
+.rn.fall .rn-limb, .rn.fall .rn-bob, .rn.fall .rn-roll { animation: none; }
 .rn.fall.v-side .rn-spin { transform-origin: 82% 100%; animation: rn-fall var(--fd) ease-out 1 forwards; }
-.rn.fall.v-side .rn-arm-f, .rn.fall.v-side .rn-arm-b { transform: rotate(-150deg); }
+.rn.fall.v-side .rn-up { transform: rotate(-150deg); }
 .rn.fall.v-fb .rn-spin { transform-origin: 50% 100%; animation: rnb-fall var(--fd) ease-out 1 forwards; }
-.rn.fall.v-fb .rn-arm-l { transform: rotate(120deg); }
-.rn.fall.v-fb .rn-arm-r { transform: rotate(-120deg); }
+.rn.fall.v-fb .rn-up.rn-l { transform: rotate(115deg); }
+.rn.fall.v-fb .rn-up.rn-r { transform: rotate(-115deg); }
+.rn.fall.v-fb .rn-fo { transform: scaleY(.6); }
 @keyframes rn-fall {
   0% { transform: rotate(0); }
   16% { transform: rotate(96deg) translateY(3px); }
@@ -186,11 +208,14 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   100% { transform: perspective(420px) rotateX(0); }
 }
 /* 만세 */
-.rn.cheer .rn-limb, .rn.cheer .rn-bob { animation: none; }
-.rn.cheer.v-side .rn-arm-f { transform: rotate(-112deg); }
-.rn.cheer.v-side .rn-arm-b { transform: rotate(112deg); }
-.rn.cheer.v-fb .rn-arm-l { transform: rotate(150deg); }
-.rn.cheer.v-fb .rn-arm-r { transform: rotate(-150deg); }
+.rn.cheer .rn-limb, .rn.cheer .rn-bob, .rn.cheer .rn-roll { animation: none; }
+.rn.cheer.v-side .rn-up.rn-1 { transform: rotate(-160deg); }
+.rn.cheer.v-side .rn-up.rn-2 { transform: rotate(-140deg); }
+.rn.cheer.v-side .rn-fo { transform: rotate(-10deg); }
+.rn.cheer.v-fb .rn-up.rn-l { transform: rotate(155deg); }
+.rn.cheer.v-fb .rn-up.rn-r { transform: rotate(-155deg); }
+.rn.cheer.v-fb .rn-fo.rn-l { transform: rotate(-12deg); }
+.rn.cheer.v-fb .rn-fo.rn-r { transform: rotate(12deg); }
 .rn.cheer .rn-air { animation: rn-hop .3s ease-out infinite alternate; }
 @keyframes rn-hop { from { transform: translateY(0); } to { transform: translateY(-8%); } }
 .rn-tag { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 2px; max-width: 96px; padding: 0 6px; border-radius: 999px; background: rgba(255,255,255,.92); border: 1px solid var(--line); font-size: 11px; font-weight: 700; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2359,38 +2384,39 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
    * renderRunner 가 돌려주는 요소의 안쪽(RUNNER_SVG)만 바꾸고, 바깥 .rn 과 자세 클래스
    * (still / jump / flip / fall / cheer, 없으면 달리기)를 그대로 쓰면 됩니다.
    */
-  // 뒤/앞에서 본 사람(viewBox 50×100). 얼굴은 앞모습에서만, 뒤통수 머리카락은 뒷모습에서만 보임
+  // 뒤/앞에서 본 사람(viewBox 50×100). 얼굴은 앞모습에서만, 뒤통수 머리카락은 뒷모습에서만 보임.
+  // 다리는 허벅지 + 정강이(무릎에서 접힘) + 신발, 팔은 위팔 + 아래팔(팔꿈치에서 굽음). rn-2 는 반 주기 늦게 움직임
   const RUNNER_FB =
-    '<svg class="rn-svg" viewBox="0 0 50 100" aria-hidden="true"><g class="rn-bob">' +
-      '<g class="rn-limb rn-leg-l"><rect class="rn-k" x="17" y="57" width="7" height="31" rx="3.5"/><rect x="15.5" y="86" width="10" height="7" rx="3" fill="#fff" stroke="#BDB5AC"/></g>' +
-      '<g class="rn-limb rn-leg-r"><rect class="rn-k" x="26" y="57" width="7" height="31" rx="3.5"/><rect x="24.5" y="86" width="10" height="7" rx="3" fill="#fff" stroke="#BDB5AC"/></g>' +
+    '<svg class="rn-svg" viewBox="0 0 50 100" aria-hidden="true"><g class="rn-bob"><g class="rn-roll">' +
+      '<rect class="rn-k" x="17" y="56" width="7" height="17" rx="3.5"/><g class="rn-limb rn-sh rn-l rn-1"><rect class="rn-k" x="17" y="71" width="7" height="17" rx="3.5"/></g><g class="rn-limb rn-sk rn-l rn-1"><rect x="15.5" y="86" width="10" height="7" rx="3" fill="#fff" stroke="#BDB5AC"/><rect x="16" y="90.5" width="9" height="1.6" rx=".8" fill="#D3CCC4"/></g>' +
+      '<rect class="rn-k" x="26" y="56" width="7" height="17" rx="3.5"/><g class="rn-limb rn-sh rn-r rn-2"><rect class="rn-k" x="26" y="71" width="7" height="17" rx="3.5"/></g><g class="rn-limb rn-sk rn-r rn-2"><rect x="24.5" y="86" width="10" height="7" rx="3" fill="#fff" stroke="#BDB5AC"/><rect x="25" y="90.5" width="9" height="1.6" rx=".8" fill="#D3CCC4"/></g>' +
       '<path d="M15 50L35 50L36 63L26.5 63L25 59L23.5 63L14 63Z" fill="#33405A"/>' +
-      '<g class="rn-limb rn-arm-l"><rect class="rn-k" x="12" y="29" width="5" height="20" rx="2.5"/><rect class="rn-c" x="11.5" y="28" width="6" height="8" rx="3"/></g>' +
-      '<g class="rn-limb rn-arm-r"><rect class="rn-k" x="33" y="29" width="5" height="20" rx="2.5"/><rect class="rn-c" x="32.5" y="28" width="6" height="8" rx="3"/></g>' +
+      '<g class="rn-limb rn-up rn-l rn-2"><rect class="rn-k" x="12" y="29" width="5" height="12" rx="2.5"/><g class="rn-limb rn-fo rn-l rn-2"><rect class="rn-k" x="12" y="39" width="5" height="11" rx="2.5"/></g><rect class="rn-c" x="11.5" y="28" width="6" height="8" rx="3"/></g>' +
+      '<g class="rn-limb rn-up rn-r rn-1"><rect class="rn-k" x="33" y="29" width="5" height="12" rx="2.5"/><g class="rn-limb rn-fo rn-r rn-1"><rect class="rn-k" x="33" y="39" width="5" height="11" rx="2.5"/></g><rect class="rn-c" x="32.5" y="28" width="6" height="8" rx="3"/></g>' +
       '<path class="rn-c" d="M15 28Q25 24.5 35 28L36 52L14 52Z"/>' +
       '<rect x="19" y="34" width="12" height="9" rx="1.5" fill="#fff" opacity=".95"/>' +
       '<rect class="rn-k" x="22" y="20" width="6" height="7" rx="2"/>' +
       '<ellipse class="rn-k" cx="16.6" cy="15" rx="1.7" ry="2.5"/><ellipse class="rn-k" cx="33.4" cy="15" rx="1.7" ry="2.5"/>' +
       '<ellipse class="rn-h rn-backhead" cx="25" cy="13.5" rx="8.5" ry="9.5"/>' +
-      '<g class="rn-face"><ellipse class="rn-k" cx="25" cy="13.5" rx="8.5" ry="9.5"/><path class="rn-h" d="M16.5 12Q16.5 3.5 25 3.8Q33.5 3.5 33.5 12Q30 7.5 25 8.2Q20 7.5 16.5 12Z"/>' +
-        '<circle cx="21.8" cy="14.5" r="1.2" fill="#1A1714"/><circle cx="28.2" cy="14.5" r="1.2" fill="#1A1714"/><path d="M21.8 18Q25 20.6 28.2 18" stroke="#A8462F" stroke-width="1.2" fill="none" stroke-linecap="round"/></g>' +
+      '<g class="rn-face"><ellipse class="rn-k" cx="25" cy="13.5" rx="8.5" ry="9.5"/><path class="rn-h" d="M16.5 12Q16.5 3.5 25 3.8Q33.5 3.5 33.5 12Q30 7.5 25 8.2Q20 7.5 16.5 12Z"/><circle cx="21.8" cy="14.5" r="1.2" fill="#1A1714"/><circle cx="28.2" cy="14.5" r="1.2" fill="#1A1714"/><path d="M21.8 18Q25 20.6 28.2 18" stroke="#A8462F" stroke-width="1.2" fill="none" stroke-linecap="round"/></g>' +
       '<path d="M16.7 10Q25 5.6 33.3 10" stroke="#fff" stroke-width="2.6" fill="none"/>' +
-    '</g></svg>';
-  // 옆에서 본 사람(오른쪽을 봄, viewBox 50×100). 팔다리는 어깨(25,30)·엉덩이(25,60)를 축으로 흔들림
+    '</g></g></svg>';
+  // 옆에서 본 사람(오른쪽을 봄, viewBox 50×100). 허벅지는 엉덩이(25,58), 정강이는 무릎(25,72),
+  // 위팔은 어깨(25,30), 아래팔은 팔꿈치(25,40)를 축으로 돎. rn-1 = 가까운 쪽, rn-2 = 먼 쪽(반 주기 늦게)
   const RUNNER_SIDE =
-    '<svg class="rn-svg" viewBox="0 0 50 100" aria-hidden="true"><g class="rn-bob">' +
-      '<g class="rn-limb rn-arm-b"><rect class="rn-k" x="22.5" y="29" width="5" height="20" rx="2.5"/><rect x="22.5" y="29" width="5" height="20" rx="2.5" fill="#1A1714" opacity=".18"/><rect class="rn-c" x="22" y="28" width="6" height="8" rx="3"/></g>' +
-      '<g class="rn-limb rn-leg-b"><rect class="rn-k" x="21.5" y="57" width="7" height="31" rx="3.5"/><rect x="21.5" y="57" width="7" height="31" rx="3.5" fill="#1A1714" opacity=".18"/><rect x="20" y="86" width="13" height="6" rx="3" fill="#fff" stroke="#BDB5AC"/></g>' +
+    '<svg class="rn-svg" viewBox="0 0 50 100" aria-hidden="true"><g class="rn-bob"><g class="rn-roll">' +
+      '<g class="rn-limb rn-up rn-2"><rect class="rn-k" x="22.5" y="29" width="5" height="12" rx="2.5"/><rect x="22.5" y="29" width="5" height="12" rx="2.5" fill="#1A1714" opacity=".18"/><g class="rn-limb rn-fo rn-2"><rect class="rn-k" x="22.5" y="39" width="5" height="11" rx="2.5"/><rect x="22.5" y="39" width="5" height="11" rx="2.5" fill="#1A1714" opacity=".18"/></g><rect class="rn-c" x="22" y="28" width="6" height="8" rx="3"/></g>' +
+      '<g class="rn-limb rn-th rn-2"><rect class="rn-k" x="21.5" y="56" width="7" height="17" rx="3.5"/><rect x="21.5" y="56" width="7" height="17" rx="3.5" fill="#1A1714" opacity=".18"/><g class="rn-limb rn-sh rn-2"><rect class="rn-k" x="21.5" y="71" width="7" height="17" rx="3.5"/><rect x="21.5" y="71" width="7" height="17" rx="3.5" fill="#1A1714" opacity=".18"/><rect x="20" y="86" width="13" height="6" rx="3" fill="#fff" stroke="#BDB5AC"/></g></g>' +
       '<rect x="18" y="50" width="14" height="13" rx="3" fill="#33405A"/>' +
       '<rect class="rn-c" x="18" y="26" width="14" height="26" rx="6"/>' +
-      '<g class="rn-limb rn-leg-f"><rect class="rn-k" x="21.5" y="57" width="7" height="31" rx="3.5"/><rect x="20" y="86" width="13" height="6" rx="3" fill="#fff" stroke="#BDB5AC"/></g>' +
+      '<g class="rn-limb rn-th rn-1"><rect class="rn-k" x="21.5" y="56" width="7" height="17" rx="3.5"/><g class="rn-limb rn-sh rn-1"><rect class="rn-k" x="21.5" y="71" width="7" height="17" rx="3.5"/><rect x="20" y="86" width="13" height="6" rx="3" fill="#fff" stroke="#BDB5AC"/></g></g>' +
       '<rect class="rn-k" x="23" y="20" width="5" height="8"/>' +
       '<circle class="rn-k" cx="26" cy="14" r="8.5"/>' +
       '<path class="rn-h" d="M17.5 15Q16 4.5 26 5.5Q34 5.5 34.5 10Q29 8 27 10L25 17Q20 19 17.5 15Z"/>' +
       '<circle cx="31" cy="14" r="1.1" fill="#1A1714"/>' +
       '<path d="M17.6 10.5Q26 5 34.3 9.5" stroke="#fff" stroke-width="2.4" fill="none"/>' +
-      '<g class="rn-limb rn-arm-f"><rect class="rn-k" x="22.5" y="29" width="5" height="20" rx="2.5"/><rect class="rn-c" x="22" y="28" width="6" height="8" rx="3" stroke="#fff" stroke-width=".8"/></g>' +
-    '</g></svg>';
+      '<g class="rn-limb rn-up rn-1"><rect class="rn-k" x="22.5" y="29" width="5" height="12" rx="2.5"/><g class="rn-limb rn-fo rn-1"><rect class="rn-k" x="22.5" y="39" width="5" height="11" rx="2.5"/></g><rect class="rn-c" x="22" y="28" width="6" height="8" rx="3" stroke="#fff" stroke-width=".8"/></g>' +
+    '</g></g></svg>';
   const RN_ASPECT = 0.5;   // 캐릭터 가로 = 키 × 0.5
   const HAIRS = ['#3B2A22', '#5A3A28', '#2B211C'];
   const SKINS = ['#F2C9A5', '#E8B48C'];
