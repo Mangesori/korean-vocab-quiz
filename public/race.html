@@ -104,34 +104,54 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .chip.me { border-color: var(--green); background: var(--mint); }
 .chip.host { color: var(--sub); padding-left: 12px; }
 
-/* ---------- 캐릭터(코드로 그린 SVG). 동작은 전부 CSS 키프레임 ---------- */
-.rn { position: relative; display: inline-block; flex: none; width: 31px; height: 40px; --c: #1F6B48; --rd: .26s; --jh: 46px; --jd: .69s; --fd: 1.6s; }
+/* ---------- 캐릭터(코드로 그린 사람 SVG). 동작은 전부 CSS 키프레임 ----------
+ * 보는 방향 3가지: v-back(달리기 화면, 뒤에서), v-front(시상대·고르기 등, 앞에서), v-side(관전 레인, 옆에서)
+ * 뒤/앞은 같은 그림을 쓰고(v-fb), 얼굴(rn-face)과 뒤통수(rn-backhead) 중 하나만 보여 줌 */
+.rn { position: relative; display: inline-block; flex: none; width: 30px; height: 60px; --c: #1E6B47; --hair: #3B2A22; --skin: #F2C9A5; --rd: .26s; --jh: 46px; --jd: .69s; --fd: 1.6s; }
 .rn-air, .rn-spin { width: 100%; height: 100%; }
 .rn-air { transform-origin: 50% 100%; }
 .rn-svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .rn-c { fill: var(--c); }
-.rn-arm-f, .rn-arm-b { transform-origin: 22.5px 26px; }
-.rn-leg-f, .rn-leg-b { transform-origin: 23px 42px; }
-/* ① 달리기: 팔다리가 번갈아 앞뒤로, 몸은 살짝 위아래로 */
-.rn-leg-f { animation: rn-leg-a var(--rd) ease-in-out infinite alternate; }
-.rn-leg-b { animation: rn-leg-b var(--rd) ease-in-out infinite alternate; }
-.rn-arm-f { animation: rn-arm-a var(--rd) ease-in-out infinite alternate; }
-.rn-arm-b { animation: rn-arm-b var(--rd) ease-in-out infinite alternate; }
+.rn-h { fill: var(--hair); }
+.rn-k { fill: var(--skin); }
+.rn.v-back .rn-face, .rn.v-front .rn-backhead { display: none; }
 .rn-bob { animation: rn-bob calc(var(--rd) / 2) ease-in-out infinite alternate; }
-@keyframes rn-leg-a { from { transform: rotate(-44deg); } to { transform: rotate(40deg); } }
-@keyframes rn-leg-b { from { transform: rotate(40deg); } to { transform: rotate(-44deg); } }
-@keyframes rn-arm-a { from { transform: rotate(52deg); } to { transform: rotate(-56deg); } }
-@keyframes rn-arm-b { from { transform: rotate(-56deg); } to { transform: rotate(52deg); } }
 @keyframes rn-bob { from { transform: translateY(0); } to { transform: translateY(-2px); } }
+
+/* 옆모습: 팔다리가 어깨·엉덩이를 축으로 앞뒤로 흔들림 */
+.v-side .rn-arm-f, .v-side .rn-arm-b { transform-origin: 25px 30px; }
+.v-side .rn-leg-f, .v-side .rn-leg-b { transform-origin: 25px 60px; }
+.v-side .rn-leg-f { animation: rn-leg-a var(--rd) ease-in-out infinite alternate; }
+.v-side .rn-leg-b { animation: rn-leg-b var(--rd) ease-in-out infinite alternate; }
+.v-side .rn-arm-f { animation: rn-arm-a var(--rd) ease-in-out infinite alternate; }
+.v-side .rn-arm-b { animation: rn-arm-b var(--rd) ease-in-out infinite alternate; }
+@keyframes rn-leg-a { from { transform: rotate(-40deg); } to { transform: rotate(36deg); } }
+@keyframes rn-leg-b { from { transform: rotate(36deg); } to { transform: rotate(-40deg); } }
+@keyframes rn-arm-a { from { transform: rotate(48deg); } to { transform: rotate(-52deg); } }
+@keyframes rn-arm-b { from { transform: rotate(-52deg); } to { transform: rotate(48deg); } }
+
+/* 뒷모습·앞모습: 한쪽 다리가 들릴 때 짧아 보이고, 팔은 작게 흔들림 */
+.v-fb .rn-leg-l { transform-origin: 20.5px 60px; animation: rnb-leg var(--rd) ease-in-out infinite alternate; }
+.v-fb .rn-leg-r { transform-origin: 29.5px 60px; animation: rnb-leg var(--rd) ease-in-out infinite alternate-reverse; }
+.v-fb .rn-arm-l { transform-origin: 15px 30px; animation: rnb-arm-l var(--rd) ease-in-out infinite alternate; }
+.v-fb .rn-arm-r { transform-origin: 35px 30px; animation: rnb-arm-r var(--rd) ease-in-out infinite alternate; }
+@keyframes rnb-leg { from { transform: scaleY(1); } to { transform: translateY(-3px) scaleY(.62); } }
+@keyframes rnb-arm-l { from { transform: rotate(12deg); } to { transform: rotate(-24deg); } }
+@keyframes rnb-arm-r { from { transform: rotate(24deg); } to { transform: rotate(-12deg); } }
+
 /* 서 있기 */
 .rn.still .rn-limb, .rn.still .rn-bob { animation: none; }
-/* ② 점프: 허들 넘는 자세로 포물선, 착지 때 살짝 눌림 */
+
+/* 점프: 포물선으로 뛰었다가 착지할 때 살짝 눌림 */
 .rn.jump .rn-air { animation: rn-jump var(--jd) linear 1; }
 .rn.jump .rn-limb, .rn.jump .rn-bob { animation: none; }
-.rn.jump .rn-leg-f { transform: rotate(-80deg); }
-.rn.jump .rn-leg-b { transform: rotate(58deg); }
-.rn.jump .rn-arm-f { transform: rotate(72deg); }
-.rn.jump .rn-arm-b { transform: rotate(-112deg); }
+.rn.jump.v-side .rn-leg-f { transform: rotate(-80deg); }
+.rn.jump.v-side .rn-leg-b { transform: rotate(58deg); }
+.rn.jump.v-side .rn-arm-f { transform: rotate(72deg); }
+.rn.jump.v-side .rn-arm-b { transform: rotate(-112deg); }
+.rn.jump.v-fb .rn-leg-l, .rn.jump.v-fb .rn-leg-r { transform: translateY(-4px) scaleY(.6); }
+.rn.jump.v-fb .rn-arm-l { transform: rotate(140deg); }
+.rn.jump.v-fb .rn-arm-r { transform: rotate(-140deg); }
 @keyframes rn-jump {
   0% { transform: translateY(0); animation-timing-function: cubic-bezier(.5, 1, .89, 1); }
   43.5% { transform: translateY(calc(-1 * var(--jh))); animation-timing-function: cubic-bezier(.11, 0, .5, 0); }
@@ -139,14 +159,18 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   93% { transform: translateY(0) scale(1.1, .86); }
   100% { transform: translateY(0) scale(1, 1); }
 }
-/* 연속 정답이 많으면 공중제비 */
+/* 연속 정답이 많으면 공중에서 한 바퀴 */
 .rn-spin { transform-origin: 50% 55%; }
 .rn.flip .rn-spin { animation: rn-flip calc(var(--jd) * .87) ease-in-out 1; }
 @keyframes rn-flip { from { transform: rotate(0); } to { transform: rotate(360deg); } }
-/* ③ 넘어짐: 앞으로 고꾸라졌다가 일어남 */
-.rn.fall .rn-spin { transform-origin: 82% 100%; animation: rn-fall var(--fd) ease-out 1 forwards; }
+
+/* 넘어짐: 옆모습은 앞으로 고꾸라지고, 뒷모습은 화면 안쪽으로 엎어졌다가 일어남 */
 .rn.fall .rn-limb, .rn.fall .rn-bob { animation: none; }
-.rn.fall .rn-arm-f, .rn.fall .rn-arm-b { transform: rotate(-150deg); }
+.rn.fall.v-side .rn-spin { transform-origin: 82% 100%; animation: rn-fall var(--fd) ease-out 1 forwards; }
+.rn.fall.v-side .rn-arm-f, .rn.fall.v-side .rn-arm-b { transform: rotate(-150deg); }
+.rn.fall.v-fb .rn-spin { transform-origin: 50% 100%; animation: rnb-fall var(--fd) ease-out 1 forwards; }
+.rn.fall.v-fb .rn-arm-l { transform: rotate(120deg); }
+.rn.fall.v-fb .rn-arm-r { transform: rotate(-120deg); }
 @keyframes rn-fall {
   0% { transform: rotate(0); }
   16% { transform: rotate(96deg) translateY(3px); }
@@ -154,13 +178,22 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   68% { transform: rotate(88deg); }
   100% { transform: rotate(0); }
 }
-/* ④ 만세 */
+@keyframes rnb-fall {
+  0% { transform: perspective(420px) rotateX(0); }
+  16% { transform: perspective(420px) rotateX(64deg) translateY(4%); }
+  22% { transform: perspective(420px) rotateX(56deg) translateY(4%); }
+  68% { transform: perspective(420px) rotateX(58deg) translateY(4%); }
+  100% { transform: perspective(420px) rotateX(0); }
+}
+/* 만세 */
 .rn.cheer .rn-limb, .rn.cheer .rn-bob { animation: none; }
-.rn.cheer .rn-arm-f { transform: rotate(-112deg); }
-.rn.cheer .rn-arm-b { transform: rotate(112deg); }
+.rn.cheer.v-side .rn-arm-f { transform: rotate(-112deg); }
+.rn.cheer.v-side .rn-arm-b { transform: rotate(112deg); }
+.rn.cheer.v-fb .rn-arm-l { transform: rotate(150deg); }
+.rn.cheer.v-fb .rn-arm-r { transform: rotate(-150deg); }
 .rn.cheer .rn-air { animation: rn-hop .3s ease-out infinite alternate; }
-@keyframes rn-hop { from { transform: translateY(0); } to { transform: translateY(-14%); } }
-.rn-tag { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 1px; max-width: 96px; padding: 0 6px; border-radius: 999px; background: rgba(255,255,255,.92); border: 1px solid var(--line); font-size: 11px; font-weight: 700; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@keyframes rn-hop { from { transform: translateY(0); } to { transform: translateY(-8%); } }
+.rn-tag { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 2px; max-width: 96px; padding: 0 6px; border-radius: 999px; background: rgba(255,255,255,.92); border: 1px solid var(--line); font-size: 11px; font-weight: 700; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rn-tag.mine { background: var(--green); border-color: var(--green); color: #fff; }
 
 /* ---------- 처음 화면 ---------- */
@@ -222,30 +255,30 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .blank { display: inline-block; min-width: 2.4em; padding: 0 .25em; margin: 0 .12em; border-bottom: 3px solid var(--amber); background: var(--amber-soft); border-radius: 6px 6px 0 0; line-height: 1.12; }
 .blank.filled { color: var(--green); border-bottom-color: var(--green); background: var(--mint); }
 
-/* 옆에서 본 트랙. 배경 2겹 + 바닥이 서로 다른 빠르기로 흐름(패럴랙스) */
-.scene { position: relative; flex: 1; min-height: 120px; overflow: hidden; background: var(--sky); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); --gh: 100px; --feet: 16px; }
-.sc-far { position: absolute; left: 0; bottom: var(--gh); width: calc(100% + 260px); height: 96px; will-change: transform;
-  background: radial-gradient(ellipse 130px 84px at 50% 100%, #E6EFE4 99%, transparent 100%) 0 100% / 260px 96px repeat-x; }
-.sc-mid { position: absolute; left: 0; bottom: var(--gh); width: calc(100% + 140px); height: 44px; will-change: transform;
-  background: radial-gradient(ellipse 52px 34px at 35% 100%, #CFE5D6 99%, transparent 100%) 0 100% / 140px 44px repeat-x; }
-.sc-ground { position: absolute; left: 0; right: 0; bottom: 0; height: var(--gh); background: var(--ground); border-top: 3px solid var(--ground-edge); overflow: hidden; }
-.sc-stripes { position: absolute; left: 0; top: 0; bottom: 0; width: calc(100% + 80px); will-change: transform;
-  background: repeating-linear-gradient(90deg, rgba(27,25,23,.05) 0 40px, transparent 40px 80px); }
-.hurdle { position: absolute; left: 0; bottom: var(--feet); width: 20px; height: 34px; z-index: 3; will-change: transform; }
-.hurdle i { position: absolute; inset: 0; border: 3px solid #3F3935; border-bottom: 0; border-top: 9px solid var(--amber); border-radius: 3px 3px 0 0; transform-origin: 100% 100%; transition: transform .16s ease-in, opacity .16s; }
-.hurdle.down i { transform: rotate(84deg); opacity: .5; }
-.finish { position: absolute; left: 0; bottom: 0; width: 16px; height: calc(var(--gh) + 34px); z-index: 2; will-change: transform; background: repeating-conic-gradient(var(--ink) 0% 25%, #fff 0% 50%) 0 0 / 16px 16px; opacity: .85; }
-.rivals { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-.rival { position: absolute; left: 0; bottom: var(--feet); opacity: .55; will-change: transform; transform-origin: 50% 100%; line-height: 0; }
-.mebox { position: absolute; left: 0; bottom: var(--feet); z-index: 4; line-height: 0; }
-.mebox::before { content: ""; position: absolute; left: 12%; right: 12%; bottom: -4px; height: 9px; border-radius: 50%; background: rgba(27,25,23,.14); }
-.speedlines { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; }
-.speedlines i { position: absolute; right: -24%; width: 22%; height: 2px; border-radius: 2px; background: rgba(27,25,23,.2); animation: sl .42s linear infinite; }
-.speedlines i:nth-child(1) { top: 14%; } .speedlines i:nth-child(2) { top: 31%; animation-delay: -.2s; }
-.speedlines i:nth-child(3) { top: 47%; animation-delay: -.33s; } .speedlines i:nth-child(4) { top: 22%; animation-delay: -.1s; }
-.speedlines i:nth-child(5) { top: 39%; animation-delay: -.27s; }
-@keyframes sl { to { transform: translateX(-580%); } }
-.hint { position: absolute; left: 12px; right: 12px; top: 10px; z-index: 5; pointer-events: none; text-align: center; font-size: 14px; font-weight: 600; color: var(--sub); }
+/* 뒤에서 본 트랙(원근). 하늘·학교는 고정, 트랙 위 눈금·허들·친구·결승선은 거리에 따라 크기와 높이가 바뀜 */
+.scene { position: relative; flex: 1; min-height: 140px; overflow: hidden; background: #9CCB7C; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); --hz: 30%; }
+.sc-sky { position: absolute; left: 0; right: 0; top: 0; height: var(--hz); background: #DCEFF7; }
+.sc-sky svg, .sc-track { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sc-ground { position: absolute; left: 0; right: 0; bottom: 0; top: var(--hz); }
+.ticks { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.tick { position: absolute; left: 0; top: 0; width: 100px; height: 2px; background: rgba(255,255,255,.5); transform-origin: 0 0; will-change: transform; }
+.hurdle { position: absolute; left: 0; top: 0; width: 100px; height: 30px; transform-origin: 0 0; will-change: transform; }
+.hurdle i { position: absolute; inset: 0; border-left: 4px solid #2A2A2A; border-right: 4px solid #2A2A2A; transform-origin: 50% 100%; transition: transform .16s ease-in, opacity .16s; }
+.hurdle i::before { content: ""; position: absolute; left: -4px; right: -4px; top: 0; height: 30%; box-sizing: border-box; border: 2px solid #2A2A2A; border-radius: 2px; background: repeating-linear-gradient(90deg, #fff 0 22px, #2A2A2A 22px 44px); }
+.hurdle.down i { transform: perspective(300px) rotateX(80deg); opacity: .75; }
+.finish { position: absolute; left: 0; top: 0; width: 100px; height: 16px; transform-origin: 0 0; will-change: transform; background: repeating-conic-gradient(var(--ink) 0% 25%, #fff 0% 50%) 0 0 / 24px 24px; opacity: .9; }
+.rivals { position: absolute; inset: 0; pointer-events: none; }
+.rival { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; line-height: 0; }
+.mebox { position: absolute; left: 0; bottom: 8px; z-index: 500; line-height: 0; }
+.mebox::before { content: ""; position: absolute; left: 6%; right: 6%; bottom: -5px; height: 10px; border-radius: 50%; background: rgba(27,25,23,.16); }
+/* 빨라지면 소실점에서 바깥으로 흩어지는 선 */
+.speedlines { position: absolute; left: 50%; top: var(--hz); width: 0; height: 0; z-index: 2; pointer-events: none; opacity: 0; }
+.speedlines i { position: absolute; left: 0; top: -1px; width: 90px; height: 2px; border-radius: 2px; background: rgba(255,255,255,.85); transform-origin: 0 50%; animation: sl .5s linear infinite; }
+.speedlines i:nth-child(1) { --a: 16deg; } .speedlines i:nth-child(2) { --a: 34deg; animation-delay: -.2s; }
+.speedlines i:nth-child(3) { --a: 146deg; animation-delay: -.33s; } .speedlines i:nth-child(4) { --a: 164deg; animation-delay: -.1s; }
+.speedlines i:nth-child(5) { --a: 124deg; animation-delay: -.27s; }
+@keyframes sl { from { transform: rotate(var(--a)) translateX(40px); opacity: 0; } 30% { opacity: 1; } to { transform: rotate(var(--a)) translateX(360px); opacity: 0; } }
+.hint { position: absolute; left: 12px; right: 12px; top: 10px; z-index: 600; pointer-events: none; text-align: center; font-size: 14px; font-weight: 600; color: var(--sub); }
 .hint span { background: rgba(255,255,255,.94); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; display: inline-block; }
 .scene.shake { animation: shake .3s; }
 @keyframes shake { 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
@@ -328,7 +361,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 .lane-track::after { content: ""; position: absolute; right: 0; top: 8%; bottom: 0; width: 8px; background: repeating-conic-gradient(var(--ink) 0% 25%, #fff 0% 50%) 0 0 / 8px 8px; opacity: .8; }
 .lane-rail { position: absolute; left: 0; right: 1.3em; top: 0; bottom: 0; }
 .lane-runner { position: absolute; left: 0; bottom: 0; line-height: 0; will-change: left; }
-.lane-runner .rn { width: .93em; height: 1.2em; }
+.lane-runner .rn { width: .6em; height: 1.2em; }
 .lane.fin .lane-name { color: var(--green); }
 .lane.gone { opacity: .45; }
 .w-side { width: clamp(220px, 22vw, 320px); flex: none; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
@@ -398,13 +431,15 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 /* 움직임 줄이기: 패럴랙스·공중제비·흔들림을 끄고, 점프·넘어짐은 짧게 */
 @media (prefers-reduced-motion: reduce) {
   .rn.flip .rn-spin { animation: none; }
-  .rn.fall .rn-spin { animation: rn-fall-lite var(--fd) ease-out 1 forwards; }
+  .rn.fall.v-side .rn-spin { animation: rn-fall-lite var(--fd) ease-out 1 forwards; }
+  .rn.fall.v-fb .rn-spin { animation: rnb-fall-lite var(--fd) ease-out 1 forwards; }
   .rn.cheer .rn-air { animation: none; }
   .scene.shake { animation: none; }
   .speedlines { display: none; }
   .conn[data-s="connecting"] { animation: none; }
 }
 @keyframes rn-fall-lite { 0% { transform: rotate(0); } 12% { transform: rotate(28deg); } 60% { transform: rotate(28deg); } 100% { transform: rotate(0); } }
+@keyframes rnb-fall-lite { 0% { transform: perspective(420px) rotateX(0); } 12% { transform: perspective(420px) rotateX(28deg); } 60% { transform: perspective(420px) rotateX(28deg); } 100% { transform: perspective(420px) rotateX(0); } }
 </style>
 </head>
 <body>
@@ -589,9 +624,9 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       <div class="p-box"><div id="pMain" class="p-main"></div></div>
     </div>
     <div id="scene" class="scene">
-      <div id="scFar" class="sc-far"></div>
-      <div id="scMid" class="sc-mid"></div>
-      <div class="sc-ground"><div id="scStripes" class="sc-stripes"></div></div>
+      <div class="sc-sky" aria-hidden="true"><svg viewBox="0 0 390 152" preserveAspectRatio="xMidYMax slice" focusable="false"><use href="#fieldScene" width="390" height="230"/></svg></div>
+      <div class="sc-ground" aria-hidden="true"><svg class="sc-track" viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false"><polygon id="scRoad" fill="#D46A4C" points="50,0 50,0 120,100 -20,100"/><g id="scLanes" stroke="#fff" stroke-width="2" fill="none" opacity=".95"></g></svg></div>
+      <div id="ticks" class="ticks" aria-hidden="true"></div>
       <div id="speedlines" class="speedlines"><i></i><i></i><i></i><i></i><i></i></div>
       <div id="finish" class="finish" hidden></div>
       <div id="rivals" class="rivals"></div>
@@ -724,7 +759,6 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     wrongSpeedKeep: 0,      // 틀린 뒤에 남는 가속분의 비율(0 = 기본 속도로 돌아감, 1 = 속도 유지)
     retryAfter: 3,          // 틀린 단어가 몇 문제 뒤에 다시 나오는지
     // --- 화면 ---
-    charXRatio: 0.25,       // 내 캐릭터가 서 있는 가로 위치(장면 폭에 대한 비율, 왼쪽에서)
     runCycleSec: 0.52,      // 기본 속도일 때 두 걸음(한 주기)에 걸리는 시간(초). 속도가 오르면 비례해서 빨라짐
     rivalCount: 6,          // 같은 트랙에 함께 그려 줄 다른 참가자 최대 수
     countdownSec: 3,        // 출발 전 카운트다운(초)
@@ -2325,24 +2359,59 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
    * renderRunner 가 돌려주는 요소의 안쪽(RUNNER_SVG)만 바꾸고, 바깥 .rn 과 자세 클래스
    * (still / jump / flip / fall / cheer, 없으면 달리기)를 그대로 쓰면 됩니다.
    */
-  const RUNNER_SVG =
-    '<svg class="rn-svg" viewBox="0 0 48 62" aria-hidden="true"><g class="rn-bob">' +
-      '<g class="rn-limb rn-arm-b"><rect class="rn-c" x="20" y="24" width="5" height="16" rx="2.5"/><rect x="20" y="24" width="5" height="16" rx="2.5" fill="#1B1917" opacity=".28"/></g>' +
-      '<g class="rn-limb rn-leg-b"><rect x="20" y="40" width="6" height="18" rx="3" fill="#5F564F"/><rect class="rn-c" x="20" y="54.5" width="11" height="5.5" rx="2.75"/><rect x="20" y="54.5" width="11" height="5.5" rx="2.75" fill="#1B1917" opacity=".28"/></g>' +
-      '<rect class="rn-c" x="14" y="22" width="18" height="22" rx="8"/>' +
-      '<g class="rn-limb rn-leg-f"><rect x="20" y="40" width="6" height="18" rx="3" fill="#3F3935"/><rect class="rn-c" x="20" y="54.5" width="11" height="5.5" rx="2.75"/></g>' +
-      '<circle cx="24" cy="13" r="10.5" fill="#FBE9D0"/>' +
-      '<path class="rn-c" d="M13.2 12.5a10.8 10.8 0 0 1 21.6 0z"/><rect class="rn-c" x="30" y="10" width="10" height="3" rx="1.5"/>' +
-      '<circle cx="27.5" cy="16.5" r="1.5" fill="#1B1917"/><circle cx="32.5" cy="16.5" r="1.5" fill="#1B1917"/>' +
-      '<g class="rn-limb rn-arm-f"><rect class="rn-c" x="20" y="24" width="5" height="16" rx="2.5" stroke="#FAF8F5" stroke-width="1"/></g>' +
+  // 뒤/앞에서 본 사람(viewBox 50×100). 얼굴은 앞모습에서만, 뒤통수 머리카락은 뒷모습에서만 보임
+  const RUNNER_FB =
+    '<svg class="rn-svg" viewBox="0 0 50 100" aria-hidden="true"><g class="rn-bob">' +
+      '<g class="rn-limb rn-leg-l"><rect class="rn-k" x="17" y="57" width="7" height="31" rx="3.5"/><rect x="15.5" y="86" width="10" height="7" rx="3" fill="#fff" stroke="#BDB5AC"/></g>' +
+      '<g class="rn-limb rn-leg-r"><rect class="rn-k" x="26" y="57" width="7" height="31" rx="3.5"/><rect x="24.5" y="86" width="10" height="7" rx="3" fill="#fff" stroke="#BDB5AC"/></g>' +
+      '<path d="M15 50L35 50L36 63L26.5 63L25 59L23.5 63L14 63Z" fill="#33405A"/>' +
+      '<g class="rn-limb rn-arm-l"><rect class="rn-k" x="12" y="29" width="5" height="20" rx="2.5"/><rect class="rn-c" x="11.5" y="28" width="6" height="8" rx="3"/></g>' +
+      '<g class="rn-limb rn-arm-r"><rect class="rn-k" x="33" y="29" width="5" height="20" rx="2.5"/><rect class="rn-c" x="32.5" y="28" width="6" height="8" rx="3"/></g>' +
+      '<path class="rn-c" d="M15 28Q25 24.5 35 28L36 52L14 52Z"/>' +
+      '<rect x="19" y="34" width="12" height="9" rx="1.5" fill="#fff" opacity=".95"/>' +
+      '<rect class="rn-k" x="22" y="20" width="6" height="7" rx="2"/>' +
+      '<ellipse class="rn-k" cx="16.6" cy="15" rx="1.7" ry="2.5"/><ellipse class="rn-k" cx="33.4" cy="15" rx="1.7" ry="2.5"/>' +
+      '<ellipse class="rn-h rn-backhead" cx="25" cy="13.5" rx="8.5" ry="9.5"/>' +
+      '<g class="rn-face"><ellipse class="rn-k" cx="25" cy="13.5" rx="8.5" ry="9.5"/><path class="rn-h" d="M16.5 12Q16.5 3.5 25 3.8Q33.5 3.5 33.5 12Q30 7.5 25 8.2Q20 7.5 16.5 12Z"/>' +
+        '<circle cx="21.8" cy="14.5" r="1.2" fill="#1A1714"/><circle cx="28.2" cy="14.5" r="1.2" fill="#1A1714"/><path d="M21.8 18Q25 20.6 28.2 18" stroke="#A8462F" stroke-width="1.2" fill="none" stroke-linecap="round"/></g>' +
+      '<path d="M16.7 10Q25 5.6 33.3 10" stroke="#fff" stroke-width="2.6" fill="none"/>' +
     '</g></svg>';
+  // 옆에서 본 사람(오른쪽을 봄, viewBox 50×100). 팔다리는 어깨(25,30)·엉덩이(25,60)를 축으로 흔들림
+  const RUNNER_SIDE =
+    '<svg class="rn-svg" viewBox="0 0 50 100" aria-hidden="true"><g class="rn-bob">' +
+      '<g class="rn-limb rn-arm-b"><rect class="rn-k" x="22.5" y="29" width="5" height="20" rx="2.5"/><rect x="22.5" y="29" width="5" height="20" rx="2.5" fill="#1A1714" opacity=".18"/><rect class="rn-c" x="22" y="28" width="6" height="8" rx="3"/></g>' +
+      '<g class="rn-limb rn-leg-b"><rect class="rn-k" x="21.5" y="57" width="7" height="31" rx="3.5"/><rect x="21.5" y="57" width="7" height="31" rx="3.5" fill="#1A1714" opacity=".18"/><rect x="20" y="86" width="13" height="6" rx="3" fill="#fff" stroke="#BDB5AC"/></g>' +
+      '<rect x="18" y="50" width="14" height="13" rx="3" fill="#33405A"/>' +
+      '<rect class="rn-c" x="18" y="26" width="14" height="26" rx="6"/>' +
+      '<g class="rn-limb rn-leg-f"><rect class="rn-k" x="21.5" y="57" width="7" height="31" rx="3.5"/><rect x="20" y="86" width="13" height="6" rx="3" fill="#fff" stroke="#BDB5AC"/></g>' +
+      '<rect class="rn-k" x="23" y="20" width="5" height="8"/>' +
+      '<circle class="rn-k" cx="26" cy="14" r="8.5"/>' +
+      '<path class="rn-h" d="M17.5 15Q16 4.5 26 5.5Q34 5.5 34.5 10Q29 8 27 10L25 17Q20 19 17.5 15Z"/>' +
+      '<circle cx="31" cy="14" r="1.1" fill="#1A1714"/>' +
+      '<path d="M17.6 10.5Q26 5 34.3 9.5" stroke="#fff" stroke-width="2.4" fill="none"/>' +
+      '<g class="rn-limb rn-arm-f"><rect class="rn-k" x="22.5" y="29" width="5" height="20" rx="2.5"/><rect class="rn-c" x="22" y="28" width="6" height="8" rx="3" stroke="#fff" stroke-width=".8"/></g>' +
+    '</g></svg>';
+  const RN_ASPECT = 0.5;   // 캐릭터 가로 = 키 × 0.5
+  const HAIRS = ['#3B2A22', '#5A3A28', '#2B211C'];
+  const SKINS = ['#F2C9A5', '#E8B48C'];
 
-  // color: 팔레트 색, size: 캐릭터 키(px, 생략하면 CSS 크기), pose: 처음 자세
-  function renderRunner(color, size, pose) {
-    const rn = el('div', 'rn');
-    rn.style.setProperty('--c', cleanColor(color, COLORS[0]));
-    if (size) { rn.style.width = (size * 48 / 62).toFixed(1) + 'px'; rn.style.height = size + 'px'; }
-    rn.innerHTML = '<div class="rn-air"><div class="rn-spin">' + RUNNER_SVG + '</div></div>';   // 고정된 문자열만 넣음(사용자 입력 없음)
+  // 몸 색에 따라 머리·피부 색을 정함(같은 색이면 어느 화면에서나 같은 모습)
+  function applyLook(rn, color) {
+    const i = Math.max(0, COLORS.indexOf(color));
+    rn.style.setProperty('--c', color);
+    rn.style.setProperty('--hair', HAIRS[i % HAIRS.length]);
+    rn.style.setProperty('--skin', SKINS[(i >> 1) % SKINS.length]);
+  }
+
+  // color: 팔레트 색, size: 캐릭터 키(px, 생략하면 CSS 크기), pose: 처음 자세,
+  // view: 'front'(기본) | 'back'(달리기 화면) | 'side'(관전 레인)
+  function renderRunner(color, size, pose, view) {
+    view = view || 'front';
+    const rn = el('div', 'rn v-' + view + (view === 'side' ? '' : ' v-fb'));
+    rn._color = cleanColor(color, COLORS[0]);
+    applyLook(rn, rn._color);
+    if (size) { rn.style.width = (size * RN_ASPECT).toFixed(1) + 'px'; rn.style.height = size + 'px'; }
+    rn.innerHTML = '<div class="rn-air"><div class="rn-spin">' + (view === 'side' ? RUNNER_SIDE : RUNNER_FB) + '</div></div>';   // 고정된 문자열만 넣음(사용자 입력 없음)
     rn._rate = 0;
     setPose(rn, pose || 'still');
     return rn;
@@ -2361,7 +2430,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   function setRunnerColor(rn, color) {
     if (rn._color === color) return;
     rn._color = color;
-    rn.style.setProperty('--c', color);
+    applyLook(rn, color);
   }
 
   // 달리기 애니메이션 빠르기를 현재 속도에 맞춤(rate 1 = 기본 속도).
@@ -2388,7 +2457,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   /* ---------- 달리기 화면 ---------- */
 
   const game = {
-    scene: $('scene'), far: $('scFar'), mid: $('scMid'), stripes: $('scStripes'),
+    scene: $('scene'), road: $('scRoad'), lanes: $('scLanes'), ticksBox: $('ticks'), ticks: [],
     meBox: $('me'), rn: null, tag: null,
     finish: $('finish'), rivalsBox: $('rivals'), speedlines: $('speedlines'), hint: $('hint'),
     prompt: $('gPrompt'), pLabel: $('pLabel'), pMain: $('pMain'),
@@ -2397,33 +2466,80 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       return { el: h, dist: 0, mode: 'idle' };   // mode: 'idle'(숨김) | 'up'(서 있음) | 'down'(걸려 넘어뜨림)
     }),
     cur: 0,
-    W: 0, H: 0, charX: 0, ppm: 1, meSize: 76, meW: 59,
+    W: 0, H: 0, hz: 0, feetY: 0, halfBottom: 0, zMe: 4, meSize: 100, meW: 50, hurdleH: 36, finishH: 16, rvSize: 90,
     rivals: [], dots: new Map(),
     hinted: false, animToken: 0
   };
 
   // 장면 크기를 다시 잼(화면 회전·크기 변경 때도 불림)
+  // 원근: 카메라는 내 캐릭터 바로 뒤. 앞으로 d 미터 떨어진 것은 z = zMe + d 에 있고,
+  // 화면 높이 y = 지평선 + (내 발 높이 − 지평선) × zMe / z, 크기는 zMe / z 배로 그림
+  const LANE_LINES = [-1, -0.6, -0.2, 0.2, 0.6, 1];   // 레인 경계(트랙 반폭에 대한 비율). 나는 가운데 레인
+  const RIVAL_LANES = [-0.8, -0.4, 0.4, 0.8];
+  const TICK_GAP = 3;                                 // 트랙 눈금 간격(m)
   function measureGame() {
     if (S.screen !== 'game') return;
     game.W = game.scene.clientWidth;
     game.H = game.scene.clientHeight;
-    game.meSize = Math.round(clamp(game.H * 0.36, 50, 96));
-    game.meW = game.meSize * 48 / 62;
-    const feet = 16;
-    const ground = Math.round(game.meSize * 0.7 + feet + 20);
-    game.scene.style.setProperty('--gh', ground + 'px');
-    game.scene.style.setProperty('--feet', feet + 'px');
-    game.charX = game.W * CONFIG.charXRatio;
-    // 허들이 gateGap 만큼 떨어져 있을 때 정확히 화면 오른쪽 끝에 보이도록 축척을 정함
-    game.ppm = Math.max(40, game.W - game.charX - 16) / CONFIG.gateGap;
+    game.hz = Math.round(game.H * 0.3);
+    game.scene.style.setProperty('--hz', game.hz + 'px');
+    game.feetY = game.H - 10;
+    game.halfBottom = game.W * 0.85;
+    game.meSize = Math.round(clamp((game.H - game.hz) * 0.62, 56, 150));
+    game.meW = game.meSize * RN_ASPECT;
+    game.hurdleH = game.meSize * 0.36;
+    game.finishH = game.meSize * 0.16;
+    game.rvSize = game.meSize * 0.92;
+    // 트랙 그림(지평선~아래 끝을 0~100으로 늘려 그린 SVG)
+    const hb = game.halfBottom / Math.max(1, game.W) * 100;
+    game.road.setAttribute('points', '50,0 50,0 ' + (50 + hb).toFixed(1) + ',100 ' + (50 - hb).toFixed(1) + ',100');
+    if (!game.lanes.firstChild) {
+      LANE_LINES.forEach(function () {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('vector-effect', 'non-scaling-stroke');
+        game.lanes.appendChild(path);
+      });
+    }
+    LANE_LINES.forEach(function (f, k) { game.lanes.children[k].setAttribute('d', 'M50 0L' + (50 + hb * f).toFixed(1) + ' 100'); });
+    // 트랙을 가로지르는 거리 눈금(움직임이 보이게)
+    if (!game.ticks.length) {
+      for (let k = 0; k < 18; k++) { const t = el('div', 'tick'); game.ticksBox.appendChild(t); game.ticks.push(t); }
+    }
+    const baseW = 2 * halfAt(game.feetY);
+    game.hurdles.forEach(function (h) { h.el.style.width = baseW.toFixed(1) + 'px'; h.el.style.height = game.hurdleH.toFixed(1) + 'px'; });
+    game.finish.style.width = baseW.toFixed(1) + 'px';
+    game.finish.style.height = game.finishH.toFixed(1) + 'px';
     if (game.rn) {
       game.rn.style.width = game.meW.toFixed(1) + 'px';
       game.rn.style.height = game.meSize + 'px';
-      game.meBox.style.left = (game.charX - game.meW / 2).toFixed(1) + 'px';
+      game.meBox.style.left = (game.W / 2 - game.meW / 2).toFixed(1) + 'px';
+      game.meBox.style.bottom = (game.H - game.feetY) + 'px';
     }
-    game.rivals.forEach(function (v) { v.id = null; });
+    game.rivals.forEach(function (v) {
+      v.id = null;
+      v.rn.style.width = (game.rvSize * RN_ASPECT).toFixed(1) + 'px';
+      v.rn.style.height = game.rvSize.toFixed(1) + 'px';
+    });
     fitPrompt();
     game.btns.forEach(function (b) { if (!b.hidden) fitButton(b); });
+  }
+
+  // 화면 높이 y 에서 트랙 반폭(px)
+  function halfAt(y) {
+    return (y - game.hz) / Math.max(1, game.H - game.hz) * game.halfBottom;
+  }
+
+  // 앞쪽 거리 d(m) → 화면 높이 y 와 크기 배율 s. 카메라 뒤(보이지 않음)면 null
+  function project(d) {
+    const z = game.zMe + d;
+    if (z <= 0.4) return null;
+    const sc = game.zMe / z;
+    return { y: game.hz + (game.feetY - game.hz) * sc, s: sc };
+  }
+
+  // 내 캐릭터보다 앞(d>0)은 뒤에, 뒤(d<0)는 앞에 겹치도록
+  function zFor(d) {
+    return String(clamp(Math.round(500 - d * 10), 1, 999));
   }
 
   // 글자가 버튼에 들어갈 때까지 글자 크기를 줄임(긴 단어가 잘리지 않게). 그래도 넘치면 줄바꿈.
@@ -2480,7 +2596,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     game.scene.classList.remove('shake');
     // 내 캐릭터
     clear(game.meBox);
-    game.rn = renderRunner(S.me.color, game.meSize, 'still');
+    game.rn = renderRunner(S.me.color, game.meSize, 'still', 'back');
     game.tag = el('span', 'rn-tag mine', S.me.name || '나');
     game.rn.appendChild(game.tag);
     game.meBox.appendChild(game.rn);
@@ -2489,7 +2605,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     game.rivals = [];
     for (let i = 0; i < CONFIG.rivalCount; i++) {
       const box = el('div', 'rival');
-      const rn = renderRunner(COLORS[0], 40, 'run');
+      const rn = renderRunner(COLORS[0], game.rvSize, 'run', 'back');
       const tag = el('span', 'rn-tag');
       rn.appendChild(tag);
       box.appendChild(rn);
@@ -2595,6 +2711,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     const high = streak >= CONFIG.highJumpStreak;
     const flip = streak >= CONFIG.flipStreak && !reducedMotion;
     let height = high ? CONFIG.jumpHeightHigh : CONFIG.jumpHeight;
+    height = Math.max(height, game.hurdleH * 1.25);                       // 허들보다 확실히 높게
     height = Math.min(height, Math.max(24, game.H - game.meSize - 40));   // 장면이 낮으면 화면 밖으로 나가지 않게
     if (reducedMotion) height *= 0.6;
     const total = CONFIG.jumpSec / 0.87;     // 키프레임의 87% 지점이 착지, 나머지는 눌림
@@ -2630,30 +2747,42 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   function renderGame() {
     const R = S.race, r = R.runner;
     if (!game.W) measureGame();
-    const ppm = game.ppm;
-    const off = r.dist * ppm;
+    const cx = game.W / 2;
 
-    // 배경: 먼 언덕은 느리게, 가까운 덤불은 조금 빠르게, 바닥은 달리는 속도 그대로
-    if (!reducedMotion) {
-      game.far.style.transform = 'translate3d(' + (-((off * 0.12) % 260)).toFixed(1) + 'px,0,0)';
-      game.mid.style.transform = 'translate3d(' + (-((off * 0.35) % 140)).toFixed(1) + 'px,0,0)';
+    // 트랙 눈금: TICK_GAP 미터마다 한 줄, 다가올수록 아래로 내려오며 넓고 두꺼워짐
+    const base = ((r.dist % TICK_GAP) + TICK_GAP) % TICK_GAP;
+    for (let k = 0; k < game.ticks.length; k++) {
+      const t = game.ticks[k];
+      const p = project((k - 1) * TICK_GAP - base);
+      if (!p || p.y > game.H + 4) { if (t._on !== false) { t._on = false; t.style.display = 'none'; } continue; }
+      if (t._on !== true) { t._on = true; t.style.display = ''; }
+      const half = halfAt(p.y);
+      t.style.transform = 'translate3d(' + (cx - half).toFixed(1) + 'px,' + p.y.toFixed(1) + 'px,0) scale(' + (half * 2 / 100).toFixed(3) + ',' + Math.max(0.5, 2.2 * p.s).toFixed(2) + ')';
     }
-    game.stripes.style.transform = 'translate3d(' + (-(((off % 80) + 80) % 80)).toFixed(1) + 'px,0,0)';
 
-    // 허들: 오른쪽 끝에서 나타나 캐릭터 쪽으로 다가옴
+    // 허들: 멀리 지평선 근처에서 작게 나타나 내 발밑까지 커지며 다가옴
     for (let i = 0; i < game.hurdles.length; i++) {
       const h = game.hurdles[i];
       if (h.mode === 'idle') continue;
-      const x = game.charX + (h.dist - r.dist) * ppm + game.meW * 0.22;
-      if (x < -40) { h.mode = 'idle'; h.el.hidden = true; continue; }
-      h.el.style.transform = 'translate3d(' + (x - 10).toFixed(1) + 'px,0,0)';
+      const d = h.dist - r.dist;
+      const p = project(d);
+      if (!p || p.y - game.hurdleH * p.s > game.H) {
+        if (d < 0) h.mode = 'idle';
+        h.el.hidden = true;
+        continue;
+      }
+      if (h.el.hidden) h.el.hidden = false;
+      h.el.style.zIndex = zFor(d);
+      h.el.style.transform = 'translate3d(' + (cx - halfAt(p.y)).toFixed(1) + 'px,' + (p.y - game.hurdleH * p.s).toFixed(1) + 'px,0) scale(' + p.s.toFixed(4) + ')';
     }
 
     // 결승선
-    const finX = game.charX + (R.track - r.dist) * ppm + game.meW * 0.3;
-    if (finX < game.W + 30) {
-      game.finish.hidden = false;
-      game.finish.style.transform = 'translate3d(' + finX.toFixed(1) + 'px,0,0)';
+    const fd = R.track - r.dist;
+    const fp = fd < CONFIG.gateGap * 1.5 ? project(fd) : null;
+    if (fp && fp.y < game.H + game.finishH) {
+      if (game.finish.hidden) game.finish.hidden = false;
+      game.finish.style.zIndex = zFor(fd);
+      game.finish.style.transform = 'translate3d(' + (cx - halfAt(fp.y)).toFixed(1) + 'px,' + (fp.y - game.finishH * fp.s).toFixed(1) + 'px,0) scale(' + fp.s.toFixed(4) + ')';
     } else if (!game.finish.hidden) {
       game.finish.hidden = true;
     }
@@ -2683,29 +2812,28 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     setText($('gTime'), fmtTime(R.myState === 'done' ? R.myTime : raceClock(R)));
     renderMini(list, R.track);
 
-    // 화면 안에 들어오는 다른 참가자: 같은 트랙 위에 조금 작고 반투명하게, 먼 레인처럼 살짝 위로 어긋나게
+    // 다른 참가자: 내 양옆 레인에서 달림. 앞서 있으면 작게 멀리, 뒤처지면 크게 가까이(곧 화면 아래로 사라짐)
     let used = 0;
     for (let i = 0; i < list.length && used < game.rivals.length; i++) {
       const o = list[i];
       if (o.me) continue;
-      const x = game.charX + (o.dist - r.dist) * ppm;
-      if (x < -30 || x > game.W + 30) continue;
+      const d = o.dist - r.dist;
+      if (d > CONFIG.gateGap * 1.5) continue;
+      const p = project(d);
+      if (!p || p.y - game.rvSize * p.s > game.H) continue;
       const v = game.rivals[used++];
-      const slot = o.id.charCodeAt(o.id.length - 1) % 3;
       if (v.id !== o.id) {
         v.id = o.id;
-        const size = game.meSize * (0.8 - slot * 0.07);
-        v.rn.style.width = (size * 48 / 62).toFixed(1) + 'px';
-        v.rn.style.height = size.toFixed(1) + 'px';
-        v.w = size * 48 / 62;
-        v.lift = Math.round(game.meSize * (0.16 + slot * 0.13));
-        v.box.style.zIndex = String(3 - slot);
+        v.lane = RIVAL_LANES[o.id.charCodeAt(o.id.length - 1) % RIVAL_LANES.length];
       }
       setRunnerColor(v.rn, o.color);
       setText(v.tag, o.name);
+      v.tag.hidden = p.s < 0.4;
       setPose(v.rn, o.finished ? 'cheer' : (o.stopped ? 'still' : 'run'));
       if (!o.stopped) setRunRate(v.rn, speedToRate(o.speed, false));
-      v.box.style.transform = 'translate3d(' + (x - v.w / 2).toFixed(1) + 'px,' + (-v.lift) + 'px,0)';
+      const w = game.rvSize * RN_ASPECT;
+      v.box.style.zIndex = zFor(d);
+      v.box.style.transform = 'translate3d(' + (cx + v.lane * halfAt(p.y) - w * p.s / 2).toFixed(1) + 'px,' + (p.y - game.rvSize * p.s).toFixed(1) + 'px,0) scale(' + p.s.toFixed(4) + ')';
       if (v.box.hidden) v.box.hidden = false;
     }
     for (let i = used; i < game.rivals.length; i++) {
@@ -2777,7 +2905,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
         const track = el('div', 'lane-track');
         const rail = el('div', 'lane-rail');
         const holder = el('span', 'lane-runner');
-        const rn = renderRunner(o.color, 0, 'still');
+        const rn = renderRunner(o.color, 0, 'still', 'side');
         holder.appendChild(rn); rail.appendChild(holder); track.appendChild(rail);
         rowEl.appendChild(label); rowEl.appendChild(track);
         box.appendChild(rowEl);
@@ -3231,7 +3359,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     if (hero._c !== S.me.color) {
       hero._c = S.me.color;
       clear(hero);
-      hero.appendChild(renderRunner(S.me.color, 72, 'run'));
+      hero.appendChild(renderRunner(S.me.color, 96, 'run', 'back'));
     }
   }
 
