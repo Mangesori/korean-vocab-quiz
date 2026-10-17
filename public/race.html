@@ -393,17 +393,18 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 
 /* 단어 버튼 3개 */
 /* 영역 높이는 한 판 동안 고정(보기 수가 문제마다 달라도 장면이 출렁이지 않게). 버튼이 그 안을 나눠 가짐 */
-.answers { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 2px; height: var(--ah, 196px); flex: none; }
-.ans { position: relative; display: flex; align-items: center; justify-content: center; flex: 1 1 0; min-height: 0; min-width: 0; padding: 2px 44px; border-radius: 12px; border: 1px solid var(--line); border-bottom: 4px solid var(--line-strong); background: #fff; color: var(--ink); text-align: center; overflow: hidden; touch-action: none; transition: background-color 80ms, border-color 80ms; }
+/* 보기 버튼은 레인과 같은 순서로 왼쪽→오른쪽에 나란히(1번 = 왼쪽 레인) */
+.answers { display: flex; flex-direction: row; gap: 8px; padding: 10px 12px 2px; height: 124px; flex: none; }
+.ans { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; flex: 1 1 0; min-height: 0; min-width: 0; padding: 10px 6px 8px; border-radius: 12px; border: 1px solid var(--line); border-bottom: 4px solid var(--line-strong); background: #fff; color: var(--ink); text-align: center; overflow: hidden; touch-action: none; transition: background-color 80ms, border-color 80ms; }
 .ans:active:not(:disabled) { border-bottom-width: 2px; }
 /* 화살표·밀기로 옮겨 가는 중인 레인(곧 확정됨) */
 .ans.sel { border: 2px solid var(--ink); border-bottom-width: 4px; background: #FBF9F6; }
-.ans .k { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border-radius: 8px; background: var(--sub); color: #fff; font-size: 13px; font-weight: 800; line-height: 26px; }
+.ans .k { position: relative; flex: none; width: 26px; height: 26px; border-radius: 8px; background: var(--sub); color: #fff; font-size: 13px; font-weight: 800; line-height: 26px; }
 .ans[data-i="0"] .k { background: #B9502F; }
 .ans[data-i="1"] .k { background: #3B6FB6; }
 .ans[data-i="2"] .k { background: #7A5DB8; }
 .ans[data-i="3"] .k { background: #23766F; }
-.ans .t { display: block; width: 100%; font-size: 22px; font-weight: 700; line-height: 1.15; word-break: keep-all; }
+.ans .t { display: block; flex: none; margin: auto 0; width: 100%; font-size: 22px; font-weight: 700; line-height: 1.15; word-break: keep-all; }
 .ans:disabled { cursor: default; }
 .ans.off { opacity: .5; }
 .ans.dim { opacity: 1; color: var(--hint); border-bottom-color: var(--line); }
@@ -436,8 +437,8 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   .g-prompt .p-label { min-height: 16px; font-size: 12px; }
   .g-prompt .p-main { font-size: 22px; max-height: 34px; }
   .answers { flex-direction: row; height: 58px !important; padding-top: 6px; }
-  .ans { padding: 2px 8px 2px 36px; }
-  .ans .k { left: 6px; width: 24px; height: 24px; line-height: 24px; }
+  .ans { flex-direction: row; justify-content: center; padding: 2px 8px 2px 36px; }
+  .ans .k { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; line-height: 24px; }
   .hint { display: none; }
 }
 
@@ -2752,7 +2753,8 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     const span = btn.querySelector('.t');
     const cs = window.getComputedStyle(btn);
     const availW = btn.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    const availH = btn.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    let availH = btn.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (cs.flexDirection === 'column') availH -= btn.querySelector('.k').offsetHeight + (parseFloat(cs.rowGap) || 0);   // 번호 칸 아래 남은 높이
     if (availW <= 0 || availH <= 0) return;
     span.style.whiteSpace = 'nowrap';
     span.style.overflowWrap = 'normal';
