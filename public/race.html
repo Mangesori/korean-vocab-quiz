@@ -1242,14 +1242,15 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 
   // 문제는 두 종류입니다.
   //   단어형 {t:'w', w:단어, m:뜻}        — 한 줄에 "단어, 뜻" 또는 "단어<탭>뜻". 오답은 다른 단어형 줄에서 뽑음
-  //   문장형 {t:'s', q:문제, a:정답, d:[오답…]} — 한 줄에 "문제 | 정답 | 오답 | 오답" (오답 1~3개). 오답은 선생님이 준 것만 쓰고, 한 번에 최대 2개(보기 3개)
+  //   문장형 {t:'s', q:문제, a:정답, d:[오답, 오답]} — 한 줄에 "문제 | 정답 | 오답 | 오답". 보기는 정답 1개 + 오답 2개(레인 3개).
+  //     오답이 2개보다 적은 줄은 건너뛰고, 더 많으면 앞의 2개만 씀. 오답은 선생님이 준 것만 씀
   // 줄에 세로줄(| 또는 ｜)이 있으면 문장형, 없으면 단어형. 한 목록에 섞여 있어도 됨.
   const BLANK_RE = /\(\s*\)|（\s*）|_{2,}/;   // 문장 속 빈칸 표시: ( ), （ ）, __
 
   function parseItems(text) {
     const items = [];
     const seenW = new Set(), seenS = new Set();
-    let bad = 0;
+    let bad = 0, shortD = 0;
     const lines = String(text || '').split(/\r?\n/);
     for (let n = 0; n < lines.length && items.length < CONFIG.maxWords; n++) {
       const line = lines[n].trim();
@@ -1259,11 +1260,12 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
         const q = cells[0].slice(0, 120);
         const a = (cells[1] || '').slice(0, 60);
         const d = [];
-        for (let k = 2; k < cells.length && d.length < 3; k++) {
+        for (let k = 2; k < cells.length && d.length < 2; k++) {
           const c = cells[k].slice(0, 60);
           if (c && c !== a && d.indexOf(c) < 0) d.push(c);     // 정답과 같은 오답, 중복 오답은 뺌
         }
-        if (!q || !a || !d.length) { bad++; continue; }
+        if (!q || !a) { bad++; continue; }
+        if (d.length < 2) { shortD++; continue; }              // 오답은 꼭 2개(보기 3개)
         if (seenS.has(q)) continue;
         seenS.add(q);
         items.push({ t: 's', q: q, a: a, d: d });
@@ -1288,7 +1290,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       words = 0;
       out = items.filter(function (it) { return it.t === 's'; });
     }
-    return { items: out, sentences: sentences, wordCount: words, bad: bad, skippedWords: skippedWords };
+    return { items: out, sentences: sentences, wordCount: words, bad: bad, shortD: shortD, skippedWords: skippedWords };
   }
 
   // textarea 내용으로 실제 쓸 목록을 정함. 비어 있으면 기본 예시 목록.
@@ -1296,7 +1298,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     const empty = !String(text || '').trim();
     const p = parseItems(empty ? DEFAULT_WORDS_TEXT : text);
     return {
-      words: p.items, sentences: p.sentences, wordCount: p.wordCount, bad: p.bad, skippedWords: p.skippedWords,
+      words: p.items, sentences: p.sentences, wordCount: p.wordCount, bad: p.bad, shortD: p.shortD, skippedWords: p.skippedWords,
       usingDefault: empty, ok: p.items.length >= CONFIG.minWords
     };
   }
@@ -1312,6 +1314,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     if (info.usingDefault) return '비워 두면 기본 예시 단어 ' + info.words.length + '개로 달려요';
     let text = kindsLabel(info.sentences, info.wordCount) + ' 인식됨';
     if (info.bad) text += ' (' + info.bad + '줄은 형식이 달라 건너뜀)';
+    if (info.shortD) text += ' · 문장형은 오답이 2개 있어야 해서 ' + info.shortD + '줄을 건너뛰었어요';
     if (info.skippedWords) text += ' · 단어형은 4개 이상이어야 해서 ' + info.skippedWords + '줄을 건너뛰었어요';
     if (!info.ok) text += ' · 문제가 최소 ' + CONFIG.minWords + '개 필요해요';
     return text;
@@ -1329,12 +1332,12 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
         if (typeof it.q !== 'string' || typeof it.a !== 'string' || !Array.isArray(it.d)) return null;
         const q = it.q.trim().slice(0, 120), a = it.a.trim().slice(0, 60);
         const d = [];
-        for (let k = 0; k < it.d.length && d.length < 3; k++) {
+        for (let k = 0; k < it.d.length && d.length < 2; k++) {
           if (typeof it.d[k] !== 'string') return null;
           const c = it.d[k].trim().slice(0, 60);
           if (c && c !== a && d.indexOf(c) < 0) d.push(c);
         }
-        if (!q || !a || !d.length) return null;
+        if (!q || !a || d.length < 2) return null;
         out.push({ t: 's', q: q, a: a, d: d });
       } else {
         if (typeof it.w !== 'string' || typeof it.m !== 'string') return null;
@@ -1459,7 +1462,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       // 문장형: 선생님이 준 오답만 쓰고, 보기 순서는 매번 섞음
       prompt = it.q;
       answer = it.a;
-      options = shuffle([it.a].concat(shuffle(it.d.slice()).slice(0, 2)));   // 보기는 최대 3개(레인 3개). 오답이 3개면 매번 2개를 골라 씀
+      options = shuffle([it.a].concat(it.d));   // 정답 1 + 오답 2 = 보기 3개(레인 3개)
     } else {
       // 단어형: 오답은 다른 단어형 줄에서. 뜻이 같은 단어는 정답이 둘이 되므로 피함
       let pool = [];
@@ -2999,7 +3002,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       let lane = game.pendingLane != null ? game.pendingLane : game.laneTarget;
       if (lane == null) {
         const pos = (game.laneF + 1) * n0 / 2 - 0.5;
-        if (Math.abs(pos - Math.round(pos)) < 0.05) lane = Math.round(pos);   // 레인 사이(보기 2개일 때 가운데)면 답 없음
+        if (Math.abs(pos - Math.round(pos)) < 0.05) lane = Math.round(pos);   // 레인 사이에 서 있으면 답 없음
       }
       if (lane != null && lane >= 0 && lane < n0) { game.pendingLane = lane; commitLane(); }
     }
