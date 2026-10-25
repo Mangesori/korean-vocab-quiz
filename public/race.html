@@ -744,7 +744,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       <div class="hurdle" hidden><i><b class="h-lanes"></b></i></div>
       <div class="hurdle" hidden><i><b class="h-lanes"></b></i></div>
       <div id="me" class="mebox"></div>
-      <div id="hint" class="hint" hidden><span>허들에 닿을 때 서 있는 레인이 답이에요 · 버튼, ← →, 밀기</span></div>
+      <div id="hint" class="hint" hidden><span id="hintText">← →로 옮기고 스페이스로 확정 · 기다리면 서 있는 레인이 답</span></div>
     </div>
     <div class="answers">
       <button class="ans" type="button" data-i="0"><span class="k">1</span><span class="t"></span></button>
@@ -858,7 +858,6 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     wrongMinTotalSec: 3.6,  // 단, 문제가 나온 지 이 시간(초)이 되기 전에는 당겨 오지 않음. 바로 찍으면 이만큼은 기다려야 해서 찍기가 손해로 남음
     botRefReadSec: 2.0,     // 컴퓨터 상대의 react 는 읽는 시간이 이 값인 문제 기준. 긴 문제는 그만큼 비례해서 오래 걸림
     // --- 정답: 점프 ---
-    laneSettleMs: 400,      // 화살표·밀기로 레인을 옮긴 뒤 이만큼 더 움직이지 않으면 그 레인을 답으로 확정(버튼·숫자 키는 바로 확정)
     jumpSec: 0.6,           // 점프해서 착지하기까지 시간(초). 꼭대기(절반 시점)에서 허들 위를 지나감
     jumpHeight: 46,         // 점프 높이(px)
     jumpHeightHigh: 66,     // 연속 정답이 highJumpStreak 이상일 때 점프 높이(px)
@@ -2277,7 +2276,6 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     q.picked = i;
     game.laneTarget = i;
     game.pendingLane = null;
-    clearTimeout(game.settleTimer);
     drawLanes();
     const ok = i === q.answerIdx;
     setAnswer(r, ok);
@@ -2288,7 +2286,8 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     showPickFeedback(q, ok);
   }
 
-  // 화살표·밀기: 레인을 한 칸 옮기고, laneSettleMs 동안 더 움직이지 않으면 그 레인을 답으로 확정
+  // 화살표·밀기: 레인을 한 칸 옮기기만 함(답은 정하지 않음).
+  // 확정은 스페이스·↑·엔터·위로 밀기(confirmLane) 또는 그 레인 버튼, 아무것도 안 하면 허들 바로 앞에서 자동
   function steer(delta) {
     const R = S.race;
     if (!R || R.myState !== 'running') return;
@@ -2308,15 +2307,26 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     game.laneTarget = lane;
     drawLanes();
     game.btns.forEach(function (b, i) { b.classList.toggle('sel', i === lane); });
-    game.hinted = true;
-    game.hint.hidden = true;
-    clearTimeout(game.settleTimer);
-    game.settleTimer = setTimeout(commitLane, CONFIG.laneSettleMs);
   }
 
-  function commitLane() {
-    clearTimeout(game.settleTimer);
-    const lane = game.pendingLane;
+  // 지금 서 있는 레인: 옮기는 중인 레인 → 마지막으로 고른 레인 → 아직 고른 적 없으면 서 있는 자리가 레인 한가운데일 때 그 레인
+  function standingLane(n) {
+    let lane = game.pendingLane != null ? game.pendingLane : game.laneTarget;
+    if (lane == null) {
+      const pos = (game.laneF + 1) * n / 2 - 0.5;
+      if (Math.abs(pos - Math.round(pos)) < 0.05) lane = Math.round(pos);   // 레인 사이에 서 있으면 답 없음
+    }
+    return lane != null && lane >= 0 && lane < n ? lane : null;
+  }
+
+  // 스페이스·↑·엔터·위로 밀기: 지금 서 있는 레인을 답으로 확정
+  function confirmLane() {
+    const R = S.race;
+    if (!R || R.myState !== 'running' || !R.q || R.q.picked != null) return;
+    commitLane(standingLane(R.q.options.length));
+  }
+
+  function commitLane(lane) {
     game.pendingLane = null;
     game.btns.forEach(function (b) { b.classList.remove('sel'); });
     if (lane != null) pickAnswer(lane);
@@ -2656,7 +2666,7 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     cur: 0,
     W: 0, H: 0, hz: 0, vpY: 0, feetY: 0, halfBottom: 0, zMe: 4, meSize: 100, meW: 50, hurdleH: 36, finishH: 16, rvSize: 90,
     rivals: [], dots: new Map(),
-    nLanes: 3, laneTarget: null, laneF: 0, pendingLane: null, settleTimer: 0, lastT: 0, hb: null, ht: null,
+    nLanes: 3, laneTarget: null, laneF: 0, pendingLane: null, lastT: 0, hb: null, ht: null,
     hinted: false, animToken: 0
   };
 
@@ -2798,7 +2808,6 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
 
   function resetGameView() {
     game.laneTarget = null; game.laneF = 0; game.pendingLane = null; game.lastT = 0; game.nLanes = 3;
-    clearTimeout(game.settleTimer);
     game.hurdles.forEach(function (h) { h.mode = 'idle'; h.el.hidden = true; h.el.classList.remove('down'); });
     game.cur = 0;
     game.hinted = false;
@@ -2857,7 +2866,6 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       if (game.laneTarget != null) game.laneTarget = Math.min(game.laneTarget, n - 1);
     }
     game.pendingLane = null;
-    clearTimeout(game.settleTimer);
     drawLanes();
     const signs = h.el.querySelector('.h-lanes');
     clear(signs);
@@ -2998,13 +3006,8 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
     const q0 = R.q;
     if (q0 && q0.picked == null && !q0.resolved && r.stun <= 0 && r.gateDist !== Infinity &&
         r.gateDist - r.dist <= r.speed * CONFIG.jumpSec / 2 + 1.5) {
-      const n0 = q0.options.length;
-      let lane = game.pendingLane != null ? game.pendingLane : game.laneTarget;
-      if (lane == null) {
-        const pos = (game.laneF + 1) * n0 / 2 - 0.5;
-        if (Math.abs(pos - Math.round(pos)) < 0.05) lane = Math.round(pos);   // 레인 사이에 서 있으면 답 없음
-      }
-      if (lane != null && lane >= 0 && lane < n0) { game.pendingLane = lane; commitLane(); }
+      const lane = standingLane(q0.options.length);
+      if (lane != null) commitLane(lane);
     }
 
     // 트랙 눈금: TICK_GAP 미터마다 한 줄, 다가올수록 아래로 내려오며 넓고 두꺼워짐
@@ -3787,6 +3790,11 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       if (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4') { e.preventDefault(); pickAnswer(Number(e.key) - 1); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); steer(-1); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); steer(1); }
+      else if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'ArrowUp' || e.key === 'Enter') { e.preventDefault(); confirmLane(); }
+    });
+    // 스페이스를 뗄 때 포커스된 버튼이 눌리지 않게(확정은 keydown 에서 함)
+    document.addEventListener('keyup', function (e) {
+      if (S.screen === 'game' && (e.key === ' ' || e.key === 'Spacebar')) e.preventDefault();
     });
     // 밀기(스와이프): 보기 버튼 밖(달리기 장면·문제 칸)에서 좌우로 밀면 레인을 옮김
     let swipe = null;
@@ -3800,6 +3808,9 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
       if (Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy) * 1.2) {
         steer(dx > 0 ? 1 : -1);
         swipe.x = e.clientX; swipe.y = e.clientY;   // 계속 밀면 한 칸 더
+      } else if (dy < -36 && -dy > Math.abs(dx) * 1.2) {
+        confirmLane();                               // 위로 밀기 = 확정
+        swipe = null;
       }
     });
     $('scr-game').addEventListener('pointerup', function () { swipe = null; });
@@ -3842,6 +3853,9 @@ textarea.field { min-height: 150px; resize: vertical; line-height: 1.5; font-siz
   }
 
   function init() {
+    try {
+      if (window.matchMedia('(pointer: coarse)').matches) setText($('hintText'), '좌우로 밀어 옮기고 위로 밀어 확정 · 기다리면 서 있는 레인이 답');
+    } catch (e) { /* 안내 문구는 기본값 */ }
     bindEvents();
     updateMuteButton();
     $('btnQuit').innerHTML = ICON_CLOSE;
