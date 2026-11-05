@@ -56,7 +56,6 @@ interface AudioRow {
   sentence: string;
   sentence_audio_url: string | null;
   audio_attempts: number;
-  mode?: string;
 }
 
 interface QuizRow {
@@ -159,7 +158,7 @@ function audioTextFor(table: AudioTable, row: AudioRow, quiz: QuizRow): { text: 
 
 const ROW_COLUMNS: Record<AudioTable, string> = {
   quiz_problems: "id, quiz_id, problem_id, sentence, sentence_audio_url, audio_attempts",
-  recording_problems: "id, quiz_id, problem_id, sentence, sentence_audio_url, audio_attempts, mode",
+  recording_problems: "id, quiz_id, problem_id, sentence, sentence_audio_url, audio_attempts",
 };
 
 async function loadRow(admin: Admin, table: AudioTable, id: string): Promise<AudioRow | null> {
@@ -216,12 +215,8 @@ async function processRow(admin: Admin, item: WorkItem, force: boolean): Promise
     if (!row) return { url: null, error: "행을 찾을 수 없음" };
 
     if (!force) {
-      // claim 이후 다른 곳에서 이미 채웠거나 녹음 방식이 바뀌었으면 할 일이 없다.
+      // claim 이후 다른 곳에서 이미 채웠으면 할 일이 없다.
       if (row.sentence_audio_url) return { url: row.sentence_audio_url, error: null };
-      if (item.table === "recording_problems" && row.mode !== "listen") {
-        await admin.from(item.table).update({ audio_locked_until: null }).eq("id", item.id);
-        return { url: null, error: null };
-      }
     } else {
       // 강제 처리 중에는 cron이 같은 행을 집어가지 않게 잠가 둔다(시도 횟수는 늘리지 않음).
       await admin

@@ -348,8 +348,8 @@ export function RecordingProblemList({
     });
   };
 
-  // 듣고 말하기인데 음성이 아직 없고 서버가 포기하지도 않은 행 = 만드는 중
-  // (저장된 원본 기준 — 저장 전 모드 변경은 아직 서버가 모른다)
+  // 듣고 말하기인데 음성이 아직 없고 서버가 포기하지도 않은 행 = 만드는 중.
+  // 보고 말하기는 퀴즈의 read_mode_audio가 꺼져 있으면(지난 퀴즈) 서버가 만들지 않으므로 표시하지 않는다.
   const isAudioPending = (problem: RecordingProblem) =>
     problems.find((o) => o.id === problem.id)?.mode === "listen" &&
     !problem.sentence_audio_url &&

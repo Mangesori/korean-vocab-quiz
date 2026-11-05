@@ -94,7 +94,6 @@ export async function fetchFailedAudioTargets(quizId: string): Promise<AudioTarg
       .from("recording_problems")
       .select("id")
       .eq("quiz_id", quizId)
-      .eq("mode", "listen")
       .is("sentence_audio_url", null)
       .gte("audio_attempts", AUDIO_MAX_ATTEMPTS),
   ]);
