@@ -35,6 +35,9 @@ interface RecordingEditCardProps {
   onChangeTranslation: (value: string) => void;
   onChangeMode: (mode: "read" | "listen") => void;
   audioUrl?: string;
+  /** 서버가 이 문장의 음성을 아직 만드는 중 */
+  audioPending?: boolean;
+  /** 있으면 재생 버튼을 보인다(음성 URL이 없으면 호출 측이 브라우저 음성으로 대체). */
   onPlayAudio?: () => void;
   onRegenerateAudio?: () => void;
   regeneratingAudio?: boolean;
@@ -58,6 +61,7 @@ export function RecordingEditCard({
   onChangeTranslation,
   onChangeMode,
   audioUrl,
+  audioPending = false,
   onPlayAudio,
   onRegenerateAudio,
   regeneratingAudio = false,
@@ -134,13 +138,19 @@ export function RecordingEditCard({
               </span>
             )}
           </div>
-          <div className="flex gap-1">
+          <div className="flex items-center gap-1">
+            {audioPending && !audioUrl && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11.5px] text-muted-foreground whitespace-nowrap">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                음성 준비 중
+              </span>
+            )}
             {onPlayAudio && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onPlayAudio}
-                disabled={!audioUrl}
+                title={audioUrl ? undefined : "브라우저 음성으로 미리 듣기"}
                 className="text-muted-foreground hover:!bg-accent/30 hover:text-foreground"
               >
                 <Volume2 className="w-4 h-4" />

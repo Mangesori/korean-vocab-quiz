@@ -1,66 +1,77 @@
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Problem } from "./useQuizData";
-import { generateTtsAudio, type TtsProvider } from "@/utils/ttsService";
+import { regenerateAudio } from "@/lib/audio/processAudio";
+
+const CHUNK = 30;
 
 export function useAudioGeneration(quizId: string | undefined) {
+  const queryClient = useQueryClient();
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [audioProgress, setAudioProgress] = useState({ current: 0, total: 0 });
   const [regeneratingProblemId, setRegeneratingProblemId] = useState<string | null>(null);
 
-  // Helper to generate and upload a single audio file
-  const generateAndUploadAudio = async (
-    text: string,
-    problemId: string,
-    answer: string,
-    ttsProvider: TtsProvider = "elevenlabs",
-  ): Promise<string | null> => {
-    if (!quizId) return null;
+  /**
+   * quiz_problems 행을 현재 문장으로 맞추고 행 id를 돌려준다.
+   * 빈칸 채우기 편집은 quizzes.problems(JSON)만 고치므로, 서버가 옛 문장으로
+   * 음성을 만들지 않게 하려면 먼저 행 문장을 맞춰야 한다. 음성 URL은 건드리지 않는다.
+   */
+  const syncRows = async (problems: Problem[]): Promise<Map<string, string>> => {
+    const ids = new Map<string, string>();
+    if (!quizId || problems.length === 0) return ids;
+    const { data, error } = await supabase
+      .from("quiz_problems")
+      .upsert(
+        problems.map((p) => ({
+          quiz_id: quizId,
+          problem_id: p.id,
+          word: p.word,
+          sentence: p.sentence,
+          hint: p.hint,
+          translation: p.translation,
+        })),
+        { onConflict: "quiz_id,problem_id" },
+      )
+      .select("id, problem_id");
+    if (error) throw error;
+    (data ?? []).forEach((r) => ids.set(r.problem_id, r.id));
+    return ids;
+  };
 
-    try {
-      // 빈칸을 정답으로 대체하여 완전한 문장 만들기
-      let cleanText = text.replace(/\(\s*\)|\(\)/g, answer);
-      cleanText = cleanText.replace(/([.?!])\s*\.+\s*$/, "$1").replace(/\.\s*\.$/, ".");
-
-      const audioBlob = await generateTtsAudio(cleanText, ttsProvider);
-
-      if (!audioBlob) {
-        console.error(`TTS generation failed`);
-        return null;
+  const regenerate = async (
+    problems: Problem[],
+    onAudioGenerated: (problemId: string, url: string) => void,
+    onChunkDone?: (done: number) => void,
+  ): Promise<{ ok: number; failed: number }> => {
+    let ok = 0;
+    let failed = 0;
+    for (let i = 0; i < problems.length; i += CHUNK) {
+      const chunk = problems.slice(i, i + CHUNK);
+      const rowIds = await syncRows(chunk);
+      const problemIdByRow = new Map([...rowIds].map(([pid, rid]) => [rid, pid]));
+      const results = await regenerateAudio([...rowIds.values()].map((id) => ({ table: "quiz_problems" as const, id })));
+      for (const r of results) {
+        const pid = problemIdByRow.get(r.id);
+        if (r.url && pid) {
+          ok++;
+          onAudioGenerated(pid, r.url);
+        } else {
+          failed++;
+        }
       }
-
-      const timestamp = Date.now();
-      const fileName = `${quizId}/${problemId}_${timestamp}.mp3`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('quiz-audio')
-        .upload(fileName, audioBlob, {
-          contentType: 'audio/mpeg',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        console.error(`Audio upload failed:`, uploadError);
-        return null;
-      }
-
-      const { data: urlData } = supabase.storage
-        .from('quiz-audio')
-        .getPublicUrl(fileName);
-
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error(`TTS error:`, error);
-      return null;
+      onChunkDone?.(Math.min(i + CHUNK, problems.length));
     }
+    queryClient.invalidateQueries({ queryKey: ["quizAudio", quizId] });
+    queryClient.invalidateQueries({ queryKey: ["audioStatus", quizId] });
+    return { ok, failed };
   };
 
   const regenerateAllAudio = async (
     problems: Problem[],
     onAudioGenerated: (problemId: string, url: string) => void,
-    ttsProvider: TtsProvider = "elevenlabs",
   ) => {
     if (!quizId) return;
 
@@ -68,56 +79,11 @@ export function useAudioGeneration(quizId: string | undefined) {
     setAudioProgress({ current: 0, total: problems.length });
 
     try {
-      // 순차적으로 TTS 생성 (429 에러 방지)
-      for (let i = 0; i < problems.length; i++) {
-        const problem = problems[i];
-        setAudioProgress({ current: i + 1, total: problems.length });
-        
-        const audioUrl = await generateAndUploadAudio(
-          problem.sentence,
-          problem.id,
-          problem.answer,
-          ttsProvider,
-        );
-
-        if (audioUrl) {
-          onAudioGenerated(problem.id, audioUrl);
-
-          // quiz_problems 테이블 업데이트 (행이 없으면 삽입)
-          await supabase
-            .from("quiz_problems")
-            .upsert({
-              quiz_id: quizId,
-              problem_id: problem.id,
-              word: problem.word,
-              sentence: problem.sentence,
-              hint: problem.hint,
-              translation: problem.translation,
-              sentence_audio_url: audioUrl,
-            }, { onConflict: 'quiz_id,problem_id' });
-
-          // recording_problems도 동기화 (listen 모드 문제에 오디오 URL 반영)
-          // 단, recording 문장이 fill_blank 완성 문장과 같은 경우(A1/A2)에만 동기화.
-          // B1+ 짧은 문장 recording은 자체 오디오를 유지해야 하므로 덮어쓰지 않음.
-          const filledSentence = problem.sentence
-            .replace(/\(\s*\)|\(\)/g, problem.answer)
-            .replace(/([.?!])\s*\.+\s*$/, "$1")
-            .trim();
-          await supabase
-            .from("recording_problems")
-            .update({ sentence_audio_url: audioUrl })
-            .eq("quiz_id", quizId)
-            .eq("problem_id", problem.id)
-            .eq("sentence", filledSentence);
-        }
-
-        // rate limit 방지: 마지막 문제 제외하고 1초 대기
-        if (i < problems.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-
-      toast.success("음성 생성이 완료되었습니다!");
+      const { failed } = await regenerate(problems, onAudioGenerated, (done) =>
+        setAudioProgress({ current: done, total: problems.length }),
+      );
+      if (failed > 0) toast.error(`음성 ${failed}개를 만들지 못했어요`);
+      else toast.success("음성 생성이 완료되었습니다!");
     } catch (error) {
       console.error("Audio generation error:", error);
       toast.error("음성 생성에 실패했습니다");
@@ -130,51 +96,15 @@ export function useAudioGeneration(quizId: string | undefined) {
   const regenerateSingleAudio = async (
     problem: Problem,
     onAudioGenerated: (problemId: string, url: string) => void,
-    ttsProvider: TtsProvider = "elevenlabs",
   ) => {
     if (!quizId) return;
 
     setRegeneratingProblemId(problem.id);
 
     try {
-      const audioUrl = await generateAndUploadAudio(
-        problem.sentence,
-        problem.id,
-        problem.answer,
-        ttsProvider,
-      );
-
-      if (audioUrl) {
-        // quiz_problems 테이블 업데이트 (행이 없으면 삽입)
-        await supabase
-          .from("quiz_problems")
-          .upsert({
-            quiz_id: quizId,
-            problem_id: problem.id,
-            word: problem.word,
-            sentence: problem.sentence,
-            hint: problem.hint,
-            translation: problem.translation,
-            sentence_audio_url: audioUrl,
-          }, { onConflict: 'quiz_id,problem_id' });
-
-        // recording_problems도 동기화 (listen 모드 문제에 오디오 URL 반영)
-        // 단, recording 문장이 fill_blank 완성 문장과 같은 경우(A1/A2)에만 동기화.
-        // B1+ 짧은 문장 recording은 자체 오디오를 유지해야 하므로 덮어쓰지 않음.
-        const filledSentence = problem.sentence
-          .replace(/\(\s*\)|\(\)/g, problem.answer)
-          .replace(/([.?!])\s*\.+\s*$/, "$1")
-          .trim();
-        await supabase
-          .from("recording_problems")
-          .update({ sentence_audio_url: audioUrl })
-          .eq("quiz_id", quizId)
-          .eq("problem_id", problem.id)
-          .eq("sentence", filledSentence);
-
-        onAudioGenerated(problem.id, audioUrl);
-        toast.success(`"${problem.word}" 문제의 음성이 재생성되었습니다`);
-      }
+      const { ok } = await regenerate([problem], onAudioGenerated);
+      if (ok > 0) toast.success(`"${problem.word}" 문제의 음성이 재생성되었습니다`);
+      else toast.error("음성 재생성에 실패했습니다");
     } catch (error) {
       console.error("Single audio generation error:", error);
       toast.error("음성 재생성에 실패했습니다");
@@ -199,4 +129,3 @@ export function useAudioGeneration(quizId: string | undefined) {
     playAudio
   };
 }
-

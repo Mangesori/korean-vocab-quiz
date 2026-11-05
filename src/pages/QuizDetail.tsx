@@ -46,6 +46,8 @@ import { WordMagnetProblemList, WordMagnetProblem } from "@/components/quiz/Word
 import { parseSentenceToItems } from "@/lib/korean/wordMagnet";
 import { isShortSentenceLevel } from "@/lib/quiz";
 import type { TtsProvider } from "@/utils/ttsService";
+import { saveQuizTtsProvider, startAudioProcessing } from "@/lib/audio/processAudio";
+import { AudioStatusBadge } from "@/components/quiz/AudioStatusBadge";
 import { QuizAssignedStudents } from "@/components/quiz/QuizAssignedStudents";
 
 export default function QuizDetail() {
@@ -104,6 +106,10 @@ export default function QuizDetail() {
   }, [quiz?.problems]);
 
   // 기본 탭: 퀴즈 로드 시 정규 순서상 첫 활성 유형으로 1회 초기화 (빈칸은 항상 유효)
+  useEffect(() => {
+    if (quiz?.tts_provider) setTtsProvider(quiz.tts_provider);
+  }, [quiz?.tts_provider]);
+
   const tabInitRef = useRef(false);
   useEffect(() => {
     if (!quiz || tabInitRef.current) return;
@@ -559,8 +565,6 @@ export default function QuizDetail() {
           problem_id: p.id,
           sentence,
           mode: "read" as const,
-          // short_sentence는 빈칸 문장과 달라 기존 오디오(빈칸 기준)를 재사용하면 안 됨.
-          sentence_audio_url: useShort ? null : (audioUrls[p.id] || null),
           translation: (useShort ? (p.short_translation ?? p.translation) : p.translation) || null,
           source_type: "reuse" as const,
         };
@@ -584,6 +588,7 @@ export default function QuizDetail() {
         throw new Error("퀴즈 설정 업데이트 실패: " + updateError.message);
       }
 
+      startAudioProcessing(quiz.id);
       toast.success("말하기 연습이 추가되었습니다!");
       refetchQuiz();
       refetchRecording();
@@ -893,11 +898,23 @@ export default function QuizDetail() {
     handleSendQuiz(selectedClassId, () => setSelectedClassId(""));
   };
 
+  // 음성 엔진 선택은 퀴즈에 저장한다 — 서버가 음성을 만들 때 이 값을 쓴다.
+  const handleTtsProviderChange = (provider: TtsProvider) => {
+    setTtsProvider(provider);
+    if (!quiz) return;
+    queryClient.setQueryData(['quiz', quiz.id], (prev: typeof quiz | undefined) =>
+      prev ? { ...prev, tts_provider: provider } : prev
+    );
+    void saveQuizTtsProvider(quiz.id, provider).then((ok) => {
+      if (!ok) toast.error("음성 엔진 설정을 저장하지 못했어요");
+    });
+  };
+
   const handleRegenerateAll = () => {
     if (quiz) {
       regenerateAllAudio(quiz.problems, (pid, url) => {
         setAudioUrls(prev => ({ ...prev, [pid]: url }));
-      }, ttsProvider);
+      });
     }
   };
 
@@ -1071,6 +1088,7 @@ export default function QuizDetail() {
           </TabsList>
 
           <TabsContent value="problems" className="mt-0">
+            <AudioStatusBadge quizId={quiz.id} className="mb-4" />
             {/* 문제 유형 서브 탭 */}
             {/* 모바일은 2열 격자 — 가운데 정렬 flex-wrap이면 라벨 길이에 따라
                 한 줄에 1개만 들어가는 줄이 생겨 들쭉날쭉해진다. 격자로 두면
@@ -1248,7 +1266,7 @@ export default function QuizDetail() {
                 onAddProblem={handleAddFillBlankProblem}
                 onRegenerateSingleAudio={(problem) => regenerateSingleAudio(problem, (pid, url) => {
                   setAudioUrls(prev => ({ ...prev, [pid]: url }));
-                }, ttsProvider)}
+                })}
                 isGeneratingAudio={isGeneratingAudio}
                 audioProgress={audioProgress}
                 regeneratingProblemId={regeneratingProblemId}
@@ -1262,7 +1280,7 @@ export default function QuizDetail() {
                 changedCount={changedProblemCount}
                 wordsPerSet={quiz.words_per_set}
                 ttsProvider={ttsProvider}
-                onTtsProviderChange={setTtsProvider}
+                onTtsProviderChange={handleTtsProviderChange}
               />
             </div>
 
@@ -1352,7 +1370,7 @@ export default function QuizDetail() {
                   translationLanguage={quiz.translation_language}
                   apiProvider={quiz.api_provider as "openai" | "gemini" | "gemini-pro" | undefined}
                   ttsProvider={ttsProvider}
-                  onTtsProviderChange={setTtsProvider}
+                  onTtsProviderChange={handleTtsProviderChange}
                 />
               </div>
             )}

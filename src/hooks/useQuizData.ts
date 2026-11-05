@@ -41,6 +41,7 @@ export interface Quiz {
   type_answer_enabled?: boolean;
   word_magnet_enabled?: boolean;
   source?: string | null;
+  tts_provider?: "elevenlabs" | "azure";
 }
 
 export type Class = ClassModel;

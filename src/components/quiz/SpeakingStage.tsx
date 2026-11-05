@@ -21,6 +21,8 @@ import { renderSentenceWithFeedback } from "@/components/quiz/quizResultUtils";
 import { QuizStageHeader } from "@/components/quiz/shared/QuizStageHeader";
 import { HintButton } from "@/components/quiz/shared/HintButton";
 import { unmaskTranslation } from "@/utils/maskTranslation";
+import { isSpeechSynthesisSupported, speakKorean, stopSpeaking } from "@/lib/audio/browserSpeech";
+import { cleanSentenceEnding } from "@/lib/audio/sentenceText";
 
 interface SpeakingProblem {
   id: string;
@@ -148,6 +150,8 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
   const [wantsRetry, setWantsRetry] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [playingSpeed, setPlayingSpeed] = useState<0.7 | 1 | null>(null);
+  // 서버 음성이 없을 때 쓰는 브라우저 음성이 이 기기에서 안 되는지
+  const [speechUnavailable, setSpeechUnavailable] = useState(() => !isSpeechSynthesisSupported());
 
   const currentProblem = problems[currentIndex];
   const currentAttempts = attempts[currentProblem?.id] || [];
@@ -162,8 +166,15 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
       if (audioRef.current) {
         audioRef.current.pause();
       }
+      stopSpeaking();
     };
   }, []);
+
+  // 문제를 넘기면 읽던 브라우저 음성을 멈춘다.
+  useEffect(() => {
+    stopSpeaking();
+    setPlayingSpeed(null);
+  }, [currentIndex]);
 
   useEffect(() => {
     if (onProgressUpdate && problems.length > 0) {
@@ -313,6 +324,22 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
     audio.play();
   };
 
+  // 저장된 음성이 있으면 그것, 없으면 브라우저 음성으로 문장을 읽는다(문장은 화면에 보이지 않음).
+  const playSentence = (speed: 0.7 | 1) => {
+    if (currentProblem.sentenceAudioUrl) {
+      playAudio(currentProblem.sentenceAudioUrl, speed);
+      return;
+    }
+    if (audioRef.current) audioRef.current.pause();
+    setPlayingSpeed(speed);
+    void speakKorean(cleanSentenceEnding(currentProblem.sentence), { rate: speed }).then((ok) => {
+      setPlayingSpeed(null);
+      if (!ok) setSpeechUnavailable(true);
+    });
+  };
+
+  const canPlaySentence = !!currentProblem?.sentenceAudioUrl || !speechUnavailable;
+
   const handleNext = () => {
     setWantsRetry(false);
     if (currentIndex < problems.length - 1) {
@@ -364,14 +391,16 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center space-y-4 sm:space-y-6">
+                  {!canPlaySentence ? (
+                    <p className="text-sm sm:text-base text-muted-foreground text-center">
+                      이 기기에서는 음성을 재생할 수 없어요
+                    </p>
+                  ) : (
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
-                      onClick={() =>
-                        currentProblem.sentenceAudioUrl &&
-                        playAudio(currentProblem.sentenceAudioUrl, 1)
-                      }
-                      disabled={playingSpeed !== null || !currentProblem.sentenceAudioUrl}
+                      onClick={() => playSentence(1)}
+                      disabled={playingSpeed !== null}
                       className="flex items-center justify-center rounded-xl px-3 sm:px-5 h-9 sm:h-11 bg-white hover:bg-[#FAF8F5] transition-colors shadow-sm text-xs sm:text-sm"
                     >
                       {playingSpeed === 1 ? (
@@ -384,11 +413,8 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() =>
-                        currentProblem.sentenceAudioUrl &&
-                        playAudio(currentProblem.sentenceAudioUrl, 0.7)
-                      }
-                      disabled={playingSpeed !== null || !currentProblem.sentenceAudioUrl}
+                      onClick={() => playSentence(0.7)}
+                      disabled={playingSpeed !== null}
                       className="flex items-center justify-center rounded-xl px-3 sm:px-5 h-9 sm:h-11 bg-white hover:bg-[#FAF8F5] transition-colors shadow-sm text-xs sm:text-sm"
                     >
                       {playingSpeed === 0.7 ? (
@@ -400,6 +426,7 @@ export function SpeakingStage({ quizId, problems, onProgressUpdate, onComplete, 
                       <span className="font-semibold hidden sm:inline">천천히 듣기</span>
                     </Button>
                   </div>
+                  )}
                 </div>
               )}
 

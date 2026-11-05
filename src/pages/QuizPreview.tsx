@@ -36,7 +36,8 @@ import { isShortSentenceLevel } from "@/lib/quiz";
 import { quizInsertErrorMessage, readEdgeFunctionError } from "@/lib/supabaseErrors";
 import { STAGE_ORDER, STAGE_LABELS, type BaseStage } from "@/types/quiz";
 import type { Problem, SentenceMakingProblem, RecordingProblem, MatchupProblem, TypeAnswerProblem, WordMagnetProblem, QuizDraft } from "@/types/quiz";
-import { generateTtsAudio, type TtsProvider } from "@/utils/ttsService";
+import type { TtsProvider } from "@/utils/ttsService";
+import { startAudioProcessing } from "@/lib/audio/processAudio";
 import { FeedbackPromptCard } from "@/components/feedback/FeedbackPromptCard";
 import { CheckCircle2 } from "lucide-react";
 
@@ -921,47 +922,6 @@ export default function QuizPreview() {
     return shuffled;
   };
 
-  const generateAndUploadAudio = async (
-    text: string,
-    quizId: string,
-    problemId: string,
-    type: "sentence" | "hint" | "recording"
-  ): Promise<string | null> => {
-    try {
-      const problem = draft.problems.find((p) => p.id === problemId);
-      let cleanText = text;
-      if (type === "sentence" && problem) {
-        cleanText = text.replace(/\(\s*\)|\(\)/g, problem.answer);
-      }
-      cleanText = cleanText.replace(/([.?!])\s*\.+\s*$/, "$1").replace(/\.\s*\.$/, ".");
-
-      const audioBlob = await generateTtsAudio(cleanText, draft.ttsProvider || "elevenlabs");
-
-      if (!audioBlob) {
-        console.error(`TTS generation failed for ${type}`);
-        return null;
-      }
-
-      const fileName = `${quizId}/${problemId}_${type}.mp3`;
-
-      const { error: uploadError } = await supabase.storage.from("quiz-audio").upload(fileName, audioBlob, {
-        contentType: "audio/mpeg",
-        upsert: true,
-      });
-
-      if (uploadError) {
-        console.error(`Audio upload failed for ${type}:`, uploadError);
-        return null;
-      }
-
-      const { data: urlData } = supabase.storage.from("quiz-audio").getPublicUrl(fileName);
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error(`TTS error for ${type}:`, error);
-      return null;
-    }
-  };
-
   const saveQuiz = async () => {
     setIsSaving(true);
 
@@ -995,6 +955,7 @@ export default function QuizPreview() {
         matchup_enabled: draft.matchupEnabled || false,
         type_answer_enabled: draft.typeAnswerEnabled || false,
         word_magnet_enabled: draft.wordMagnetEnabled || false,
+        tts_provider: draft.ttsProvider || "elevenlabs",
       };
 
       const { data, error } = await supabase.from("quizzes").insert(quizData as any).select().single();
@@ -1017,6 +978,20 @@ export default function QuizPreview() {
         await supabase.from("quizzes").delete().eq("id", data.id);
         // 아래 catch가 message를 그대로 토스트에 띄우므로 사용자에게 보여줄 한국어로 쓴다.
         throw new Error("문제 정보를 저장하지 못했어요");
+      }
+
+      // 음성은 서버가 만든다 — 행은 음성 없이 바로 넣어야 탭을 닫아도 문제가 빠지지 않는다.
+      const fillBlankRows = shuffledProblems.map((problem) => ({
+        quiz_id: data.id,
+        problem_id: problem.id,
+        word: problem.word,
+        sentence: problem.sentence,
+        hint: problem.hint,
+        translation: problem.translation,
+      }));
+      const { error: problemsError } = await supabase.from("quiz_problems").insert(fillBlankRows);
+      if (problemsError) {
+        console.error("Failed to save quiz problems:", problemsError);
       }
 
       if (draft.sentenceMakingEnabled && draft.sentenceMakingProblems && draft.sentenceMakingProblems.length > 0) {
@@ -1136,87 +1111,8 @@ export default function QuizPreview() {
         console.error("Failed to collect sentences into bank:", bankError);
       }
 
-      toast.success("퀴즈가 저장되었습니다! 음성을 생성 중입니다...");
-
-      (async () => {
-        try {
-          const problemsWithAudio = [];
-
-          for (const problem of shuffledProblems) {
-            const sentenceAudioUrl = await generateAndUploadAudio(problem.sentence, data.id, problem.id, "sentence");
-
-            problemsWithAudio.push({
-              quiz_id: data.id,
-              problem_id: problem.id,
-              word: problem.word,
-              sentence: problem.sentence,
-              hint: problem.hint,
-              translation: problem.translation,
-              sentence_audio_url: sentenceAudioUrl,
-              hint_audio_url: null,
-            });
-          }
-
-          const { error: problemsError } = await supabase.from("quiz_problems").insert(problemsWithAudio);
-
-          if (problemsError) {
-            console.error("Failed to save quiz problems with audio:", problemsError);
-          } else {
-            console.log("Audio generation completed for fill-blank problems:", data.id);
-          }
-
-          if (draft.recordingEnabled && draft.recordingProblems && draft.recordingProblems.length > 0) {
-            const fillBlankAudioMap = new Map(
-              problemsWithAudio
-                .filter((p) => p.sentence_audio_url)
-                .map((p) => [p.problem_id, p.sentence_audio_url])
-            );
-
-            for (const recProblem of draft.recordingProblems) {
-              // 대응 fill_blank 문제의 "완성 문장" 계산 (공통 헬퍼).
-              const fbSource = shuffledProblems.find((p) => p.id === recProblem.problem_id);
-              const filledSentence = fbSource
-                ? fbSource.sentence
-                    .replace(/\(\s*\)|\(\)/g, fbSource.answer)
-                    .replace(/([.?!])\s*\.+\s*$/, "$1")
-                    .trim()
-                : "";
-
-              let audioUrl: string | null | undefined;
-              if (fbSource && recProblem.sentence.trim() === filledSentence.trim()) {
-                // A1/A2: recording 문장 == fill_blank 완성 문장 → 기존 오디오 재사용(비용 절약).
-                audioUrl = fillBlankAudioMap.get(recProblem.problem_id);
-              } else {
-                // B1+ 짧은 문장: recording 문장과 다르므로 recording 문장으로 오디오 직접 생성.
-                // type을 "recording"으로 따로 둬서 파일 경로(${problemId}_${type}.mp3)가 빈칸
-                // 채우기 sentence 오디오(${problemId}_sentence.mp3)와 겹치지 않게 한다 — 겹치면
-                // upsert:true라 나중에 업로드되는 이쪽이 먼저 만든 파일을 덮어써 버린다.
-                audioUrl = await generateAndUploadAudio(
-                  recProblem.sentence,
-                  data.id,
-                  recProblem.problem_id,
-                  "recording"
-                );
-              }
-
-              if (audioUrl) {
-                const { error: updateError } = await supabase
-                  .from("recording_problems")
-                  .update({ sentence_audio_url: audioUrl })
-                  .eq("quiz_id", data.id)
-                  .eq("problem_id", recProblem.problem_id);
-
-                if (updateError) {
-                  console.error("Failed to update recording audio URL:", updateError);
-                }
-              }
-            }
-            console.log("Recording audio URLs synced (reuse for matching, generated for short sentences):", data.id);
-          }
-        } catch (audioError) {
-          console.error("Audio generation error:", audioError);
-        }
-      })();
+      startAudioProcessing(data.id);
+      toast.success("퀴즈가 저장되었습니다! 음성은 서버에서 만들어져요 — 창을 닫아도 괜찮아요.");
 
       sessionStorage.removeItem("quizDraft");
       sessionStorage.removeItem(PREVIEW_STAGE_KEY);

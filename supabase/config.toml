@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.clova-speech-assessment]
 verify_jwt = false
+
+[functions.process-audio]
+verify_jwt = false

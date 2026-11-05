@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
   closestCenter,
@@ -27,7 +28,10 @@ import { toast } from "sonner";
 import { RecordingStudentView } from "@/components/quiz/shared/RecordingStudentView";
 import { RecordingEditCard } from "@/components/quiz/shared/RecordingEditCard";
 import { isShortSentenceLevel } from "@/lib/quiz";
-import { generateTtsAudio, type TtsProvider } from "@/utils/ttsService";
+import type { TtsProvider } from "@/utils/ttsService";
+import { AUDIO_MAX_ATTEMPTS, regenerateAudio, startAudioProcessing } from "@/lib/audio/processAudio";
+import { isSameAsFilledSentence, cleanSentenceEnding } from "@/lib/audio/sentenceText";
+import { speakKorean } from "@/lib/audio/browserSpeech";
 
 export interface RecordingProblem {
   id: string;
@@ -41,6 +45,19 @@ export interface RecordingProblem {
   created_at: string;
   sort_order: number;
   label?: string | null;
+  // 서버 음성 생성 상태(서버가 관리). TODO(types): types.ts 재생성 후 정식 타입 사용.
+  audio_attempts?: number | null;
+  audio_error?: string | null;
+  audio_locked_until?: string | null;
+}
+
+// 음성 관련 값은 서버가 채우는 값이라 "고친 문제" 비교에서 뺀다.
+function editableFields(p: RecordingProblem & { audio_text_hash?: unknown }) {
+  const { sentence_audio_url, audio_text_hash, audio_attempts, audio_error, audio_locked_until, ...rest } = p;
+  return rest;
+}
+function isSameEditable(a: RecordingProblem, b: RecordingProblem) {
+  return JSON.stringify(editableFields(a)) === JSON.stringify(editableFields(b));
 }
 
 // 드래그로 순서를 바꿀 수 있는 카드 래퍼 — 편집 모드에서만 사용.
@@ -104,6 +121,7 @@ export function RecordingProblemList({
   const [isRegeneratingAllAudio, setIsRegeneratingAllAudio] = useState(false);
   const [audioUrlMap, setAudioUrlMap] = useState<Record<string, string>>({});
   const { id: quizId } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!isEditing) {
@@ -141,12 +159,7 @@ export function RecordingProblemList({
     setEditedProblems((prev) =>
       prev.map((p) => {
         if (p.id !== id) return p;
-        const updated = { ...p, mode };
-        if (mode === "listen" && !p.sentence_audio_url) {
-          const url = audioUrlMap[p.problem_id];
-          if (url) updated.sentence_audio_url = url;
-        }
-        return updated;
+        return { ...p, mode };
       })
     );
   };
@@ -199,7 +212,6 @@ export function RecordingProblemList({
               problem_id: problem.problem_id,
               sentence: problem.sentence,
               mode: problem.mode,
-              sentence_audio_url: problem.sentence_audio_url || null,
               translation: problem.translation || null,
               source_type: (problem.source_type || 'teacher_input') as "reuse" | "ai_generated" | "teacher_input",
               sort_order: problem.sort_order,
@@ -211,7 +223,7 @@ export function RecordingProblemList({
               .update({
                 sentence: problem.sentence,
                 mode: problem.mode,
-                sentence_audio_url: problem.sentence_audio_url || null,
+                // sentence_audio_url은 넣지 않는다 — 문장이 바뀌면 서버가 음성을 다시 만든다.
                 translation: problem.translation || null,
                 sort_order: problem.sort_order,
                 label: problem.label || null,
@@ -221,6 +233,7 @@ export function RecordingProblemList({
         })
       );
 
+      startAudioProcessing(quizId);
       toast.success("전체 문제가 저장되었습니다");
       onRefresh();
     } catch (error: any) {
@@ -233,7 +246,10 @@ export function RecordingProblemList({
 
   // 전체 저장(save-all)용: 변경된 경우에만 자기 자신을 저장하는 함수를 부모에 등록
   const saveSelfIfDirty = useCallback(async () => {
-    if (JSON.stringify(editedProblems) === JSON.stringify(problems)) return;
+    if (
+      editedProblems.length === problems.length &&
+      editedProblems.every((p, i) => isSameEditable(p, problems[i]))
+    ) return;
     await handleSaveAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editedProblems, problems]);
@@ -242,60 +258,103 @@ export function RecordingProblemList({
     return () => registerSaver(null);
   }, [registerSaver, saveSelfIfDirty]);
 
+  // 서버가 만든 음성 URL을 원본(쿼리 캐시)과 편집본 둘 다에 반영한다.
+  // 한쪽만 바꾸면 "고쳤습니다"가 뜨거나 저장 시 옛 값으로 덮어쓰게 된다.
+  const applyAudioUrls = (urls: Map<string, string>) => {
+    if (urls.size === 0) return;
+    const patch = (p: RecordingProblem) =>
+      urls.has(p.id) ? { ...p, sentence_audio_url: urls.get(p.id)!, audio_error: null } : p;
+    queryClient.setQueryData<RecordingProblem[]>(["recordingProblems", quizId], (prev) => prev?.map(patch));
+    setEditedProblems((prev) => prev.map(patch));
+  };
+
+  // 서버는 DB에 저장된 문장으로 음성을 만든다. 저장 전 문장이면 먼저 저장하도록 안내.
+  const hasUnsavedSentence = (problem: RecordingProblem) => {
+    const orig = problems.find((p) => p.id === problem.id);
+    return !orig || orig.sentence !== problem.sentence;
+  };
+
+  const runRegenerate = async (targets: RecordingProblem[]) => {
+    const results = await regenerateAudio(targets.map((p) => ({ table: "recording_problems" as const, id: p.id })));
+    const urls = new Map<string, string>();
+    for (const r of results) if (r.url) urls.set(r.id, r.url);
+    applyAudioUrls(urls);
+    return { ok: urls.size, failed: results.length - urls.size };
+  };
+
   const handleRegenerateAudio = async (problem: RecordingProblem) => {
     if (!quizId) return;
+    if (hasUnsavedSentence(problem)) {
+      toast.info("문장을 먼저 저장해 주세요. 저장하면 음성이 자동으로 새로 만들어져요.");
+      return;
+    }
     setRegeneratingId(problem.id);
     try {
-      const cleanText = problem.sentence
-        .replace(/([.?!])\s*\.+\s*$/, "$1")
-        .replace(/\.\s*\.$/, ".");
-
-      const audioBlob = await generateTtsAudio(cleanText, ttsProvider);
-      if (!audioBlob) throw new Error("TTS generation failed");
-
-      const fileName = `${quizId}/recording_${problem.problem_id}_${Date.now()}.mp3`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('quiz-audio')
-        .upload(fileName, audioBlob, { contentType: 'audio/mpeg', upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('quiz-audio')
-        .getPublicUrl(fileName);
-
-      const { error: updateError } = await supabase
-        .from("recording_problems")
-        .update({ sentence_audio_url: urlData.publicUrl })
-        .eq("id", problem.id);
-
-      if (updateError) throw updateError;
-
+      const { ok } = await runRegenerate([problem]);
+      if (ok === 0) throw new Error("음성 생성에 실패했습니다");
       toast.success("음성이 생성되었습니다");
       onRefresh();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Audio regeneration error:", error);
-      toast.error(error.message || "음성 생성에 실패했습니다");
+      toast.error(error instanceof Error && error.message ? error.message : "음성 생성에 실패했습니다");
     } finally {
       setRegeneratingId(null);
     }
   };
 
-  // 전체 음성 재생성 — 기존 개별 음성 재생성을 문제 수만큼 반복 적용(각 성공 시 바로 DB 반영).
+  // 전체 음성 재생성 — 서버에 30개씩 나눠 요청한다.
   const handleRegenerateAllAudio = async () => {
+    if (!quizId) return;
     if (!confirm("모든 문제의 음성이 재생성됩니다. 계속하시겠습니까?")) return;
+    const targets = editedProblems.filter(
+      (p) => p.sentence?.trim() && !p.id.startsWith("temp-") && !hasUnsavedSentence(p),
+    );
+    const skipped = editedProblems.length - targets.length;
     setIsRegeneratingAllAudio(true);
     try {
-      for (const problem of editedProblems) {
-        if (!problem.sentence?.trim() || problem.id.startsWith("temp-")) continue;
-        await handleRegenerateAudio(problem);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
+      const { ok, failed } = await runRegenerate(targets);
+      if (failed > 0) toast.error(`음성 ${failed}개를 만들지 못했어요`);
+      else if (ok > 0) toast.success("음성이 모두 생성되었습니다");
+      if (skipped > 0) toast.info(`저장하지 않은 문제 ${skipped}개는 저장하면 자동으로 음성이 만들어져요`);
+      onRefresh();
+    } catch (error) {
+      console.error("Audio regeneration error:", error);
+      toast.error(error instanceof Error && error.message ? error.message : "음성 생성에 실패했습니다");
     } finally {
       setIsRegeneratingAllAudio(false);
     }
   };
+
+  const fillBlankById = new Map((fillBlankProblems ?? []).map((p) => [p.id, p]));
+
+  // 재생할 음성: 자기 음성 → (문장이 완전히 같을 때만) 빈칸 채우기 음성 → 없으면 undefined(브라우저 음성)
+  const resolveAudioUrl = (problem: RecordingProblem): string | undefined => {
+    if (problem.sentence_audio_url) return problem.sentence_audio_url;
+    const fb = fillBlankById.get(problem.problem_id);
+    if (fb && isSameAsFilledSentence(problem.sentence, fb.sentence, fb.answer)) {
+      return audioUrlMap[problem.problem_id];
+    }
+    return undefined;
+  };
+
+  const playProblem = (problem: RecordingProblem) => {
+    const url = resolveAudioUrl(problem);
+    if (url) {
+      void new Audio(url).play();
+      return;
+    }
+    void speakKorean(cleanSentenceEnding(problem.sentence || "")).then((ok) => {
+      if (!ok) toast.error("이 기기에서는 음성을 재생할 수 없어요");
+    });
+  };
+
+  // 듣고 말하기인데 음성이 아직 없고 서버가 포기하지도 않은 행 = 만드는 중
+  // (저장된 원본 기준 — 저장 전 모드 변경은 아직 서버가 모른다)
+  const isAudioPending = (problem: RecordingProblem) =>
+    problems.find((o) => o.id === problem.id)?.mode === "listen" &&
+    !problem.sentence_audio_url &&
+    !problem.id.startsWith("temp-") &&
+    (problem.audio_attempts ?? 0) < AUDIO_MAX_ATTEMPTS;
 
   // 전체 문장 재생성 — 빈칸 채우기 문장에서 다시 계산(문장 만들 때 쓰는 것과 동일한 공식).
   // 빈칸 채우기와 연결 안 된(선생님이 직접 추가한) 문제는 대상에서 제외.
@@ -413,7 +472,7 @@ export function RecordingProblemList({
     const editedIds = new Set(editedProblems.map((p) => p.id));
     for (const p of editedProblems) {
       const orig = origById.get(p.id);
-      if (!orig || JSON.stringify(orig) !== JSON.stringify(p)) count++;
+      if (!orig || !isSameEditable(orig, p)) count++;
     }
     for (const p of problems) {
       if (!editedIds.has(p.id)) count++;
@@ -567,7 +626,7 @@ export function RecordingProblemList({
           <SortableContext items={editedProblems.map((p) => p.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-4">
               {editedProblems.map((problem, index) => {
-                const audioUrl = problem.sentence_audio_url || audioUrlMap[problem.problem_id];
+                const audioUrl = resolveAudioUrl(problem);
                 return (
                   <SortableRecordingCard key={problem.id} id={problem.id}>
                     {(dragHandleProps) => (
@@ -584,7 +643,8 @@ export function RecordingProblemList({
                         onChangeTranslation={(value) => handleUpdateProblem(problem.id, "translation", value)}
                         onChangeMode={(mode) => handleModeChange(problem.id, mode)}
                         audioUrl={audioUrl}
-                        onPlayAudio={audioUrl ? () => new Audio(audioUrl).play() : undefined}
+                        audioPending={isAudioPending(problem)}
+                        onPlayAudio={problem.sentence?.trim() ? () => playProblem(problem) : undefined}
                         onRegenerateAudio={() => handleRegenerateAudio(problem)}
                         regeneratingAudio={regeneratingId === problem.id}
                         onRegenerateProblem={isEditing ? () => handleRegenerateProblem(problem.id) : undefined}
@@ -603,7 +663,7 @@ export function RecordingProblemList({
       ) : (
         <div className="space-y-4">
           {editedProblems.map((problem, index) => {
-            const audioUrl = problem.sentence_audio_url || audioUrlMap[problem.problem_id];
+            const audioUrl = resolveAudioUrl(problem);
             return (
               <RecordingEditCard
                 key={problem.id}
@@ -619,7 +679,8 @@ export function RecordingProblemList({
                 onChangeTranslation={(value) => handleUpdateProblem(problem.id, "translation", value)}
                 onChangeMode={(mode) => handleModeChange(problem.id, mode)}
                 audioUrl={audioUrl}
-                onPlayAudio={audioUrl ? () => new Audio(audioUrl).play() : undefined}
+                audioPending={isAudioPending(problem)}
+                onPlayAudio={problem.sentence?.trim() ? () => playProblem(problem) : undefined}
                 // 읽기 전용에서는 값을 바꾸는 핸들러 자체를 카드에 넘기지 않는다 (권한 버그 방지)
                 onRegenerateAudio={undefined}
                 regeneratingAudio={regeneratingId === problem.id}

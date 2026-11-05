@@ -783,29 +783,15 @@ export default function QuizTake() {
           .eq("quiz_id", id);
 
         if (recProblems && recProblems.length > 0) {
-          // listen 모드인데 audio URL이 없는 문제 → quiz_problems에서 fallback
-          const missingAudio = recProblems.filter(p => p.mode === "listen" && !p.sentence_audio_url);
-          let fallbackMap: Record<string, string> = {};
-          if (missingAudio.length > 0) {
-            const { data: qpData } = await supabase
-              .from("quiz_problems")
-              .select("problem_id, sentence_audio_url")
-              .eq("quiz_id", id)
-              .in("problem_id", missingAudio.map(p => p.problem_id).filter(Boolean));
-            if (qpData) {
-              fallbackMap = Object.fromEntries(
-                qpData.filter(p => p.sentence_audio_url).map(p => [p.problem_id, p.sentence_audio_url!])
-              );
-            }
-          }
-
+          // 음성이 없으면 SpeakingStage가 브라우저 음성으로 읽는다. 빈칸 채우기 음성으로
+          // 대체하지 않는다 — 문장이 같아 재사용할 수 있으면 서버가 이 행에 URL을 직접 넣는다.
           // 문제 순서 셔플
           const shuffledRec = order(recProblems);
           setRecordingProblems(shuffledRec.map(p => ({
             id: p.id,
             sentence: p.sentence,
             mode: p.mode as "read" | "listen",
-            sentenceAudioUrl: p.sentence_audio_url || fallbackMap[p.problem_id] || null,
+            sentenceAudioUrl: p.sentence_audio_url || null,
             translation: p.translation,
           })));
         }

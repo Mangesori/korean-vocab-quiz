@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Problem, Quiz } from "./useQuizData";
+import { startAudioProcessing } from "@/lib/audio/processAudio";
 
 export function useProblemEditor(
   initialProblems: Problem[],
@@ -94,6 +95,29 @@ export function useProblemEditor(
         ]);
       }
 
+      // 기존 문제의 문장이 바뀌었으면 quiz_problems 행도 맞춘다. sentence_audio_url은
+      // 넣지 않는다 — 문장이 바뀌면 서버 트리거가 음성을 비우고 다시 만든다.
+      const initialById = new Map(initialProblems.map((p) => [p.id, p]));
+      const changedExisting = editedProblems.filter((p) => {
+        const orig = initialById.get(p.id);
+        return !!orig && (orig.word !== p.word || orig.sentence !== p.sentence || orig.hint !== p.hint || orig.translation !== p.translation);
+      });
+      if (changedExisting.length > 0) {
+        const results = await Promise.all(
+          changedExisting.map((p) =>
+            supabase
+              .from("quiz_problems")
+              .update({ word: p.word, sentence: p.sentence, hint: p.hint, translation: p.translation })
+              .eq("quiz_id", quizId)
+              .eq("problem_id", p.id),
+          ),
+        );
+        results.forEach(({ error: rowError }) => {
+          if (rowError) console.error("Failed to sync quiz_problems row:", rowError);
+        });
+      }
+
+      startAudioProcessing(quizId);
       onSaveSuccess(editedProblems);
       toast.success("변경사항이 저장되었습니다");
     } catch (error: any) {

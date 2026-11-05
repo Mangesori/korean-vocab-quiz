@@ -24,7 +24,6 @@ import {
   PenLine,
   Type,
   Upload,
-  Volume2,
 } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -41,7 +40,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PERMISSIONS } from "@/lib/rbac/roles";
 import { buildProblems, IMPORT_COLUMNS, parseImportText } from "@/lib/quiz/importFormat";
 import { quizInsertErrorMessage } from "@/lib/supabaseErrors";
-import { generateTtsAudio } from "@/utils/ttsService";
+import { startAudioProcessing } from "@/lib/audio/processAudio";
 import type { BaseStage } from "@/types/quiz";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -96,7 +95,6 @@ export default function QuizImport() {
   const [wordsPerSet, setWordsPerSet] = useState(5);
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(60);
-  const [ttsEnabled, setTtsEnabled] = useState(false);
   // 문장 은행은 퀴즈와 별개로 쌓이는 공용 자산이다. 복습이 단계마다 다른 문장을
   // 꺼내 쓰려면 여기에 있어야 하므로 기본값을 켬으로 둔다.
   const [saveToBank, setSaveToBank] = useState(true);
@@ -139,28 +137,6 @@ export default function QuizImport() {
     setRawText(text);
     if (!title.trim()) setTitle(file.name.replace(/\.(tsv|csv|txt)$/i, ""));
   }, [title]);
-
-  const uploadAudio = async (text: string, quizId: string, problemId: string): Promise<string | null> => {
-    try {
-      const clean = text.replace(/([.?!])\s*\.+\s*$/, "$1").trim();
-      const blob = await generateTtsAudio(clean, "elevenlabs");
-      if (!blob) return null;
-
-      const fileName = `${quizId}/${problemId}_sentence.mp3`;
-      const { error } = await supabase.storage.from("quiz-audio").upload(fileName, blob, {
-        contentType: "audio/mpeg",
-        upsert: true,
-      });
-      if (error) {
-        console.error("Audio upload failed:", error);
-        return null;
-      }
-      return supabase.storage.from("quiz-audio").getPublicUrl(fileName).data.publicUrl;
-    } catch (e) {
-      console.error("TTS error:", e);
-      return null;
-    }
-  };
 
   const handleSaveBankOnly = async () => {
     setIsSaving(true);
@@ -216,6 +192,7 @@ export default function QuizImport() {
         matchup_enabled: stages.matchup,
         type_answer_enabled: stages.type_answer,
         word_magnet_enabled: stages.word_magnet,
+        tts_provider: "elevenlabs",
       };
 
       const { data, error } = await supabase.from("quizzes").insert(quizData as never).select().single();
@@ -240,7 +217,7 @@ export default function QuizImport() {
         throw new Error("문제 정보를 저장하지 못했어요");
       }
 
-      // 빈칸 채우기 본문. QuizPreview와 달리 TTS 성공 여부와 무관하게 먼저 넣는다.
+      // 빈칸 채우기 본문(음성은 서버가 채운다).
       const { error: problemsError } = await supabase.from("quiz_problems").insert(
         built.problems.map((p) => ({
           quiz_id: quizId,
@@ -249,8 +226,6 @@ export default function QuizImport() {
           sentence: p.sentence,
           hint: p.hint || null,
           translation: p.translation || null,
-          sentence_audio_url: null,
-          hint_audio_url: null,
         }))
       );
       if (problemsError) console.error("Failed to save quiz problems:", problemsError);
@@ -358,36 +333,10 @@ export default function QuizImport() {
 
       const bankNote = bankSaved > 0 ? ` · 문장 은행 ${bankSaved}개` : "";
 
-      if (!ttsEnabled) {
-        toast.success(`퀴즈가 저장되었습니다! (문제 ${built.problems.length}개${bankNote})`);
-        navigate(`/quiz/${quizId}`);
-        return;
-      }
-
-      // 음성은 유일하게 외부 API를 쓰는 부분이라 저장을 끝낸 뒤 별도로 돈다.
-      // 실패해도 퀴즈는 이미 완성돼 있고 audio_url만 비어 있게 된다.
-      toast.success("퀴즈가 저장되었습니다! 음성을 생성 중입니다...");
+      // 음성은 서버가 만든다(창을 닫아도 계속됨). 시작 신호만 보낸다.
+      startAudioProcessing(quizId);
+      toast.success(`퀴즈가 저장되었습니다! (문제 ${built.problems.length}개${bankNote}) 음성은 서버에서 만들어져요.`);
       navigate(`/quiz/${quizId}`);
-
-      void (async () => {
-        for (const p of built.problems) {
-          // 빈칸이 아니라 정답이 채워진 완성 문장을 읽어야 한다.
-          const url = await uploadAudio(p.sentence.replace(/\(\s*\)|\(\)/g, p.answer), quizId, p.id);
-          if (!url) continue;
-          await supabase
-            .from("quiz_problems")
-            .update({ sentence_audio_url: url })
-            .eq("quiz_id", quizId)
-            .eq("problem_id", p.id);
-          if (stages.recording) {
-            await supabase
-              .from("recording_problems")
-              .update({ sentence_audio_url: url })
-              .eq("quiz_id", quizId)
-              .eq("problem_id", p.id);
-          }
-        }
-      })();
     } catch (e) {
       console.error("Import save error:", e);
       toast.error(e instanceof Error && e.message ? e.message : "저장에 실패했어요");
@@ -716,22 +665,6 @@ export default function QuizImport() {
                 </div>
                 )}
 
-                {mode === "quiz" && (
-                <div className="rounded-[11px] border border-[#E7E1DA] p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <div className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                        <Volume2 className="w-4 h-4 text-muted-foreground" />
-                        음성 만들기
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        이것만 외부 API(TTS)를 씁니다. 꺼 두면 저장이 훨씬 빨라요.
-                      </div>
-                    </div>
-                    <Switch checked={ttsEnabled} onCheckedChange={setTtsEnabled} />
-                  </div>
-                </div>
-                )}
               </div>
             </section>
 
