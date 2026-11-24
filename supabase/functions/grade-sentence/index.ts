@@ -42,7 +42,9 @@ const CRITICAL_SCORE_CAP = 65;
 /** 채점 실패 표식 — QuizResultDialog가 이 문구로 실패한 시도를 걸러낸다. 바꾸지 말 것. */
 const GRADING_FAILURE_FEEDBACK = "채점에 실패했습니다.";
 
-const MODEL = "claude-sonnet-5";
+// 2026-11-24 Sonnet 5 → 5.5. 같은 36문장 x 3회 비교에서 정답 일치 95.4% → 99.1%,
+// 틀린 문장을 통과시킨 비율 13.9% → 2.8%, 5문장 채점 시간 15초 → 5.7초(effort medium 동일).
+const MODEL = "claude-sonnet-5-5";
 const MAX_TOKENS = 8192;
 const TIMEOUT_MS = 55000;
 
